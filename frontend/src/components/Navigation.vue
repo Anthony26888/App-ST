@@ -42,7 +42,7 @@
     </v-list>
     <template v-slot:append>
       <div class="pa-2">
-        <v-btn block @click="LogOut()"> Đăng xuất </v-btn>
+        <v-btn block @click="LogOut()" class="text-caption"> Đăng xuất </v-btn>
       </div>
     </template>
   </v-navigation-drawer>
@@ -54,6 +54,7 @@ import { jwtDecode } from "jwt-decode";
 export default {
   data() {
     return {
+      Url: import.meta.env.VITE_API_URL,
       UserInfo: null,
       LevelUser: "",
       Date_Expired: "",
@@ -76,6 +77,7 @@ export default {
     },
     LogOut() {
       localStorage.removeItem("token");
+      this.$router.push('/')
     },
     async FetchUser() {
       if (this.UserInfo) {

@@ -71,9 +71,23 @@ export default {
         });
 
         localStorage.setItem("token", res.data.token);
-        this.$router.push(`/Home`);
+        this.FetchUser();
       } catch (err) {
         this.error = err.response.data.error;
+      }
+    },
+    async FetchUser() {
+      try {
+        const res = await fetch(`${this.Url}/All-Users/${this.Username}`);
+        const Detail_User = await res.json();
+        const LevelUser = Detail_User[0].Level;
+        if (LevelUser == "Admin" || LevelUser == "Kế hoạch") {
+          this.$router.push(`/Kiem-tra-so-lieu`);
+        } else {
+          this.$router.push(`/Ton-kho`);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
       }
     },
   },

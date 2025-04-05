@@ -1,37 +1,18 @@
 <template lang="">
-  <v-empty-state width="100%">
-    <v-card class="mx-auto my-auto" color="grey-lighten-4" width="400">
-      <v-toolbar color="primary" flat>
-        <v-btn icon="mdi-account"></v-btn>
+  <v-card variant="text" class="overflow-y-auto" height="100vh">
+    <v-card-title>
+      <ButtonBack to="/Cai-dat" />
+    </v-card-title>
+    <v-card-title class="text-h4 font-weight-light"
+      >Đăng ký thành viên
+    </v-card-title>
 
-        <v-toolbar-title class="font-weight-light"
-          >Đăng ký thành viên</v-toolbar-title
-        >
-      </v-toolbar>
-
+    <v-container>
       <v-card-text>
-        <v-text-field
-          variant="solo-filled"
-          label="Tên đăng nhập"
-          clearable
-          v-model="Username"
-        ></v-text-field>
-
-        <v-text-field
-          variant="solo-filled"
-          label="Tên người dùng"
-          clearable
-          v-model="FullName"
-        ></v-text-field>
-
-        <v-text-field
-          variant="solo-filled"
-          label="Mật khẩu"
-          type="password"
-          clearable
-          v-model="Password"
-        ></v-text-field>
-
+        <InputField label="Tên đăng nhập" v-model="Username" />
+        <InputField label="Tên người dùng" v-model="FullName" />
+        <InputField label="Mật khẩu" type="password" v-model="Password" />
+        <InputField label="Email" v-model="Email" />
         <v-select
           label="Phân quyền"
           :items="['Admin', 'Kế hoạch', 'Thủ kho']"
@@ -46,7 +27,6 @@
         <v-btn
           @click="
             Register();
-            DialogSuccess = true;
           "
           block
           variant="tonal"
@@ -55,48 +35,15 @@
           Đăng ký
         </v-btn>
       </v-card-actions>
-    </v-card>
-  </v-empty-state>
-  <v-dialog v-model="DialogSuccess">
-    <v-card width="500" height="400" class="mx-auto">
-      <v-empty-state icon="$success">
-        <template v-slot:media>
-          <v-icon color="success"></v-icon>
-        </template>
-
-        <template v-slot:headline>
-          <div class="text-h4">Thành Công</div>
-        </template>
-
-        <template v-slot:text>
-          <div class="text-medium-emphasis text-caption">
-            Dữ liệu đã được nhập vào hệ thống
-          </div>
-        </template>
-        <template v-slot:actions>
-          <v-btn
-            class="text-none"
-            color="primary"
-            elevation="1"
-            rounded="lg"
-            size="small"
-            text="Tiếp tục"
-            width="96"
-            @click="
-              Username = '';
-              FullName = '';
-              Password = '';
-              Level = '';
-              DialogSuccess = false;
-            "
-          ></v-btn>
-        </template>
-      </v-empty-state>
-    </v-card>
-  </v-dialog>
+    </v-container>
+  </v-card>
+  <SnackbarSuccess v-model="DialogSuccess" />
 </template>
 <script setup>
 import axios from "axios";
+import ButtonBack from "@/components/Button-Back.vue";
+import SnackbarSuccess from "@/components/Snackbar-Success.vue";
+import InputField from "@/components/Input-Field.vue";
 </script>
 <script>
 export default {
@@ -106,6 +53,7 @@ export default {
       Username: "",
       FullName: "",
       Password: "",
+      Email: "",
       Level: "",
       Date: "",
       DialogSuccess: false,
@@ -127,9 +75,11 @@ export default {
         Username: this.Username,
         FullName: this.FullName,
         Password: this.Password,
+        Email: this.Email,
         Level: this.Level,
         Date: this.Date,
       };
+      this.Reset()
       axios
         .post(`${this.Url}/Users/register`, Item)
         .then(function (response) {
@@ -139,6 +89,14 @@ export default {
           console.log(error);
         });
     },
+    Reset(){
+      this.DialogSuccess = true,
+      this.Username = "",
+      this.Password = "",
+      this.Email = ""
+      this.Level = "",
+      this.FullName = ""
+    }
   },
 };
 </script>

@@ -3,44 +3,27 @@
     <v-card-title class="text-h4 font-weight-light"
       >Kiểm tra số liệu linh kiện</v-card-title
     >
+    <v-card-title class="d-flex">
+      <ButtonImportFile @import-file="Dialog = true" />
+      <v-btn
+        prepend-icon="mdi mdi-pencil"
+        variant="tonal"
+        class="text-caption ms-2"
+        color="primary"
+        to="/Chinh-sua-so-lieu"
+        >Chỉnh sửa</v-btn
+      >
+      <v-spacer></v-spacer>
+      <InputSearch v-model="NamePO" />
+    </v-card-title>
     <v-card-text>
-      <v-container>
-        <v-row justify="center" align="center">
-          <v-col cols="2">
-            <v-btn
-              prepend-icon="mdi mdi-plus"
-              variant="tonal"
-              class="text-caption mb-4"
-              @click="Dialog = true"
-              >Import File</v-btn
-            >
-          </v-col>
-          <v-col cols="8">
-            <v-text-field
-              label="Tên dự án"
-              v-model="NamePO"
-              clearable
-              variant="solo-filled"
-            ></v-text-field>
-          </v-col>
-          <v-col cols="2">
-            <v-btn
-              prepend-icon="mdi mdi-plus"
-              variant="tonal"
-              class="text-caption mb-4"
-              @click="Dialog = true"
-              >Import File</v-btn
-            >
-          </v-col>
-        </v-row>
-      </v-container>
       <v-divider></v-divider>
       <v-empty-state
         v-if="NamePO == null || NamePO == ''"
         headline="OPPS !"
         title="Chưa có dữ liệu"
         text="Chon thêm file hoặc nhập tên PO"
-        image="/src/assets/Empty.png"
+        icon="mdi-folder-remove-outline"
       ></v-empty-state>
       <v-card
         variant="text"
@@ -51,14 +34,7 @@
           <p class="ms-2 font-weight-thin text-subtitle-1">
             ( {{ Bom.length }} linh kiện)
           </p>
-          <v-btn
-            prepend-icon="mdi mdi-download"
-            color="success"
-            class="ms-2 text-caption"
-            variant="tonal"
-            @click="DownloadPO()"
-            >Tải file</v-btn
-          >
+          <ButtonDownload @download-file="DownloadPO()" />
           <v-btn
             prepend-icon="mdi mdi-content-save-plus"
             color="blue-darken-4"
@@ -80,18 +56,7 @@
             >Xoá dữ liệu</v-btn
           >
           <v-spacer></v-spacer>
-          <v-text-field
-            v-model="search"
-            density="compact"
-            label="Tìm kiếm"
-            prepend-inner-icon="mdi-magnify"
-            variant="solo-filled"
-            flat
-            hide-details
-            single-line
-            clearable
-            max-width="400"
-          ></v-text-field>
+          <InputSearch v-model="search" />
         </v-card-title>
 
         <v-card-text>
@@ -107,12 +72,6 @@
                 <v-pagination v-model="page" :length="pageCount"></v-pagination>
               </div>
             </template>
-
-            <template v-slot:item.id="{ item }">
-              <v-icon @click="EditItem(item)" color="primary"
-                >mdi-pencil</v-icon
-              >
-            </template>
           </v-data-table>
         </v-card-text>
       </v-card>
@@ -121,149 +80,30 @@
   <v-dialog v-model="Dialog" width="400">
     <v-card max-width="400" prepend-icon="mdi-update" title="Thêm dữ liệu">
       <v-card-text>
-        <v-text-field
-          label="Tên dự án"
-          v-model="InputPO"
-          variant="solo-filled"
-          clearable
-          :rules="[required]"
-        ></v-text-field>
-        <v-text-field
-          label="Tên BOM"
-          v-model="InputBOM"
-          variant="solo-filled"
-          clearable
-          :rules="[required]"
-        ></v-text-field>
-        <v-text-field
+        <InputField label="Tên dự án" v-model="InputPO" :rules="[required]" />
+        <InputField label="Tên Bom" v-model="InputBOM" :rules="[required]" />
+        <InputField
           label="Số lượng Board"
           v-model="InputQuantity"
-          type="number"
-          variant="solo-filled"
           :rules="[required]"
-        ></v-text-field>
-        <v-file-input
-          clearable
-          label="Thêm File Excel"
-          variant="solo-filled"
-          v-model="File"
-          accept=".xlsx"
-          :rules="[required]"
-        ></v-file-input>
+        />
+        <InputFiles v-model="File" :rules="[required]" />
       </v-card-text>
       <template v-slot:actions>
-        <v-btn @click="Dialog = false" variant="tonal">Huỷ</v-btn>
-        <v-btn
-          class="bg-primary"
-          @click="
-            ImportFile();
-            DialogSuccess = true;
-          "
-          >Nhập dữ liệu</v-btn
-        >
+        <ButtonCancel @cancel="Dialog = false" />
+        <ButtonSave @save="ImportFile()" />
       </template>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogSuccess">
-    <v-card width="500" height="400" class="mx-auto">
-      <v-empty-state icon="$success">
-        <template v-slot:media>
-          <v-icon color="success"></v-icon>
-        </template>
-
-        <template v-slot:headline>
-          <div class="text-h4">Thành Công</div>
-        </template>
-
-        <template v-slot:text>
-          <div class="text-medium-emphasis text-caption">
-            Dữ liệu đã được nhập vào hệ thống
-          </div>
-        </template>
-        <template v-slot:actions>
-          <v-btn
-            class="text-none"
-            color="primary"
-            elevation="1"
-            rounded="lg"
-            size="small"
-            text="Tiếp tục"
-            width="96"
-            @click="
-              DialogSuccess = false;
-              File = null;
-              Dialog = false;
-              DialogEdit = false;
-              CostEstimate = '';
-              InputPO = '';
-              InputBOM = '';
-              InputQuantity = '1';
-            "
-          ></v-btn>
-        </template>
-      </v-empty-state>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogFailed">
-    <v-card width="500" height="400" class="mx-auto">
-      <v-empty-state icon="mdi-close-circle">
-        <template v-slot:media>
-          <v-icon color="red"></v-icon>
-        </template>
-
-        <template v-slot:headline>
-          <div class="text-h4">Xảy ra lỗi</div>
-        </template>
-
-        <template v-slot:text>
-          <div class="text-medium-emphasis text-caption">
-            Dữ liệu chưa chính xác. Cần kiểm tra lại
-          </div>
-        </template>
-        <template v-slot:actions>
-          <v-btn
-            class="text-none"
-            color="primary"
-            elevation="1"
-            rounded="lg"
-            size="small"
-            text="Tiếp tục"
-            width="96"
-            @click="
-              DialogFailed = false;
-              File = null;
-              Dialog = false;
-              DialogEdit = false;
-              CostEstimate = '';
-              InputPO = '';
-              InputBOM = '';
-              InputQuantity = '1';
-            "
-          ></v-btn>
-        </template>
-      </v-empty-state>
-    </v-card>
-  </v-dialog>
+  <SnackbarSuccess v-model="DialogSuccess" />
   <v-dialog v-model="DialogEdit" width="400">
     <v-card max-width="400" prepend-icon="mdi-update" title="Cập nhật dữ liệu">
       <v-card-text>
-        <v-text-field
-          label="Dự toán hao phí"
-          v-model="CostEstimate"
-          clearable
-          variant="solo-filled"
-        ></v-text-field>
+        <InputField label="Dự toán hao phí" v-model="CostEstimate" />
       </v-card-text>
       <template v-slot:actions>
-        <v-btn @click="DialogEdit = false" variant="tonal">Huỷ</v-btn>
-        <v-btn
-          class="bg-primary"
-          @click="
-            SaveEdit();
-            DialogSuccess = true;
-          "
-          >Nhập dữ liệu</v-btn
-        >
+        <ButtonCancel @cancel="DialogEdit = false" />
+        <ButtonSave @save="SaveEdit()" />
       </template>
     </v-card>
   </v-dialog>
@@ -271,17 +111,8 @@
     <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
       <v-card-text> Bạn có chắc chắn muốn xoá dự án này ? </v-card-text>
       <template v-slot:actions>
-        <v-btn @click="DialogRemove = false" variant="tonal">Huỷ</v-btn>
-        <v-btn
-          class="bg-red"
-          @click="
-            RemoveItem();
-            Bom = [];
-            NamePO = '';
-            DialogRemove = false;
-          "
-          >Xoá</v-btn
-        >
+        <ButtonCancel @cancel="DialogRemove = false" />
+        <ButtonDelete @delete="RemoveItem()" />
       </template>
     </v-card>
   </v-dialog>
@@ -289,9 +120,21 @@
 <script setup>
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
+import ButtonImportFile from "@/components/Button-ImportFile.vue";
+import ButtonDownload from "@/components/Button-Download.vue";
+import ButtonSave from "@/components/Button-Save.vue";
+import ButtonCancel from "@/components/Button-Cancel.vue";
+import InputSearch from "@/components/Input-Search.vue";
+import InputField from "@/components/Input-Field.vue";
+import InputFiles from "@/components/Input-Files.vue";
+import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 </script>
 <script>
+
 export default {
+  components: {
+    ButtonImportFile,
+  },
   data() {
     return {
       Url: import.meta.env.VITE_API_URL,
@@ -315,6 +158,7 @@ export default {
       Date: "",
       itemsPerPage: 15,
       page: 1,
+      timeout: 5000,
       UserInterval: null,
     };
   },
@@ -343,11 +187,11 @@ export default {
       formData.append("PO", this.InputPO);
       formData.append("BOM", this.InputBOM);
       formData.append("SL_Board", this.InputQuantity);
+      this.Reset();
       axios
         .post(`${this.Url}/upload`, formData)
         .then(function (response) {
           console.log(response);
-          this.DialogSuccess = true;
         })
         .catch(function (error) {
           console.log(error);
@@ -407,11 +251,12 @@ export default {
         Date: this.Date,
         Creater: this.UserInfo,
       };
+      this.Reset();
       axios
         .post(`${this.Url}/ListPO/upload-new-PO`, Item)
         .then(function (response) {
           console.log(response);
-          this.DialogSuccess = true;
+          tthis.Reset();
         })
         .catch(function (error) {
           console.log(error);
@@ -427,17 +272,18 @@ export default {
         Name_Item: this.GetRow,
         Input_Hao_Phi: this.CostEstimate,
       };
+      this.Reset();
       axios
         .put(`${this.Url}/CheckBom/Update-Hao-Phi`, Item)
         .then(function (response) {
           console.log(response);
-          this.DialogSuccess = true;
         })
         .catch(function (error) {
           console.log(error);
         });
     },
     async RemoveItem() {
+      this.Reset();
       axios
         .delete(`${this.Url}/CheckBOM/Delete-item/${this.NamePO}`)
         .then(function (response) {
@@ -446,22 +292,6 @@ export default {
         .catch(function (error) {
           console.log(error);
         });
-    },
-    async FetchOrders() {
-      if (this.NamePO) {
-        try {
-          const res = await fetch(`${this.Url}/Orders/${this.NamePO}`);
-          const OrdersAvailable = await res.json();
-          if (OrdersAvailable.Name_PO == this.NamePO) {
-            this.OrderAvailable = true;
-          } else {
-            this.OrderAvailable = false;
-          }
-        } catch (error) {
-          this.DialogFailed = true;
-          console.error("Error fetching user data:", error);
-        }
-      }
     },
     getUserInfo() {
       const token = localStorage.getItem("token");
@@ -481,6 +311,17 @@ export default {
     },
     required(v) {
       return !!v || "Dữ liệu trống";
+    },
+    Reset() {
+      (this.Dialog = false), (this.DialogSuccess = true);
+      (this.DialogRemove = false), (this.File = null);
+      this.DialogEdit = false;
+      this.CostEstimate = "";
+      this.InputPO = "";
+      this.InputBOM = "";
+      this.InputQuantity = "1";
+      this.Bom = [];
+      this.NamePO = "";
     },
   },
 };

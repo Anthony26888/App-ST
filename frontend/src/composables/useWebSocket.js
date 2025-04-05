@@ -5,6 +5,7 @@ export function useSocket() {
   const users = ref([]);
   const warehouse = ref([]);
   const orders = ref([]);
+  const bom = ref([]);
 
   let socket;
 
@@ -17,6 +18,7 @@ export function useSocket() {
       users.value = data.users;
       warehouse.value = data.warehouse;
       orders.value = data.orders;
+      bom.value = data.bom;
     });
 
     socket.on("connect", () => console.log("Socket connected:", socket.id));
@@ -27,5 +29,7 @@ export function useSocket() {
     if (socket) socket.disconnect();
   });
 
-  return { users, warehouse, orders };
+  return { users, warehouse, orders, bom };
 }
+
+

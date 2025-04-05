@@ -3,24 +3,19 @@
     variant="text"
     class="overflow-y-auto"
     height="100vh"
-    v-if="DetailOrder == false"
   >
     <v-card-title class="text-h4 font-weight-light"
       >Danh sách đơn hàng
     </v-card-title>
+    <v-card-title class="d-flex align-center pe-2">
+      <p class="text-subtitle-1">
+        Có {{ orders.length }} đơn hàng
+      </p>
+      <v-spacer></v-spacer>
+      <InputSearch v-model="search" />
+    </v-card-title>
+    <v-divider></v-divider>
     <v-card-text v-if="orders.length > 0">
-      <v-text-field
-        v-model="search"
-        density="compact"
-        label="Tìm kiếm"
-        prepend-inner-icon="mdi-magnify"
-        variant="solo-filled"
-        flat
-        hide-details
-        single-line
-        clearable
-        max-width="400"
-      ></v-text-field>
       <v-data-table
         :headers="Headers"
         :items="orders"
@@ -33,9 +28,10 @@
             color="primary"
             variant="text"
             size="small"
-            @click="EditTable(value)"
+            @click="FetchTableOrder(value)"
           ></v-btn>
           <v-btn
+
             icon="mdi-delete"
             color="red"
             variant="text"
@@ -70,47 +66,31 @@
         headline="OPPS !"
         title="Chưa có dữ liệu"
         text="Hãy tạo đơn hàng mới"
-        image="/src/assets/Empty.png"
+        icon="mdi-folder-remove-outline"
       ></v-empty-state>
     </v-card-text>
   </v-card>
 
-  <div v-if="DetailOrder == true">
-    <v-card variant="text" class="overflow-y-auto" height="100vh">
-      <v-card-title class="text-h4 font-weight-light"
-        ><v-btn prepend-icon="mdi-chevron-left" variant="text" @click="GoBack()"
-          >Trở lại</v-btn
-        >
-      </v-card-title>
-      <v-card-text>
-        <Detail />
-      </v-card-text>
-    </v-card>
-  </div>
   <v-dialog v-model="DialogRemove" width="400">
     <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
       <v-card-text> Bạn có chắc chắn muốn xoá dự án này ? </v-card-text>
       <template v-slot:actions>
-        <v-btn @click="DialogRemove = false" variant="tonal">Huỷ</v-btn>
-        <v-btn
-          class="bg-red"
-          @click="
-            RemoveItem();
-            DialogRemove = false;
-          "
-          >Xoá</v-btn
-        >
+        <ButtonCancel @cancel="DialogRemove = false" />
+        <ButtonDelete @delete="RemoveItem()" />
       </template>
     </v-card>
   </v-dialog>
+  <SnackbarSuccess v-model="DialogSuccess" />
 </template>
 <script setup>
 import axios from "axios";
 import router from "@/router/index";
 import { useSocket } from "@/composables/useWebSocket";
-
+import InputSearch from "@/components/Input-Search.vue";
+import SnackbarSuccess from "@/components/Snackbar-Success.vue";
+import ButtonDelete from "@/components/Button-Delete.vue";
+import ButtonCancel from "@/components/Button-Cancel.vue";
 const { orders } = useSocket();
-console.log(orders);
 </script>
 <script>
 export default {
@@ -131,27 +111,21 @@ export default {
       ],
       search: "",
       id_Remove: "",
-      DetailOrder: false,
+      Name_PO: "",
       DialogRemove: false,
+      DialogSuccess :false,
       itemsPerPage: 10,
       page: 1,
       intervalId: null,
     };
   },
   methods: {
-    EditTable(value) {
-      const item = this.Orders.find((v) => v.id == value);
-      this.Name_PO = item.Name_PO;
-      router.push({
-        name: "Pages",
-        params: { id: 1, PO: this.Name_PO },
-      });
-      this.DetailOrder = true;
-    },
-    async FetchTableOrder() {
+    async FetchTableOrder(value) {
       try {
-        const res = await fetch(`${this.Url}/CheckBom/${this.Name_PO}`);
-        this.Order = await res.json();
+        const res = await fetch(`${this.Url}/Orders/Detail/${value}`);
+        const orders = await res.json();
+        this.Name_PO = orders[0].Name_PO;
+        this.$router.push(`/Don-hang/${orders[0].Name_PO}`);
       } catch (error) {
         console.error("Error fetching user data:", error);
       }
@@ -161,23 +135,20 @@ export default {
       this.DialogRemove = true;
     },
     async RemoveItem() {
+      this.Reset()
       axios
         .delete(`${this.Url}/Orders/delete-item/${this.id_Remove}`)
         .then(function (response) {
           console.log(response);
-          this.DialogRemove = false;
         })
         .catch(function (error) {
           console.log(error);
         });
     },
-
-    GoBack() {
-      (this.DetailOrder = false),
-        router.push({
-          name: "Home",
-        });
-    },
+    Reset(){
+      this.DialogRemove = false,
+      this.DialogSuccess = true
+    }
   },
 };
 </script>

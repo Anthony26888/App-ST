@@ -123,9 +123,7 @@ const getPivotQuery = async (id) => {
             PartNumber_3,  
             ${columns},
             IFNULL(SUM(So_Luong * SL_Board), 0) AS SL_Tổng,
-            IFNULL(SUM(SL_Board), 0) AS SL_Board,
-            IFNULL(Du_Toan_Hao_Phi, 0) AS Dự_Toán_Hao_Phí,
-            id
+            IFNULL(SUM(SL_Board), 0) AS SL_Board
           FROM CheckBOM
           WHERE PO = ?
           GROUP BY PartNumber_1;
@@ -244,6 +242,19 @@ app.get("/Orders", async (req, res) => {
   }
 });
 
+// Route to fetch all orders
+app.get("/Orders/Detail/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    db.all(`SELECT * FROM Orders WHERE id =?`, [id], (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Route to fetch detail Orders
 app.get("/Orders/:id", async (req, res) => {
   const { id } = req.params;
@@ -316,7 +327,7 @@ app.put("/Orders/WareHouse-Accept/:id", async (req, res) => {
 
 // Router update WareHouse accept
 app.put("/Inventory/update-Inventory-CheckBom/:id", async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.params.id;
   // Insert data into SQLite database
   const query = `
     UPDATE WareHouse

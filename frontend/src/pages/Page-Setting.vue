@@ -64,48 +64,15 @@
       </v-container>
     </v-card-text>
   </v-card>
-  <v-card
-    v-if="TabRegister == true"
-    variant="text"
-    class="overflow-y-auto"
-    height="100vh"
-  >
-    <v-card-title>
-      <v-btn
-        prepend-icon="mdi-arrow-left"
-        variant="text"
-        class="text-caption"
-        @click="
-          TabMain = true;
-          TabRegister = false;
-        "
-        >Trở lại</v-btn
-      >
-    </v-card-title>
-    <v-card-text>
-      <v-container>
-        <Tab_Register />
-      </v-container>
-    </v-card-text>
-  </v-card>
-  
+
   <v-dialog v-model="DialogRemoveInventory" width="400">
     <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
       <v-card-text>
         Bạn có chắc chắn muốn xoá toàn bộ dữ liệu dự án ?
       </v-card-text>
       <template v-slot:actions>
-        <v-btn @click="DialogRemoveInventory = false" variant="tonal"
-          >Huỷ</v-btn
-        >
-        <v-btn
-          class="bg-red"
-          @click="
-            RemoveInventory();
-            DialogRemoveInventory = false;
-          "
-          >Xoá</v-btn
-        >
+        <ButtonCancel @cancel="DialogRemoveInventory = false" />
+        <ButtonDelete @delete="RemoveInventory()" />
       </template>
     </v-card>
   </v-dialog>
@@ -115,38 +82,32 @@
         Bạn có chắc chắn muốn xoá toàn bộ dữ liệu kho ?
       </v-card-text>
       <template v-slot:actions>
-        <v-btn @click="DialogRemoveCheckBOM = false" variant="tonal">Huỷ</v-btn>
-        <v-btn
-          class="bg-red"
-          @click="
-            RemoveCheckBOM();
-            DialogRemoveCheckBOM = false;
-          "
-          >Xoá</v-btn
-        >
+        <ButtonCancel @cancel="DialogRemoveCheckBOM = false" />
+        <ButtonDelete @delete="RemoveCheckBOM()" />
       </template>
     </v-card>
   </v-dialog>
+  <SnackbarSuccess v-model="DialogSuccess" />
 </template>
 <script setup>
 import axios from "axios";
-import Tab_Register from "@/components/Register.vue";
-import Tab_Users from "@/components/List-User.vue";
+import ButtonDelete from "@/components/Button-Delete.vue";
+import ButtonCancel from "@/components/Button-Cancel.vue";
+import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 </script>
 <script>
 export default {
   data() {
     return {
       Url: import.meta.env.VITE_API_URL,
-      TabMain: true,
-      TabRegister: false,
-      TabUser: false,
       DialogRemoveInventory: false,
       DialogRemoveCheckBOM: false,
+      DialogSuccess : false
     };
   },
   methods: {
     async RemoveInventory() {
+      this.Reset()
       axios
         .delete(`${this.Url}/Inventory/delete-all`)
         .then(function (response) {
@@ -158,6 +119,7 @@ export default {
         });
     },
     async RemoveCheckBOM() {
+      this.Reset()
       axios
         .delete(`${this.Url}/CheckBOM/delete-all`)
         .then(function (response) {
@@ -168,6 +130,11 @@ export default {
           console.log(error);
         });
     },
+    Reset(){
+      this.DialogRemoveInventory = false,
+      this.DialogRemoveCheckBOM = false,
+      this.DialogSuccess = true
+    }
   },
 };
 </script>

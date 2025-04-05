@@ -13,7 +13,8 @@ app.use(
   cors({
     origin: `http://localhost:${PORT}`, // Replace with your client's origin
     methods: ["GET", "POST", "PATCH", "DELETE"], // Allowed HTTP methods
-    allowedHeaders: ["Content-Type"], // Allowed headers
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
@@ -39,15 +40,15 @@ const fetchTableData = (tableName) => {
 
 /// Hàm gửi dữ liệu cập nhật đến tất cả client
 const sendData = async () => {
-    try {
-        const users = await fetchTableData("Users");
-        const warehouse = await fetchTableData("WareHouse");
-        const orders = await fetchTableData("Orders"); // Chỉ sắp xếp bảng orders
-
-        io.emit("updateData", { users, warehouse, orders });
-    } catch (error) {
-        console.error("Error fetching data:", error);
-    }
+  try {
+      const users = await fetchTableData("Users");
+      const warehouse = await fetchTableData("WareHouse");
+      const orders = await fetchTableData("Orders"); // Chỉ sắp xếp bảng orders
+      const bom = await fetchTableData("CheckBOM");
+      io.emit("updateData", { users, warehouse, orders, bom });
+  } catch (error) {
+      console.error("Error fetching data:", error);
+  }
 };
 
 // Khi client kết nối
@@ -62,14 +63,14 @@ io.on("connection", (socket) => {
 
 // Router register user
 app.post("/Users/register", (req, res) => {
-  const { Username, FullName, Password, Level, Date } = req.body;
+  const { Username, FullName, Password, Email, Level, Date } = req.body;
 
   bcrypt.hash(Password, 10, (err, hash) => {
     if (err) return res.status(500).json({ error: "Lỗi mã hóa mật khẩu" });
 
     db.run(
-      `INSERT INTO Users (Username, FullName, Password, Level, Date) VALUES (?, ?, ?, ?, ?)`,
-      [Username, FullName, hash, Level, Date],
+      `INSERT INTO Users (Username, FullName, Password, Email, Level, Date) VALUES (?, ?, ?, ?, ?, ?)`,
+      [Username, FullName, hash, Email, Level, Date],
       function (err) {
         if (err) {
           return console.error(err.message);

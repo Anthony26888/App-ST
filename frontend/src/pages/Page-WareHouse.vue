@@ -6,13 +6,7 @@
     <v-card-text>
       <v-card variant="text">
         <v-card-title class="d-flex align-center pe-2">
-          <v-btn
-            prepend-icon="mdi mdi-plus"
-            variant="tonal"
-            class="text-caption"
-            @click="Dialog = true"
-            >Import File</v-btn
-          >
+          <ButtonImportFile @import-file="Dialog = true" />
           <v-btn
             prepend-icon="mdi mdi-plus"
             variant="tonal"
@@ -21,31 +15,14 @@
             @click="DialogNewItems = true"
             >Thêm</v-btn
           >
-          <v-btn
-            prepend-icon="mdi mdi-download"
-            color="success"
-            class="ms-2 text-caption"
-            variant="tonal"
-            @click="DownloadInventory()"
-            >Tải file</v-btn
-          >
+          <ButtonDownload @download-file="DownloadInventory()" />
           <p class="ms-2 font-weight-thin text-subtitle-1">
             ( {{ warehouse.length }} linh kiện)
           </p>
           <v-spacer></v-spacer>
-          <v-text-field
-            v-model="search"
-            density="compact"
-            label="Tìm kiếm"
-            prepend-inner-icon="mdi-magnify"
-            variant="solo-filled"
-            flat
-            hide-details
-            single-line
-            clearable
-            max-width="400"
-          ></v-text-field>
+          <InputSearch v-model="search" />
         </v-card-title>
+        <v-divider></v-divider>
         <v-card-text class="overflow-auto">
           <v-data-table
             :headers="Headers"
@@ -80,24 +57,11 @@
   <v-dialog v-model="Dialog" width="400">
     <v-card max-width="400" prepend-icon="mdi-update" title="Thêm dữ liệu">
       <v-card-text>
-        <v-file-input
-          clearable
-          label="Thêm File Excel"
-          variant="solo-filled"
-          v-model="File"
-          accept=".xlsx"
-        ></v-file-input>
+        <InputFiles abel="Thêm File Excel" v-model="File" />
       </v-card-text>
       <template v-slot:actions>
-        <v-btn @click="Dialog = false" variant="tonal">Huỷ</v-btn>
-        <v-btn
-          class="bg-primary"
-          @click="
-            ImportFile();
-            DialogSuccess = true;
-          "
-          >Nhập dữ liệu</v-btn
-        >
+        <ButtonCancel @cancel="Dialog = false" />
+        <ButtonSave @save="ImportFile()" />
       </template>
     </v-card>
   </v-dialog>
@@ -109,18 +73,8 @@
       title="Thêm linh kiện"
     >
       <v-card-text>
-        <v-text-field
-          label="Part Number 1"
-          variant="solo-filled"
-          v-model="PartNumber1"
-          clearable
-        ></v-text-field>
-        <v-text-field
-          label="Part Number 2"
-          variant="solo-filled"
-          v-model="PartNumber2"
-          clearable
-        ></v-text-field>
+        <InputField label="Part Number 1" v-model="PartNumber1" />
+        <InputField label="Part Number 2" v-model="PartNumber2" />
         <v-textarea
           label="Mô tả"
           variant="solo-filled"
@@ -129,94 +83,27 @@
         ></v-textarea>
         <v-row>
           <v-col>
-            <v-text-field
-              type="num"
-              label="Nhập kho"
-              v-model="Input"
-              variant="solo-filled"
-            ></v-text-field>
+            <InputField label="Nhập kho" type="number" v-model="Input" />
           </v-col>
           <v-col>
-            <v-text-field
-              type="num"
-              label="Xuất kho"
-              v-model="Output"
-              variant="solo-filled"
-            ></v-text-field>
+            <InputField label="Xuất kho" type="number" v-model="Output" />
           </v-col>
           <v-col>
-            <v-text-field
-              type="num"
-              label="Tồn kho"
-              v-model="inventory"
-              variant="solo-filled"
-            ></v-text-field>
+            <InputField label="Tồn kho" type="number" v-model="inventory" />
           </v-col>
         </v-row>
-        <v-text-field
-          label="Vị trí"
-          variant="solo-filled"
-          v-model="Location"
-          clearable
-        ></v-text-field>
-        <v-text-field
-          clearable
-          label="Khách hàng"
-          variant="solo-filled"
-          v-model="Customer"
-        ></v-text-field>
-        <v-text-field
-          clearable
-          label="Ghi chú"
-          variant="solo-filled"
-          v-model="Note"
-        ></v-text-field>
-        <v-text-field
-          clearable
-          label="Ghi chú xuất"
-          variant="solo-filled"
-          v-model="Note_Output"
-        ></v-text-field>
+        <InputField label="Vị trí" v-model="Location" />
+        <InputField label="Khách hàng" v-model="Customer" />
+        <InputField label="Ghi chú" v-model="Note" />
+        <InputField label="Ghi chú xuất" v-model="Note_Output" />
       </v-card-text>
       <v-card-actions>
-        <v-btn @click="DialogNewItems = false" variant="tonal">Huỷ</v-btn>
-        <v-btn class="bg-primary" @click="NewItem(), (DialogSuccess = true)"
-          >Nhập dữ liệu</v-btn
-        >
+        <ButtonCancel @cancel="DialogNewItems = false" />
+        <ButtonSave @save="NewItem()" />
       </v-card-actions>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogSuccess">
-    <v-card width="500" height="400" class="mx-auto">
-      <v-empty-state icon="$success">
-        <template v-slot:media>
-          <v-icon color="success"></v-icon>
-        </template>
-
-        <template v-slot:headline>
-          <div class="text-h4">Thành Công</div>
-        </template>
-
-        <template v-slot:text>
-          <div class="text-medium-emphasis text-caption">
-            Dữ liệu đã được nhập vào hệ thống
-          </div>
-        </template>
-        <template v-slot:actions>
-          <v-btn
-            class="text-none"
-            color="primary"
-            elevation="1"
-            rounded="lg"
-            size="small"
-            text="Tiếp tục"
-            width="96"
-            @click="ResetInput()"
-          ></v-btn>
-        </template>
-      </v-empty-state>
-    </v-card>
-  </v-dialog>
+  <SnackbarSuccess v-model="DialogSuccess" />
   <v-dialog v-model="DialogEdit" width="400" scrollable>
     <v-card
       width="600"
@@ -225,18 +112,8 @@
       title="Cập nhật dữ liệu"
     >
       <v-card-text>
-        <v-text-field
-          label="Part Number 1"
-          variant="solo-filled"
-          v-model="PartNumber1_Edit"
-          clearable
-        ></v-text-field>
-        <v-text-field
-          label="Part Number 2"
-          variant="solo-filled"
-          v-model="PartNumber2_Edit"
-          clearable
-        ></v-text-field>
+        <InputField label="Part Number 1" v-model="PartNumber1_Edit" />
+        <InputField label="Part Number 2" v-model="PartNumber2_Edit" />
         <v-textarea
           label="Mô tả"
           variant="solo-filled"
@@ -245,66 +122,25 @@
         ></v-textarea>
         <v-row>
           <v-col>
-            <v-text-field
-              type="num"
-              label="Nhập kho"
-              v-model="Input_Edit"
-              variant="solo-filled"
-            ></v-text-field>
+            <InputField label="Nhập kho" type="number" v-model="Input_Edit" />
           </v-col>
           <v-col>
-            <v-text-field
-              type="num"
-              label="Xuất kho"
-              v-model="Output_Edit"
-              variant="solo-filled"
-            ></v-text-field>
+            <InputField label="Xuất kho" type="number" v-model="Output_Edit" />
           </v-col>
           <v-col>
-            <v-text-field
-              type="num"
-              label="Tồn kho"
-              v-model="inventory_Edit"
-              variant="solo-filled"
-            ></v-text-field>
+            <InputField label="Tồn kho" type="number" v-model="inventory_Edit" />
           </v-col>
         </v-row>
-        <v-text-field
-          label="Vị trí"
-          variant="solo-filled"
-          v-model="Location_Edit"
-          clearable
-        ></v-text-field>
-        <v-text-field
-          clearable
-          label="Khách hàng"
-          variant="solo-filled"
-          v-model="Customer_Edit"
-        ></v-text-field>
-        <v-text-field
-          clearable
-          label="Ghi chú"
-          variant="solo-filled"
-          v-model="Note_Edit"
-        ></v-text-field>
-        <v-text-field
-          clearable
-          label="Ghi chú xuất"
-          variant="solo-filled"
-          v-model="Note_Output_Edit"
-        ></v-text-field>
+        <InputField label="Vị trí" v-model="Location_Edit" />
+        <InputField label="Khách hàng" v-model="Customer_Edit" />
+        <InputField label="Ghi chú" v-model="Note_Edit" />
+        <InputField label="Ghi chú xuất" v-model="Note_Output_Edit" />
       </v-card-text>
       <v-card-actions>
-        <v-btn @click="DialogRemove = true" variant="tonal" class="bg-red"
-          >Xoá linh kiện</v-btn
-        >
+        <ButtonDelete @delete="DialogRemove = true" />
         <v-spacer></v-spacer>
-        <v-btn @click="DialogEdit = false" variant="tonal">Huỷ</v-btn>
-        <v-btn
-          class="bg-primary"
-          @click="SaveEditItem(), (DialogSuccess = true)"
-          >Nhập dữ liệu</v-btn
-        >
+        <ButtonCancel @cancel="DialogEdit = false" />
+        <ButtonSave @save="SaveEditItem()" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -312,15 +148,8 @@
     <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
       <v-card-text> Bạn có chắc chắn muốn xoá linh kiện này ? </v-card-text>
       <template v-slot:actions>
-        <v-btn @click="DialogRemove = false" variant="tonal">Huỷ</v-btn>
-        <v-btn
-          class="bg-red"
-          @click="
-            RemoveItem();
-            ResetInput();
-          "
-          >Xoá</v-btn
-        >
+        <ButtonCancel @cancel="DialogRemove = false" />
+        <ButtonDelete @delete="RemoveItem()" />
       </template>
     </v-card>
   </v-dialog>
@@ -328,11 +157,22 @@
 <script setup>
 import axios from "axios";
 import { useSocket } from "@/composables/useWebSocket";
-
+import ButtonImportFile from "@/components/Button-ImportFile.vue";
+import ButtonDownload from "@/components/Button-Download.vue";
+import ButtonSave from "@/components/Button-Save.vue";
+import ButtonCancel from "@/components/Button-Cancel.vue";
+import ButtonDelete from "@/components/Button-Delete.vue";
+import InputSearch from "@/components/Input-Search.vue";
+import InputField from "@/components/Input-Field.vue";
+import InputFiles from "@/components/Input-Files.vue";
+import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 const { warehouse } = useSocket();
 </script>
 <script>
 export default {
+  components: {
+    ButtonImportFile,
+  },
   data() {
     return {
       Url: import.meta.env.VITE_API_URL,
@@ -392,6 +232,7 @@ export default {
     async ImportFile() {
       const formData = new FormData();
       formData.append("file", this.File);
+      this.Reset();
       axios
         .post(`${this.Url}/upload-inventory`, formData)
         .then(function (response) {
@@ -414,6 +255,7 @@ export default {
         Note: this.Note,
         Note_Output: this.Note_Output,
       };
+      this.Reset();
       axios
         .post(`${this.Url}/Inventory/upload-new-item`, Items)
         .then(function (response) {
@@ -423,8 +265,19 @@ export default {
           console.log(error);
         });
     },
-    ResetInput() {
-      (this.PartNumber1 = ""),
+    Reset() {
+      (this.DialogSuccess = true),
+        (this.PartNumber1 = ""),
+        (this.PartNumber2 = ""),
+        (this.Description = ""),
+        (this.Input = ""),
+        (this.Output = ""),
+        (this.inventory = ""),
+        (this.Location = ""),
+        (this.Customer = ""),
+        (this.Note = ""),
+        (this.Note_Output = ""),
+        (this.PartNumber1 = ""),
         (this.PartNumber2 = ""),
         (this.Description = ""),
         (this.Input = ""),
@@ -437,7 +290,7 @@ export default {
       (this.File = null), (this.DialogEdit = false);
       this.Dialog = false;
       this.DialogRemove = false;
-      (this.DialogNewItems = false), (this.DialogSuccess = false);
+      this.DialogNewItems = false;
     },
     async DownloadInventory() {
       try {
@@ -501,22 +354,22 @@ export default {
         Note_Edit: this.Note_Edit,
         Note_Output_Edit: this.Note_Output_Edit,
       };
+      this.Reset();
       axios
         .put(`${this.Url}/Inventory/update-item/${this.id_Edit}`, Item)
         .then(function (response) {
           console.log(response);
-          this.DialogSuccess = true;
         })
         .catch(function (error) {
           console.log(error);
         });
     },
     async RemoveItem() {
+      this.Reset();
       axios
         .delete(`${this.Url}/Inventory/delete-item/${this.id_Edit}`)
         .then(function (response) {
           console.log(response);
-          this.DialogRemove = false;
         })
         .catch(function (error) {
           console.log(error);

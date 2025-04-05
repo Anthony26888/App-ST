@@ -1,6 +1,7 @@
 // Composables
 import { createRouter, createWebHistory } from "vue-router";
 import App from "@/layouts/default.vue"
+import Login from "@/layouts/login.vue"
 import PageCheck from "@/pages/Page-Check.vue"
 import PageWareHouse from "@/pages/Page-WareHouse.vue";
 import PageOrders from "@/pages/Page-Orders.vue";
@@ -8,9 +9,11 @@ import PageSetting from "@/pages/Page-Setting.vue";
 import PageLogin from "@/pages/Page-Login.vue";
 import PageUsers from "@/pages/Page-Users.vue"
 import PageReg from "@/pages/Page-Reg.vue";
+import PageEditBom from "@/pages/Page-EditBom.vue";
+import PageDetailOrders from "@/pages/Page-DetailOrders.vue";
 const routes = [
   {
-    path: "/",
+    path: "/Trang-chủ",
     component: App,
     children: [
       {
@@ -18,6 +21,12 @@ const routes = [
         name: "Check",
         meta: { requiresAuth: true },
         component: PageCheck,
+      },
+      {
+        path: "/Chinh-sua-so-lieu",
+        name: "EditCheck",
+        meta: { requiresAuth: true },
+        component: PageEditBom,
       },
       {
         path: "/Ton-kho",
@@ -50,20 +59,25 @@ const routes = [
         component: PageReg,
       },
       {
-        path: "/Home/:PO",
-        name: "Pages",
+        path: "/Don-hang/:id",
+        name: "DetailOrder",
         meta: { requiresAuth: true },
-        component: () =>
-          import(/* webpackChunkName: "home" */ "@/pages/Page-Check.vue"),
+        component: PageDetailOrders,
       },
+      
     ],
   },
   {
-    path: "/Dang-nhap",
-    name: "Login",
-    meta: { requiresAuth: true },
-    component: PageLogin,
+    path: "/",
+    component: Login,
+    children: [
+      {
+        path: "",
+        component: PageLogin,
+      }
+    ]
   },
+  
 ]
 
 const router = createRouter({

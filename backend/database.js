@@ -18,8 +18,6 @@ db.serialize(() => {
       So_Luong INTEGER,
       Du_Toan_Hao_Phi INTEGER,
       Hao_Phi_Thuc_Te INTEGER,
-      SL_Ton_Kho INTEGER,
-      SL_Can_Mua INTEGER,
       Bom TEXT,
       SL_Board TEXT,
       PO TEXT
@@ -52,7 +50,8 @@ db.serialize(() => {
       FullName TEXT,
       Password TEXT,
       Level TEXT,
-      Date TEXT
+      Date TEXT,
+      Email TEXT
     )`);
 });
 module.exports = db;
