@@ -26,19 +26,18 @@ const upload = multer({ storage: storage });
 
 app.post("/upload", upload.single("file"), (req, res) => {
   if (!req.file) return res.status(400).send("No file uploaded.");
-  const { PO,BOM,SL_Board } = req.body;
+  const { PO, BOM, SL_Board, Creater, TimeStamp } = req.body;
   // Read Excel file
   const filePath = path.join(__dirname, req.file.path);
   const workbook = xlsx.readFile(filePath);
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
-
   // Convert sheet data to JSON
   const data = xlsx.utils.sheet_to_json(sheet);
 
   // Insert data into SQLite database
   const stmt = db.prepare(
-    `INSERT INTO CheckBOM (Description, Manufacturer_1, PartNumber_1, Manufacturer_2, PartNumber_2, Manufacturer_3, PartNumber_3, So_Luong, Bom, SL_Board, PO) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO CheckBOM (Description, Manufacturer_1, PartNumber_1, Manufacturer_2, PartNumber_2, Manufacturer_3, PartNumber_3, So_Luong, Bom, SL_Board, PO, Creater, TimeStamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
   data.forEach((row) => {
     stmt.run(
@@ -52,7 +51,9 @@ app.post("/upload", upload.single("file"), (req, res) => {
       row.So_Luong,
       BOM,
       SL_Board,
-      PO
+      PO,
+      Creater,
+      TimeStamp
     );
   });
 
@@ -62,7 +63,7 @@ app.post("/upload", upload.single("file"), (req, res) => {
 });
 
 // Router upload file xlsx to WareHouse table
-app.post("/upload-inventory", upload.single("file"), (req, res) => {
+app.post("/WareHouse/Upload", upload.single("file"), (req, res) => {
   if (!req.file) return res.status(400).send("No file uploaded.");
 
   // Read Excel file
@@ -95,6 +96,155 @@ app.post("/upload-inventory", upload.single("file"), (req, res) => {
   stmt.finalize();
 
   res.send("File processed successfully.");
+});
+
+// Router upload file xlsx to WareHouse2 table
+app.post("/WareHouse2/Upload", upload.single("file"), (req, res) => {
+  if (!req.file) return res.status(400).send("No file uploaded.");
+
+  // Read Excel file
+  const filePath = path.join(__dirname, req.file.path);
+  const workbook = xlsx.readFile(filePath);
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+
+  // Convert sheet data to JSON
+  const data = xlsx.utils.sheet_to_json(sheet);
+
+  // Insert data into SQLite database
+  const stmt = db.prepare(
+    "INSERT INTO WareHouse2 (Description, PartNumber_1, PartNumber_2, Input, Output, Inventory, Customer, Location, Note, Note_Output) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+  );
+  data.forEach((row) => {
+    stmt.run(
+      row.Description,
+      row.PartNumber_1,
+      row.PartNumber_2,
+      row.Input,
+      row.Output,
+      row.Inventory,
+      row.Customer,
+      row.Location,
+      row.Note,
+      row.Note_Output
+    );
+  });
+  stmt.finalize();
+
+  res.send("File processed successfully.");
+});
+
+// Router upload file xlsx to Project table
+app.post("/Project/upload", upload.single("file"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).send("No file uploaded.");
+  }
+
+  const filePath = req.file.path;
+  const workbook = xlsx.readFile(filePath);
+  const sheetName = workbook.SheetNames[0];
+  const jsonData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+  const customerStmt = db.prepare(`
+    INSERT OR IGNORE INTO Customers (CustomerName) VALUES (?)
+`);
+
+  const poStmt = db.prepare(`
+    INSERT OR IGNORE INTO PurchaseOrders (PONumber, CustomerID, DateCreated, DateDelivery)
+    VALUES (?, ?, ?, ?)
+`);
+
+  const productStmt = db.prepare(`
+    INSERT INTO ProductDetails (POID, ProductDetail, QuantityProduct, QuantityDelivered, QuantityAmount)
+    VALUES (?, ?, ?, ?, ?)
+`);
+
+  try {
+    for (const row of jsonData) {
+      const customerName = row["Customers"];
+      const poNumber = row["PO"];
+      const dateCreated = row["Date_Created"];
+      const dateDelivery = row["Date_Delivery"];
+      const productDetail = row["Product_Detail"];
+      const quantityProduct = row["Quantity_Product"];
+      const quantityDelivered = row["Quantity_Delivered"];
+      const quantityAmount = row["Quantity_Amount"];
+
+      let customerId = null;
+      await new Promise((resolve, reject) => {
+        customerStmt.run(customerName, function (err) {
+          if (err) reject(err);
+          db.get(
+            "SELECT id FROM Customers WHERE CustomerName = ?",
+            [customerName],
+            (err, row) => {
+              if (err) reject(err);
+              customerId = row ? row.id : null;
+              resolve();
+            }
+          );
+        });
+      });
+
+      if (!customerId) {
+        console.error(`Không tìm thấy CustomerID cho ${customerName}`);
+        continue;
+      }
+
+      let poId = null;
+      await new Promise((resolve, reject) => {
+        poStmt.run(
+          poNumber,
+          customerId,
+          dateCreated,
+          dateDelivery,
+          function (err) {
+            if (err) reject(err);
+            db.get(
+              "SELECT id FROM PurchaseOrders WHERE PONumber = ?",
+              [poNumber],
+              (err, row) => {
+                if (err) reject(err);
+                poId = row ? row.id : null;
+                resolve();
+              }
+            );
+          }
+        );
+      });
+
+      if (!poId) {
+        console.error(`Không tìm thấy POID cho ${poNumber}`);
+        continue;
+      }
+
+      await new Promise((resolve, reject) => {
+        productStmt.run(
+          poId,
+          productDetail,
+          quantityProduct,
+          quantityDelivered,
+          quantityAmount,
+          function (err) {
+            if (err) reject(err);
+            resolve();
+          }
+        );
+      });
+    }
+
+    customerStmt.finalize();
+    poStmt.finalize();
+    productStmt.finalize();
+
+    res.send("Dữ liệu đã được nhập thành công!");
+  } catch (error) {
+    console.error("Lỗi trong quá trình nhập liệu:", error);
+    if (customerStmt) customerStmt.finalize();
+    if (poStmt) poStmt.finalize();
+    if (productStmt) productStmt.finalize();
+    res.status(500).send("Lỗi khi nhập dữ liệu.");
+  }
 });
 
 const getPivotQuery = async (id) => {
@@ -184,7 +334,6 @@ const getCompareInventory = async (id) => {
   });
 };
 
-
 // Route to fetch all check boms
 app.get("/CheckBom/:id", async (req, res) => {
   const { id } = req.params;
@@ -202,8 +351,54 @@ app.get("/CheckBom/:id", async (req, res) => {
   }
 });
 
-// Route to fetch all inventory
-app.get("/Inventory", async (req, res) => {
+// Route to fetch all check boms
+app.get("/CheckBom/Bom", async (req, res) => {
+  try {
+    db.all(
+      `SELECT DISTINCT 
+      PO AS Tên_dự_án, 
+      Bom AS Tên_Bom,  
+      COUNT(Bom) AS Số_Lượng_LK, 
+      SL_Board AS Số_Lượng_Board 
+      FROM CheckBOM 
+      GROUP BY PO, Bom`,
+      [id],
+      (err, rows) => {
+        if (err) {
+          res.status(500).json({ error: err.message });
+        } else {
+          res.json(rows);
+        }
+      }
+    );
+  } catch (error) {
+    res.status(500).json({ error: "Không tìm thấy dữ liệu" });
+  }
+});
+
+// Route to fetch Detail Bom
+app.get("/CheckBom/Detail/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    db.all(
+      `
+      SELECT DISTINCT  PO, Bom, SL_Board 
+      FROM CheckBOM 
+      WHERE id = ? 
+      GROUP BY PO, Bom`,
+      [id],
+      (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+      }
+    );
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Route to fetch all WareHouse table
+app.get("/WareHouse", async (req, res) => {
   try {
     db.all(`SELECT * FROM WareHouse`, [], (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
@@ -214,10 +409,20 @@ app.get("/Inventory", async (req, res) => {
   }
 });
 
-
+// Route to fetch all WareHouse2 table
+app.get("/WareHouse2", async (req, res) => {
+  try {
+    db.all(`SELECT * FROM WareHouse2`, [], (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Route to fetch detail WareHouse
-app.get("/Inventory/:id", async (req, res) => {
+app.get("/WareHouse/:id", async (req, res) => {
   const { id } = req.params;
   try {
     db.all(`SELECT * FROM WareHouse WHERE id = ?`, [id], (err, rows) => {
@@ -229,6 +434,18 @@ app.get("/Inventory/:id", async (req, res) => {
   }
 });
 
+// Route to fetch detail WareHouse2
+app.get("/WareHouse2/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    db.all(`SELECT * FROM WareHouse2 WHERE id = ?`, [id], (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Route to fetch all orders
 app.get("/Orders", async (req, res) => {
@@ -296,62 +513,8 @@ app.put("/CheckBom/Update-Hao-Phi", async (req, res) => {
   });
 });
 
-// Router update Hao_Phi_Thuc_Te in CheckBom table
-app.put("/CheckBom/Update-Hao-Phi-Thuc-Te", async (req, res) => {
-  const { Input_Hao_Phi_Thuc_Te, Name_Item } = req.body;
-  // Insert data into SQLite database
-  const query = `UPDATE CheckBOM SET Hao_Phi_Thuc_Te = ? WHERE PartNumber_1 = ?`;
-  db.run(query, [Input_Hao_Phi_Thuc_Te, Name_Item], function (err) {
-    if (err) {
-      return console.error(err.message);
-    }
-    // Broadcast the new message to all clients
-    res.json({ message: "Item inserted successfully" });
-  });
-});
-
-// Router update WareHouse accept
-app.put("/Orders/WareHouse-Accept/:id", async (req, res) => {
-  const { id } = req.params;
-  // Insert data into SQLite database
-  const query = `UPDATE Orders SET Status = 1 WHERE Name_PO = ?`;
-  
-  db.run(query, [id], function (err) {
-    if (err) {
-      return console.error(err.message);
-    }
-    // Broadcast the new message to all clients
-    res.json({ message: "Item inserted successfully" });
-  });
-});
-
-// Router update WareHouse accept
-app.put("/Inventory/update-Inventory-CheckBom/:id", async (req, res) => {
-  const { id } = req.params.id;
-  // Insert data into SQLite database
-  const query = `
-    UPDATE WareHouse
-    SET Inventory = 
-      CASE 
-        WHEN Inventory > (CheckBOM.So_Luong * CheckBOM.SL_Board) - IFNULL(Hao_Phi_Thuc_Te, 0)
-        THEN Inventory - (CheckBOM.So_Luong * CheckBOM.SL_Board) - IFNULL(Hao_Phi_Thuc_Te, 0)
-        ELSE 0
-      END
-    FROM CheckBOM
-    WHERE CheckBOM.PartNumber_1 = WareHouse.PartNumber_1 AND CheckBOM.PO = ?
-  `;
-  db.all(query, [id], function (err) {
-    if (err) {
-      return console.error(err.message);
-    }
-    // Broadcast the new message to all clients
-    res.json({ message: "Item inserted successfully" });
-  });
-});
-
-
 // Router delete all Inventory
-app.delete("/Inventory/delete-all", async (req, res) => {
+app.delete("/WareHouse/delete-all", async (req, res) => {
   // Delete data into SQLite database
   const query = `DELETE FROM WareHouse`;
   db.run(query, [], function (err) {
@@ -363,12 +526,11 @@ app.delete("/Inventory/delete-all", async (req, res) => {
   });
 });
 
-// Router delete CheckBOM follow Name PO
-app.delete("/CheckBOM/Delete-item/:id", async (req, res) => {
-  const { id } = req.params;
+// Router delete all Inventory
+app.delete("/WareHouse2/delete-all", async (req, res) => {
   // Delete data into SQLite database
-  const query = `DELETE FROM CheckBOM WHERE PO = ?`;
-  db.run(query, [id], function (err) {
+  const query = `DELETE FROM WareHouse2`;
+  db.run(query, [], function (err) {
     if (err) {
       return console.error(err.message);
     }
@@ -389,9 +551,6 @@ app.delete("/CheckBOM/delete-all", async (req, res) => {
     res.json({ message: "Item inserted successfully" });
   });
 });
-
-
-
 
 // 📥 API to Download Bom as XLSX
 app.get("/Download-PO/:id", async (req, res) => {
@@ -422,7 +581,7 @@ app.get("/Download-PO/:id", async (req, res) => {
   }
 });
 // 📥 API to Download Inventory as XLSX
-app.get("/Download-Inventory", async (req, res) => {
+app.get("/Ware-House/download", async (req, res) => {
   try {
     const query = "SELECT * FROM WareHouse";
     db.all(query, [], (err, rows) => {
@@ -432,14 +591,42 @@ app.get("/Download-Inventory", async (req, res) => {
       // Convert data to worksheet
       const ws = xlsx.utils.json_to_sheet(rows);
       const wb = xlsx.utils.book_new();
-      xlsx.utils.book_append_sheet(wb, ws, `Tồn_Kho`);
+      xlsx.utils.book_append_sheet(wb, ws, `Kho`);
 
       // Save the file temporarily
-      const filePath = path.join(__dirname, `Tồn_Kho.xlsx`);
+      const filePath = path.join(__dirname, `Kho.xlsx`);
       xlsx.writeFile(wb, filePath);
 
       // Send the file to the client
-      res.download(filePath, `Tồn_Kho.xlsx`, (err) => {
+      res.download(filePath, `Kho.xlsx`, (err) => {
+        if (err) console.error("Error sending file:", err);
+        fs.unlinkSync(filePath); // Delete after sending
+      });
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 📥 API to Download Inventory as XLSX
+app.get("/Ware-House2/download", async (req, res) => {
+  try {
+    const query = "SELECT * FROM WareHouse2";
+    db.all(query, [], (err, rows) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      // Convert data to worksheet
+      const ws = xlsx.utils.json_to_sheet(rows);
+      const wb = xlsx.utils.book_new();
+      xlsx.utils.book_append_sheet(wb, ws, `Kho_2`);
+
+      // Save the file temporarily
+      const filePath = path.join(__dirname, `Kho_2.xlsx`);
+      xlsx.writeFile(wb, filePath);
+
+      // Send the file to the client
+      res.download(filePath, `Kho_2.xlsx`, (err) => {
         if (err) console.error("Error sending file:", err);
         fs.unlinkSync(filePath); // Delete after sending
       });
@@ -477,8 +664,6 @@ app.get("/Download-Order/:id", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-
 
 // Router login user
 app.post("/Users/login", (req, res) => {
@@ -528,4 +713,39 @@ app.get("/All-Users/:id", async (req, res) => {
   }
 });
 
+// Route to fetch Project
+app.get("/Project", async (req, res) => {
+  try {
+    const query = `
+      SELECT * 
+      FROM Project 
+      ORDER BY Customers ASC
+    `;
+    db.all(query, [], (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Route to fetch detail Project
+app.get("/Project/Detail/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const query = `
+      SELECT DISTINCT *
+      FROM Project 
+      WHERE id = ? 
+      ORDER BY PO ASC
+    `;
+    db.all(query, [id], (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 module.exports = app;

@@ -1,16 +1,23 @@
 <template lang="">
   <v-card variant="text" class="overflow-y-auto" height="100vh">
     <v-card-title class="text-h4 font-weight-light"
-      >Danh sách tồn kho</v-card-title
+      >Danh sách tồn kho 2</v-card-title
     >
     <v-card-text>
       <v-card variant="text">
         <v-card-title class="d-flex align-center pe-2">
           <ButtonImportFile @import-file="Dialog = true" />
-          <ButtonAdd @click="DialogNewItems = true" />
+          <v-btn
+            prepend-icon="mdi mdi-plus"
+            variant="tonal"
+            color="primary"
+            class="text-caption ms-2"
+            @click="DialogNewItems = true"
+            >Thêm</v-btn
+          >
           <ButtonDownload @download-file="DownloadInventory()" />
           <p class="ms-2 font-weight-thin text-subtitle-1">
-            ( {{ warehouse.length }} linh kiện)
+            ( {{ warehouse2.length }} linh kiện)
           </p>
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
@@ -19,7 +26,7 @@
         <v-card-text class="overflow-auto">
           <v-data-table
             :headers="Headers"
-            :items="warehouse"
+            :items="warehouse2"
             :search="search"
             :items-per-page="itemsPerPage"
             v-model:page="page"
@@ -28,7 +35,7 @@
               <div class="text-center pt-2">
                 <v-pagination
                   v-model="page"
-                  :length="Math.ceil(warehouse.length / this.itemsPerPage)"
+                  :length="Math.ceil(warehouse2.length / this.itemsPerPage)"
                 ></v-pagination>
               </div>
             </template>
@@ -149,18 +156,17 @@
 </template>
 <script setup>
 import axios from "axios";
-import { useSocket } from "@/composables/useWebSocket";
+import { useWareHouse2 } from "@/composables/useWareHouse2";
 import ButtonImportFile from "@/components/Button-ImportFile.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
-import ButtonAdd from "@/components/Button-Add.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputFiles from "@/components/Input-Files.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
-const { warehouse } = useSocket();
+const { warehouse2 } = useWareHouse2();
 </script>
 <script>
 export default {
@@ -171,7 +177,6 @@ export default {
     ButtonDownload,
     ButtonImportFile,
     ButtonSave,
-    ButtonAdd,
     InputSearch,
     InputFiles,
     SnackbarSuccess,
@@ -248,7 +253,7 @@ export default {
       formData.append("file", this.File);
       this.Reset();
       axios
-        .post(`${this.Url}/WareHouse/Upload`, formData)
+        .post(`${this.Url}/WareHouse2/Upload`, formData)
         .then(function (response) {
           console.log(response);
         })
@@ -271,7 +276,7 @@ export default {
       };
       this.Reset();
       axios
-        .post(`${this.Url}/Inventory/upload-new-item`, Items)
+        .post(`${this.Url}/WareHouse2/upload-new-item`, Items)
         .then(function (response) {
           console.log(response);
         })
@@ -308,7 +313,7 @@ export default {
     },
     async DownloadInventory() {
       try {
-        const response = await fetch(`${this.Url}/Ware-House/download`);
+        const response = await fetch(`${this.Url}/Ware-House2/download`);
         if (!response.ok) throw new Error("Download failed");
 
         // Convert response to blob
@@ -318,7 +323,7 @@ export default {
         // Create a link to download
         const a = document.createElement("a");
         a.href = url;
-        a.download = `Kho.xlsx`;
+        a.download = `Kho_2.xlsx`;
         document.body.appendChild(a);
         a.click();
 
@@ -336,7 +341,7 @@ export default {
     async FetchDetailItem(value) {
       if (value) {
         try {
-          const res = await fetch(`${this.Url}/WareHouse/${value}`);
+          const res = await fetch(`${this.Url}/WareHouse2/${value}`);
           const DetailItem = await res.json();
           (this.PartNumber1_Edit = DetailItem[0].PartNumber_1),
             (this.PartNumber2_Edit = DetailItem[0].PartNumber_2),
@@ -370,7 +375,7 @@ export default {
       };
       this.Reset();
       axios
-        .put(`${this.Url}/WareHouse/update-item/${this.id_Edit}`, Item)
+        .put(`${this.Url}/WareHouse2/update-item/${this.id_Edit}`, Item)
         .then(function (response) {
           console.log(response);
         })
@@ -381,7 +386,7 @@ export default {
     async RemoveItem() {
       this.Reset();
       axios
-        .delete(`${this.Url}/WareHouse/delete-item/${this.id_Edit}`)
+        .delete(`${this.Url}/WareHouse2/delete-item/${this.id_Edit}`)
         .then(function (response) {
           console.log(response);
         })

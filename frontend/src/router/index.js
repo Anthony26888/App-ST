@@ -4,6 +4,7 @@ import App from "@/layouts/default.vue"
 import Login from "@/layouts/login.vue"
 import PageCheck from "@/pages/Page-Check.vue"
 import PageWareHouse from "@/pages/Page-WareHouse.vue";
+import PageWareHouse2 from "@/pages/Page-WareHouse-2.vue";
 import PageOrders from "@/pages/Page-Orders.vue";
 import PageSetting from "@/pages/Page-Setting.vue";
 import PageLogin from "@/pages/Page-Login.vue";
@@ -11,11 +12,32 @@ import PageUsers from "@/pages/Page-Users.vue"
 import PageReg from "@/pages/Page-Reg.vue";
 import PageEditBom from "@/pages/Page-EditBom.vue";
 import PageDetailOrders from "@/pages/Page-DetailOrders.vue";
+import PageProject from "@/pages/Page-Project.vue";
+import PageProjectDetail from "@/pages/Page-DetailProject.vue";
+import PagePODetail from "@/pages/Page-DetailProjectPO.vue"
 const routes = [
   {
     path: "/Trang-chủ",
     component: App,
     children: [
+      {
+        path: "/Du-an",
+        name: "Project",
+        meta: { requiresAuth: true },
+        component: PageProject,
+      },
+      {
+        path: "/Du-an/Khach-hang/:id",
+        name: "Project_Detail",
+        meta: { requiresAuth: true },
+        component: PageProjectDetail,
+      },
+      {
+        path: "/Du-an/Don-hang/:id",
+        name: "PO_Detail",
+        meta: { requiresAuth: true },
+        component: PagePODetail,
+      },
       {
         path: "/Kiem-tra-so-lieu",
         name: "Check",
@@ -33,6 +55,12 @@ const routes = [
         name: "WareHouse",
         meta: { requiresAuth: true },
         component: PageWareHouse,
+      },
+      {
+        path: "/Ton-kho-2",
+        name: "WareHouse-2",
+        meta: { requiresAuth: true },
+        component: PageWareHouse2,
       },
       {
         path: "/Don-hang",

@@ -1,10 +1,8 @@
 <template lang="">
   <v-card variant="text" class="overflow-y-auto" height="100vh">
-    <v-card-title>
+    <v-card-title class="d-flex">
       <ButtonBack to="/Cai-dat" />
-    </v-card-title>
-    <v-card-title class="text-h4 font-weight-light"
-      >Danh sách người sử dụng
+      <p class="text-h4 font-weight-light ms-3">Danh sách người sử dụng</p>
     </v-card-title>
     <v-card-title class="d-flex align-center pe-2">
       <p class="text-subtitle-1">Có {{ users.length }} đơn hàng</p>
@@ -59,8 +57,15 @@ import ButtonBack from "@/components/Button-Back.vue";
 const { users } = useSocket();
 </script>
 <script>
-
 export default {
+  components: {
+    ButtonBack,
+    ButtonCancel,
+    ButtonDelete,
+    ButtonSave,
+    InputSearch,
+    SnackbarSuccess,
+  },
   data() {
     return {
       search: "",

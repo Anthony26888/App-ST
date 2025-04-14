@@ -47,14 +47,6 @@
             "
             >Lưu dữ liệu</v-btn
           >
-          <v-btn
-            prepend-icon="mdi mdi-content-save-plus"
-            color="red"
-            class="ms-2 text-caption"
-            variant="tonal"
-            @click="DialogRemove = true"
-            >Xoá dữ liệu</v-btn
-          >
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
         </v-card-title>
@@ -130,10 +122,16 @@ import InputFiles from "@/components/Input-Files.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 </script>
 <script>
-
 export default {
   components: {
     ButtonImportFile,
+    ButtonDownload,
+    ButtonSave,
+    ButtonCancel,
+    InputSearch,
+    InputField,
+    InputFiles,
+    SnackbarSuccess
   },
   data() {
     return {
@@ -187,6 +185,8 @@ export default {
       formData.append("PO", this.InputPO);
       formData.append("BOM", this.InputBOM);
       formData.append("SL_Board", this.InputQuantity);
+      formData.append("TimeStamp", this.Date);
+      formData.append("Creater", this.UserInfo)
       this.Reset();
       axios
         .post(`${this.Url}/upload`, formData)
@@ -321,7 +321,7 @@ export default {
       this.InputBOM = "";
       this.InputQuantity = "1";
       this.Bom = [];
-      this.NamePO = "";
+      this.search=""
     },
   },
 };

@@ -17,6 +17,12 @@
     <v-list nav>
       <v-list-item
         prepend-icon="mdi mdi-cart-arrow-down"
+        title="Dự án"
+        value="Project"
+        to="/Du-an"
+      ></v-list-item>
+      <v-list-item
+        prepend-icon="mdi mdi-cart-arrow-down"
         title="Kiểm tra số liệu"
         value="Check"
         to="/Kiem-tra-so-lieu"
@@ -26,6 +32,12 @@
         title="Tồn Kho"
         value="WareHouse"
         to="/Ton-kho"
+      ></v-list-item>
+      <v-list-item
+        prepend-icon="mdi mdi-warehouse"
+        title="Tồn Kho 2"
+        value="WareHouse2"
+        to="/Ton-kho-2"
       ></v-list-item>
       <v-list-item
         prepend-icon="mdi mdi-order-bool-descending-variant"

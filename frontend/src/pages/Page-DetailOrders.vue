@@ -1,18 +1,16 @@
 <template lang="">
   <v-card variant="text" class="overflow-y-auto" height="100vh">
-    <v-card-title class="text-h4 font-weight-light">
+    <v-card-title class="d-flex">
       <ButtonBack to="/Don-hang" />
+      <p class="text-h4 font-weight-light ms-3">Chi tiết đơn hàng</p>
     </v-card-title>
-    <v-card-title class="text-h4 font-weight-light"
-      >Chi tiết đơn hàng</v-card-title
-    >
     <v-card-text>
       <v-card flat>
         <v-card-title class="d-flex align-center pe-2">
           <v-icon icon="mdi mdi-cart-arrow-down"></v-icon> &nbsp;
           {{ $route.params.id }}
           <p class="ms-2 font-weight-thin text-subtitle-1">
-            ( {{ Detail_Order.length }} linh kiện)
+            ( {{ compare.length }} linh kiện)
           </p>
           <ButtonDownload @download-file="DownloadOrder()" />
           <v-btn
@@ -32,26 +30,22 @@
         <v-divider></v-divider>
         <v-data-table
           :search="search"
-          :items="Detail_Order"
-          :header="Headers"
+          :items="compare"
+          :header="headers"
           :items-per-page="itemsPerPage"
           v-model:page="page"
         >
           <template v-slot:bottom>
             <div class="text-center pt-2">
-              <v-pagination v-model="page" :length="pageCount"></v-pagination>
+              <v-pagination
+                v-model="page"
+                :length="Math.ceil(compare.length / this.itemsPerPage)"
+              ></v-pagination>
             </div>
           </template>
 
           <template v-slot:item.id="{ item }">
-            <v-btn
-              icon="mdi mdi-pencil"
-              @click="EditItem(item)"
-              variant="tonal"
-              color="primary"
-              size="md"
-            >
-            </v-btn>
+            <ButtonEdit @edit="EditItem(item)" />
           </template>
         </v-data-table>
       </v-card>
@@ -82,42 +76,51 @@
           title="Kho xác nhận dữ liệu"
         >
           <v-card-text> Bạn có chắc chắn muốn xác nhận dữ liệu? </v-card-text>
-          <template v-slot:actions>
+          <v-card-actions>
             <ButtonCancel @cancel="DialogAccept = false" />
-            <v-btn
-              class="bg-green"
-              @click="
-                WareHouseAccept();
-                WareHouseAcceptInventory();
-                DialogAccept = false;
-              "
-              >Đồng ý</v-btn
-            >
-          </template>
+            <ButtonAgree @agree="WareHouseAcceptInventory()" />
+          </v-card-actions>
         </v-card>
       </v-dialog>
     </v-card-text>
   </v-card>
+  <SnackbarSuccess v-model="DialogSuccess" />
 </template>
 <script setup>
 import axios from "axios";
 import { computed } from "vue";
-import InputSearch from "@/components/Input-Search.vue"
+import InputSearch from "@/components/Input-Search.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonBack from "@/components/Button-Back.vue";
+import ButtonEdit from "@/components/Button-Edit.vue";
+import ButtonAgree from "@/components/Button-Agree.vue";
+import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import { useSocket } from "@/composables/useWebSocket";
+import { useDetailOrder } from "@/composables/useDetailOrder";
 const { orders } = useSocket();
-const route = useRoute();
-const  status  = computed(() => {
+const status = computed(() => {
   if (!orders.value || !Array.isArray(orders.value)) return null;
   const found = orders.value.find((v) => v.Name_PO === route.params.id);
   return found ? found.Status : null;
 });
+const route = useRoute();
+const id = route.params.id;
+const { compare, compareError, headers } = useDetailOrder(id);
 </script>
 <script>
 export default {
+  components: {
+    ButtonCancel,
+    ButtonDownload,
+    ButtonSave,
+    InputSearch,
+    SnackbarSuccess,
+    ButtonBack,
+    ButtonEdit,
+    ButtonAgree
+  },
   data() {
     return {
       Url: import.meta.env.VITE_API_URL,
@@ -140,43 +143,7 @@ export default {
       intervalId2: null,
     };
   },
-  mounted() {
-    this.intervalId = setInterval(this.FetchTable, 1000);
-  },
-  beforeUnmount() {
-    // Clear the interval when the component is destroyed
-    if (this.UserInterval) {
-      clearInterval(this.UserInterval);
-    }
-  },
-  computed: {
-    pageCount() {
-      return Math.ceil(this.Detail_Order.length / this.itemsPerPage);
-    },
-  },
   methods: {
-    async FetchTable() {
-      if (this.$route.params.id) {
-        try {
-          const res = await fetch(
-            `${this.Url}/Orders/${this.$route.params.id}`
-          );
-          this.Detail_Order = await res.json();
-          this.generateHeaders();
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-        }
-      }
-    },
-    generateHeaders() {
-      if (this.Detail_Order.length > 0) {
-        this.Headers = Object.keys(this.Detail_Order[0]).map((key) => ({
-          title: key.replace(/_/g, " "), // Format header text
-          key: key,
-          value: key,
-        }));
-      }
-    },
     EditItem(item) {
       // const value = this.Bom.find((v) => v.id == item);
       this.GetRow = item.PartNumber_1;
@@ -187,7 +154,7 @@ export default {
         Name_Item: this.GetRow,
         Input_Hao_Phi_Thuc_Te: this.ActualCost,
       };
-      this.Reset()
+      this.Reset();
       axios
         .put(`${this.Url}/CheckBom/Update-Hao-Phi-Thuc-Te`, Item)
         .then(function (response) {
@@ -200,9 +167,11 @@ export default {
     Reset() {
       (this.ActualCost = ""),
         (this.DialogEdit = false),
-        (this.DialogSuccess = false);
+        (this.DialogSuccess = true);
+        this.DialogAccept = false
     },
     async WareHouseAccept() {
+      this.Reset();
       axios
         .put(`${this.Url}/Orders/WareHouse-Accept/${this.$route.params.id}`)
         .then(function (response) {
@@ -214,6 +183,7 @@ export default {
         });
     },
     async WareHouseAcceptInventory() {
+      this.WareHouseAccept();
       axios
         .put(
           `${this.Url}/Inventory/update-Inventory-CheckBom/${this.$route.params.id}`

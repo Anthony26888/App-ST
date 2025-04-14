@@ -23,15 +23,8 @@
         :items-per-page="itemsPerPage"
       >
         <template v-slot:item.id="{ value }">
+          <ButtonEye @detail="FetchTableOrder(value)" />
           <v-btn
-            icon="mdi-eye-outline"
-            color="primary"
-            variant="text"
-            size="small"
-            @click="FetchTableOrder(value)"
-          ></v-btn>
-          <v-btn
-
             icon="mdi-delete"
             color="red"
             variant="text"
@@ -90,10 +83,18 @@ import InputSearch from "@/components/Input-Search.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
+import ButtonEye from "@/components/Button-Eye.vue"
 const { orders } = useSocket();
 </script>
 <script>
 export default {
+  components: {
+    ButtonDelete,
+    ButtonCancel,
+    InputSearch,
+    SnackbarSuccess,
+    ButtonEye
+  },
   data() {
     return {
       Url: import.meta.env.VITE_API_URL,

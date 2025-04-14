@@ -3,7 +3,6 @@
     v-model="visible"
     :timeout="timeout"
     color="green"
-    variant="tonal"
   >
     <v-icon>mdi-check-circle</v-icon>
     Cập nhật dữ liệu thành công

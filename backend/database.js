@@ -35,6 +35,19 @@ db.serialize(() => {
       Note TEXT,
       Note_Output TEXT
     )`);
+  db.run(`CREATE TABLE IF NOT EXISTS WareHouse2 (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      Description TEXT,
+      PartNumber_1 TEXT,
+      PartNumber_2 TEXT,
+      Input INTEGER,
+      Output INTEGER,
+      Inventory INTEGER,
+      Customer TEXT,
+      Location TEXT,
+      Note TEXT,
+      Note_Output TEXT
+    )`);
   db.run(`CREATE TABLE IF NOT EXISTS Orders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       Name_PO TEXT,
@@ -53,5 +66,34 @@ db.serialize(() => {
       Date TEXT,
       Email TEXT
     )`);
+  db.run(`
+      CREATE TABLE IF NOT EXISTS Customers (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          CustomerName TEXT UNIQUE
+      )
+  `);
+
+  db.run(`
+      CREATE TABLE IF NOT EXISTS PurchaseOrders (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          PONumber TEXT UNIQUE,
+          CustomerID INTEGER,
+          DateCreated TEXT,
+          DateDelivery TEXT,
+          FOREIGN KEY (CustomerID) REFERENCES Customers(id) ON DELETE CASCADE
+      )
+  `);
+
+  db.run(`
+      CREATE TABLE IF NOT EXISTS ProductDetails (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          POID INTEGER,
+          ProductDetail TEXT,
+          QuantityProduct INTEGER,
+          QuantityDelivered INTEGER,
+          QuantityAmount REAL,
+          FOREIGN KEY (POID) REFERENCES PurchaseOrders(id) ON DELETE CASCADE
+      )
+  `);
 });
 module.exports = db;

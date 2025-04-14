@@ -68,7 +68,7 @@
   <v-dialog v-model="DialogRemoveInventory" width="400">
     <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
       <v-card-text>
-        Bạn có chắc chắn muốn xoá toàn bộ dữ liệu dự án ?
+        Bạn có chắc chắn muốn xoá toàn bộ dữ liệu kho ?
       </v-card-text>
       <template v-slot:actions>
         <ButtonCancel @cancel="DialogRemoveInventory = false" />
@@ -79,7 +79,7 @@
   <v-dialog v-model="DialogRemoveCheckBOM" width="400">
     <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
       <v-card-text>
-        Bạn có chắc chắn muốn xoá toàn bộ dữ liệu kho ?
+        Bạn có chắc chắn muốn xoá toàn bộ dữ liệu dự án ?
       </v-card-text>
       <template v-slot:actions>
         <ButtonCancel @cancel="DialogRemoveCheckBOM = false" />

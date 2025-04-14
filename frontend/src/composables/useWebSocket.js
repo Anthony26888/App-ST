@@ -6,7 +6,6 @@ export function useSocket() {
   const warehouse = ref([]);
   const orders = ref([]);
   const bom = ref([]);
-
   let socket;
 
   onMounted(() => {

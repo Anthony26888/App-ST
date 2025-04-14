@@ -1,33 +1,22 @@
 <template lang="">
   <v-empty-state width="100%">
     <v-card class="mx-auto my-auto" color="grey-lighten-4" width="400">
-      <v-toolbar color="primary" flat>
+      <v-toolbar color="#18222D" flat>
         <v-btn icon="mdi-account"></v-btn>
 
         <v-toolbar-title class="font-weight-light">Đăng nhập </v-toolbar-title>
       </v-toolbar>
 
       <v-card-text>
-        <v-text-field
-          variant="solo-filled"
-          label="Tên đăng nhập"
-          v-model="Username"
-        ></v-text-field>
-
-        <v-text-field
-          variant="solo-filled"
-          type="password"
-          label="Mật khẩu"
-          v-model="Password"
-        ></v-text-field>
-
+        <InputField v-model="Username" label="Tên đăng nhập" />
+        <InputField v-model="Password" type="password" label="Mật khẩu" />
         <p v-if="error != ''" class="text-red">{{ error }}</p>
       </v-card-text>
 
       <v-divider></v-divider>
 
       <v-card-actions>
-        <v-btn @click="login()" block variant="tonal" color="primary">
+        <v-btn @click="login()" block variant="tonal" bg-color="#18222D">
           Đăng nhập
         </v-btn>
       </v-card-actions>
@@ -36,6 +25,7 @@
 </template>
 <script setup>
 import axios from "axios";
+import InputField from "@/components/Input-Field.vue";
 // Tạo interceptor kiểm tra lỗi từ server
 axios.interceptors.response.use(
   (response) => response,
@@ -53,6 +43,9 @@ axios.interceptors.response.use(
 </script>
 <script>
 export default {
+  components :{
+    InputField
+  },
   data() {
     return {
       Url: import.meta.env.VITE_API_URL,

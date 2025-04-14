@@ -1,12 +1,9 @@
 <template lang="">
   <v-card variant="text" class="overflow-y-auto" height="100vh">
-    <v-card-title>
+    <v-card-title class="d-flex">
       <ButtonBack to="/Cai-dat" />
+      <p class="text-h4 font-weight-light ms-3">Đăng ký thành viên</p>
     </v-card-title>
-    <v-card-title class="text-h4 font-weight-light"
-      >Đăng ký thành viên
-    </v-card-title>
-
     <v-container>
       <v-card-text>
         <InputField label="Tên đăng nhập" v-model="Username" />
