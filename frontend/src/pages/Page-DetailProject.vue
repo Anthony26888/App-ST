@@ -2,17 +2,18 @@
   <v-card variant="text" class="overflow-y-auto" height="100vh">
     <v-card-title class="d-flex">
       <ButtonBack to="/Du-an" />
-      <p class="text-h4 font-weight-light ms-3">Chi tiết khách hàng</p>
+      <p class="text-h4 font-weight-light ms-3">Chi tiết PO</p>
     </v-card-title>
     <v-card-text>
       <v-card flat>
         <v-card-title class="d-flex align-center pe-2">
-          <v-icon icon="mdi mdi-cart-arrow-down"></v-icon> &nbsp; {{}}
+          <v-icon icon="mdi mdi-account-badge-outline"></v-icon> &nbsp;
+          {{ NamePO }}
+
+          <ButtonAdd @add="DialogAdd = true" />
           <p class="ms-2 font-weight-thin text-subtitle-1">
             ( {{ detailProject.length }} PO)
           </p>
-          <ButtonAdd @add="DialogAdd = true" />
-          <ButtonDownload @download-file="DownloadOrder()" />
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
         </v-card-title>
@@ -113,6 +114,7 @@ import ButtonEdit from "@/components/Button-Edit.vue";
 import ButtonAgree from "@/components/Button-Agree.vue";
 import ButtonEye from "@/components/Button-Eye.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
+import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import { useDetailProject } from "@/composables/useDetailProject";
 const Url = import.meta.env.VITE_API_URL;
 const router = useRouter();
@@ -120,18 +122,20 @@ const route = useRoute();
 const id = route.params.id;
 const DialogEdit = ref(false);
 const DialogSuccess = ref(false);
+const DialogFailed = ref(false);
 const DialogRemove = ref(false);
 const DialogAdd = ref(false);
 const GetID = ref("");
-const PONumber_Edit  = ref('')
-const Date_Created_Edit = ref('')
-const Date_Delivery_Edit = ref('')
-const PONumber_Add  = ref('')
-const Date_Created_Add = ref('')
-const Date_Delivery_Add = ref('')
+const PONumber_Edit = ref("");
+const Date_Created_Edit = ref("");
+const Date_Delivery_Edit = ref("");
+const PONumber_Add = ref("");
+const Date_Created_Add = ref("");
+const Date_Delivery_Add = ref("");
 const { detailProject, detailProjectError } = useDetailProject(id);
-function Pushtem(item) {
-  router.push(`/Du-an/Don-hang/${item}`);
+function PushItem(item) {
+  localStorage.setItem("PO", item.PO);
+  router.push(`/Du-an/Don-hang/${item.id}`);
 }
 function GetItem(item) {
   DialogEdit.value = true;
@@ -145,16 +149,17 @@ const SaveEdit = async () => {
     PONumber: PONumber_Edit.value, // Giá trị ban đầu
     DateCreated: Date_Created_Edit.value,
     DateDelivery: Date_Delivery_Edit.value,
-    CustomerID : id
+    CustomerID: id,
   });
   axios
     .put(`${Url}/Project/Customer/Edit-Orders/${GetID.value}`, formData)
     .then(function (response) {
       console.log(response.data.message);
-      Reset()
+      Reset();
     })
     .catch(function (error) {
       console.log(error);
+      Error()
     });
 };
 
@@ -163,16 +168,17 @@ const SaveAdd = async () => {
     PONumber: PONumber_Add.value, // Giá trị ban đầu
     DateCreated: Date_Created_Add.value,
     DateDelivery: Date_Delivery_Add.value,
-    CustomerID : id
+    CustomerID: id,
   });
   axios
     .post(`${Url}/Project/Customer/Add-Orders`, formData)
     .then(function (response) {
       console.log(response.data);
-      Reset()
+      Reset();
     })
     .catch(function (error) {
       console.log(error);
+      Error()
     });
 };
 const RemoveItem = async (id) => {
@@ -180,13 +186,14 @@ const RemoveItem = async (id) => {
     .delete(`${Url}/Project/Customer/Delete-Orders/${GetID.value}`)
     .then(function (response) {
       console.log(response.data.message);
-      Reset()
+      Reset();
     })
     .catch(function (error) {
       console.log(error);
+      Error()
     });
 };
-function Reset(){
+function Reset() {
   DialogRemove.value = false;
   DialogSuccess.value = true;
   DialogEdit.value = false;
@@ -194,6 +201,9 @@ function Reset(){
   PONumber_Add.value = "";
   Date_Created_Add.value = "";
   Date_Delivery_Add.value = "";
+}
+function Error(){
+  DialogFailed = true
 }
 </script>
 <script>
@@ -208,26 +218,28 @@ export default {
     ButtonEdit,
     ButtonAgree,
     ButtonEye,
+    SnackbarFailed
   },
   data() {
     return {
       Url: import.meta.env.VITE_API_URL,
       search: "",
       Headers: [
-        {
-          key: "id",
-          sortable: false,
-          title: "Xem",
-        },
         { key: "PO", title: "Đơn hàng" },
         { key: "Total_Product", title: "Tổng đơn hàng" },
         { key: "Total_Delivered", title: "Tổng đơn đã giao" },
         { key: "Total_Amount", title: "Tổng nợ" },
         { key: "Date_Created", title: "Ngày tạo" },
-        { key: "Date_Delivery", title: "Ngày giao" },
+        { key: "Date_Delivery", title: "Ngày giao", width: "150px" },
+        {
+          key: "id",
+          sortable: false,
+          title: "Xem",
+        },
       ],
       itemsPerPage: 12,
       page: 1,
+      NamePO: localStorage.getItem("Customers"),
       intervalId: null,
       intervalId2: null,
     };

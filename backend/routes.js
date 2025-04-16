@@ -146,7 +146,7 @@ app.post("/Project/upload", upload.single("file"), async (req, res) => {
   const jsonData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
   const customerStmt = db.prepare(`
-    INSERT OR IGNORE INTO Customers (CustomerName) VALUES (?)
+    INSERT OR IGNORE INTO Customers (CustomerName, Years) VALUES (?, ?)
 `);
 
   const poStmt = db.prepare(`
@@ -155,8 +155,8 @@ app.post("/Project/upload", upload.single("file"), async (req, res) => {
 `);
 
   const productStmt = db.prepare(`
-    INSERT INTO ProductDetails (POID, ProductDetail, QuantityProduct, QuantityDelivered, QuantityAmount)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO ProductDetails (POID, ProductDetail, QuantityProduct, QuantityDelivered, QuantityAmount, CustomerID)
+    VALUES (?, ?, ?, ?, ?, ?)
 `);
 
   try {
@@ -169,10 +169,10 @@ app.post("/Project/upload", upload.single("file"), async (req, res) => {
       const quantityProduct = row["Quantity_Product"];
       const quantityDelivered = row["Quantity_Delivered"];
       const quantityAmount = row["Quantity_Amount"];
-
+      const yearCreated = row["Years"]
       let customerId = null;
       await new Promise((resolve, reject) => {
-        customerStmt.run(customerName, function (err) {
+        customerStmt.run(customerName, yearCreated, function (err) {
           if (err) reject(err);
           db.get(
             "SELECT id FROM Customers WHERE CustomerName = ?",
@@ -225,6 +225,7 @@ app.post("/Project/upload", upload.single("file"), async (req, res) => {
           quantityProduct,
           quantityDelivered,
           quantityAmount,
+          customerId,
           function (err) {
             if (err) reject(err);
             resolve();
@@ -552,7 +553,7 @@ app.delete("/CheckBOM/delete-all", async (req, res) => {
   });
 });
 
-// 📥 API to Download Bom as XLSX
+// 📥 API to Download PO as XLSX
 app.get("/Download-PO/:id", async (req, res) => {
   const { id } = req.params;
   try {
@@ -730,22 +731,49 @@ app.get("/Project", async (req, res) => {
   }
 });
 
-// Route to fetch detail Project
-app.get("/Project/Detail/:id", async (req, res) => {
+// 📥 API to Download PO as XLSX
+app.get("/Project/Customer/Orders/Download/:id", async (req, res) => {
   const { id } = req.params;
+  const NameExcel = req.query.filename;
   try {
-    const query = `
-      SELECT DISTINCT *
-      FROM Project 
-      WHERE id = ? 
-      ORDER BY PO ASC
-    `;
+    // Loại bỏ hoặc thay thế các ký tự không hợp lệ trong NameExcel
+    const invalidChars = /[:\\/?*[\]]/g;
+    const safeNameExcel = NameExcel.replace(invalidChars, "_");
+    const query = `SELECT * FROM ProductDetails WHERE POID = ?`
     db.all(query, [id], (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json(rows);
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      // Convert data to worksheet
+      const ws = xlsx.utils.json_to_sheet(rows);
+      const wb = xlsx.utils.book_new();
+      xlsx.utils.book_append_sheet(wb, ws, `${safeNameExcel}`);
+
+      // Save the file temporarily
+      const filePath = path.join(__dirname, `${safeNameExcel}.xlsx`);
+      xlsx.writeFile(wb, filePath);
+
+      // Send the file to the client
+      res.download(filePath, `${safeNameExcel}.xlsx`, (err) => {
+        if (err) console.error("Error sending file:", err);
+        fs.unlinkSync(filePath); // Delete after sending
+      });
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+// Router delete all item in Customers table
+app.delete("/Project/delete-all", async (req, res) => {
+  // Delete data into SQLite database
+  const query = `DELETE FROM Customers`;
+  db.run(query, [], function (err) {
+    if (err) {
+      return console.error(err.message);
+    }
+    // Broadcast the new message to all clients
+    res.json({ message: "Item inserted successfully" });
+  });
+});
+
 module.exports = app;

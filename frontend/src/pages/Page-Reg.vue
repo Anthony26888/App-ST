@@ -12,7 +12,7 @@
         <InputField label="Email" v-model="Email" />
         <v-select
           label="Phân quyền"
-          :items="['Admin', 'Kế hoạch', 'Thủ kho']"
+          :items="['Admin', 'Kế hoạch', 'Thủ kho', 'Kinh doanh', 'Quản lý']"
           variant="solo-filled"
           v-model="Level"
         ></v-select>
@@ -43,7 +43,13 @@ import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import InputField from "@/components/Input-Field.vue";
 </script>
 <script>
+
 export default {
+  components:{
+    ButtonBack,
+    SnackbarSuccess,
+    InputField
+  },
   data() {
     return {
       Url: import.meta.env.VITE_API_URL,

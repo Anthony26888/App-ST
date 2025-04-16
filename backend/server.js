@@ -57,6 +57,28 @@ io.on("connection", (socket) => {
         socket.emit("detailBomError", error);
       }
     }),
+    socket.on("getOrders", async () => {
+      try {
+        const query = `SELECT DISTINCT * FROM Orders`;
+        db.all(query, [], (err, rows) => {
+          if (err) return socket.emit("ordersError", err);
+          socket.emit("ordersData", rows);
+        });
+      } catch (error) {
+        socket.emit("ordersError", error);
+      }
+    }),
+    socket.on("getWareHouse", async () => {
+      try {
+        const query = `SELECT DISTINCT * FROM WareHouse ORDER BY id`;
+        db.all(query, [], (err, rows) => {
+          if (err) return socket.emit("WareHouseError", err);
+          socket.emit("WareHouseData", rows);
+        });
+      } catch (error) {
+        socket.emit("WareHouseError", error);
+      }
+    }),
     socket.on("getWareHouse2", async () => {
       try {
         const query = `SELECT DISTINCT * FROM WareHouse2 ORDER BY id`;
@@ -70,7 +92,7 @@ io.on("connection", (socket) => {
     }),
     socket.on("getProject", async () => {
       try {
-        const query = `SELECT DISTINCT c.id, c.CustomerName AS Customers, COUNT(p.PONumber) AS Quantity_PO FROM Customers c LEFT JOIN PurchaseOrders p ON c.id = p.CustomerID GROUP BY c.CustomerName ORDER BY c.CustomerName ASC`;
+        const query = `SELECT DISTINCT c.id, c.CustomerName AS Customers, COUNT(p.PONumber) AS Quantity_PO, Years FROM Customers c LEFT JOIN PurchaseOrders p ON c.id = p.CustomerID GROUP BY c.CustomerName ORDER BY c.Years DESC`;
         db.all(query, [], (err, rows) => {
           if (err) return socket.emit("ProjectError", err);
           socket.emit("ProjectData", rows);
@@ -207,6 +229,26 @@ app.delete("/Users/delete-user/:id", async (req, res) => {
   // Delete data into SQLite database
   const query = `DELETE FROM Users WHERE id = ?`;
   db.run(query, [id], function (err) {
+    if (err) {
+      return console.error(err.message);
+    }
+    sendData();
+    // Broadcast the new message to all clients
+    res.json({ message: "Item inserted successfully" });
+  });
+});
+
+// Router edit user in Users table
+app.put("/Users/Edit-User/:id", async (req, res) => {
+  const { Username, FullName, Email, Level } = req.body
+  const { id } = req.params;
+  // Delete data into SQLite database
+  const query = `
+    UPDATE Users 
+    SET Username = ?, FullName = ?, Email = ?, Level = ?
+    WHERE id = ?
+  `;
+  db.run(query, [Username, FullName, Email, Level, id], function (err) {
     if (err) {
       return console.error(err.message);
     }
@@ -695,6 +737,24 @@ app.post("/Project/Customer/Add-Customer", async (req, res) => {
     res.json({ message: "Đã cập nhật dữ liệu thành công" });
   });
 });
+
+// Router delete orders in PurchaseDetails table
+app.delete("/Project/Customer/Delete-Customer/:id", async (req, res) => {
+  const { id } = req.params;
+  // Insert data into SQLite database
+  const query = `
+    DELETE FROM Customers WHERE id = ?`
+  db.run(query, [id], function (err) {
+    if (err) {
+      return res.status(500).json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
+    }
+    io.emit("ProjectUpdate");
+    // Broadcast the new message to all clients
+    res.json({ message: "Đã cập nhật dữ liệu thành công" });
+  });
+});
+
+
 
 // Lắng nghe trên `0.0.0.0`
 

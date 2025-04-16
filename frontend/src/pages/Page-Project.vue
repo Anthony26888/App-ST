@@ -15,7 +15,6 @@
             @click="DialogAdd = true"
             >Thêm</v-btn
           >
-          <ButtonDownload @download-file="DownloadInventory()" />
           <p class="ms-2 font-weight-thin text-subtitle-1">
             ( {{ project.length }} dự án)
           </p>
@@ -96,6 +95,7 @@
     </v-card>
   </v-dialog>
   <SnackbarSuccess v-model="DialogSuccess" />
+  <SnackbarFailed v-model="DialogFailed" />
 </template>
 <script setup>
 import axios from "axios";
@@ -106,6 +106,8 @@ import InputField from "@/components/Input-Field.vue";
 import ButtonImportFile from "@/components/Button-ImportFile.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonEye from "@/components/Button-Eye.vue";
+import SnackbarSuccess from "@/components/Snackbar-Success.vue";
+import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import { useProject } from "@/composables/useProject";
 const Url = import.meta.env.VITE_API_URL;
 const router = useRouter();
@@ -113,6 +115,7 @@ const GetID = ref("");
 const Dialog = ref(false);
 const DialogEdit = ref(false);
 const DialogSuccess = ref(false);
+const DialogFailed = ref(false);
 const DialogRemove = ref(false);
 const DialogAdd = ref(false);
 const File = ref(null);
@@ -120,7 +123,10 @@ const Customer_Edit = ref("");
 const Customer_Add = ref("");
 const { project } = useProject();
 function PushItem(value) {
+  const found = project.value.find((v) => v.id === value);
   router.push(`/Du-an/Khach-hang/${value}`);
+  localStorage.setItem("Customers", found.Customers);
+  localStorage.setItem("CustomersID", value);
 }
 function GetItem(value) {
   console.log(value);
@@ -141,6 +147,7 @@ const SaveEdit = async () => {
     })
     .catch(function (error) {
       console.log(error);
+      Error()
     });
 };
 
@@ -156,17 +163,19 @@ const SaveAdd = async () => {
     })
     .catch(function (error) {
       console.log(error);
+      Error()
     });
 };
 const RemoveItem = async (id) => {
   axios
-    .delete(`${Url}/Project/Customer/Delete-Orders/${GetID.value}`)
+    .delete(`${Url}/Project/Customer/Delete-Customer/${GetID.value}`)
     .then(function (response) {
       console.log(response.data.message);
       Reset();
     })
     .catch(function (error) {
       console.log(error);
+      Error()
     });
 };
 const ImportFile = async () => {
@@ -180,6 +189,7 @@ const ImportFile = async () => {
     })
     .catch(function (error) {
       console.log(error);
+      Error()
     });
 };
 function Reset() {
@@ -189,6 +199,9 @@ function Reset() {
   DialogAdd.value = false;
   Dialog.value = false;
   Customer_Add.value = "";
+}
+function Error(){
+  DialogFailed = true
 }
 </script>
 <script>
@@ -200,6 +213,8 @@ export default {
     ButtonImportFile,
     ButtonDownload,
     ButtonEye,
+    SnackbarSuccess,
+    SnackbarFailed
   },
   data() {
     return {
@@ -209,6 +224,7 @@ export default {
       Headers: [
         { key: "Customers", title: "Khách hàng" },
         { key: "Quantity_PO", title: "Số lượng PO" },
+        { key: "Years", title: "Năm tạo" },
         {
           key: "id",
           sortable: false,

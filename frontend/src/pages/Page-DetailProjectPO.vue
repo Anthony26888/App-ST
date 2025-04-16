@@ -1,14 +1,14 @@
 <template lang="">
   <v-card variant="text" class="overflow-y-auto" height="100vh">
     <v-card-title class="d-flex">
-      <ButtonBack to="/Du-an" />
+      <ButtonBack :to="`/Du-an/Khach-hang/${CustomerID}`" />
       <p class="text-h4 font-weight-light ms-3">Chi tiết đơn hàng</p>
     </v-card-title>
     <v-card-text>
       <v-card flat>
         <v-card-title class="d-flex align-center pe-2">
-          <v-icon icon="mdi mdi-cart-arrow-down"></v-icon> &nbsp;
-          {{ $route.params.id }}
+          <v-icon icon="mdi mdi-cart-variant"></v-icon> &nbsp;
+          {{ NamePO }}
           <p class="ms-2 font-weight-thin text-subtitle-1">
             ( {{ detailProjectPO.length }} đơn hàng)
           </p>
@@ -123,11 +123,14 @@ import ButtonAgree from "@/components/Button-Agree.vue";
 import ButtonAdd from "@/components/Button-Add.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import { useDetailProjectPO } from "@/composables/useDetailProjectPO";
+import SnackbarFailed from "@/components/Snackbar-Failed.vue";
+
 const route = useRoute();
 const id = route.params.id;
 const Url = import.meta.env.VITE_API_URL;
 const DialogEdit = ref(false);
 const DialogSuccess = ref(false);
+const DialogFailed = ref(false);
 const DialogRemove = ref(false);
 const DialogAdd = ref(false);
 const GetID = ref("");
@@ -139,7 +142,18 @@ const Product_Detail_Add = ref("");
 const Quantity_Product_Add = ref("");
 const Quantity_Delivered_Add = ref("");
 const Quantity_Amount_Add = ref("");
+const CustomerID = ref(null);
+const NamePO = ref(null);
+const NameCustomer = ref(null);
 const { detailProjectPO, detailProjectPOError } = useDetailProjectPO(id);
+onMounted(() => {
+  const storedData = localStorage.getItem("CustomersID");
+  const storeData = localStorage.getItem("PO");
+  const storedsData = localStorage.getItem("Customers");
+  CustomerID.value = storedData;
+  NamePO.value = storeData;
+  NameCustomer.value = storedsData;
+});
 
 function GetItem(item) {
   DialogEdit.value = true;
@@ -160,10 +174,11 @@ const SaveEdit = async () => {
     .put(`${Url}/Project/Customer/Edit-Item/${GetID.value}`, formData)
     .then(function (response) {
       console.log(response.data.message);
-      Reset()
+      Reset();
     })
     .catch(function (error) {
       console.log(error);
+      Error()
     });
 };
 
@@ -179,10 +194,11 @@ const SaveAdd = async () => {
     .post(`${Url}/Project/Customer/Add-Item`, formData)
     .then(function (response) {
       console.log(response.data);
-      Reset()
+      Reset();
     })
     .catch(function (error) {
       console.log(error);
+      Error()
     });
 };
 const RemoveItem = async (id) => {
@@ -190,12 +206,42 @@ const RemoveItem = async (id) => {
     .delete(`${Url}/Project/Customer/Delete-Item/${GetID.value}`)
     .then(function (response) {
       console.log(response.data.message);
-      Reset()
+      Reset();
     })
     .catch(function (error) {
       console.log(error);
+      Error()
     });
 };
+
+const DownloadOrder = async () => {
+  const NameExcel = `${NameCustomer.value}-${NamePO.value}`
+  try {
+    const response = await fetch(
+      `${Url}/Project/Customer/Orders/Download/${id}?filename=${encodeURIComponent(NameExcel)}`
+    );
+    if (!response.ok) throw new Error("Download failed");
+
+    // Convert response to blob
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    // Create a link to download
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${NameExcel}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+
+    // Cleanup
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error downloading file:", error);
+    Error()
+  }
+};
+
 function Reset() {
   DialogRemove.value = false;
   DialogSuccess.value = true;
@@ -205,6 +251,9 @@ function Reset() {
   Quantity_Product_Add.value = "";
   Quantity_Delivered_Add.value = "";
   Quantity_Amount_Add.value = "";
+}
+function Error(){
+  DialogFailed = true
 }
 </script>
 <script>
@@ -220,6 +269,7 @@ export default {
     ButtonEdit,
     ButtonAgree,
     ButtonAdd,
+    SnackbarFailed
   },
   data() {
     return {
@@ -240,31 +290,7 @@ export default {
     };
   },
   methods: {
-    async DownloadOrder() {
-      try {
-        const response = await fetch(
-          `${this.Url}/Download-Order/${this.$route.params.PO}`
-        );
-        if (!response.ok) throw new Error("Download failed");
-
-        // Convert response to blob
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-
-        // Create a link to download
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${this.$route.params.PO}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-
-        // Cleanup
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error("Error downloading file:", error);
-      }
-    },
+    
   },
 };
 </script>

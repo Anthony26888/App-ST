@@ -60,6 +60,19 @@
               >Xoá toàn bộ dữ liệu kho</v-list-item-title
             >
           </v-list-item>
+          <v-list-item
+            color="primary"
+            value="option-5"
+            @click="DialogRemoveProject = true"
+          >
+            <template v-slot:prepend>
+              <v-icon color="red" icon="mdi-store-remove"></v-icon>
+            </template>
+
+            <v-list-item-title class="text-red"
+              >Xoá toàn bộ dữ liệu dự án</v-list-item-title
+            >
+          </v-list-item>
         </v-list>
       </v-container>
     </v-card-text>
@@ -79,11 +92,22 @@
   <v-dialog v-model="DialogRemoveCheckBOM" width="400">
     <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
       <v-card-text>
-        Bạn có chắc chắn muốn xoá toàn bộ dữ liệu dự án ?
+        Bạn có chắc chắn muốn xoá toàn bộ dữ liệu Bom ?
       </v-card-text>
       <template v-slot:actions>
         <ButtonCancel @cancel="DialogRemoveCheckBOM = false" />
         <ButtonDelete @delete="RemoveCheckBOM()" />
+      </template>
+    </v-card>
+  </v-dialog>
+  <v-dialog v-model="DialogRemoveProject" width="400">
+    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
+      <v-card-text>
+        Bạn có chắc chắn muốn xoá toàn bộ dữ liệu dự án ?
+      </v-card-text>
+      <template v-slot:actions>
+        <ButtonCancel @cancel="DialogRemoveProject = false" />
+        <ButtonDelete @delete="RemoveProject()" />
       </template>
     </v-card>
   </v-dialog>
@@ -97,11 +121,17 @@ import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 </script>
 <script>
 export default {
+  components:{
+    ButtonDelete,
+    ButtonCancel,
+    SnackbarSuccess
+  },
   data() {
     return {
       Url: import.meta.env.VITE_API_URL,
       DialogRemoveInventory: false,
       DialogRemoveCheckBOM: false,
+      DialogRemoveProject:false,
       DialogSuccess : false
     };
   },
@@ -112,7 +142,6 @@ export default {
         .delete(`${this.Url}/Inventory/delete-all`)
         .then(function (response) {
           console.log(response);
-          this.DialogRemove = false;
         })
         .catch(function (error) {
           console.log(error);
@@ -124,7 +153,17 @@ export default {
         .delete(`${this.Url}/CheckBOM/delete-all`)
         .then(function (response) {
           console.log(response);
-          this.DialogRemove = false;
+        })
+        .catch(function (error) {
+          console.log(error);
+        });
+    },
+    async RemoveProject() {
+      this.Reset()
+      axios
+        .delete(`${this.Url}/Project/delete-all`)
+        .then(function (response) {
+          console.log(response);
         })
         .catch(function (error) {
           console.log(error);
@@ -133,6 +172,7 @@ export default {
     Reset(){
       this.DialogRemoveInventory = false,
       this.DialogRemoveCheckBOM = false,
+      this.DialogRemoveProject = false,
       this.DialogSuccess = true
     }
   },

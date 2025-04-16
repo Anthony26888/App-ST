@@ -1,7 +1,18 @@
 const sqlite3 = require("sqlite3").verbose();
 const db = new sqlite3.Database("./database.db", (err) => {
-  if (err) console.error(err.message);
-  console.log("Connected to SQLite database.");
+  if (err) {
+    console.error(err.message);
+  } else {
+    console.log("Đã kết nối đến cơ sở dữ liệu SQLite.");
+    db.run("PRAGMA foreign_keys = ON;", (pragmaErr) => {
+      if (pragmaErr) {
+        console.error("Lỗi khi bật hỗ trợ khóa ngoại:", pragmaErr.message);
+      } else {
+        console.log("Hỗ trợ khóa ngoại đã được bật.");
+        // Tiếp tục tạo bảng và thực hiện các thao tác khác
+      }
+    });
+  }
 });
 
 // Create table if not exists
@@ -69,7 +80,8 @@ db.serialize(() => {
   db.run(`
       CREATE TABLE IF NOT EXISTS Customers (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          CustomerName TEXT UNIQUE
+          CustomerName TEXT UNIQUE,
+          Years INTEGER
       )
   `);
 
@@ -91,8 +103,10 @@ db.serialize(() => {
           ProductDetail TEXT,
           QuantityProduct INTEGER,
           QuantityDelivered INTEGER,
-          QuantityAmount REAL,
+          QuantityAmount INTEGER,
+          CustomerID INTEGER,
           FOREIGN KEY (POID) REFERENCES PurchaseOrders(id) ON DELETE CASCADE
+          FOREIGN KEY (CustomerID) REFERENCES Customers(id) ON DELETE CASCADE
       )
   `);
 });

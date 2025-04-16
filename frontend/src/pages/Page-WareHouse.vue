@@ -33,13 +33,7 @@
               </div>
             </template>
             <template v-slot:item.id="{ value }">
-              <v-btn
-                icon="mdi-pencil"
-                size="xl"
-                color="primary"
-                variant="text"
-                @click="EditItem(value)"
-              ></v-btn>
+              <ButtonEdit @click="GetItem(value)" />
             </template>
           </v-data-table>
         </v-card-text>
@@ -149,7 +143,9 @@
 </template>
 <script setup>
 import axios from "axios";
-import { useSocket } from "@/composables/useWebSocket";
+import { useWareHouse } from "@/composables/useWareHouse";
+import { ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import ButtonImportFile from "@/components/Button-ImportFile.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";
@@ -160,7 +156,20 @@ import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputFiles from "@/components/Input-Files.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
-const { warehouse } = useSocket();
+const { warehouse } = useWareHouse();
+const router = useRouter();
+const Url = import.meta.env.VITE_API_URL;
+const DialogEdit = ref(false);
+const DialogRemove = ref(false);
+const DialogSuccess = ref(false);
+const DialogFailed = ref(false);
+const DialogNewItem = ref(false);
+const GetID = ref('');
+function GetItem(value){
+  DialogEdit.value = true;
+  const found = warehouse.value.find((v) => v.id === value);
+  
+}
 </script>
 <script>
 export default {
@@ -178,7 +187,7 @@ export default {
   },
   data() {
     return {
-      Url: import.meta.env.VITE_API_URL,
+      
       search: "",
       Dialog: false,
       DialogNewItems: false,

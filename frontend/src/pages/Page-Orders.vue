@@ -1,16 +1,10 @@
 <template lang="">
-  <v-card
-    variant="text"
-    class="overflow-y-auto"
-    height="100vh"
-  >
+  <v-card variant="text" class="overflow-y-auto" height="100vh">
     <v-card-title class="text-h4 font-weight-light"
       >Danh sách đơn hàng
     </v-card-title>
     <v-card-title class="d-flex align-center pe-2">
-      <p class="text-subtitle-1">
-        Có {{ orders.length }} đơn hàng
-      </p>
+      <p class="text-subtitle-1">Có {{ orders.length }} đơn hàng</p>
       <v-spacer></v-spacer>
       <InputSearch v-model="search" />
     </v-card-title>
@@ -23,7 +17,7 @@
         :items-per-page="itemsPerPage"
       >
         <template v-slot:item.id="{ value }">
-          <ButtonEye @detail="FetchTableOrder(value)" />
+          <ButtonEye @detail="GetItem(value)" />
           <v-btn
             icon="mdi-delete"
             color="red"
@@ -77,14 +71,44 @@
 </template>
 <script setup>
 import axios from "axios";
-import router from "@/router/index";
-import { useSocket } from "@/composables/useWebSocket";
+import { ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useOrders } from "@/composables/useOrders";
 import InputSearch from "@/components/Input-Search.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
+import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
-import ButtonEye from "@/components/Button-Eye.vue"
-const { orders } = useSocket();
+import ButtonEye from "@/components/Button-Eye.vue";
+const Url = import.meta.env.VITE_API_URL;
+const { orders } = useOrders();
+const router = useRouter();
+const DialogRemove = ref(null);
+const DialogSuccess = ref(null);
+const DialogFailed = ref(null);
+function GetItem(value) {
+  const found = orders.value.find((v) => v.id === value);
+  router.push(`/Don-hang/${found.Name_PO}`);
+}
+const RemoveItem = async (value) => {
+  axios
+    .delete(`${Url}/Orders/delete-item/${value}`)
+    .then(function (response) {
+      console.log(response);
+      Reset()
+    })
+    .catch(function (error) {
+      console.log(error);
+      Error()
+    });
+};
+function Reset(){
+  DialogSuccess.value = true;
+  DialogRemove.value = false
+}
+function Error(){
+  DialogFailed.value = true
+}
 </script>
 <script>
 export default {
@@ -93,11 +117,11 @@ export default {
     ButtonCancel,
     InputSearch,
     SnackbarSuccess,
-    ButtonEye
+    SnackbarFailed,
+    ButtonEye,
   },
   data() {
     return {
-      Url: import.meta.env.VITE_API_URL,
       Headers: [
         { title: "", key: "id", sortable: false },
         {
@@ -111,45 +135,12 @@ export default {
         { key: "Date", title: "Ngày tạo" },
       ],
       search: "",
-      id_Remove: "",
-      Name_PO: "",
-      DialogRemove: false,
-      DialogSuccess :false,
       itemsPerPage: 10,
       page: 1,
-      intervalId: null,
     };
   },
   methods: {
-    async FetchTableOrder(value) {
-      try {
-        const res = await fetch(`${this.Url}/Orders/Detail/${value}`);
-        const orders = await res.json();
-        this.Name_PO = orders[0].Name_PO;
-        this.$router.push(`/Don-hang/${orders[0].Name_PO}`);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      }
-    },
-    GetRemove(value) {
-      this.id_Remove = value;
-      this.DialogRemove = true;
-    },
-    async RemoveItem() {
-      this.Reset()
-      axios
-        .delete(`${this.Url}/Orders/delete-item/${this.id_Remove}`)
-        .then(function (response) {
-          console.log(response);
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
-    },
-    Reset(){
-      this.DialogRemove = false,
-      this.DialogSuccess = true
-    }
+    
   },
 };
 </script>
