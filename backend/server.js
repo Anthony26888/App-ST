@@ -297,7 +297,7 @@ app.put("/WareHouse/update-item/:id", async (req, res) => {
       if (err) {
         return console.error(err.message);
       }
-      sendData();
+      io.emit("WareHouseUpdate");
       // Broadcast the new message to all clients
       res.json({ message: "Item inserted successfully" });
     }
@@ -359,7 +359,7 @@ app.delete("/WareHouse/delete-item/:id", async (req, res) => {
     if (err) {
       return console.error(err.message);
     }
-    sendData();
+    io.emit("WareHouseUpdate");
     // Broadcast the new message to all clients
     res.json({ message: "Item inserted successfully" });
   });
@@ -415,7 +415,7 @@ app.post("/WareHouse/upload-new-item", (req, res) => {
       if (err) {
         return console.error(err.message);
       }
-      sendData();
+      io.emit("WareHouseUpdate");
       // Broadcast the new message to all clients
       res.json({ message: "Item inserted successfully" });
     }

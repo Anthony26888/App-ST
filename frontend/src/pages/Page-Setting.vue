@@ -139,7 +139,7 @@ export default {
     async RemoveInventory() {
       this.Reset()
       axios
-        .delete(`${this.Url}/Inventory/delete-all`)
+        .delete(`${this.Url}/WareHouse/delete-all`)
         .then(function (response) {
           console.log(response);
         })

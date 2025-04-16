@@ -7,8 +7,8 @@
       <v-card variant="text">
         <v-card-title class="d-flex align-center pe-2">
           <ButtonImportFile @import-file="Dialog = true" />
-          <ButtonAdd @click="DialogNewItems = true" />
-          <ButtonDownload @download-file="DownloadInventory()" />
+          <ButtonAdd @click="DialogAdd = true" />
+          <ButtonDownload @download-file="DownloadWareHouse()" />
           <p class="ms-2 font-weight-thin text-subtitle-1">
             ( {{ warehouse.length }} linh kiện)
           </p>
@@ -52,7 +52,7 @@
       </template>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogNewItems" scrollable>
+  <v-dialog v-model="DialogAdd" scrollable>
     <v-card
       width="600"
       class="mx-auto overflow-y-auto"
@@ -60,37 +60,37 @@
       title="Thêm linh kiện"
     >
       <v-card-text>
-        <InputField label="Part Number 1" v-model="PartNumber1" />
-        <InputField label="Part Number 2" v-model="PartNumber2" />
+        <InputField label="Part Number 1" v-model="PartNumber1_Add" />
+        <InputField label="Part Number 2" v-model="PartNumber2_Add" />
         <v-textarea
           label="Mô tả"
           variant="solo-filled"
-          v-model="Description"
+          v-model="Description_Add"
           clearable
         ></v-textarea>
         <v-row>
           <v-col>
-            <InputField label="Nhập kho" type="number" v-model="Input" />
+            <InputField label="Nhập kho" type="number" v-model="Input_Add" />
           </v-col>
           <v-col>
-            <InputField label="Xuất kho" type="number" v-model="Output" />
+            <InputField label="Xuất kho" type="number" v-model="Output_Add" />
           </v-col>
           <v-col>
-            <InputField label="Tồn kho" type="number" v-model="inventory" />
+            <InputField label="Tồn kho" type="number" v-model="inventory_Add" />
           </v-col>
         </v-row>
-        <InputField label="Vị trí" v-model="Location" />
-        <InputField label="Khách hàng" v-model="Customer" />
-        <InputField label="Ghi chú" v-model="Note" />
-        <InputField label="Ghi chú xuất" v-model="Note_Output" />
+        <InputField label="Vị trí" v-model="Location_Add" />
+        <InputField label="Khách hàng" v-model="Customer_Add" />
+        <InputField label="Ghi chú" v-model="Note_Add" />
+        <InputField label="Ghi chú xuất" v-model="Note_Output_Add" />
       </v-card-text>
       <v-card-actions>
-        <ButtonCancel @cancel="DialogNewItems = false" />
-        <ButtonSave @save="NewItem()" />
+        <ButtonCancel @cancel="DialogAdd = false" />
+        <ButtonSave @save="SaveAdd()" />
       </v-card-actions>
     </v-card>
   </v-dialog>
-  <SnackbarSuccess v-model="DialogSuccess" />
+
   <v-dialog v-model="DialogEdit" width="400" scrollable>
     <v-card
       width="600"
@@ -109,13 +109,28 @@
         ></v-textarea>
         <v-row>
           <v-col>
-            <InputField label="Nhập kho" type="number" v-model="Input_Edit" @input="updateInventoryOnOutput"/>
+            <InputField
+              label="Nhập kho"
+              type="number"
+              v-model="Input_Edit"
+              @input="updateInventoryOnOutput"
+            />
           </v-col>
           <v-col>
-            <InputField label="Xuất kho" type="number" v-model="Output_Edit" @input="updateInventoryOnOutput"/>
+            <InputField
+              label="Xuất kho"
+              type="number"
+              v-model="Output_Edit"
+              @input="updateInventoryOnOutput"
+            />
           </v-col>
           <v-col>
-            <InputField label="Tồn kho" type="number" v-model="inventory_Edit" :readonly="true" />
+            <InputField
+              label="Tồn kho"
+              type="number"
+              v-model="inventory_Edit"
+              :readonly="true"
+            />
           </v-col>
         </v-row>
         <InputField label="Vị trí" v-model="Location_Edit" />
@@ -127,7 +142,7 @@
         <ButtonDelete @delete="DialogRemove = true" />
         <v-spacer></v-spacer>
         <ButtonCancel @cancel="DialogEdit = false" />
-        <ButtonSave @save="SaveEditItem()" />
+        <ButtonSave @save="SaveEdit()" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -140,6 +155,8 @@
       </template>
     </v-card>
   </v-dialog>
+  <SnackbarSuccess v-model="DialogSuccess" />
+  <SnackbarFailed v-model="DialogFailed" />
 </template>
 <script setup>
 import axios from "axios";
@@ -159,16 +176,177 @@ import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 const { warehouse } = useWareHouse();
 const router = useRouter();
 const Url = import.meta.env.VITE_API_URL;
+const Dialog = ref(false);
 const DialogEdit = ref(false);
 const DialogRemove = ref(false);
 const DialogSuccess = ref(false);
 const DialogFailed = ref(false);
-const DialogNewItem = ref(false);
-const GetID = ref('');
-function GetItem(value){
+const DialogAdd = ref(false);
+const File = ref(null);
+const PartNumber1_Edit = ref("");
+const PartNumber2_Edit = ref("");
+const Description_Edit = ref("");
+const Input_Edit = ref("");
+const Output_Edit = ref("");
+const inventory_Edit = ref("");
+const Location_Edit = ref("");
+const Customer_Edit = ref("");
+const Note_Edit = ref("");
+const Note_Output_Edit = ref("");
+const PartNumber1_Add = ref("");
+const PartNumber2_Add = ref("");
+const Description_Add = ref("");
+const Input_Add = ref("");
+const Output_Add = ref("");
+const inventory_Add = ref("");
+const Location_Add = ref("");
+const Customer_Add = ref("");
+const Note_Add = ref("");
+const Note_Output_Add = ref("");
+const GetID = ref("");
+function GetItem(value) {
   DialogEdit.value = true;
+  GetID.value = value;
   const found = warehouse.value.find((v) => v.id === value);
-  
+  PartNumber1_Edit.value = found.PartNumber_1;
+  PartNumber2_Edit.value = found.PartNumber_2;
+  Description_Edit.value = found.Description;
+  Input_Edit.value = found.Input;
+  Output_Edit.value = found.Output;
+  inventory_Edit.value = found.Inventory;
+  Location_Edit.value = found.Location;
+  Customer_Edit.value = found.Customer;
+  Note_Edit.value = found.Note;
+  Note_Output_Edit.value = found.Note_Output_Edit;
+}
+function updateInventoryOnOutput(event) {
+  const outputValue = parseInt(event.target.value) || 0;
+  const inputValue = parseInt(Input_Edit.value) || 0;
+  if (!Output_Edit.value) {
+    inventory_Edit.value = inputValue;
+  } else if (inputValue - outputValue > 0) {
+    inventory_Edit.value = inputValue - outputValue;
+  } else {
+    inventory_Edit.value = 0;
+  }
+}
+const SaveEdit = async () => {
+  const formData = {
+    PartNumber1_Edit: PartNumber1_Edit.value,
+    PartNumber2_Edit: PartNumber2_Edit.value,
+    Description_Edit: Description_Edit.value,
+    Input_Edit: Input_Edit.value,
+    Output_Edit: Output_Edit.value,
+    inventory_Edit: inventory_Edit.value,
+    Location_Edit: Location_Edit.value,
+    Customer_Edit: Customer_Edit.value,
+    Note_Edit: Note_Edit.value,
+    Note_Output_Edit: Note_Output_Edit.value,
+  };
+  axios
+    .put(`${Url}/WareHouse/update-item/${GetID.value}`, formData)
+    .then(function (response) {
+      console.log(response);
+      Reset();
+    })
+    .catch(function (error) {
+      console.log(error);
+      Error();
+    });
+};
+const SaveAdd = async () => {
+  const formData = {
+    Description: Description_Add.value,
+    PartNumber_1: PartNumber1_Add.value,
+    PartNumber_2: PartNumber2_Add.value,
+    Input: Input_Add.value,
+    Output: Output_Add.value,
+    Inventory: inventory_Add.value,
+    Location: Location_Add.value,
+    Customer: Customer_Add.value,
+    Note: Note_Add.value,
+    Note_Output: Note_Output_Add.value,
+  };
+  axios
+    .post(`${Url}/WareHouse/upload-new-item`, formData)
+    .then(function (response) {
+      console.log(response);
+      Reset();
+    })
+    .catch(function (error) {
+      console.log(error);
+      Error();
+    });
+};
+const RemoveItem = async () => {
+  axios
+    .delete(`${Url}/WareHouse/delete-item/${GetID.value}`)
+    .then(function (response) {
+      console.log(response);
+      Reset();
+    })
+    .catch(function (error) {
+      console.log(error);
+      Error();
+    });
+};
+const ImportFile = async () => {
+  Dialog.value = true;
+  const formData = new FormData();
+  formData.append("file", File.value);
+  axios
+    .post(`${Url}/WareHouse/Upload`, formData)
+    .then(function (response) {
+      console.log(response);
+      Reset();
+    })
+    .catch(function (error) {
+      console.log(error);
+      Error();
+    });
+};
+const DownloadWareHouse = async () => {
+  try {
+    const response = await fetch(`${Url}/Ware-House/download`);
+    if (!response.ok) throw new Error("Download failed");
+
+    // Convert response to blob
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    // Create a link to download
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Kho.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+
+    // Cleanup
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error downloading file:", error);
+  }
+};
+function Reset() {
+  DialogEdit.value = false;
+  DialogSuccess.value = true;
+  DialogRemove.value = false;
+  DialogAdd.value = false;
+  Dialog.value = false;
+  PartNumber1_Add.value = ref("");
+  PartNumber2_Add.value = ref("");
+  Description_Add.value = ref("");
+  Input_Add.value = ref("");
+  Output_Add.value = ref("");
+  inventory_Add.value = ref("");
+  Location_Add.value = ref("");
+  Customer_Add.value = ref("");
+  Note_Add.value = ref("");
+  Note_Output_Add.value = ref("");
+}
+function Error() {
+  DialogFailed.value = false;
 }
 </script>
 <script>
@@ -187,15 +365,7 @@ export default {
   },
   data() {
     return {
-      
       search: "",
-      Dialog: false,
-      DialogNewItems: false,
-      DialogSuccess: false,
-      DialogEdit: false,
-      DialogRemove: false,
-      GetRow: "",
-      File: null,
       Headers: [
         {
           key: "Description",
@@ -214,191 +384,11 @@ export default {
         { key: "Note_Output", title: "Ghi chú xuất" },
         { key: "id", title: "Sửa" },
       ],
-      PartNumber1: "",
-      PartNumber2: "",
-      Description: "",
-      Input: "",
-      Output: "",
-      inventory: "",
-      Location: "",
-      Customer: "",
-      Note: "",
-      Note_Output: "",
-      PartNumber1_Edit: "",
-      PartNumber2_Edit: "",
-      Description_Edit: "",
-      Input_Edit: "",
-      Output_Edit: "",
-      inventory_Edit: "",
-      Location_Edit: "",
-      Customer_Edit: "",
-      Note_Edit: "",
-      Note_Output_Edit: "",
-      id_Edit: "",
-      UserInterval: null,
       itemsPerPage: 15,
       page: 1,
     };
   },
-  methods: {
-    updateInventoryOnOutput(event) {
-      const outputValue = parseInt(event.target.value) || 0;
-      const inputValue = parseInt(this.Input_Edit) || 0;
-      if (!this.Output_Edit) {
-        this.inventory_Edit = inputValue;
-      } else if((inputValue - outputValue) > 0){
-        this.inventory_Edit = inputValue - outputValue;
-      } else{
-        this.inventory_Edit = 0
-      }
-    },
-    async ImportFile() {
-      const formData = new FormData();
-      formData.append("file", this.File);
-      this.Reset();
-      axios
-        .post(`${this.Url}/WareHouse/Upload`, formData)
-        .then(function (response) {
-          console.log(response);
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
-    },
-    async NewItem() {
-      const Items = {
-        Description: this.Description,
-        PartNumber_1: this.PartNumber1,
-        PartNumber_2: this.PartNumber2,
-        Input: this.Input,
-        Output: this.Output,
-        Inventory: this.inventory,
-        Location: this.Location,
-        Customer: this.Customer,
-        Note: this.Note,
-        Note_Output: this.Note_Output,
-      };
-      this.Reset();
-      axios
-        .post(`${this.Url}/Inventory/upload-new-item`, Items)
-        .then(function (response) {
-          console.log(response);
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
-    },
-    Reset() {
-      (this.DialogSuccess = true),
-        (this.PartNumber1 = ""),
-        (this.PartNumber2 = ""),
-        (this.Description = ""),
-        (this.Input = ""),
-        (this.Output = ""),
-        (this.inventory = ""),
-        (this.Location = ""),
-        (this.Customer = ""),
-        (this.Note = ""),
-        (this.Note_Output = ""),
-        (this.PartNumber1 = ""),
-        (this.PartNumber2 = ""),
-        (this.Description = ""),
-        (this.Input = ""),
-        (this.Output = ""),
-        (this.inventory = ""),
-        (this.Location = ""),
-        (this.Customer = ""),
-        (this.Note = ""),
-        (this.Note_Output = "");
-      (this.File = null), (this.DialogEdit = false);
-      this.Dialog = false;
-      this.DialogRemove = false;
-      this.DialogNewItems = false;
-    },
-    async DownloadInventory() {
-      try {
-        const response = await fetch(`${this.Url}/Ware-House/download`);
-        if (!response.ok) throw new Error("Download failed");
-
-        // Convert response to blob
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-
-        // Create a link to download
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `Kho.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-
-        // Cleanup
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error("Error downloading file:", error);
-      }
-    },
-    EditItem(value) {
-      this.DialogEdit = true;
-      this.FetchDetailItem(value);
-    },
-    async FetchDetailItem(value) {
-      if (value) {
-        try {
-          const res = await fetch(`${this.Url}/WareHouse/${value}`);
-          const DetailItem = await res.json();
-          (this.PartNumber1_Edit = DetailItem[0].PartNumber_1),
-            (this.PartNumber2_Edit = DetailItem[0].PartNumber_2),
-            (this.Description_Edit = DetailItem[0].Description),
-            (this.Input_Edit = DetailItem[0].Input),
-            (this.Output_Edit = DetailItem[0].Output),
-            (this.inventory_Edit = DetailItem[0].Inventory),
-            (this.Location_Edit = DetailItem[0].Location),
-            (this.Customer_Edit = DetailItem[0].Customer),
-            (this.Note_Edit = DetailItem[0].Note),
-            (this.Note_Output_Edit = DetailItem[0].Note_Output);
-          this.id_Edit = DetailItem[0].id;
-        } catch (error) {
-          this.DialogFailed = true;
-          console.error("Error fetching user data:", error);
-        }
-      }
-    },
-    async SaveEditItem() {
-      const Item = {
-        PartNumber1_Edit: this.PartNumber1_Edit,
-        PartNumber2_Edit: this.PartNumber2_Edit,
-        Description_Edit: this.Description_Edit,
-        Input_Edit: this.Input_Edit,
-        Output_Edit: this.Output_Edit,
-        inventory_Edit: this.inventory_Edit,
-        Location_Edit: this.Location_Edit,
-        Customer_Edit: this.Customer_Edit,
-        Note_Edit: this.Note_Edit,
-        Note_Output_Edit: this.Note_Output_Edit,
-      };
-      this.Reset();
-      axios
-        .put(`${this.Url}/WareHouse/update-item/${this.id_Edit}`, Item)
-        .then(function (response) {
-          console.log(response);
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
-    },
-    async RemoveItem() {
-      this.Reset();
-      axios
-        .delete(`${this.Url}/WareHouse/delete-item/${this.id_Edit}`)
-        .then(function (response) {
-          console.log(response);
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
-    },
-  },
+  methods: {},
 };
 </script>
 <style lang=""></style>
