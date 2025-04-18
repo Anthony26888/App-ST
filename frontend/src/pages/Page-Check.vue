@@ -15,24 +15,22 @@
       >
       <v-spacer></v-spacer>
       <InputSearch v-model="NamePO" />
+      <v-btn color="primary" class="ms-2 text-caption" @click="Process()">Xử lí</v-btn>
     </v-card-title>
     <v-card-text>
       <v-divider></v-divider>
       <v-empty-state
-        v-if="NamePO == null || NamePO == ''"
+        v-if="checkBOM == ''"
         headline="OPPS !"
         title="Chưa có dữ liệu"
         text="Chon thêm file hoặc nhập tên PO"
         icon="mdi-folder-remove-outline"
       ></v-empty-state>
-      <v-card
-        variant="text"
-        v-if="Bom.length > 0 && NamePO != null && NamePO != ''"
-      >
+      <v-card variant="text" v-else>
         <v-card-title class="d-flex align-center pe-2">
-          <p class="text-h6">{{ NamePO }}</p>
+          <p class="text-h6">{{ namePO }}</p>
           <p class="ms-2 font-weight-thin text-subtitle-1">
-            ( {{ Bom.length }} linh kiện)
+            ( {{ checkBOM.length }} linh kiện)
           </p>
           <ButtonDownload @download-file="DownloadPO()" />
           <v-btn
@@ -54,14 +52,17 @@
         <v-card-text>
           <v-data-table
             :headers="Headers"
-            :items="Bom"
+            :items="checkBOM"
             :search="search"
             :items-per-page="itemsPerPage"
             v-model:page="page"
           >
             <template v-slot:bottom>
               <div class="text-center pt-2">
-                <v-pagination v-model="page" :length="pageCount"></v-pagination>
+                <v-pagination
+                  v-model="page"
+                  :length="Math.ceil(checkBOM.length / this.itemsPerPage)"
+                ></v-pagination>
               </div>
             </template>
           </v-data-table>
@@ -108,10 +109,14 @@
       </template>
     </v-card>
   </v-dialog>
+  <SnackbarSuccess v-model="DialogSuccess" />
+  <SnackbarFailed v-model="DialogFailed" />
 </template>
 <script setup>
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
+import { useRoute, useRouter } from "vue-router";
+import { ref, computed } from "vue";
 import ButtonImportFile from "@/components/Button-ImportFile.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";
@@ -120,6 +125,114 @@ import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputFiles from "@/components/Input-Files.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
+import SnackbarFailed from "@/components/Snackbar-Failed.vue";
+import { useCheckBOM } from "@/composables/useCheckBom";
+// const { checkBOM } = useCheckBOM(id);
+const checkBOM = ref("");
+const Url = import.meta.env.VITE_API_URL;
+const Dialog = ref(false);
+const DialogEdit = ref(false);
+const DialogRemove = ref(false);
+const DialogSuccess = ref(false);
+const DialogFailed = ref(false);
+const Headers = ref(null);
+const File = ref(null);
+const InputPO = ref("");
+const InputBOM = ref("");
+const InputQuantity = ref(1);
+const UserInfo = ref("");
+const NamePO = ref("");
+const namePO = ref("");
+onMounted(() => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    const decoded = jwtDecode(token);
+    UserInfo.value = decoded.Username;
+  } else {
+    console.log("Không tìm thấy token!");
+  }
+});
+function Process() {
+  if (NamePO.value) {
+    axios
+      .get(`${Url}/CheckBom/${this.NamePO}`)
+      .then(function (response) {
+        console.log(response);
+        checkBOM.value = response.data;
+        namePO.value = NamePO.value;
+        generateHeaders();
+        Reset()
+      })
+      .catch(function (error) {
+        console.log(error);
+        Error()
+      });
+  }
+}
+function generateHeaders() {
+  if (checkBOM.length > 0) {
+    Headers.value = Object.keys(checkBOM).map((key) => ({
+      title: key.replace(/_/g, ""), // Format header text
+      key: key,
+      value: key,
+    }));
+  }
+}
+const ImportFile = async () => {
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, "0");
+  const month = String(now.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+  const year = String(now.getFullYear()).slice(-2);
+  const DateNow = `${day}/${month}/${year}`;
+  const formData = new FormData();
+  formData.append("file", File.value);
+  formData.append("PO", InputPO.value);
+  formData.append("BOM", InputBOM.value);
+  formData.append("SL_Board", InputQuantity.value);
+  formData.append("TimeStamp", DateNow);
+  formData.append("Creater", UserInfo.value);
+  axios
+    .post(`${Url}/upload`, formData)
+    .then(function (response) {
+      console.log(response);
+      Reset();
+    })
+    .catch(function (error) {
+      console.log(error);
+      Error();
+    });
+};
+const DownloadPO = async () => {
+  try {
+    const response = await fetch(`${Url}/Download-PO/${namePO.value}`);
+    if (!response.ok) throw new Error("Download failed");
+
+    // Convert response to blob
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    // Create a link to download
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${namePO.value}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+
+    // Cleanup
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error downloading file:", error);
+  }
+};
+function Reset() {
+  DialogSuccess.value = true;
+  Dialog.value = false;
+}
+function Error() {
+  DialogFailed.value = true;
+  Dialog.value = false;
+}
 </script>
 <script>
 export default {
@@ -131,199 +244,17 @@ export default {
     InputSearch,
     InputField,
     InputFiles,
-    SnackbarSuccess
+    SnackbarSuccess,
+    SnackbarFailed,
   },
   data() {
     return {
-      Url: import.meta.env.VITE_API_URL,
-      UserInfo: "",
       search: "",
-      Headers: [],
-      Bom: [],
-      NamePO: "",
-      CostEstimate: "",
-      GetRow: "",
-      File: null,
-      InputPO: "",
-      InputBOM: "",
-      InputQuantity: "1",
-      OrderAvailable: null,
-      Dialog: false,
-      DialogEdit: false,
-      DialogSuccess: false,
-      DialogFailed: false,
-      DialogRemove: false,
-      Date: "",
       itemsPerPage: 15,
       page: 1,
-      timeout: 5000,
-      UserInterval: null,
     };
   },
-  created() {
-    this.DateNow();
-    this.getUserInfo();
-  },
-  mounted() {
-    this.UserInterval = setInterval(this.FetchTable, 1000);
-  },
-  beforeUnmount() {
-    // Clear the interval when the component is destroyed
-    if (this.UserInterval) {
-      clearInterval(this.UserInterval);
-    }
-  },
-  computed: {
-    pageCount() {
-      return Math.ceil(this.Bom.length / this.itemsPerPage);
-    },
-  },
-  methods: {
-    async ImportFile() {
-      const formData = new FormData();
-      formData.append("file", this.File);
-      formData.append("PO", this.InputPO);
-      formData.append("BOM", this.InputBOM);
-      formData.append("SL_Board", this.InputQuantity);
-      formData.append("TimeStamp", this.Date);
-      formData.append("Creater", this.UserInfo)
-      this.Reset();
-      axios
-        .post(`${this.Url}/upload`, formData)
-        .then(function (response) {
-          console.log(response);
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
-    },
-    async FetchTable() {
-      if (this.NamePO) {
-        try {
-          const res = await fetch(`${this.Url}/CheckBom/${this.NamePO}`);
-          this.Bom = await res.json();
-          this.generateHeaders();
-          this.FetchOrders();
-        } catch (error) {
-          this.DialogFailed = true;
-          console.error("Error fetching user data:", error);
-        }
-      }
-    },
-    generateHeaders() {
-      if (this.Bom.length > 0) {
-        this.Headers = Object.keys(this.Bom[0]).map((key) => ({
-          title: key.replace(/_/g, " "), // Format header text
-          key: key,
-          value: key,
-        }));
-      }
-    },
-    async DownloadPO() {
-      try {
-        const response = await fetch(`${this.Url}/Download-PO/${this.NamePO}`);
-        if (!response.ok) throw new Error("Download failed");
-
-        // Convert response to blob
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-
-        // Create a link to download
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${this.NamePO}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-
-        // Cleanup
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error("Error downloading file:", error);
-      }
-    },
-    async SaveTable() {
-      const Item = {
-        Name_PO: this.NamePO,
-        Quantity_Type: this.Bom.length,
-        Quantity_Items: this.Bom.reduce((sum, item) => sum + item.SL_Tổng, 0),
-        Status: 0,
-        Date: this.Date,
-        Creater: this.UserInfo,
-      };
-      this.Reset();
-      axios
-        .post(`${this.Url}/ListPO/upload-new-PO`, Item)
-        .then(function (response) {
-          console.log(response);
-          tthis.Reset();
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
-    },
-    EditItem(item) {
-      // const value = this.Bom.find((v) => v.id == item);
-      this.GetRow = item.id;
-      this.DialogEdit = true;
-    },
-    async SaveEdit() {
-      const Item = {
-        Name_Item: this.GetRow,
-        Input_Hao_Phi: this.CostEstimate,
-      };
-      this.Reset();
-      axios
-        .put(`${this.Url}/CheckBom/Update-Hao-Phi`, Item)
-        .then(function (response) {
-          console.log(response);
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
-    },
-    async RemoveItem() {
-      this.Reset();
-      axios
-        .delete(`${this.Url}/CheckBOM/Delete-item/${this.NamePO}`)
-        .then(function (response) {
-          console.log(response);
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
-    },
-    getUserInfo() {
-      const token = localStorage.getItem("token");
-      if (token) {
-        const decoded = jwtDecode(token);
-        this.UserInfo = decoded.Username;
-      } else {
-        console.log("Không tìm thấy token!");
-      }
-    },
-    DateNow() {
-      const now = new Date();
-      const day = String(now.getDate()).padStart(2, "0");
-      const month = String(now.getMonth() + 1).padStart(2, "0"); // Months are 0-based
-      const year = String(now.getFullYear()).slice(-2);
-      this.Date = `${day}/${month}/${year}`;
-    },
-    required(v) {
-      return !!v || "Dữ liệu trống";
-    },
-    Reset() {
-      (this.Dialog = false), (this.DialogSuccess = true);
-      (this.DialogRemove = false), (this.File = null);
-      this.DialogEdit = false;
-      this.CostEstimate = "";
-      this.InputPO = "";
-      this.InputBOM = "";
-      this.InputQuantity = "1";
-      this.Bom = [];
-      this.search=""
-    },
-  },
+  methods: {},
 };
 </script>
 <style lang=""></style>

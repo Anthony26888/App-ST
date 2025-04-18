@@ -59,7 +59,7 @@ io.on("connection", (socket) => {
     }),
     socket.on("getOrders", async () => {
       try {
-        const query = `SELECT DISTINCT * FROM Orders`;
+        const query = `SELECT DISTINCT * FROM Orders ORDER BY id DESC`;
         db.all(query, [], (err, rows) => {
           if (err) return socket.emit("ordersError", err);
           socket.emit("ordersData", rows);
@@ -70,7 +70,7 @@ io.on("connection", (socket) => {
     }),
     socket.on("getWareHouse", async () => {
       try {
-        const query = `SELECT DISTINCT * FROM WareHouse ORDER BY id`;
+        const query = `SELECT DISTINCT * FROM WareHouse ORDER BY id ASC`;
         db.all(query, [], (err, rows) => {
           if (err) return socket.emit("WareHouseError", err);
           socket.emit("WareHouseData", rows);
@@ -81,7 +81,7 @@ io.on("connection", (socket) => {
     }),
     socket.on("getWareHouse2", async () => {
       try {
-        const query = `SELECT DISTINCT * FROM WareHouse2 ORDER BY id`;
+        const query = `SELECT DISTINCT * FROM WareHouse2 ORDER BY id ASC`;
         db.all(query, [], (err, rows) => {
           if (err) return socket.emit("WareHouse2Error", err);
           socket.emit("WareHouse2Data", rows);
@@ -123,9 +123,20 @@ io.on("connection", (socket) => {
         socket.emit("DetailProjectPOError", error);
       }
     }),
+    socket.on("getUsers", async () => {
+      try {
+        const query = `SELECT DISTINCT * FROM Users ORDER BY id DESC`;
+        db.all(query, [], (err, rows) => {
+          if (err) return socket.emit("usersError", err);
+          socket.emit("usersData", rows);
+        });
+      } catch (error) {
+        socket.emit("usersError", error);
+      }
+    }),
     socket.on("disconnect", () => {
       console.log("Client disconnected:", socket.id);
-    }); 
+    });
 });
 
 const fetchTableData = (tableName) => {
@@ -136,7 +147,6 @@ const fetchTableData = (tableName) => {
     });
   });
 };
-
 const getCompareInventory = async (id) => {
   return new Promise((resolve, reject) => {
     db.all(
@@ -215,7 +225,7 @@ app.post("/Users/register", (req, res) => {
         if (err) {
           return console.error(err.message);
         }
-        sendData();
+        io.emit("updateUsers");
         // Broadcast the new message to all clients
         res.json({ message: "Item inserted successfully" });
       }
@@ -232,7 +242,7 @@ app.delete("/Users/delete-user/:id", async (req, res) => {
     if (err) {
       return console.error(err.message);
     }
-    sendData();
+    io.emit("updateUsers");
     // Broadcast the new message to all clients
     res.json({ message: "Item inserted successfully" });
   });
@@ -240,7 +250,7 @@ app.delete("/Users/delete-user/:id", async (req, res) => {
 
 // Router edit user in Users table
 app.put("/Users/Edit-User/:id", async (req, res) => {
-  const { Username, FullName, Email, Level } = req.body
+  const { Username, FullName, Email, Level } = req.body;
   const { id } = req.params;
   // Delete data into SQLite database
   const query = `
@@ -252,7 +262,7 @@ app.put("/Users/Edit-User/:id", async (req, res) => {
     if (err) {
       return console.error(err.message);
     }
-    sendData();
+    io.emit("updateUsers");
     // Broadcast the new message to all clients
     res.json({ message: "Item inserted successfully" });
   });
@@ -473,7 +483,7 @@ app.delete("/Orders/delete-item/:id", async (req, res) => {
     if (err) {
       return console.error(err.message);
     }
-    sendData();
+    io.emit("updateOrders");
     // Broadcast the new message to all clients
     res.json({ message: "Item inserted successfully" });
   });
@@ -597,39 +607,66 @@ app.put("/Inventory/update-Inventory-CheckBom/:id", async (req, res) => {
 
 // Router update item in ProductDetails table
 app.put("/Project/Customer/Edit-Item/:id", async (req, res) => {
-  const { Product_Detail, Quantity_Product, Quantity_Delivered, Quantity_Amount } = req.body;
+  const {
+    Product_Detail,
+    Quantity_Product,
+    Quantity_Delivered,
+    Quantity_Amount,
+  } = req.body;
   const { id } = req.params;
   // Insert data into SQLite database
   const query = `
     UPDATE ProductDetails 
     SET ProductDetail = ?, QuantityProduct = ?, QuantityDelivered = ?, QuantityAmount = ? 
     WHERE id = ?`;
-  db.run(query, [Product_Detail, Quantity_Product, Quantity_Delivered, Quantity_Amount, id], function (err) {
-    if (err) {
-      return res.status(500).json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
+  db.run(
+    query,
+    [Product_Detail, Quantity_Product, Quantity_Delivered, Quantity_Amount, id],
+    function (err) {
+      if (err) {
+        return res
+          .status(500)
+          .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
+      }
+      io.emit("updateDetailProjectPO");
+      // Broadcast the new message to all clients
+      res.json({ message: "Đã cập nhật dữ liệu thành công" });
     }
-    io.emit("updateDetailProjectPO");
-    // Broadcast the new message to all clients
-    res.json({ message: "Đã cập nhật dữ liệu thành công" });
-  });
+  );
 });
 
 // Router add new item in ProductDetails table
 app.post("/Project/Customer/Add-Item", async (req, res) => {
-  const { Product_Detail, Quantity_Product, Quantity_Delivered, Quantity_Amount, POID } = req.body;
+  const {
+    Product_Detail,
+    Quantity_Product,
+    Quantity_Delivered,
+    Quantity_Amount,
+    POID,
+  } = req.body;
   // Insert data into SQLite database
   const query = `
     INSERT INTO ProductDetails (ProductDetail, QuantityProduct, QuantityDelivered, QuantityAmount, POID)
     VALUES (?, ?, ?, ?, ?)
-  `
-  db.run(query, [Product_Detail, Quantity_Product, Quantity_Delivered, Quantity_Amount, POID], function (err) {
-    if (err) {
-      return console.error(err.message);
+  `;
+  db.run(
+    query,
+    [
+      Product_Detail,
+      Quantity_Product,
+      Quantity_Delivered,
+      Quantity_Amount,
+      POID,
+    ],
+    function (err) {
+      if (err) {
+        return console.error(err.message);
+      }
+      io.emit("updateDetailProjectPO");
+      // Broadcast the new message to all clients
+      res.json({ message: "Item inserted successfully" });
     }
-    io.emit("updateDetailProjectPO");
-    // Broadcast the new message to all clients
-    res.json({ message: "Item inserted successfully" });
-  });
+  );
 });
 
 // Router delete item in ProductDetails table
@@ -637,10 +674,12 @@ app.delete("/Project/Customer/Delete-Item/:id", async (req, res) => {
   const { id } = req.params;
   // Insert data into SQLite database
   const query = `
-    DELETE FROM ProductDetails WHERE id = ?`
+    DELETE FROM ProductDetails WHERE id = ?`;
   db.run(query, [id], function (err) {
     if (err) {
-      return res.status(500).json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
     }
     io.emit("updateDetailProjectPO");
     // Broadcast the new message to all clients
@@ -657,14 +696,20 @@ app.put("/Project/Customer/Edit-Orders/:id", async (req, res) => {
     UPDATE PurchaseOrders
     SET PONumber = ?, DateCreated = ?, DateDelivery = ?, CustomerID = ?
     WHERE id = ?`;
-  db.run(query, [PONumber, DateCreated, DateDelivery, CustomerID, id], function (err) {
-    if (err) {
-      return res.status(500).json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
+  db.run(
+    query,
+    [PONumber, DateCreated, DateDelivery, CustomerID, id],
+    function (err) {
+      if (err) {
+        return res
+          .status(500)
+          .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
+      }
+      io.emit("updateDetailProject");
+      // Broadcast the new message to all clients
+      res.json({ message: "Đã cập nhật dữ liệu thành công" });
     }
-    io.emit("updateDetailProject");
-    // Broadcast the new message to all clients
-    res.json({ message: "Đã cập nhật dữ liệu thành công" });
-  });
+  );
 });
 
 // Router add new orders in PurchaseDetails table
@@ -674,15 +719,21 @@ app.post("/Project/Customer/Add-Orders", async (req, res) => {
   const query = `
     INSERT INTO PurchaseOrders (PONumber, DateCreated, DateDelivery, CustomerID)
     VALUES (?, ?, ?, ?)
-  `
-  db.run(query, [PONumber, DateCreated, DateDelivery, CustomerID], function (err) {
-    if (err) {
-      return res.status(500).json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
+  `;
+  db.run(
+    query,
+    [PONumber, DateCreated, DateDelivery, CustomerID],
+    function (err) {
+      if (err) {
+        return res
+          .status(500)
+          .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
+      }
+      io.emit("updateDetailProject");
+      // Broadcast the new message to all clients
+      res.json({ message: "Đã cập nhật dữ liệu thành công" });
     }
-    io.emit("updateDetailProject");
-    // Broadcast the new message to all clients
-    res.json({ message: "Đã cập nhật dữ liệu thành công" });
-  });
+  );
 });
 
 // Router delete orders in PurchaseDetails table
@@ -690,10 +741,12 @@ app.delete("/Project/Customer/Delete-Orders/:id", async (req, res) => {
   const { id } = req.params;
   // Insert data into SQLite database
   const query = `
-    DELETE FROM PurchaseOrders WHERE id = ?`
+    DELETE FROM PurchaseOrders WHERE id = ?`;
   db.run(query, [id], function (err) {
     if (err) {
-      return res.status(500).json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
     }
     io.emit("updateDetailProject");
     // Broadcast the new message to all clients
@@ -712,7 +765,9 @@ app.put("/Project/Customer/Edit-Customer/:id", async (req, res) => {
     WHERE id = ?`;
   db.run(query, [CustomerName, id], function (err) {
     if (err) {
-      return res.status(500).json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
     }
     io.emit("ProjectUpdate");
     // Broadcast the new message to all clients
@@ -727,10 +782,12 @@ app.post("/Project/Customer/Add-Customer", async (req, res) => {
   const query = `
     INSERT INTO Customers (CustomerName)
     VALUES (?)
-  `
+  `;
   db.run(query, [CustomerName], function (err) {
     if (err) {
-      return res.status(500).json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
     }
     io.emit("ProjectUpdate");
     // Broadcast the new message to all clients
@@ -743,18 +800,18 @@ app.delete("/Project/Customer/Delete-Customer/:id", async (req, res) => {
   const { id } = req.params;
   // Insert data into SQLite database
   const query = `
-    DELETE FROM Customers WHERE id = ?`
+    DELETE FROM Customers WHERE id = ?`;
   db.run(query, [id], function (err) {
     if (err) {
-      return res.status(500).json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
     }
     io.emit("ProjectUpdate");
     // Broadcast the new message to all clients
     res.json({ message: "Đã cập nhật dữ liệu thành công" });
   });
 });
-
-
 
 // Lắng nghe trên `0.0.0.0`
 

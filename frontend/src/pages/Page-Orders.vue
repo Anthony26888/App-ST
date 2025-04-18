@@ -17,14 +17,8 @@
         :items-per-page="itemsPerPage"
       >
         <template v-slot:item.id="{ value }">
-          <ButtonEye @detail="GetItem(value)" />
-          <v-btn
-            icon="mdi-delete"
-            color="red"
-            variant="text"
-            size="small"
-            @click="GetRemove(value)"
-          ></v-btn>
+          <ButtonEye @detail="PushItem(value)" />
+          <ButtonRemove @remove="GetItem(value)" />
         </template>
         <template v-slot:item.Status="{ item }">
           <div class="text-start">
@@ -86,13 +80,18 @@ const router = useRouter();
 const DialogRemove = ref(null);
 const DialogSuccess = ref(null);
 const DialogFailed = ref(null);
-function GetItem(value) {
+const GetID = ref("")
+function PushItem(value) {
   const found = orders.value.find((v) => v.id === value);
   router.push(`/Don-hang/${found.Name_PO}`);
 }
-const RemoveItem = async (value) => {
+function GetItem(value) {
+  DialogRemove.value = true;
+  GetID.value = value
+}
+const RemoveItem = async () => {
   axios
-    .delete(`${Url}/Orders/delete-item/${value}`)
+    .delete(`${Url}/Orders/delete-item/${GetID.value}`)
     .then(function (response) {
       console.log(response);
       Reset()

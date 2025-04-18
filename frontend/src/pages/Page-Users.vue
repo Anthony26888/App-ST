@@ -6,6 +6,7 @@
     </v-card-title>
     <v-card-title class="d-flex align-center pe-2">
       <p class="text-subtitle-1">Có {{ users.length }} đơn hàng</p>
+      <ButtonAdd @add="DialogAdd = true" />
       <v-spacer></v-spacer>
       <InputSearch v-model="search" />
     </v-card-title>
@@ -55,6 +56,26 @@
       </template>
     </v-card>
   </v-dialog>
+  <v-dialog v-model="DialogAdd" width="400">
+    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
+      <v-card-text>
+        <InputField label="Tên đăng nhập" v-model="Username_Add" />
+        <InputField label="Tên người dùng" v-model="FullName_Add" />
+        <InputField label="Email" v-model="Email_Add" />
+        <InputField label="Password" type="password" v-model="Password_Add" />
+        <v-select
+          label="Phân quyền"
+          :items="['Admin', 'Kế hoạch', 'Thủ kho', 'Kinh doanh', 'Quản lý']"
+          variant="solo-filled"
+          v-model="Level_Add"
+        ></v-select>
+      </v-card-text>
+      <template v-slot:actions>
+        <ButtonCancel @cancel="DialogAdd = false" />
+        <ButtonSave @save="SaveAdd()" />
+      </template>
+    </v-card>
+  </v-dialog>
   <SnackbarSuccess v-model="DialogSuccess" />
   <SnackbarFailed v-model="DialogFailed" />
 </template>
@@ -71,17 +92,25 @@ import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonBack from "@/components/Button-Back.vue";
 import ButtonEdit from "@/components/Button-Edit.vue";
-const { users } = useSocket();
+import ButtonAdd from "@/components/Button-Add.vue";
+import { useUsers } from "@/composables/useUsers" 
+const { users } = useUsers()
 const Url = import.meta.env.VITE_API_URL;
 const DialogRemove = ref(false);
 const DialogSuccess = ref(false);
 const DialogEdit = ref(false);
+const DialogAdd = ref(false);
 const DialogFailed = ref(false);
 const GetID = ref("");
 const Username_Edit = ref("");
 const FullName_Edit = ref("");
 const Email_Edit = ref("");
 const Level_Edit = ref("");
+const Username_Add = ref("");
+const FullName_Add = ref("");
+const Email_Add = ref("");
+const Password_Add = ref("");
+const Level_Add = ref("");
 function GetItem(value) {
   DialogEdit.value = true;
   GetID.value = value;
@@ -91,7 +120,7 @@ function GetItem(value) {
   Email_Edit.value = found.Email_Edit;
   Level_Edit.value = found.Level;
 }
-function SaveEdit() {
+const SaveEdit = async () => {
   const formData = reactive({
     Username: Username_Edit.value, // Giá trị ban đầu
     FullName: FullName_Edit.value,
@@ -108,7 +137,33 @@ function SaveEdit() {
       console.log(error);
       Error();
     });
-}
+};
+
+const SaveAdd = async () => {
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, "0");
+  const month = String(now.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+  const year = String(now.getFullYear()).slice(-2);
+  const DateNow = `${day}/${month}/${year}`;
+  const formData = reactive({
+    Username: Username_Add.value, // Giá trị ban đầu
+    FullName: FullName_Add.value,
+    Email: Email_Add.value,
+    Password: Password_Add.value,
+    Level: Level_Add.value,
+    Date: DateNow
+  });
+  axios
+    .post(`${Url}/Users/register`, formData)
+    .then(function (response) {
+      console.log(response.data.message);
+      Reset();
+    })
+    .catch(function (error) {
+      console.log(error);
+      Error();
+    });
+};
 const RemoveUser = async () => {
   axios
     .delete(`${Url}/Users/delete-user/${GetID.value}`)
@@ -124,6 +179,7 @@ const RemoveUser = async () => {
 function Reset() {
   (DialogRemove.value = false), (DialogSuccess.value = true);
   DialogEdit.value = false;
+  DialogAdd.value = false;
 }
 function Error() {
   DialogFailed.value = true;
@@ -137,6 +193,7 @@ export default {
     ButtonDelete,
     ButtonSave,
     ButtonEdit,
+    ButtonAdd,
     InputSearch,
     SnackbarSuccess,
     SnackbarFailed,

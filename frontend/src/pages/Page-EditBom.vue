@@ -25,7 +25,7 @@
         </template>
         <template v-slot:item.id="{ value }">
           <div class="d-flex">
-            <ButtonEdit @edit="FetchDetailItem(value)" />
+            <ButtonEdit @edit="GetItem(value)" />
           </div>
         </template>
       </v-data-table>
@@ -35,13 +35,13 @@
     <v-card max-width="400" prepend-icon="mdi-update" title="Cập nhật dữ liệu">
       <v-card-text>
         <InputField label="Tên dự án" v-model="PO_Edit" />
-        <InputField label="Số lượng board" v-model="Quanity_Edit" />
+        <InputField label="Số lượng board" v-model="Quantity_Edit" />
       </v-card-text>
       <template v-slot:actions>
         <ButtonDelete @delete="DialogRemove = true" />
         <v-spacer></v-spacer>
         <ButtonCancel @cancel="DialogEdit = false" />
-        <ButtonSave @save="SaveEditItem()" />
+        <ButtonSave @save="SaveEdit()" />
       </template>
     </v-card>
   </v-dialog>
@@ -50,7 +50,7 @@
       <v-card-text> Bạn có chắc chắn muốn xoá Bom này ? </v-card-text>
       <template v-slot:actions>
         <ButtonCancel @cancel="DialogRemove = false" />
-        <ButtonDelete @delete="DeleteItem()" />
+        <ButtonDelete @delete="RemoveItem()" />
       </template>
     </v-card>
   </v-dialog>
@@ -58,24 +58,80 @@
 </template>
 <script setup>
 import axios from "axios";
+import { ref, watch } from "vue";
 import { useDetailBom } from "@/composables/useDetailBom";
 import ButtonBack from "@/components/Button-Back.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
+import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import ButtonEdit from "@/components/Button-Edit.vue";
 import ButtonRemove from "@/components/Button-Remove.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 const { detailBom } = useDetailBom();
+const Url = import.meta.env.VITE_API_URL;
+const GetID = ref("");
+const DialogEdit = ref(false);
+const DialogRemove = ref(false);
+const DialogFailed = ref(false);
+const PO_Edit = ref("");
+const Bom_Edit = ref("");
+const Quantity_Edit = ref("");
+function GetItem(value) {
+  GetID.value = value;
+  DialogEdit.value = true;
+  const found = detailBom.value.find((v) => v.id === value);
+  PO_Edit.value = found.PO;
+  Bom_Edit.value = found.Bom;
+  Quantity_Edit.value = found.SL_Board;
+}
+const SaveEdit = async () => {
+  const formData = {
+    PO: PO_Edit.value,
+    SL_Board: Quantity_Edit.value,
+  };
+
+  axios
+    .put(`${Url}/CheckBom/Edit-Item/${Bom_Edit.value}`, formData)
+    .then(function (response) {
+      console.log(response);
+      Reset();
+    })
+    .catch(function (error) {
+      console.log(error);
+      Error();
+    });
+};
+const RemoveItem = async () => {
+  axios
+    .delete(`${Url}/CheckBom/Delete-Item/${Bom_Edit.value}`)
+    .then(function (response) {
+      console.log(response);
+      Reset();
+    })
+    .catch(function (error) {
+      console.log(error);
+      Error();
+    });
+};
+function Reset() {
+  DialogEdit.value = false;
+  DialogSuccess.value = true;
+  DialogRemove.value = false;
+}
+function Error() {
+  DialogFailed.value = true;
+}
 </script>
 <script>
 export default {
-  components :{
+  components: {
     ButtonBack,
     ButtonEdit,
     ButtonRemove,
     ButtonDelete,
     InputSearch,
-    SnackbarSuccess
+    SnackbarSuccess,
+    SnackbarFailed,
   },
   data() {
     return {
@@ -90,63 +146,11 @@ export default {
         { key: "id", title: "Sửa" },
       ],
       search: "",
-      PO_Edit: "",
-      Bom_Edit: "",
-      Quanity_Edit: "",
-      DialogEdit: false,
-      DialogSuccess: false,
-      DialogRemove: false,
       itemsPerPage: 15,
       page: 1,
     };
   },
-  methods: {
-    async FetchDetailItem(value) {
-      this.DialogEdit = true;
-      if (value) {
-        try {
-          const res = await fetch(`${this.Url}/CheckBom/Detail/${value}`);
-          const DetailBom = await res.json();
-          this.PO_Edit = DetailBom[0].PO;
-          this.Bom_Edit = DetailBom[0].Bom;
-          this.Quanity_Edit = DetailBom[0].SL_Board;
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-        }
-      }
-    },
-    async SaveEditItem() {
-      const Item = {
-        PO: this.PO_Edit,
-        Bom: this.Bom_Edit,
-        SL_Board: this.Quanity_Edit,
-      };
-      this.Reset();
-      axios
-        .put(`${this.Url}/CheckBom/Edit-Item/${this.Bom_Edit}`, Item)
-        .then(function (response) {
-          console.log(response);
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
-    },
-    async DeleteItem() {
-      this.Reset();
-      axios
-        .delete(`${this.Url}/CheckBom/Delete-Item/${this.Bom_Edit}`)
-        .then(function (response) {
-          console.log(response);
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
-    },
-    Reset() {
-      (this.DialogEdit = false), (this.DialogSuccess = true);
-      this.DialogRemove = false;
-    },
-  },
+  methods: {},
 };
 </script>
 <style lang=""></style>

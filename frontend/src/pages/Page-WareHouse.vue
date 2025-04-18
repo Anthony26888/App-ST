@@ -33,7 +33,10 @@
               </div>
             </template>
             <template v-slot:item.id="{ value }">
-              <ButtonEdit @click="GetItem(value)" />
+              <div>
+                <ButtonEdit @edit="GetItem(value)" />
+                <ButtonSearch @search="getAccessToken(value)" />
+              </div>
             </template>
           </v-data-table>
         </v-card-text>
@@ -155,24 +158,82 @@
       </template>
     </v-card>
   </v-dialog>
+  <v-dialog v-model="DialogInfo" width="800">
+    <v-card
+      max-width="800"
+      prepend-icon="mdi-information-variant-circle"
+      title="Thông số kỹ thuật"
+    >
+      <template v-slot:append>
+        <v-btn
+          variant="text"
+          icon="mdi-close"
+          @click="DialogInfo = false"
+        ></v-btn>
+      </template>
+      <v-card-text>
+        <v-row>
+          <v-col>
+            <v-img :src="ResultSearch.Product.PhotoUrl"></v-img>
+          </v-col>
+          <v-col>
+            <v-list-item density="comfortable" lines="two">
+              <template v-slot:title>
+                <strong class="text-h6">
+                  {{ ResultSearch.Product.ManufacturerProductNumber }}
+                </strong>
+              </template>
+            </v-list-item>
+
+            <v-table class="text-caption" density="compact">
+              <tbody>
+                <tr>
+                  <td><strong>Datasheet</strong></td>
+                  <td>
+                    <v-btn size="small" prepend-icon="mdi-database-arrow-right" :href="ResultSearch.Product.DatasheetUrl" target="_blank" color="primary" variant="tonal" class="text-caption">
+                      Datasheet
+                    </v-btn>
+                  </td>
+                </tr>
+                <tr
+                  v-for="item in ResultSearch.Product.Parameters"
+                  :key="item.name"
+                >
+                  <td>
+                    <strong>{{ item.ParameterText }}</strong>
+                  </td>
+                  <td>{{ item.ValueText }}</td>
+                </tr>
+              </tbody>
+            </v-table>
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
+  </v-dialog>
   <SnackbarSuccess v-model="DialogSuccess" />
   <SnackbarFailed v-model="DialogFailed" />
+  <SnackbarCaution v-model="DialogCaution" />
 </template>
 <script setup>
 import axios from "axios";
 import { useWareHouse } from "@/composables/useWareHouse";
 import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { Buffer } from "buffer";
 import ButtonImportFile from "@/components/Button-ImportFile.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonAdd from "@/components/Button-Add.vue";
+import ButtonSearch from "@/components/Button-search.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputFiles from "@/components/Input-Files.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
+import SnackbarFailed from "@/components/Snackbar-Failed.vue";
+import SnackbarCaution from "@/components/Snackbar-Caution.vue";
 const { warehouse } = useWareHouse();
 const router = useRouter();
 const Url = import.meta.env.VITE_API_URL;
@@ -182,6 +243,8 @@ const DialogRemove = ref(false);
 const DialogSuccess = ref(false);
 const DialogFailed = ref(false);
 const DialogAdd = ref(false);
+const DialogInfo = ref(false);
+const DialogCaution = ref(false);
 const File = ref(null);
 const PartNumber1_Edit = ref("");
 const PartNumber2_Edit = ref("");
@@ -204,6 +267,13 @@ const Customer_Add = ref("");
 const Note_Add = ref("");
 const Note_Output_Add = ref("");
 const GetID = ref("");
+const GetDigikey = ref("");
+const clientId = "wjBMgugRjeoOAP4qSukvLG1iMlDy0TOS";
+const clientSecret = "YJGpuhCuzA8rQoBu";
+const accessToken = ref(null);
+const tokenType = ref(null);
+const expires_in = ref(null);
+const ResultSearch = ref(null);
 function GetItem(value) {
   DialogEdit.value = true;
   GetID.value = value;
@@ -328,6 +398,76 @@ const DownloadWareHouse = async () => {
     console.error("Error downloading file:", error);
   }
 };
+const getAccessToken = async (value) => {
+  if (expires_in.value == 0 || expires_in != null) {
+    const found = warehouse.value.find((v) => v.id === value);
+    GetDigikey.value = found.PartNumber_1;
+    const authString = Buffer.from(
+      `${clientId}:${clientSecret}`,
+      "utf-8"
+    ).toString("base64");
+    const tokenUrl = "https://api.digikey.com/v1/oauth2/token";
+    const params = new URLSearchParams();
+    params.append("grant_type", "client_credentials");
+
+    try {
+      const response = await axios.post(tokenUrl, params.toString(), {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: `Basic ${authString}`,
+        },
+      });
+      accessToken.value = response.data.access_token;
+      tokenType.value = response.data.token_type;
+      expires_in.value = response.data.expires_in;
+      if (accessToken.value && tokenType.value && GetDigikey.value) {
+        return searchProduct();
+      }
+      console.log("Đã lấy access token thành công:", accessToken);
+      return true;
+    } catch (error) {
+      console.error(
+        "Lỗi khi lấy access token:",
+        error.response ? error.response.data : error.message
+      );
+      return false;
+    }
+  } else {
+    searchProduct();
+  }
+};
+
+const searchProduct = async () => {
+  if (!accessToken.value) {
+    console.error("Chưa có access token. Vui lòng lấy token trước.");
+    return;
+  }
+
+  const searchUrl = `https://api.digikey.com/products/v4/search/${GetDigikey.value}/productdetails`;
+
+  try {
+    const response = await axios.get(searchUrl, {
+      headers: {
+        Authorization: `${tokenType.value} ${accessToken.value}`,
+        "Content-Type": "application/json",
+        "X-DIGIKEY-Client-Id": `${clientId}`,
+      },
+    });
+    ResultSearch.value = response.data;
+    if (ResultSearch.value) {
+      return (DialogInfo.value = true), (DialogSuccess.value = true);
+    }
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Lỗi khi tìm kiếm sản phẩm:",
+      error.response ? error.response.data : error.message,
+      (DialogCaution.value = true)
+    );
+    return null;
+  }
+};
+
 function Reset() {
   DialogEdit.value = false;
   DialogSuccess.value = true;
@@ -362,6 +502,9 @@ export default {
     InputSearch,
     InputFiles,
     SnackbarSuccess,
+    SnackbarFailed,
+    SnackbarCaution,
+    ButtonSearch,
   },
   data() {
     return {
