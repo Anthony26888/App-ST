@@ -107,6 +107,8 @@
     </v-card>
   </v-dialog>
   <SnackbarSuccess v-model="DialogSuccess" />
+  <SnackbarFailed v-model="DialogFailed" />
+  <Loading v-model="DialogLoading" />
 </template>
 <script setup>
 import axios from "axios";
@@ -124,7 +126,7 @@ import ButtonAdd from "@/components/Button-Add.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import { useDetailProjectPO } from "@/composables/useDetailProjectPO";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
-
+import Loading from "@/components/Loading.vue"
 const route = useRoute();
 const id = route.params.id;
 const Url = import.meta.env.VITE_API_URL;
@@ -133,6 +135,7 @@ const DialogSuccess = ref(false);
 const DialogFailed = ref(false);
 const DialogRemove = ref(false);
 const DialogAdd = ref(false);
+const DialogLoading = ref(false);
 const GetID = ref("");
 const Product_Detail_Edit = ref("");
 const Quantity_Product_Edit = ref("");
@@ -253,7 +256,7 @@ function Reset() {
   Quantity_Amount_Add.value = "";
 }
 function Error(){
-  DialogFailed = true
+  DialogFailed.value = true
 }
 </script>
 <script>
@@ -269,7 +272,8 @@ export default {
     ButtonEdit,
     ButtonAgree,
     ButtonAdd,
-    SnackbarFailed
+    SnackbarFailed,
+    Loading
   },
   data() {
     return {

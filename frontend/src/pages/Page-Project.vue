@@ -96,6 +96,7 @@
   </v-dialog>
   <SnackbarSuccess v-model="DialogSuccess" />
   <SnackbarFailed v-model="DialogFailed" />
+  <Loading v-model="DialogLoading" />
 </template>
 <script setup>
 import axios from "axios";
@@ -109,6 +110,7 @@ import ButtonEye from "@/components/Button-Eye.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import { useProject } from "@/composables/useProject";
+import Loading from "@/components/Loading.vue"
 const Url = import.meta.env.VITE_API_URL;
 const router = useRouter();
 const GetID = ref("");
@@ -136,6 +138,7 @@ function GetItem(value) {
   Customer_Edit.value = found.Customers;
 }
 const SaveEdit = async () => {
+  DialogLoading.value = true;
   const formData = reactive({
     CustomerName: Customer_Edit.value, // Giá trị ban đầu
   });
@@ -152,6 +155,7 @@ const SaveEdit = async () => {
 };
 
 const SaveAdd = async () => {
+  DialogLoading.value = true;
   const formData = reactive({
     CustomerName: Customer_Add.value, // Giá trị ban đầu
   });
@@ -167,6 +171,7 @@ const SaveAdd = async () => {
     });
 };
 const RemoveItem = async (id) => {
+  DialogLoading.value = true;
   axios
     .delete(`${Url}/Project/Customer/Delete-Customer/${GetID.value}`)
     .then(function (response) {
@@ -179,6 +184,7 @@ const RemoveItem = async (id) => {
     });
 };
 const ImportFile = async () => {
+  DialogLoading.value = true;
   const formData = new FormData();
   formData.append("file", File.value);
   axios
@@ -198,10 +204,12 @@ function Reset() {
   DialogEdit.value = false;
   DialogAdd.value = false;
   Dialog.value = false;
+  DialogLoading.value = false;
   Customer_Add.value = "";
 }
 function Error(){
-  DialogFailed = true
+  DialogFailed.value = true;
+  DialogLoading.value = false;
 }
 </script>
 <script>
@@ -214,7 +222,8 @@ export default {
     ButtonDownload,
     ButtonEye,
     SnackbarSuccess,
-    SnackbarFailed
+    SnackbarFailed,
+    Loading
   },
   data() {
     return {

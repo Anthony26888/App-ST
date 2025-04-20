@@ -100,6 +100,8 @@
     </v-card>
   </v-dialog>
   <SnackbarSuccess v-model="DialogSuccess" />
+  <SnackbarFailed v-model="DialogFailed" />
+  <Loading v-model="DialogLoading" />
 </template>
 <script setup>
 import axios from "axios";
@@ -115,6 +117,7 @@ import ButtonAgree from "@/components/Button-Agree.vue";
 import ButtonEye from "@/components/Button-Eye.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
+import Loading from "@/components/Loading.vue";
 import { useDetailProject } from "@/composables/useDetailProject";
 const Url = import.meta.env.VITE_API_URL;
 const router = useRouter();
@@ -125,6 +128,7 @@ const DialogSuccess = ref(false);
 const DialogFailed = ref(false);
 const DialogRemove = ref(false);
 const DialogAdd = ref(false);
+const DialogLoading = ref(false);
 const GetID = ref("");
 const PONumber_Edit = ref("");
 const Date_Created_Edit = ref("");
@@ -145,6 +149,7 @@ function GetItem(item) {
   Date_Delivery_Edit.value = item.Date_Delivery;
 }
 const SaveEdit = async () => {
+  DialogLoading.value = true
   const formData = reactive({
     PONumber: PONumber_Edit.value, // Giá trị ban đầu
     DateCreated: Date_Created_Edit.value,
@@ -159,11 +164,12 @@ const SaveEdit = async () => {
     })
     .catch(function (error) {
       console.log(error);
-      Error()
+      Error();
     });
 };
 
 const SaveAdd = async () => {
+  DialogLoading.value = true;
   const formData = reactive({
     PONumber: PONumber_Add.value, // Giá trị ban đầu
     DateCreated: Date_Created_Add.value,
@@ -178,10 +184,11 @@ const SaveAdd = async () => {
     })
     .catch(function (error) {
       console.log(error);
-      Error()
+      Error();
     });
 };
 const RemoveItem = async (id) => {
+  DialogLoading.value = true;
   axios
     .delete(`${Url}/Project/Customer/Delete-Orders/${GetID.value}`)
     .then(function (response) {
@@ -190,20 +197,49 @@ const RemoveItem = async (id) => {
     })
     .catch(function (error) {
       console.log(error);
-      Error()
+      Error();
     });
+};
+const DDownloadOrder = async () => {
+  const id = route.params
+  const found = detailProject.value.find((v) => v.id === id)
+  try {
+    const response = await fetch(
+      `${Url}/Download-Order/${found.PO}`
+    );
+    if (!response.ok) throw new Error("Download failed");
+
+    // Convert response to blob
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    // Create a link to download
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${found.PO}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+
+    // Cleanup
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error downloading file:", error);
+  }
 };
 function Reset() {
   DialogRemove.value = false;
   DialogSuccess.value = true;
   DialogEdit.value = false;
   DialogAdd.value = false;
+  DialogLoading.value = false;
   PONumber_Add.value = "";
   Date_Created_Add.value = "";
   Date_Delivery_Add.value = "";
 }
-function Error(){
-  DialogFailed = true
+function Error() {
+  DialogFailed.value = true;
+  DialogLoading.value = false;
 }
 </script>
 <script>
@@ -218,7 +254,8 @@ export default {
     ButtonEdit,
     ButtonAgree,
     ButtonEye,
-    SnackbarFailed
+    SnackbarFailed,
+    Loading,
   },
   data() {
     return {
@@ -240,87 +277,10 @@ export default {
       itemsPerPage: 12,
       page: 1,
       NamePO: localStorage.getItem("Customers"),
-      intervalId: null,
-      intervalId2: null,
     };
   },
   methods: {
-    EditItem(item) {
-      // const value = this.Bom.find((v) => v.id == item);
-      this.GetRow = item.PartNumber_1;
-      this.DialogEdit = true;
-    },
-    async SaveEdit() {
-      const Item = {
-        Name_Item: this.GetRow,
-        Input_Hao_Phi_Thuc_Te: this.ActualCost,
-      };
-      this.Reset();
-      axios
-        .put(`${this.Url}/CheckBom/Update-Hao-Phi-Thuc-Te`, Item)
-        .then(function (response) {
-          console.log(response);
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
-    },
-    Reset() {
-      (this.ActualCost = ""),
-        (this.DialogEdit = false),
-        (this.DialogSuccess = true);
-      this.DialogAccept = false;
-    },
-    async WareHouseAccept() {
-      this.Reset();
-      axios
-        .put(`${this.Url}/Orders/WareHouse-Accept/${this.$route.params.id}`)
-        .then(function (response) {
-          console.log(response);
-          this.WareHouseAcceptInventory();
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
-    },
-    async WareHouseAcceptInventory() {
-      this.WareHouseAccept();
-      axios
-        .put(
-          `${this.Url}/Inventory/update-Inventory-CheckBom/${this.$route.params.id}`
-        )
-        .then(function (response) {
-          console.log(response);
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
-    },
-    async DownloadOrder() {
-      try {
-        const response = await fetch(
-          `${this.Url}/Download-Order/${this.$route.params.PO}`
-        );
-        if (!response.ok) throw new Error("Download failed");
-
-        // Convert response to blob
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-
-        // Create a link to download
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${this.$route.params.PO}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-
-        // Cleanup
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error("Error downloading file:", error);
-      }
-    },
+  
   },
 };
 </script>

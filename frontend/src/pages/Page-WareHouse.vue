@@ -190,7 +190,15 @@
                 <tr>
                   <td><strong>Datasheet</strong></td>
                   <td>
-                    <v-btn size="small" prepend-icon="mdi-database-arrow-right" :href="ResultSearch.Product.DatasheetUrl" target="_blank" color="primary" variant="tonal" class="text-caption">
+                    <v-btn
+                      size="small"
+                      prepend-icon="mdi-database-arrow-right"
+                      :href="ResultSearch.Product.DatasheetUrl"
+                      target="_blank"
+                      color="primary"
+                      variant="tonal"
+                      class="text-caption"
+                    >
                       Datasheet
                     </v-btn>
                   </td>
@@ -213,7 +221,7 @@
   </v-dialog>
   <SnackbarSuccess v-model="DialogSuccess" />
   <SnackbarFailed v-model="DialogFailed" />
-  <SnackbarCaution v-model="DialogCaution" />
+  <Loading v-model="DialogLoading" />
 </template>
 <script setup>
 import axios from "axios";
@@ -234,6 +242,7 @@ import InputFiles from "@/components/Input-Files.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import SnackbarCaution from "@/components/Snackbar-Caution.vue";
+import Loading from "@/components/Loading.vue";
 const { warehouse } = useWareHouse();
 const router = useRouter();
 const Url = import.meta.env.VITE_API_URL;
@@ -245,6 +254,7 @@ const DialogFailed = ref(false);
 const DialogAdd = ref(false);
 const DialogInfo = ref(false);
 const DialogCaution = ref(false);
+const DialogLoading = ref(false);
 const File = ref(null);
 const PartNumber1_Edit = ref("");
 const PartNumber2_Edit = ref("");
@@ -268,8 +278,8 @@ const Note_Add = ref("");
 const Note_Output_Add = ref("");
 const GetID = ref("");
 const GetDigikey = ref("");
-const clientId = "wjBMgugRjeoOAP4qSukvLG1iMlDy0TOS";
-const clientSecret = "YJGpuhCuzA8rQoBu";
+const clientId = import.meta.env.VITE_DIGIKEY_CLIENT_ID;
+const clientSecret = import.meta.env.VITE_DIGIKEY_CLIENT_SECRET;
 const accessToken = ref(null);
 const tokenType = ref(null);
 const expires_in = ref(null);
@@ -301,6 +311,7 @@ function updateInventoryOnOutput(event) {
   }
 }
 const SaveEdit = async () => {
+  DialogLoading.value = true;
   const formData = {
     PartNumber1_Edit: PartNumber1_Edit.value,
     PartNumber2_Edit: PartNumber2_Edit.value,
@@ -325,6 +336,7 @@ const SaveEdit = async () => {
     });
 };
 const SaveAdd = async () => {
+  DialogLoading.value = true
   const formData = {
     Description: Description_Add.value,
     PartNumber_1: PartNumber1_Add.value,
@@ -349,6 +361,7 @@ const SaveAdd = async () => {
     });
 };
 const RemoveItem = async () => {
+  DialogLoading.value = true
   axios
     .delete(`${Url}/WareHouse/delete-item/${GetID.value}`)
     .then(function (response) {
@@ -361,7 +374,7 @@ const RemoveItem = async () => {
     });
 };
 const ImportFile = async () => {
-  Dialog.value = true;
+  DialogLoading.value = true;
   const formData = new FormData();
   formData.append("file", File.value);
   axios
@@ -399,41 +412,38 @@ const DownloadWareHouse = async () => {
   }
 };
 const getAccessToken = async (value) => {
-  if (expires_in.value == 0 || expires_in != null) {
-    const found = warehouse.value.find((v) => v.id === value);
-    GetDigikey.value = found.PartNumber_1;
-    const authString = Buffer.from(
-      `${clientId}:${clientSecret}`,
-      "utf-8"
-    ).toString("base64");
-    const tokenUrl = "https://api.digikey.com/v1/oauth2/token";
-    const params = new URLSearchParams();
-    params.append("grant_type", "client_credentials");
+  DialogLoading.value = true;
+  const found = warehouse.value.find((v) => v.id === value);
+  GetDigikey.value = found.PartNumber_1;
+  const authString = Buffer.from(
+    `${clientId}:${clientSecret}`,
+    "utf-8"
+  ).toString("base64");
+  const tokenUrl = "https://api.digikey.com/v1/oauth2/token";
+  const params = new URLSearchParams();
+  params.append("grant_type", "client_credentials");
 
-    try {
-      const response = await axios.post(tokenUrl, params.toString(), {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Authorization: `Basic ${authString}`,
-        },
-      });
-      accessToken.value = response.data.access_token;
-      tokenType.value = response.data.token_type;
-      expires_in.value = response.data.expires_in;
-      if (accessToken.value && tokenType.value && GetDigikey.value) {
-        return searchProduct();
-      }
-      console.log("Đã lấy access token thành công:", accessToken);
-      return true;
-    } catch (error) {
-      console.error(
-        "Lỗi khi lấy access token:",
-        error.response ? error.response.data : error.message
-      );
-      return false;
+  try {
+    const response = await axios.post(tokenUrl, params.toString(), {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Basic ${authString}`,
+      },
+    });
+    accessToken.value = response.data.access_token;
+    tokenType.value = response.data.token_type;
+    expires_in.value = response.data.expires_in;
+    if (accessToken.value && tokenType.value && GetDigikey.value) {
+      return searchProduct();
     }
-  } else {
-    searchProduct();
+    console.log("Đã lấy access token thành công:", accessToken);
+    return true;
+  } catch (error) {
+    console.error(
+      "Lỗi khi lấy access token:",
+      error.response ? error.response.data : error.message
+    );
+    return false;
   }
 };
 
@@ -455,7 +465,7 @@ const searchProduct = async () => {
     });
     ResultSearch.value = response.data;
     if (ResultSearch.value) {
-      return (DialogInfo.value = true), (DialogSuccess.value = true);
+      return (DialogInfo.value = true), Reset();
     }
     return response.data;
   } catch (error) {
@@ -474,6 +484,7 @@ function Reset() {
   DialogRemove.value = false;
   DialogAdd.value = false;
   Dialog.value = false;
+  DialogLoading.value = false;
   PartNumber1_Add.value = ref("");
   PartNumber2_Add.value = ref("");
   Description_Add.value = ref("");
@@ -487,6 +498,7 @@ function Reset() {
 }
 function Error() {
   DialogFailed.value = false;
+  DialogLoading.value = false;
 }
 </script>
 <script>
@@ -505,6 +517,7 @@ export default {
     SnackbarFailed,
     SnackbarCaution,
     ButtonSearch,
+    Loading,
   },
   data() {
     return {

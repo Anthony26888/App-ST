@@ -37,7 +37,7 @@ app.post("/upload", upload.single("file"), (req, res) => {
 
   // Insert data into SQLite database
   const stmt = db.prepare(
-    `INSERT INTO CheckBOM (Description, Manufacturer_1, PartNumber_1, Manufacturer_2, PartNumber_2, Manufacturer_3, PartNumber_3, So_Luong, Bom, SL_Board, PO, Creater, TimeStamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO CheckBOM (Description, Manufacturer_1, PartNumber_1, Manufacturer_2, PartNumber_2, Manufacturer_3, PartNumber_3, So_Luong, Bom, SL_Board, PO, Du_Toan_Hao_Phi, Hao_Phi_Thuc_Te, Creater, TimeStamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '0', '0', ?, ?)`
   );
   data.forEach((row) => {
     stmt.run(

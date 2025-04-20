@@ -44,8 +44,8 @@
             </div>
           </template>
 
-          <template v-slot:item.id="{ item }">
-            <ButtonEdit @edit="EditItem(item)" />
+          <template v-slot:item.id="{ value }">
+            <ButtonEdit @edit="GetItem(value)" />
           </template>
         </v-data-table>
       </v-card>
@@ -60,6 +60,7 @@
               label="Hao phí thực tế"
               v-model="ActualCost"
               clearable
+              type="number"
               variant="solo-filled"
             ></v-text-field>
           </v-card-text>
@@ -78,17 +79,21 @@
           <v-card-text> Bạn có chắc chắn muốn xác nhận dữ liệu? </v-card-text>
           <v-card-actions>
             <ButtonCancel @cancel="DialogAccept = false" />
-            <ButtonAgree @agree="WareHouseAcceptInventory()" />
+            <ButtonAgree @agree="WareHouseAcceptWareHouse()" />
           </v-card-actions>
         </v-card>
       </v-dialog>
     </v-card-text>
   </v-card>
   <SnackbarSuccess v-model="DialogSuccess" />
+  <SnackbarFailed v-model="DialogFailed" />
+  <Loading v-model="DialogLoading" />
 </template>
 <script setup>
 import axios from "axios";
 import { computed } from "vue";
+import { useRoute } from "vue-router";
+import { ref, watch } from "vue";
 import InputSearch from "@/components/Input-Search.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";
@@ -97,17 +102,123 @@ import ButtonBack from "@/components/Button-Back.vue";
 import ButtonEdit from "@/components/Button-Edit.vue";
 import ButtonAgree from "@/components/Button-Agree.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
+import SnackbarFailed from "@/components/Snackbar-Failed.vue";
+import Loading from "@/components/Loading.vue";
 import { useSocket } from "@/composables/useWebSocket";
 import { useDetailOrder } from "@/composables/useDetailOrder";
+const route = useRoute();
+const id = route.params.id;
 const { orders } = useSocket();
+const { compare, compareError, headers } = useDetailOrder(id);
+const Url = import.meta.env.VITE_API_URL;
 const status = computed(() => {
   if (!orders.value || !Array.isArray(orders.value)) return null;
   const found = orders.value.find((v) => v.Name_PO === route.params.id);
   return found ? found.Status : null;
 });
-const route = useRoute();
-const id = route.params.id;
-const { compare, compareError, headers } = useDetailOrder(id);
+
+const DialogEdit = ref(false);
+const DialogAccept = ref(false);
+const DialogSuccess = ref(false);
+const DialogFailed = ref(false);
+const DialogLoading = ref(false);
+const NamePO = ref("");
+const PartNumber_1 = ref("");
+const GetID = ref("");
+const ActualCost = ref("");
+
+onMounted(() => {
+  const storeData = localStorage.getItem("PO");
+  NamePO.value = storeData;
+});
+function GetItem(value) {
+  DialogEdit.value = true;
+  GetID.value = value;
+  const found = compare.value.find((v) => v.id === value);
+  PartNumber_1.value = found.PartNumber_1;
+  ActualCost.value = found.Hao_Phí_Thực_Tế;
+}
+const SaveEdit = async () => {
+  DialogLoading.value = true;
+  const formData = {
+    Input_Hao_Phi_Thuc_Te: ActualCost.value,
+    PartNumber_1: PartNumber_1.value,
+  };
+  axios
+    .put(`${Url}/CheckBom/Update-Hao-Phi-Thuc-Te`, formData)
+    .then(function (response) {
+      console.log(response);
+      Reset();
+    })
+    .catch(function (error) {
+      console.log(error);
+      Error();
+    });
+};
+
+const WareHouseAcceptWareHouse = async () => {
+  DialogLoading.value = true;
+  axios
+    .put(`${Url}/WareHouse/update-Inventory-CheckBom/${id}`)
+    .then(function (response) {
+      console.log(response);
+      WareHouseAccept();
+    })
+    .catch(function (error) {
+      console.log(error);
+      Error();
+    });
+};
+const WareHouseAccept = async () => {
+  
+  axios
+    .put(`${Url}/Orders/WareHouse-Accept/${id}`)
+    .then(function (response) {
+      console.log(response);
+      Reset();
+    })
+    .catch(function (error) {
+      console.log(error);
+      Error();
+    });
+};
+const DownloadOrder = async () => {
+  try {
+    const response = await fetch(
+      `${Url}/Download-Order/${id}`
+    );
+    if (!response.ok) throw new Error("Download failed");
+
+    // Convert response to blob
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    // Create a link to download
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${id}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+
+    // Cleanup
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error downloading file:", error);
+    Error()
+  }
+};
+function Reset() {
+  DialogEdit.value = false;
+  DialogLoading.value = false;
+  DialogSuccess.value = true;
+  DialogAccept.value = false;
+}
+function Error() {
+  DialogFailed.value = true;
+  DialogLoading.value = false;
+  DialogAccept.value = false;
+}
 </script>
 <script>
 export default {
@@ -117,84 +228,23 @@ export default {
     ButtonSave,
     InputSearch,
     SnackbarSuccess,
+    SnackbarFailed,
+    Loading,
     ButtonBack,
     ButtonEdit,
-    ButtonAgree
+    ButtonAgree,
   },
   data() {
     return {
       Url: import.meta.env.VITE_API_URL,
       search: "",
       Headers: [],
-      Detail_Order: [],
-      Information: null,
-      Status: null,
-      ActualCost: "",
-      GetRow: "",
-      ID: this.$route.params.id,
-      Name_PO: this.$route.params.PO,
-      Accept: "Kho đã xác nhận",
-      DialogEdit: false,
-      DialogSuccess: false,
-      DialogAccept: false,
+
       itemsPerPage: 12,
       page: 1,
-      intervalId: null,
-      intervalId2: null,
     };
   },
   methods: {
-    EditItem(item) {
-      // const value = this.Bom.find((v) => v.id == item);
-      this.GetRow = item.PartNumber_1;
-      this.DialogEdit = true;
-    },
-    async SaveEdit() {
-      const Item = {
-        Name_Item: this.GetRow,
-        Input_Hao_Phi_Thuc_Te: this.ActualCost,
-      };
-      this.Reset();
-      axios
-        .put(`${this.Url}/CheckBom/Update-Hao-Phi-Thuc-Te`, Item)
-        .then(function (response) {
-          console.log(response);
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
-    },
-    Reset() {
-      (this.ActualCost = ""),
-        (this.DialogEdit = false),
-        (this.DialogSuccess = true);
-        this.DialogAccept = false
-    },
-    async WareHouseAccept() {
-      this.Reset();
-      axios
-        .put(`${this.Url}/Orders/WareHouse-Accept/${this.$route.params.id}`)
-        .then(function (response) {
-          console.log(response);
-          this.WareHouseAcceptInventory();
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
-    },
-    async WareHouseAcceptInventory() {
-      this.WareHouseAccept();
-      axios
-        .put(
-          `${this.Url}/Inventory/update-Inventory-CheckBom/${this.$route.params.id}`
-        )
-        .then(function (response) {
-          console.log(response);
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
-    },
     async DownloadOrder() {
       try {
         const response = await fetch(

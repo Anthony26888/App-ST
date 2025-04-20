@@ -55,6 +55,8 @@
     </v-card>
   </v-dialog>
   <SnackbarSuccess v-model="DialogSuccess" />
+  <SnackbarFailed v-model="DialogFailed" />
+  <Loading v-model="DialogLoading" />
 </template>
 <script setup>
 import axios from "axios";
@@ -67,12 +69,14 @@ import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import ButtonEdit from "@/components/Button-Edit.vue";
 import ButtonRemove from "@/components/Button-Remove.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
+import Loading from "@/components/Loading.vue"
 const { detailBom } = useDetailBom();
 const Url = import.meta.env.VITE_API_URL;
 const GetID = ref("");
 const DialogEdit = ref(false);
 const DialogRemove = ref(false);
 const DialogFailed = ref(false);
+const DialogLoading = ref(false);
 const PO_Edit = ref("");
 const Bom_Edit = ref("");
 const Quantity_Edit = ref("");
@@ -85,11 +89,12 @@ function GetItem(value) {
   Quantity_Edit.value = found.SL_Board;
 }
 const SaveEdit = async () => {
+  DialogLoading.value = true
+  DialogLoading.value = true
   const formData = {
     PO: PO_Edit.value,
     SL_Board: Quantity_Edit.value,
   };
-
   axios
     .put(`${Url}/CheckBom/Edit-Item/${Bom_Edit.value}`, formData)
     .then(function (response) {
@@ -102,6 +107,7 @@ const SaveEdit = async () => {
     });
 };
 const RemoveItem = async () => {
+  DialogLoading.value = true
   axios
     .delete(`${Url}/CheckBom/Delete-Item/${Bom_Edit.value}`)
     .then(function (response) {
@@ -117,9 +123,11 @@ function Reset() {
   DialogEdit.value = false;
   DialogSuccess.value = true;
   DialogRemove.value = false;
+  DialogLoading.value = false;
 }
 function Error() {
   DialogFailed.value = true;
+  DialogLoading.value = false
 }
 </script>
 <script>
@@ -132,6 +140,7 @@ export default {
     InputSearch,
     SnackbarSuccess,
     SnackbarFailed,
+    Loading
   },
   data() {
     return {

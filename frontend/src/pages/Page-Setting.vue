@@ -45,7 +45,7 @@
           </v-list-item>
           <v-list-item
             color="primary"
-            value="option-5"
+            value="option-4"
             @click="DialogRemoveWareHouse = true"
           >
             <template v-slot:prepend>
@@ -71,7 +71,7 @@
           </v-list-item>
           <v-list-item
             color="primary"
-            value="option-5"
+            value="option-6"
             @click="DialogRemoveProject = true"
           >
             <template v-slot:prepend>

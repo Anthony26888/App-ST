@@ -163,7 +163,7 @@ const getCompareInventory = async (id) => {
         const Buy = `
           CASE 
             WHEN (SUM(c.So_Luong * c.SL_Board) + SUM(IFNULL(c.Hao_Phi_Thuc_Te, 0))) > IFNULL(i.Inventory, 0) 
-            THEN (SUM(c.So_Luong * c.SL_Board) + SUM(IFNULL(c.Hao_Phi_Thuc_Te, 0)) - IFNULL(i.Inventory, 0)) 
+            THEN SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Hao_Phi_Thuc_Te, 0) - IFNULL(i.Inventory, 0)
             ELSE 0 
           END AS SL_Cần_Mua
         `;
@@ -527,10 +527,10 @@ app.post("/ListPO/upload-new-PO", async (req, res) => {
 
 // Router update Hao_Phi_Thuc_Te in CheckBom table
 app.put("/CheckBom/Update-Hao-Phi-Thuc-Te", async (req, res) => {
-  const { Input_Hao_Phi_Thuc_Te, Name_Item } = req.body;
+  const { Input_Hao_Phi_Thuc_Te, PartNumber_1 } = req.body;
   // Insert data into SQLite database
   const query = `UPDATE CheckBOM SET Hao_Phi_Thuc_Te = ? WHERE PartNumber_1 = ?`;
-  db.run(query, [Input_Hao_Phi_Thuc_Te, Name_Item], function (err) {
+  db.run(query, [Input_Hao_Phi_Thuc_Te, PartNumber_1], function (err) {
     if (err) {
       return console.error(err.message);
     }
@@ -573,7 +573,7 @@ app.put("/Orders/WareHouse-Accept/:id", async (req, res) => {
 });
 
 // Router update WareHouse accept
-app.put("/Inventory/update-Inventory-CheckBom/:id", async (req, res) => {
+app.put("/WareHouse/update-Inventory-CheckBom/:id", async (req, res) => {
   const { id } = req.params;
   const poNumber = id;
   // Insert data into SQLite database
@@ -581,10 +581,10 @@ app.put("/Inventory/update-Inventory-CheckBom/:id", async (req, res) => {
     UPDATE WareHouse
     SET Inventory = 
       CASE 
-        WHEN Inventory > (SELECT SUM(cb.So_Luong * cb.SL_Board) - IFNULL((SELECT Hao_Phi_Thuc_Te FROM CheckBOM WHERE PO = ? AND PartNumber_1 = WareHouse.PartNumber_1 LIMIT 1), 0)
+        WHEN Inventory > (SELECT SUM(cb.So_Luong * cb.SL_Board + cb.Hao_Phi_Thuc_Te)
                           FROM CheckBOM cb
                           WHERE cb.PartNumber_1 = WareHouse.PartNumber_1 AND cb.PO = ?)
-        THEN Inventory - (SELECT SUM(cb.So_Luong * cb.SL_Board) - IFNULL((SELECT Hao_Phi_Thuc_Te FROM CheckBOM WHERE PO = ? AND PartNumber_1 = WareHouse.PartNumber_1 LIMIT 1), 0)
+        THEN Inventory - (SELECT SUM(cb.So_Luong * cb.SL_Board + cb.Hao_Phi_Thuc_Te)
                           FROM CheckBOM cb
                           WHERE cb.PartNumber_1 = WareHouse.PartNumber_1 AND cb.PO = ?)
         ELSE 0
@@ -593,7 +593,7 @@ app.put("/Inventory/update-Inventory-CheckBom/:id", async (req, res) => {
   `;
   db.all(
     query,
-    [poNumber, poNumber, poNumber, poNumber, poNumber],
+    [poNumber, poNumber, poNumber],
     function (err) {
       if (err) {
         return console.error(err.message);

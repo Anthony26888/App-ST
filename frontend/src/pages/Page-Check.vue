@@ -15,7 +15,9 @@
       >
       <v-spacer></v-spacer>
       <InputSearch v-model="NamePO" />
-      <v-btn color="primary" class="ms-2 text-caption" @click="Process()">Xử lí</v-btn>
+      <v-btn color="primary" class="ms-2 text-caption" @click="Process()"
+        >Xử lí</v-btn
+      >
     </v-card-title>
     <v-card-text>
       <v-divider></v-divider>
@@ -39,10 +41,7 @@
             class="ms-2 text-caption"
             variant="tonal"
             :disabled="OrderAvailable"
-            @click="
-              SaveTable();
-              DialogSuccess = true;
-            "
+            @click="SaveTable()"
             >Lưu dữ liệu</v-btn
           >
           <v-spacer></v-spacer>
@@ -111,6 +110,7 @@
   </v-dialog>
   <SnackbarSuccess v-model="DialogSuccess" />
   <SnackbarFailed v-model="DialogFailed" />
+  <Loading v-model="DialogLoading" />
 </template>
 <script setup>
 import axios from "axios";
@@ -126,6 +126,7 @@ import InputField from "@/components/Input-Field.vue";
 import InputFiles from "@/components/Input-Files.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
+import Loading from "@/components/Loading.vue";
 import { useCheckBOM } from "@/composables/useCheckBom";
 // const { checkBOM } = useCheckBOM(id);
 const checkBOM = ref("");
@@ -135,6 +136,7 @@ const DialogEdit = ref(false);
 const DialogRemove = ref(false);
 const DialogSuccess = ref(false);
 const DialogFailed = ref(false);
+const DialogLoading = ref(false);
 const Headers = ref(null);
 const File = ref(null);
 const InputPO = ref("");
@@ -153,6 +155,7 @@ onMounted(() => {
   }
 });
 function Process() {
+  DialogLoading.value = true;
   if (NamePO.value) {
     axios
       .get(`${Url}/CheckBom/${this.NamePO}`)
@@ -161,11 +164,11 @@ function Process() {
         checkBOM.value = response.data;
         namePO.value = NamePO.value;
         generateHeaders();
-        Reset()
+        Reset();
       })
       .catch(function (error) {
         console.log(error);
-        Error()
+        Error();
       });
   }
 }
@@ -179,6 +182,7 @@ function generateHeaders() {
   }
 }
 const ImportFile = async () => {
+  DialogLoading.value = true;
   const now = new Date();
   const day = String(now.getDate()).padStart(2, "0");
   const month = String(now.getMonth() + 1).padStart(2, "0"); // Months are 0-based
@@ -225,13 +229,51 @@ const DownloadPO = async () => {
     console.error("Error downloading file:", error);
   }
 };
+const SaveTable = async () => {
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, "0");
+  const month = String(now.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+  const year = String(now.getFullYear()).slice(-2);
+  const DateNow = `${day}/${month}/${year}`;
+  const TotalType = checkBOM.value.length;
+  const TotalItems = checkBOM.value.reduce(
+    (accumulator, currentItem) => {
+      // Access 'SL_Tổng' from the current item object
+      // Use Number() and || 0 to handle potential non-numeric values or missing properties gracefully
+      const quantity = Number(currentItem.SL_Tổng) || 0;
+      return accumulator + quantity;
+    },
+    0 // Initial value for the sum remains 0
+  );
+  DialogLoading.value = true;
+  const formData = {
+    Name_PO: NamePO.value,
+    Quantity_Type: TotalType,
+    Quantity_Items: TotalItems,
+    Status: 0,
+    Date: DateNow,
+    Creater: UserInfo.value,
+  };
+  axios
+    .post(`${Url}/ListPO/upload-new-PO`, formData)
+    .then(function (response) {
+      console.log(response);
+      Reset();
+    })
+    .catch(function (error) {
+      console.log(error);
+      Error();
+    });
+};
 function Reset() {
   DialogSuccess.value = true;
   Dialog.value = false;
+  DialogLoading.value = false;
 }
 function Error() {
   DialogFailed.value = true;
   Dialog.value = false;
+  DialogLoading.value = false;
 }
 </script>
 <script>
@@ -246,6 +288,7 @@ export default {
     InputFiles,
     SnackbarSuccess,
     SnackbarFailed,
+    Loading,
   },
   data() {
     return {
