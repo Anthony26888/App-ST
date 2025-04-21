@@ -45,46 +45,106 @@
           </template>
 
           <template v-slot:item.id="{ value }">
-            <ButtonEdit @edit="GetItem(value)" />
+            <div>
+              <ButtonEdit @edit="GetItem(value)" />
+              <ButtonSearch @search="getAccessToken(value)" />
+            </div>
           </template>
         </v-data-table>
       </v-card>
-      <v-dialog v-model="DialogEdit" width="400">
-        <v-card
-          max-width="400"
-          prepend-icon="mdi-update"
-          title="Cập nhật dữ liệu"
-        >
-          <v-card-text>
-            <v-text-field
-              label="Hao phí thực tế"
-              v-model="ActualCost"
-              clearable
-              type="number"
-              variant="solo-filled"
-            ></v-text-field>
-          </v-card-text>
-          <v-card-actions>
-            <ButtonCancel @cancel="DialogEdit = false" />
-            <ButtonSave @save="SaveEdit()" />
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
-      <v-dialog v-model="DialogAccept" width="400">
-        <v-card
-          max-width="400"
-          prepend-icon="mdi-update"
-          title="Kho xác nhận dữ liệu"
-        >
-          <v-card-text> Bạn có chắc chắn muốn xác nhận dữ liệu? </v-card-text>
-          <v-card-actions>
-            <ButtonCancel @cancel="DialogAccept = false" />
-            <ButtonAgree @agree="WareHouseAcceptWareHouse()" />
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
     </v-card-text>
   </v-card>
+  <v-dialog v-model="DialogEdit" width="400">
+    <v-card max-width="400" prepend-icon="mdi-update" title="Cập nhật dữ liệu">
+      <v-card-text>
+        <v-text-field
+          label="Hao phí thực tế"
+          v-model="ActualCost"
+          clearable
+          type="number"
+          variant="solo-filled"
+        ></v-text-field>
+      </v-card-text>
+      <v-card-actions>
+        <ButtonCancel @cancel="DialogEdit = false" />
+        <ButtonSave @save="SaveEdit()" />
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+  <v-dialog v-model="DialogAccept" width="400">
+    <v-card
+      max-width="400"
+      prepend-icon="mdi-update"
+      title="Kho xác nhận dữ liệu"
+    >
+      <v-card-text> Bạn có chắc chắn muốn xác nhận dữ liệu? </v-card-text>
+      <v-card-actions>
+        <ButtonCancel @cancel="DialogAccept = false" />
+        <ButtonAgree @agree="WareHouseAcceptWareHouse()" />
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+  <v-dialog v-model="DialogInfo" width="800">
+    <v-card
+      max-width="800"
+      prepend-icon="mdi-information-variant-circle"
+      title="Thông số kỹ thuật"
+    >
+      <template v-slot:append>
+        <v-btn
+          variant="text"
+          icon="mdi-close"
+          @click="DialogInfo = false"
+        ></v-btn>
+      </template>
+      <v-card-text>
+        <v-row>
+          <v-col>
+            <v-img :src="ResultSearch.Product.PhotoUrl"></v-img>
+          </v-col>
+          <v-col>
+            <v-list-item density="comfortable" lines="two">
+              <template v-slot:title>
+                <strong class="text-h6">
+                  {{ ResultSearch.Product.ManufacturerProductNumber }}
+                </strong>
+              </template>
+            </v-list-item>
+
+            <v-table class="text-caption" density="compact">
+              <tbody>
+                <tr>
+                  <td><strong>Datasheet</strong></td>
+                  <td>
+                    <v-btn
+                      size="small"
+                      prepend-icon="mdi-database-arrow-right"
+                      :href="ResultSearch.Product.DatasheetUrl"
+                      target="_blank"
+                      color="primary"
+                      variant="tonal"
+                      class="text-caption"
+                    >
+                      Datasheet
+                    </v-btn>
+                  </td>
+                </tr>
+                <tr
+                  v-for="item in ResultSearch.Product.Parameters"
+                  :key="item.name"
+                >
+                  <td>
+                    <strong>{{ item.ParameterText }}</strong>
+                  </td>
+                  <td>{{ item.ValueText }}</td>
+                </tr>
+              </tbody>
+            </v-table>
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
+  </v-dialog>
   <SnackbarSuccess v-model="DialogSuccess" />
   <SnackbarFailed v-model="DialogFailed" />
   <Loading v-model="DialogLoading" />
@@ -106,6 +166,7 @@ import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 import { useSocket } from "@/composables/useWebSocket";
 import { useDetailOrder } from "@/composables/useDetailOrder";
+import { Buffer } from "buffer"
 const route = useRoute();
 const id = route.params.id;
 const { orders } = useSocket();
@@ -122,11 +183,18 @@ const DialogAccept = ref(false);
 const DialogSuccess = ref(false);
 const DialogFailed = ref(false);
 const DialogLoading = ref(false);
+const DialogInfo = ref(false);
 const NamePO = ref("");
 const PartNumber_1 = ref("");
 const GetID = ref("");
 const ActualCost = ref("");
-
+const GetDigikey = ref("");
+const clientId = import.meta.env.VITE_DIGIKEY_CLIENT_ID;
+const clientSecret = import.meta.env.VITE_DIGIKEY_CLIENT_SECRET;
+const accessToken = ref(null);
+const tokenType = ref(null);
+const expires_in = ref(null);
+const ResultSearch = ref(null);
 onMounted(() => {
   const storeData = localStorage.getItem("PO");
   NamePO.value = storeData;
@@ -170,7 +238,6 @@ const WareHouseAcceptWareHouse = async () => {
     });
 };
 const WareHouseAccept = async () => {
-  
   axios
     .put(`${Url}/Orders/WareHouse-Accept/${id}`)
     .then(function (response) {
@@ -184,9 +251,7 @@ const WareHouseAccept = async () => {
 };
 const DownloadOrder = async () => {
   try {
-    const response = await fetch(
-      `${Url}/Download-Order/${id}`
-    );
+    const response = await fetch(`${Url}/Download-Order/${id}`);
     if (!response.ok) throw new Error("Download failed");
 
     // Convert response to blob
@@ -205,7 +270,74 @@ const DownloadOrder = async () => {
     window.URL.revokeObjectURL(url);
   } catch (error) {
     console.error("Error downloading file:", error);
-    Error()
+    Error();
+  }
+};
+const getAccessToken = async (value) => {
+  DialogLoading.value = true;
+  const found = compare.value.find((v) => v.id === value);
+  GetDigikey.value = found.PartNumber_1;
+  const authString = Buffer.from(
+    `${clientId}:${clientSecret}`,
+    "utf-8"
+  ).toString("base64");
+  const tokenUrl = "https://api.digikey.com/v1/oauth2/token";
+  const params = new URLSearchParams();
+  params.append("grant_type", "client_credentials");
+
+  try {
+    const response = await axios.post(tokenUrl, params.toString(), {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Basic ${authString}`,
+      },
+    });
+    accessToken.value = response.data.access_token;
+    tokenType.value = response.data.token_type;
+    expires_in.value = response.data.expires_in;
+    if (accessToken.value && tokenType.value && GetDigikey.value) {
+      return searchProduct();
+    }
+    console.log("Đã lấy access token thành công:", accessToken);
+    return true;
+  } catch (error) {
+    console.error(
+      Error(),
+      "Lỗi khi lấy access token:",
+      error.response ? error.response.data : error.message
+    );
+    return false;
+  }
+};
+
+const searchProduct = async () => {
+  if (!accessToken.value) {
+    console.error("Chưa có access token. Vui lòng lấy token trước.");
+    return;
+  }
+
+  const searchUrl = `https://api.digikey.com/products/v4/search/${GetDigikey.value}/productdetails`;
+
+  try {
+    const response = await axios.get(searchUrl, {
+      headers: {
+        Authorization: `${tokenType.value} ${accessToken.value}`,
+        "Content-Type": "application/json",
+        "X-DIGIKEY-Client-Id": `${clientId}`,
+      },
+    });
+    ResultSearch.value = response.data;
+    if (ResultSearch.value) {
+      return (DialogInfo.value = true), Reset();
+    }
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Lỗi khi tìm kiếm sản phẩm:",
+      error.response ? error.response.data : error.message,
+      Error()
+    );
+    return null;
   }
 };
 function Reset() {

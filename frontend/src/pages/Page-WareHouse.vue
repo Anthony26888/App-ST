@@ -235,7 +235,7 @@ import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonAdd from "@/components/Button-Add.vue";
-import ButtonSearch from "@/components/Button-search.vue";
+import ButtonSearch from "@/components/Button-Search.vue"
 import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputFiles from "@/components/Input-Files.vue";
@@ -409,6 +409,7 @@ const DownloadWareHouse = async () => {
     window.URL.revokeObjectURL(url);
   } catch (error) {
     console.error("Error downloading file:", error);
+    Error();
   }
 };
 const getAccessToken = async (value) => {
@@ -440,8 +441,10 @@ const getAccessToken = async (value) => {
     return true;
   } catch (error) {
     console.error(
+      Error(),
       "Lỗi khi lấy access token:",
       error.response ? error.response.data : error.message
+      
     );
     return false;
   }
@@ -472,7 +475,7 @@ const searchProduct = async () => {
     console.error(
       "Lỗi khi tìm kiếm sản phẩm:",
       error.response ? error.response.data : error.message,
-      (DialogCaution.value = true)
+      Error()
     );
     return null;
   }
@@ -499,6 +502,8 @@ function Reset() {
 function Error() {
   DialogFailed.value = false;
   DialogLoading.value = false;
+  DialogCaution.value =true;
+  DialogSuccess.value = false;
 }
 </script>
 <script>

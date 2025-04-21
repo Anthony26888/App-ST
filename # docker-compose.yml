@@ -1,0 +1,36 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: . # Đường dẫn đến thư mục chứa Dockerfile
+      args:
+        # Cung cấp giá trị cho VITE_SOCKET_URL khi build image
+        # Thay thế bằng IP hoặc domain thực tế của server bạn, hoặc localhost nếu chạy local
+        # Nếu bạn chạy trên cùng máy, container có thể cần kết nối qua host.docker.internal hoặc IP của host
+        VITE_SOCKET_URL: ${VITE_SOCKET_URL:-http://localhost:3000} # Sử dụng biến từ .env hoặc giá trị mặc định
+    container_name: app-st-service
+    restart: unless-stopped
+    ports:
+      - "3000:3000" # Map port 3000 của host vào port 3000 của container
+    volumes:
+      # Mount file database từ host vào container để đảm bảo persistence
+      # Docker sẽ tạo file nếu chưa có trên host, nhưng tốt nhất là tạo file trống trước
+      - ./backend/database.db:/app/database.db
+      # Mount thư mục uploads từ host vào container
+      - ./backend/uploads:/app/uploads
+    environment:
+      # Các biến môi trường runtime cho backend
+      NODE_ENV: production
+      PORT: 3000
+      # Lấy JWT_SECRET từ file .env ở thư mục gốc
+      JWT_SECRET: ${JWT_SECRET}
+    # Sử dụng file .env ở thư mục gốc để lấy biến môi trường
+    env_file:
+      - .env
+
+# Lưu ý về Volumes:
+# - Đảm bảo file ./backend/database.db và thư mục ./backend/uploads tồn tại trên máy host TRƯỚC KHI chạy `docker-compose up`.
+# - Nếu không, Docker có thể tạo chúng dưới dạng thư mục (đối với database.db) hoặc với quyền sở hữu của root, gây lỗi permission.
+# - Cách tốt hơn có thể là dùng Named Volumes, nhưng mount trực tiếp dễ hiểu hơn cho SQLite.

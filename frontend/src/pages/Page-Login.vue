@@ -10,7 +10,7 @@
       <v-card-text>
         <InputField v-model="Username" label="Tên đăng nhập" />
         <InputField v-model="Password" type="password" label="Mật khẩu" />
-        <p v-if="error != ''" class="text-red">{{ error }}</p>
+        <p v-if="TextError != ''" class="text-red">{{ TextError }}</p>
       </v-card-text>
 
       <v-divider></v-divider>
@@ -22,67 +22,70 @@
       </v-card-actions>
     </v-card>
   </v-empty-state>
+  <Loading v-model="DialogLoading" />
 </template>
 <script setup>
 import axios from "axios";
+import { ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import InputField from "@/components/Input-Field.vue";
-// Tạo interceptor kiểm tra lỗi từ server
-axios.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      console.warn("Token hết hạn hoặc không hợp lệ, tự động đăng xuất...");
+import Loading  from "@/components/Loading.vue";
+const router = useRouter();
+const Url = import.meta.env.VITE_API_URL;
+const Username = ref("");
+const Password = ref("");
+const DialogLoading = ref(false);
+const TextError = ref("");
 
-      // Xóa token và chuyển hướng về trang login
-      localStorage.removeItem("token");
-      window.location.href = "/";
-    }
-    return Promise.reject(error);
+const login = async () => {
+  DialogLoading.value = true;
+  const formData = {
+    Username: Username.value,
+    Password: Password.value,
+  };
+  try {
+    const res = await axios.post(`${Url}/Users/login`, formData);
+
+    localStorage.setItem("token", res.data.token);
+    FetchUser();
+  } catch (err) {
+    TextError.value = err.response.data.error;
+    DialogLoading.value = false;
   }
-);
+};
+const FetchUser = async () => {
+  try {
+    const res = await fetch(`${Url}/All-Users/${Username.value}`);
+    const Detail_User = await res.json();
+    const LevelUser = Detail_User[0].Level;
+    if (LevelUser == "Admin" || LevelUser == "Kế hoạch" || LevelUser == "Quản lý") {
+      router.push(`/Kiem-tra-so-lieu`);
+      DialogLoading.value = false;
+    } else if(LevelUser == "Kinh doanh" || LevelUser == "Thủ Kho") {
+      DialogLoading.value = false;
+      router.push(`/Ton-kho`);
+    } else{
+      router.push(`/Dang-nhap`);
+      DialogLoading.value = false;
+    }
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    DialogLoading.value = false;
+  }
+};
 </script>
 <script>
 export default {
-  components :{
-    InputField
+  components: {
+    InputField,
+    Loading
   },
   data() {
     return {
-      Url: import.meta.env.VITE_API_URL,
-      Username: "",
-      Password: "",
-      error: "",
-      DialogFailed: true,
+
     };
   },
   methods: {
-    async login() {
-      try {
-        const res = await axios.post(`${this.Url}/Users/login`, {
-          Username: this.Username,
-          Password: this.Password,
-        });
-
-        localStorage.setItem("token", res.data.token);
-        this.FetchUser();
-      } catch (err) {
-        this.error = err.response.data.error;
-      }
-    },
-    async FetchUser() {
-      try {
-        const res = await fetch(`${this.Url}/All-Users/${this.Username}`);
-        const Detail_User = await res.json();
-        const LevelUser = Detail_User[0].Level;
-        if (LevelUser == "Admin" || LevelUser == "Kế hoạch") {
-          this.$router.push(`/Kiem-tra-so-lieu`);
-        } else {
-          this.$router.push(`/Ton-kho`);
-        }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      }
-    },
   },
 };
 </script>

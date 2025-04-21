@@ -17,17 +17,6 @@
 
             <v-list-item-title>Danh sách thành viên</v-list-item-title>
           </v-list-item>
-          <v-list-item
-            color="primary"
-            value="option-2"
-            to="/Cai-dat/Dang-ky-thanh-vien"
-          >
-            <template v-slot:prepend>
-              <v-icon icon="mdi-account-multiple-plus"></v-icon>
-            </template>
-
-            <v-list-item-title>Thêm thành viên mới</v-list-item-title>
-          </v-list-item>
           <v-divider></v-divider>
           <v-list-subheader>Chỉnh sửa dữ liệu hệ thống</v-list-subheader>
           <v-list-item
@@ -75,7 +64,7 @@
             @click="DialogRemoveProject = true"
           >
             <template v-slot:prepend>
-              <v-icon color="red" icon="mdi-store-remove"></v-icon>
+              <v-icon color="red" icon="mdi-notebook-multiple"></v-icon>
             </template>
 
             <v-list-item-title class="text-red"

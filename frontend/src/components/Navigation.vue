@@ -64,91 +64,104 @@
       </div>
     </template>
   </v-navigation-drawer>
+  <SnackbarFailed v-model="DialogFailed" />
+  <Loading v-model="DialogLoading" />
 </template>
 <script setup>
 import { jwtDecode } from "jwt-decode";
+import { ref, watch } from "vue";
+import { useRouter } from "vue-router";
+import axios from "axios";
+import Loading from "@/components/Loading.vue";
+import SnackbarFailed from "@/components/Snackbar-Failed.vue";
+const Url = import.meta.env.VITE_API_URL;
+const router = useRouter();
+const UserInfo = ref(null);
+const LevelUser = ref("");
+const StatusOption_1 = ref(false);
+const StatusOption_2 = ref(false);
+const StatusOption_3 = ref(false);
+const StatusOption_4 = ref(false);
+const StatusOption_5 = ref(false);
+const StatusOption_6 = ref(false);
+const Date_Expired = ref("");
+const DialogLoading = ref(false);
+const DialogFailed = ref(false);
+
+onMounted(() => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    const decoded = jwtDecode(token);
+    UserInfo.value = decoded.Username;
+    Date_Expired.value = new Date(decoded.exp * 1000);
+  } else {
+    console.log("Không tìm thấy token!");
+    DialogFailed.value = true;
+    router.push("/");
+  }
+  FetchUser();
+});
+const LogOut = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("CustomersID");
+  localStorage.removeItem("PO");
+  router.push("/");
+};
+const FetchUser = async () => {
+  if (UserInfo.value) {
+    try {
+      const res = await fetch(`${Url}/All-Users/${UserInfo.value}`);
+      const Detail_User = await res.json();
+      LevelUser.value = Detail_User[0].Level;
+      if (LevelUser.value == "Kinh doanh") {
+        StatusOption_1.value = true;
+        StatusOption_4.value = true;
+        StatusOption_6.value = true;
+      } else if (LevelUser.value == "Thủ kho") {
+        StatusOption_1.value = true;
+        StatusOption_5.value = true;
+        StatusOption_6.value = true;
+      } else if (LevelUser.value == "Kế hoạch") {
+        StatusOption_2.value = true;
+        StatusOption_3.value = true;
+        StatusOption_5.value = true;
+        StatusOption_6.value = true;
+      } else if (LevelUser.value == "Quản lý") {
+        StatusOption_5.value = true;
+        StatusOption_6.value = true;
+      } else if (LevelUser.value == "Admin") {
+        StatusOption_1.value = false;
+        StatusOption_2.value = false;
+        StatusOption_3.value = false;
+        StatusOption_4.value = false;
+        StatusOption_5.value = false;
+        StatusOption_6.value = false;
+      } else {
+        StatusOption_1.value = true;
+        StatusOption_2.value = true;
+        StatusOption_3.value = true;
+        StatusOption_4.value = true;
+        StatusOption_6.value = true;
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      DialogFailed.value = true;
+      router.push("/");
+    }
+  } else {
+    DialogFailed.value = true;
+    router.push("/");
+  }
+};
 </script>
 <script>
 export default {
-  data() {
-    return {
-      Url: import.meta.env.VITE_API_URL,
-      UserInfo: null,
-      LevelUser: "",
-      Status_Option_1:false,
-      Status_Option_2:false,
-      Status_Option_3:false,
-      Status_Option_4:false,
-      Status_Option_5:false,
-      Date_Expired: "",
-    };
+  components: {
+    Loading,
+    SnackbarFailed,
   },
-  mounted() {
-    this.getUserInfo();
-    this.FetchUser();
-  },
-  methods: {
-    getUserInfo() {
-      const token = localStorage.getItem("token");
-      if (token) {
-        const decoded = jwtDecode(token);
-        this.UserInfo = decoded.Username;
-        this.Date_Expired = new Date(decoded.exp * 1000);
-      } else {
-        console.log("Không tìm thấy token!");
-      }
-    },
-    LogOut() {
-      localStorage.removeItem("token");
-      localStorage.removeItem("CustomersID");
-      localStorage.removeItem("PO");
-      this.$router.push('/')
-    },
-    async FetchUser() {
-      if (this.UserInfo) {
-        try {
-          const res = await fetch(`${this.Url}/All-Users/${this.UserInfo}`);
-          const Detail_User = await res.json();
-          this.LevelUser = Detail_User[0].Level;
-          if(this.LevelUser == 'Kinh doanh'){
-            this.Status_Option_1=true,
-            this.Status_Option_4=true,
-            this.Status_Option_6=true
-          }else if(this.LevelUser == 'Thủ kho'){
-            this.Status_Option_1=true,
-            this.Status_Option_5=true,
-            this.Status_Option_6=true
-          }else if(this.LevelUser == 'Kế hoạch'){
-            this.Status_Option_2=true,
-            this.Status_Option_3=true,
-            this.Status_Option_5=true,
-            this.Status_Option_6=true
-          }else if(this.LevelUser == 'Quản lý'){
-            this.Status_Option_5=true,
-            this.Status_Option_6=true
-          }else if(this.LevelUser == 'Admin'){
-            this.Status_Option_1=false,
-            this.Status_Option_2=false,
-            this.Status_Option_3=false,
-            this.Status_Option_4=false,
-            this.Status_Option_5=false,
-            this.Status_Option_6=false 
-          }else{
-            this.Status_Option_1=true,
-            this.Status_Option_2=true,
-            this.Status_Option_3=true,
-            this.Status_Option_4=true,
-            this.Status_Option_6=true,
-            this.Status_Option_5=true
-          };
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-        }
-      } else {
-        this.Error = "Lỗi hệ thống. Thoát ra và đăng nhập lại";
-      }
-    },
-  },
+  data() {},
+  methods: {},
 };
 </script>
 <style lang=""></style>

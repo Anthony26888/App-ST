@@ -18,7 +18,7 @@ const props = defineProps({
   },
   timeout: {
     type: Number,
-    default: 5000,
+    default: 3000,
   },
 });
 const emit = defineEmits(["update:modelValue"]);
