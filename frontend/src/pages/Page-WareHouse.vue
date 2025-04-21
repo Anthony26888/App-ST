@@ -220,6 +220,7 @@
     </v-card>
   </v-dialog>
   <SnackbarSuccess v-model="DialogSuccess" />
+  <SnackbarCaution v-model="DialogCaution" />
   <SnackbarFailed v-model="DialogFailed" />
   <Loading v-model="DialogLoading" />
 </template>
@@ -475,7 +476,8 @@ const searchProduct = async () => {
     console.error(
       "Lỗi khi tìm kiếm sản phẩm:",
       error.response ? error.response.data : error.message,
-      Error()
+      DialogCaution.value = true,
+      DialogLoading.value = false
     );
     return null;
   }

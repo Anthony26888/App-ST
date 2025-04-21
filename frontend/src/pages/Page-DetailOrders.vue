@@ -147,6 +147,7 @@
   </v-dialog>
   <SnackbarSuccess v-model="DialogSuccess" />
   <SnackbarFailed v-model="DialogFailed" />
+  <SnackbarCaution v-model="DialogCaution" />
   <Loading v-model="DialogLoading" />
 </template>
 <script setup>
@@ -183,6 +184,7 @@ const DialogAccept = ref(false);
 const DialogSuccess = ref(false);
 const DialogFailed = ref(false);
 const DialogLoading = ref(false);
+const DialogCaution = ref(false);
 const DialogInfo = ref(false);
 const NamePO = ref("");
 const PartNumber_1 = ref("");
@@ -335,7 +337,8 @@ const searchProduct = async () => {
     console.error(
       "Lỗi khi tìm kiếm sản phẩm:",
       error.response ? error.response.data : error.message,
-      Error()
+      DialogCaution.value = true,
+      DialogLoading.value = false
     );
     return null;
   }

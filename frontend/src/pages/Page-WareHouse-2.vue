@@ -229,6 +229,7 @@
   <Loading v-model="DialogLoading" />
   <SnackbarSuccess v-model="DialogSuccess" />
   <SnackbarFailed v-model="DialogFailed" />
+  <SnackbarCaution v-model="DialogCaution" />
 </template>
 <script setup>
 import axios from "axios";
@@ -245,6 +246,9 @@ import InputField from "@/components/Input-Field.vue";
 import InputFiles from "@/components/Input-Files.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
+import SnackbarCaution from "@/components/Snackbar-Caution.vue";
+import ButtonSearch from "@/components/Button-Search.vue";
+import ButtonEdit from "@/components/Button-Edit.vue";
 import Loading  from "@/components/Loading.vue";
 import { Buffer } from "buffer"
 const { warehouse2 } = useWareHouse2();
@@ -257,6 +261,7 @@ const DialogSuccess = ref(false);
 const DialogFailed = ref(false);
 const DialogAdd = ref(false);
 const DialogInfo = ref(false);
+const DialogCaution = ref(false);
 const DialogLoading = ref(false);
 const File = ref(null);
 const PartNumber1_Edit = ref("");
@@ -476,7 +481,8 @@ const searchProduct = async () => {
     console.error(
       "Lỗi khi tìm kiếm sản phẩm:",
       error.response ? error.response.data : error.message,
-      Error()
+      DialogCaution.value = true,
+      DialogLoading.value = false
     );
     return null;
   }
@@ -518,7 +524,10 @@ export default {
     InputFiles,
     SnackbarSuccess,
     SnackbarFailed,
-    Loading
+    SnackbarCaution,
+    Loading,
+    ButtonSearch,
+    ButtonEdit
   },
   data() {
     return {
