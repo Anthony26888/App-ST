@@ -78,6 +78,7 @@
   </v-dialog>
   <SnackbarSuccess v-model="DialogSuccess" />
   <SnackbarFailed v-model="DialogFailed" />
+  <Loading v-model="DialogLoading" />
 </template>
 <script setup>
 import axios from "axios";
@@ -87,20 +88,22 @@ import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
+import Loading from "@/components/Loading.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonBack from "@/components/Button-Back.vue";
 import ButtonEdit from "@/components/Button-Edit.vue";
 import ButtonAdd from "@/components/Button-Add.vue";
-import { useUsers } from "@/composables/useUsers" 
-const { users } = useUsers()
+import { useUsers } from "@/composables/useUsers";
+const { users } = useUsers();
 const Url = import.meta.env.VITE_API_URL;
 const DialogRemove = ref(false);
 const DialogSuccess = ref(false);
 const DialogEdit = ref(false);
 const DialogAdd = ref(false);
 const DialogFailed = ref(false);
+const DialogLoading = ref(false);
 const GetID = ref("");
 const Username_Edit = ref("");
 const FullName_Edit = ref("");
@@ -121,6 +124,7 @@ function GetItem(value) {
   Level_Edit.value = found.Level;
 }
 const SaveEdit = async () => {
+  DialogLoading.value = true;
   const formData = reactive({
     Username: Username_Edit.value, // Giá trị ban đầu
     FullName: FullName_Edit.value,
@@ -140,6 +144,7 @@ const SaveEdit = async () => {
 };
 
 const SaveAdd = async () => {
+  DialogLoading.value = true;
   const now = new Date();
   const day = String(now.getDate()).padStart(2, "0");
   const month = String(now.getMonth() + 1).padStart(2, "0"); // Months are 0-based
@@ -151,7 +156,7 @@ const SaveAdd = async () => {
     Email: Email_Add.value,
     Password: Password_Add.value,
     Level: Level_Add.value,
-    Date: DateNow
+    Date: DateNow,
   });
   axios
     .post(`${Url}/Users/register`, formData)
@@ -165,6 +170,7 @@ const SaveAdd = async () => {
     });
 };
 const RemoveUser = async () => {
+  DialogLoading.value = true;
   axios
     .delete(`${Url}/Users/delete-user/${GetID.value}`)
     .then(function (response) {
@@ -177,12 +183,21 @@ const RemoveUser = async () => {
     });
 };
 function Reset() {
-  (DialogRemove.value = false), (DialogSuccess.value = true);
+  DialogRemove.value = false;
+  DialogSuccess.value = true;
   DialogEdit.value = false;
   DialogAdd.value = false;
+  DialogLoading.value = false;
+  GetID.value = "";
+  Username_Add.value = "";
+  FullName_Add.value = "";
+  Email_Add.value = "";
+  Password_Add.value = "";
+  Level_Add.value = "";
 }
 function Error() {
   DialogFailed.value = true;
+  DialogLoading.value = false;
 }
 </script>
 <script>
@@ -214,8 +229,6 @@ export default {
         { key: "Date", title: "Ngày tạo" },
         { key: "id", title: "Sửa" },
       ],
-      Users: [],
-      ID_User: null,
       itemsPerPage: 15,
       page: 1,
     };
