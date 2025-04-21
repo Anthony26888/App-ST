@@ -60,7 +60,7 @@
               <div class="text-center pt-2">
                 <v-pagination
                   v-model="page"
-                  :length="Math.ceil(checkBOM.length / this.itemsPerPage)"
+                  :length="Math.ceil(checkBOM.length / itemsPerPage)"
                 ></v-pagination>
               </div>
             </template>

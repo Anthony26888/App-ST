@@ -30,7 +30,7 @@
             <div class="text-center pt-2">
               <v-pagination
                 v-model="page"
-                :length="Math.ceil(detailProjectPO.length / this.itemsPerPage)"
+                :length="Math.ceil(detailProjectPO.length / itemsPerPage)"
               ></v-pagination>
             </div>
           </template>

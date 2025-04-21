@@ -91,8 +91,8 @@ This is the frontend application for the App-ST internal management system, buil
 ## Running the Application
 
 1.  **Start the development server:**
-
     ```bash
+    npm install axios body-parser buffer cors dotenv express fs mine-types multer puppeteer socket.io-client socket.io sqlite3 xlsx
     npm run dev
     # or
     yarn dev

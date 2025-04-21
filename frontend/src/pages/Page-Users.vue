@@ -19,7 +19,7 @@
           <div class="text-center pt-2">
             <v-pagination
               v-model="page"
-              :length="Math.ceil(users.length / this.itemsPerPage)"
+              :length="Math.ceil(users.length / itemsPerPage)"
             ></v-pagination>
           </div>
         </template>

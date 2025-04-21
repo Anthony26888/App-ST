@@ -10,14 +10,7 @@ const app = express();
 const { Server } = require("socket.io");
 const { send } = require("process");
 const PORT = 3000;
-app.use(
-  cors({
-    origin: `http://localhost:${PORT}`, // Replace with your client's origin
-    methods: ["GET", "POST", "PATCH", "DELETE"], // Allowed HTTP methods
-    credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+app.use(cors());
 
 app.use(bodyParser.json());
 app.use("/", routes);

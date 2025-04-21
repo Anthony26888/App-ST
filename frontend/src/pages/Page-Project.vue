@@ -34,7 +34,7 @@
               <div class="text-center pt-2">
                 <v-pagination
                   v-model="page"
-                  :length="Math.ceil(project.length / this.itemsPerPage)"
+                  :length="Math.ceil(project.length / itemsPerPage)"
                 ></v-pagination>
               </div>
             </template>
