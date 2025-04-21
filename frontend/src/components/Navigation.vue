@@ -24,7 +24,7 @@
       ></v-list-item>
       <v-list-item
         prepend-icon="mdi mdi-warehouse"
-        title="Tồn Kho"
+        title="Tồn Kho 1"
         value="WareHouse"
         to="/Ton-kho"
         :disabled="Status_Option_2"
@@ -38,7 +38,7 @@
       ></v-list-item>
       <v-list-item
         prepend-icon="mdi mdi-order-bool-descending-variant"
-        title="Tình tạng đơn hàng"
+        title="Tình trạng đơn hàng"
         value="Orders"
         to="/Don-hang"
         :disabled="Status_Option_4"
