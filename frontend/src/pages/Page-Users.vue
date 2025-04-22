@@ -57,7 +57,7 @@
     </v-card>
   </v-dialog>
   <v-dialog v-model="DialogAdd" width="400">
-    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
+    <v-card max-width="400" prepend-icon="mdi-plus" title="Thêm thành viên mới">
       <v-card-text>
         <InputField label="Tên đăng nhập" v-model="Username_Add" />
         <InputField label="Tên người dùng" v-model="FullName_Add" />
