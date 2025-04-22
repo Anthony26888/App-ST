@@ -20,42 +20,42 @@
         title="Kiểm tra số liệu"
         value="Check"
         to="/Kiem-tra-so-lieu"
-        :disabled="Status_Option_1"
+        :disabled="StatusOption_1"
       ></v-list-item>
       <v-list-item
         prepend-icon="mdi mdi-warehouse"
         title="Tồn Kho 1"
         value="WareHouse"
         to="/Ton-kho"
-        :disabled="Status_Option_2"
+        :disabled="StatusOption_2"
       ></v-list-item>
       <v-list-item
         prepend-icon="mdi mdi-warehouse"
         title="Tồn Kho 2"
         value="WareHouse2"
         to="/Ton-kho-2"
-        :disabled="Status_Option_3"
+        :disabled="StatusOption_3"
       ></v-list-item>
       <v-list-item
         prepend-icon="mdi mdi-order-bool-descending-variant"
         title="Tình trạng đơn hàng"
         value="Orders"
         to="/Don-hang"
-        :disabled="Status_Option_4"
+        :disabled="StatusOption_4"
       ></v-list-item>
       <v-list-item
         prepend-icon="mdi mdi-notebook-multiple"
         title="Dự án"
         value="Project"
         to="/Du-an"
-        :disabled="Status_Option_5"
+        :disabled="StatusOption_5"
       ></v-list-item>
       <v-list-item
         prepend-icon="mdi-cog"
         title="Cài đặt"
         value="Setting"
         to="/Cai-dat"
-        :disabled="Status_Option_6"
+        :disabled="StatusOption_6"
       ></v-list-item>
     </v-list>
     <template v-slot:append>
@@ -94,12 +94,12 @@ onMounted(() => {
     const decoded = jwtDecode(token);
     UserInfo.value = decoded.Username;
     Date_Expired.value = new Date(decoded.exp * 1000);
+    FetchUser();
   } else {
     console.log("Không tìm thấy token!");
     DialogFailed.value = true;
     router.push("/");
   }
-  FetchUser();
 });
 const LogOut = () => {
   localStorage.removeItem("token");

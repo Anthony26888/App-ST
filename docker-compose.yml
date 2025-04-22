@@ -1,36 +1,50 @@
-# docker-compose.yml
-version: '3.8'
 
 services:
-  app:
+  backend:
     build:
-      context: . # Đường dẫn đến thư mục chứa Dockerfile
-      args:
-        # Cung cấp giá trị cho VITE_SOCKET_URL khi build image
-        # Thay thế bằng IP hoặc domain thực tế của server bạn, hoặc localhost nếu chạy local
-        # Nếu bạn chạy trên cùng máy, container có thể cần kết nối qua host.docker.internal hoặc IP của host
-        VITE_SOCKET_URL: ${VITE_SOCKET_URL:-http://localhost:3000} # Sử dụng biến từ .env hoặc giá trị mặc định
-    container_name: app-st-service
-    restart: unless-stopped
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: app-st-backend
     ports:
-      - "3000:3000" # Map port 3000 của host vào port 3000 của container
-    volumes:
-      # Mount file database từ host vào container để đảm bảo persistence
-      # Docker sẽ tạo file nếu chưa có trên host, nhưng tốt nhất là tạo file trống trước
-      - ./backend/database.db:/app/database.db
-      # Mount thư mục uploads từ host vào container
-      - ./backend/uploads:/app/uploads
-    environment:
-      # Các biến môi trường runtime cho backend
-      NODE_ENV: production
-      PORT: 3000
-      # Lấy JWT_SECRET từ file .env ở thư mục gốc
-      JWT_SECRET: ${JWT_SECRET}
-    # Sử dụng file .env ở thư mục gốc để lấy biến môi trường
+      # Sử dụng biến từ file .env gốc, nếu không có thì dùng 3000
+      - "${BACKEND_HOST_PORT:-3000}:3000"
+    # ----> THAY ĐỔI Ở ĐÂY: Nạp biến từ file .env chung và file secrets <----
     env_file:
-      - .env
+      - ./.env # Nạp file .env chung (ở gốc App-ST)
+      - ./backend/.env.secrets # Nạp file bí mật của backend
+    command: npm run dev
+    volumes:
+      # Mount code từ host vào container
+      - ./backend:/app
+      # ----> DÒNG NÀY RẤT QUAN TRỌNG <----
+      # Ngăn node_modules trên host ghi đè node_modules trong container
+      - /app/node_modules
+    networks:
+      - app-network
+    # Không cần 'environment:' nếu các biến đã có trong env_file
 
-# Lưu ý về Volumes:
-# - Đảm bảo file ./backend/database.db và thư mục ./backend/uploads tồn tại trên máy host TRƯỚC KHI chạy `docker-compose up`.
-# - Nếu không, Docker có thể tạo chúng dưới dạng thư mục (đối với database.db) hoặc với quyền sở hữu của root, gây lỗi permission.
-# - Cách tốt hơn có thể là dùng Named Volumes, nhưng mount trực tiếp dễ hiểu hơn cho SQLite.
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # ----> THAY ĐỔI Ở ĐÂY: Truyền biến từ file .env gốc vào build <----
+        # Docker Compose sẽ tự động thay thế các biến này bằng giá trị từ App-ST/.env
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_SOCKET_URL: ${VITE_SOCKET_URL}
+        VITE_DIGIKEY_CLIENT_ID: ${VITE_DIGIKEY_CLIENT_ID}
+        # TUYỆT ĐỐI KHÔNG TRUYỀN BIẾN BÍ MẬT VÀO ĐÂY
+    container_name: app-st-frontend
+    ports:
+      # Sử dụng biến từ file .env gốc, nếu không có thì dùng 8080
+      - "${FRONTEND_HOST_PORT:-8080}:80"
+    # Thường không cần env_file hoặc environment cho frontend runtime (Nginx)
+    # vì các biến VITE_ đã được "bake" vào code JS lúc build.
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

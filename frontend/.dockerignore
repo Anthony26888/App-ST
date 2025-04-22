@@ -1,0 +1,18 @@
+# App-ST/frontend/.dockerignore
+
+# Bỏ qua thư mục node_modules trên máy host
+/node_modules
+
+# Bỏ qua thư mục build cũ (nếu có) trên máy host
+# Vì Dockerfile sẽ chạy 'npm run build' để tạo thư mục 'dist' mới bên trong image
+/dist
+
+# Bỏ qua các file/thư mục không cần thiết khác cho việc build image
+.git
+.env*
+npm-debug.log*
+yarn-error.log*
+.vscode
+.idea
+.DS_Store
+Thumbs.db

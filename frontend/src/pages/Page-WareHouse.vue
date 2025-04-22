@@ -1,7 +1,7 @@
 <template lang="">
   <v-card variant="text" class="overflow-y-auto" height="100vh">
     <v-card-title class="text-h4 font-weight-light"
-      >Danh sách tồn kho</v-card-title
+      >Danh sách tồn kho 1</v-card-title
     >
     <v-card-text>
       <v-card variant="text">

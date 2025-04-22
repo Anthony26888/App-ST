@@ -1,0 +1,16 @@
+# App-ST/backend/.dockerignore
+
+# Bỏ qua thư mục node_modules trên máy host
+# Điều này ngăn Docker sao chép node_modules từ host vào image,
+# giúp tăng tốc độ build và đảm bảo sử dụng node_modules được cài đặt bên trong image.
+/node_modules
+
+# Bỏ qua các file/thư mục không cần thiết khác cho việc build image
+.git
+.env*
+npm-debug.log*
+yarn-error.log*
+.vscode
+.idea
+.DS_Store
+Thumbs.db

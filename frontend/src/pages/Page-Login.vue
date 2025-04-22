@@ -61,11 +61,11 @@ const FetchUser = async () => {
     if (LevelUser == "Admin" || LevelUser == "Kế hoạch" || LevelUser == "Quản lý") {
       router.push(`/Kiem-tra-so-lieu`);
       DialogLoading.value = false;
-    } else if(LevelUser == "Kinh doanh" || LevelUser == "Thủ Kho") {
+    } else if(LevelUser == "Kinh doanh" || LevelUser == "Thủ kho") {
       DialogLoading.value = false;
       router.push(`/Ton-kho`);
     } else{
-      router.push(`/Dang-nhap`);
+      router.push(`/`);
       DialogLoading.value = false;
     }
   } catch (error) {
