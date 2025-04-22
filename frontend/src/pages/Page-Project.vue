@@ -120,6 +120,7 @@ const DialogSuccess = ref(false);
 const DialogFailed = ref(false);
 const DialogRemove = ref(false);
 const DialogAdd = ref(false);
+const DialogLoading = ref(false);
 const File = ref(null);
 const Customer_Edit = ref("");
 const Customer_Add = ref("");
