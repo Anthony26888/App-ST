@@ -31,7 +31,7 @@
         <v-data-table
           :search="search"
           :items="compare"
-          :header="Headers"
+          :headers="Headers"
           :items-per-page="itemsPerPage"
           v-model:page="page"
         >
@@ -200,17 +200,26 @@ const ResultSearch = ref(null);
 onMounted(() => {
   const storeData = localStorage.getItem("PO");
   NamePO.value = storeData;
-  generateHeaders()
 });
-function generateHeaders() {
-  if (compare.value.length > 0) {
+watch(
+  compare,
+  (newBomData) => {
+    console.log("checkBOM changed, generating headers with:", newBomData); // Log để kiểm tra
+    generateHeaders(newBomData); // Gọi hàm generateHeaders với dữ liệu mới
+  },
+  { deep: true }
+); // deep: trues
+function generateHeaders(bomData) {
+  if (bomData && bomData.length > 0) {
     // Lấy keys từ object ĐẦU TIÊN trong mảng
-    const firstItemKeys = Object.keys(compare.value);
+    const firstItemKeys = Object.keys(bomData[0]);
     console.log("Generating headers from keys:", firstItemKeys); // Log để kiểm tra keys
     Headers.value = firstItemKeys.map((key) => ({
       title: key.replace(/_/g, " "), // Thay thế gạch dưới bằng khoảng trắng
       key: key, // key để v-data-table lấy dữ liệu
       sortable: true, // Có thể thêm sortable
+      width:200,
+      align:'center'
     }));
   } else {
     console.log("No data to generate headers, clearing headers."); // Log khi không có dữ liệu
