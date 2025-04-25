@@ -28,17 +28,28 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
   sendData(); // Gửi dữ liệu ngay khi client kết nối
-  socket.on("getCompare", async (id) => {
-    try {
-      const query = await getCompareInventory(id);
-      db.all(query, [id], (err, rows) => {
-        if (err) return socket.emit("compareError", err);
-        socket.emit("compareData", rows);
-      });
-    } catch (error) {
-      socket.emit("compareError", error);
-    }
-  }),
+    socket.on("getCompare", async (id) => {
+      try {
+        const query = await getCompareInventory(id);
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("compareError", err);
+          socket.emit("compareData", rows);
+        });
+      } catch (error) {
+        socket.emit("compareError", error);
+      }
+    }),
+    socket.on("getCheckBOM", async (id) => {
+      try {
+        const query = await getPivotQuery(id);
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("checkBOMError", err);
+          socket.emit("checkBOMData", rows);
+        });
+      } catch (error) {
+        socket.emit("checkBOMError", error);
+      }
+    }),
     socket.on("getDetailBom", async () => {
       try {
         const query = `SELECT DISTINCT id, PO, Bom, COUNT(Bom) AS SL_LK, SL_Board, Creater, TimeStamp FROM CheckBOM GROUP BY PO, Bom`;
@@ -140,6 +151,45 @@ const fetchTableData = (tableName) => {
     });
   });
 };
+
+const getPivotQuery = async (id) => {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `SELECT DISTINCT Bom FROM CheckBOM WHERE PO= ?`,
+      [id],
+      (err, Boms) => {
+        if (err) return reject(err);
+
+        // Create dynamic column aggregation
+        const columns = Boms.map(
+          (Boms) =>
+            `SUM(CASE WHEN Bom = '${Boms.Bom}' THEN (So_Luong * SL_Board) ELSE 0 END) AS [${Boms.Bom}]`
+        ).join(", ");
+
+        // Full SQL query
+        const query = `
+          SELECT 
+            Description, 
+            Manufacturer_1,
+            PartNumber_1,
+            Manufacturer_2,
+            PartNumber_2,
+            Manufacturer_3,
+            PartNumber_3,  
+            ${columns},
+            IFNULL(SUM(So_Luong * SL_Board), 0) AS SL_Tổng,
+            IFNULL(SUM(SL_Board), 0) AS SL_Board,
+            Du_Toan_Hao_Phi AS Dự_Toán_Hao_Phí,
+            id AS Sửa
+          FROM CheckBOM
+          WHERE PO = ?
+          GROUP BY PartNumber_1;
+        `;
+        resolve(query);
+      }
+    );
+  });
+};
 const getCompareInventory = async (id) => {
   return new Promise((resolve, reject) => {
     db.all(
@@ -155,8 +205,8 @@ const getCompareInventory = async (id) => {
         ).join(", ");
         const Buy = `
           CASE 
-            WHEN (SUM(c.So_Luong * c.SL_Board) + SUM(IFNULL(c.Hao_Phi_Thuc_Te, 0))) > IFNULL(i.Inventory, 0) 
-            THEN SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Hao_Phi_Thuc_Te, 0) - IFNULL(i.Inventory, 0)
+            WHEN (SUM(c.So_Luong * c.SL_Board) + SUM(IFNULL(c.Du_Toan_Hao_Phi, 0))) > IFNULL(i.Inventory, 0) 
+            THEN SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Du_Toan_Hao_Phi, 0) - IFNULL(i.Inventory, 0)
             ELSE 0 
           END AS SL_Cần_Mua
         `;
@@ -178,7 +228,7 @@ const getCompareInventory = async (id) => {
             IFNULL(i.Inventory, 0) AS SL_Tồn_Kho,
             i.Customer AS Mã_Kho,
             ${Buy},
-            c.id AS id
+            c.id AS Sửa
           FROM CheckBOM c
           LEFT JOIN WareHouse i 
             ON c.PartNumber_1 = i.PartNumber_1 
@@ -516,6 +566,20 @@ app.post("/ListPO/upload-new-PO", async (req, res) => {
       res.json({ message: "Item inserted successfully" });
     }
   );
+});
+// Router update Hao_Phi in CheckBom table
+app.put("/CheckBom/Update-Hao-Phi", async (req, res) => {
+  const { Input_Hao_Phi, Name_Item } = req.body;
+  // Insert data into SQLite database
+  const query = `UPDATE CheckBOM SET Du_Toan_Hao_Phi = ? WHERE PartNumber_1 = ?`;
+  db.run(query, [Input_Hao_Phi, Name_Item], function (err) {
+    if (err) {
+      return console.error(err.message);
+    }
+    io.emit("updateCheckBOM");
+    // Broadcast the new message to all clients
+    res.json({ message: "Item inserted successfully" });
+  });
 });
 
 // Router update Hao_Phi_Thuc_Te in CheckBom table

@@ -15,14 +15,14 @@
       >
       <v-spacer></v-spacer>
       <InputSearch v-model="NamePO" />
-      <v-btn color="primary" class="ms-2 text-caption" @click="Process()"
+      <v-btn color="primary" class="ms-2 text-caption" @click="Proccess()"
         >Xử lí</v-btn
       >
     </v-card-title>
     <v-card-text>
       <v-divider></v-divider>
       <v-empty-state
-        v-if="checkBOM == ''"
+        v-if="checkBOM == '' || checkBOM == null"
         headline="OPPS !"
         title="Chưa có dữ liệu"
         text="Chon thêm file hoặc nhập tên PO"
@@ -62,6 +62,11 @@
                   v-model="page"
                   :length="Math.ceil(checkBOM.length / itemsPerPage)"
                 ></v-pagination>
+              </div>
+            </template>
+            <template v-slot:item.Sửa="{ value }">
+              <div>
+                <ButtonEdit @edit="GetItem(value)" />
               </div>
             </template>
           </v-data-table>
@@ -128,8 +133,8 @@ import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 import { useCheckBOM } from "@/composables/useCheckBom";
-// const { checkBOM } = useCheckBOM(id);
-const checkBOM = ref("");
+
+const { checkBOM, fetchData } = useCheckBOM();
 const Url = import.meta.env.VITE_API_URL;
 const Dialog = ref(false);
 const DialogEdit = ref(false);
@@ -142,9 +147,11 @@ const File = ref(null);
 const InputPO = ref("");
 const InputBOM = ref("");
 const InputQuantity = ref(1);
+const CostEstimate = ref(0);
 const UserInfo = ref("");
 const NamePO = ref("");
 const namePO = ref("");
+const GetID = ref("");
 onMounted(() => {
   const token = localStorage.getItem("token");
   if (token) {
@@ -154,31 +161,42 @@ onMounted(() => {
     console.log("Không tìm thấy token!");
   }
 });
-function Process() {
-  DialogLoading.value = true;
-  if (NamePO.value) {
-    axios
-      .get(`${Url}/CheckBom/${this.NamePO}`)
-      .then(function (response) {
-        console.log(response);
-        checkBOM.value = response.data;
-        namePO.value = NamePO.value;
-        generateHeaders();
-        Reset();
-      })
-      .catch(function (error) {
-        console.log(error);
-        Error();
-      });
-  }
+function GetItem(value) {
+  DialogEdit.value = true;
+  const found = checkBOM.value.find((v) => v.Sửa === value);
+  CostEstimate.value = found.Dự_Toán_Hao_Phí;
+  GetID.value = found.PartNumber_1;
 }
-function generateHeaders() {
-  if (checkBOM.length > 0) {
-    Headers.value = Object.keys(checkBOM).map((key) => ({
-      title: key.replace(/_/g, ""), // Format header text
-      key: key,
-      value: key,
+const Proccess = () => {
+  const id = NamePO.value;
+  if (!id) {
+    Error("Vui lòng nhập tên PO."); // Thông báo nếu chưa nhập PO
+    return;
+  }
+  namePO.value = NamePO.value;
+  fetchData(id);
+};
+watch(
+  checkBOM,
+  (newBomData) => {
+    console.log("checkBOM changed, generating headers with:", newBomData); // Log để kiểm tra
+    generateHeaders(newBomData); // Gọi hàm generateHeaders với dữ liệu mới
+  },
+  { deep: true }
+); // deep: true
+function generateHeaders(bomData) {
+  if (bomData && bomData.length > 0) {
+    // Lấy keys từ object ĐẦU TIÊN trong mảng
+    const firstItemKeys = Object.keys(bomData[0]);
+    console.log("Generating headers from keys:", firstItemKeys); // Log để kiểm tra keys
+    Headers.value = firstItemKeys.map((key) => ({
+      title: key.replace(/_/g, " "), // Thay thế gạch dưới bằng khoảng trắng
+      key: key, // key để v-data-table lấy dữ liệu
+      sortable: true, // Có thể thêm sortable
     }));
+  } else {
+    console.log("No data to generate headers, clearing headers."); // Log khi không có dữ liệu
+    Headers.value = []; // Reset headers nếu không có dữ liệu
   }
 }
 const ImportFile = async () => {
@@ -238,8 +256,6 @@ const SaveTable = async () => {
   const TotalType = checkBOM.value.length;
   const TotalItems = checkBOM.value.reduce(
     (accumulator, currentItem) => {
-      // Access 'SL_Tổng' from the current item object
-      // Use Number() and || 0 to handle potential non-numeric values or missing properties gracefully
       const quantity = Number(currentItem.SL_Tổng) || 0;
       return accumulator + quantity;
     },
@@ -265,15 +281,37 @@ const SaveTable = async () => {
       Error();
     });
 };
+const SaveEdit = () => {
+  DialogLoading.value = true;
+  const formData = {
+    Input_Hao_Phi: CostEstimate.value,
+    Name_Item: GetID.value,
+  };
+  console.log(formData);
+  axios
+    .put(`${Url}/CheckBom/Update-Hao-Phi`, formData)
+    .then(function (response) {
+      console.log(response);
+      const id = NamePO.value;
+      fetchData(id);
+      Reset();
+    })
+    .catch(function (error) {
+      console.log(error);
+      Error();
+    });
+};
 function Reset() {
   DialogSuccess.value = true;
   Dialog.value = false;
   DialogLoading.value = false;
+  DialogEdit.value = false;
 }
 function Error() {
   DialogFailed.value = true;
   Dialog.value = false;
   DialogLoading.value = false;
+  DialogEdit.value = false;
 }
 </script>
 <script>

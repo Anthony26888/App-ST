@@ -500,19 +500,7 @@ app.get("/Orders/Information/:id", async (req, res) => {
   }
 });
 
-// Router update Hao_Phi in CheckBom table
-app.put("/CheckBom/Update-Hao-Phi", async (req, res) => {
-  const { Input_Hao_Phi, Name_Item } = req.body;
-  // Insert data into SQLite database
-  const query = `UPDATE CheckBOM SET Du_Toan_Hao_Phi = ? WHERE id = ?`;
-  db.run(query, [Input_Hao_Phi, Name_Item], function (err) {
-    if (err) {
-      return console.error(err.message);
-    }
-    // Broadcast the new message to all clients
-    res.json({ message: "Item inserted successfully" });
-  });
-});
+
 
 // Router delete all Inventory
 app.delete("/WareHouse/delete-all", async (req, res) => {

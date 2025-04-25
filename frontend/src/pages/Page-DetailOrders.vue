@@ -31,7 +31,7 @@
         <v-data-table
           :search="search"
           :items="compare"
-          :header="headers"
+          :header="Headers"
           :items-per-page="itemsPerPage"
           v-model:page="page"
         >
@@ -44,8 +44,8 @@
             </div>
           </template>
 
-          <template v-slot:item.id="{ value }">
-            <div>
+          <template v-slot:item.Sửa="{ value }">
+            <div class="d-flex">
               <ButtonEdit @edit="GetItem(value)" />
               <ButtonSearch @search="getAccessToken(value)" />
             </div>
@@ -178,7 +178,7 @@ const status = computed(() => {
   const found = orders.value.find((v) => v.Name_PO === route.params.id);
   return found ? found.Status : null;
 });
-
+const Headers = ref([]);
 const DialogEdit = ref(false);
 const DialogAccept = ref(false);
 const DialogSuccess = ref(false);
@@ -200,11 +200,27 @@ const ResultSearch = ref(null);
 onMounted(() => {
   const storeData = localStorage.getItem("PO");
   NamePO.value = storeData;
+  generateHeaders()
 });
+function generateHeaders() {
+  if (compare.value.length > 0) {
+    // Lấy keys từ object ĐẦU TIÊN trong mảng
+    const firstItemKeys = Object.keys(compare.value);
+    console.log("Generating headers from keys:", firstItemKeys); // Log để kiểm tra keys
+    Headers.value = firstItemKeys.map((key) => ({
+      title: key.replace(/_/g, " "), // Thay thế gạch dưới bằng khoảng trắng
+      key: key, // key để v-data-table lấy dữ liệu
+      sortable: true, // Có thể thêm sortable
+    }));
+  } else {
+    console.log("No data to generate headers, clearing headers."); // Log khi không có dữ liệu
+    Headers.value = []; // Reset headers nếu không có dữ liệu
+  }
+}
 function GetItem(value) {
   DialogEdit.value = true;
   GetID.value = value;
-  const found = compare.value.find((v) => v.id === value);
+  const found = compare.value.find((v) => v.Sửa === value);
   PartNumber_1.value = found.PartNumber_1;
   ActualCost.value = found.Hao_Phí_Thực_Tế;
 }
@@ -277,7 +293,7 @@ const DownloadOrder = async () => {
 };
 const getAccessToken = async (value) => {
   DialogLoading.value = true;
-  const found = compare.value.find((v) => v.id === value);
+  const found = compare.value.find((v) => v.Sửa === value);
   GetDigikey.value = found.PartNumber_1;
   const authString = Buffer.from(
     `${clientId}:${clientSecret}`,

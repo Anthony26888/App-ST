@@ -1,21 +1,23 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { io } from "socket.io-client";
 
-export function useCheckBOM(id) {
+export function useCheckBOM() {
   const checkBOM = ref([]);
   const checkBOMError = ref([]);
   const SOCKET_URL = import.meta.env.VITE_SOCKET_URL; // Lấy URL từ .env
   const socket = io(SOCKET_URL);
-  onMounted(() => {
+  const fetchData = (id) => {
     socket.emit("getCheckBOM", id);
+  }
+    
+  onMounted(() => {
     socket.on("checkBOMData", (data) => {
-      console.log("Received checkBOM:", data);
       checkBOM.value = data;
     });
     socket.on("checkBOMError", (message) => {
       checkBOMError.value = message;
     });
-    socket.on("updateCheckBOM", () => {
+    socket.on("updateCheckBOM", (id) => {
       socket.emit("getCheckBOM", id);
     });
 
@@ -27,5 +29,5 @@ export function useCheckBOM(id) {
     if (socket) socket.disconnect();
   });
 
-  return { checkBOM, checkBOMError };
+  return { checkBOM, checkBOMError, fetchData };
 }

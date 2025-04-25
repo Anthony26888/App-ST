@@ -24,14 +24,14 @@
       ></v-list-item>
       <v-list-item
         prepend-icon="mdi mdi-warehouse"
-        title="Tồn Kho 1"
+        title="Tồn Kho"
         value="WareHouse"
         to="/Ton-kho"
         :disabled="StatusOption_2"
       ></v-list-item>
       <v-list-item
         prepend-icon="mdi mdi-warehouse"
-        title="Tồn Kho 2"
+        title="Tồn Kho Misa"
         value="WareHouse2"
         to="/Ton-kho-2"
         :disabled="StatusOption_3"
@@ -127,7 +127,6 @@ const FetchUser = async () => {
         StatusOption_5.value = true;
         StatusOption_6.value = true;
       } else if (LevelUser.value == "Quản lý") {
-        StatusOption_5.value = true;
         StatusOption_6.value = true;
       } else if (LevelUser.value == "Admin") {
         StatusOption_1.value = false;

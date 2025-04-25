@@ -30,7 +30,7 @@
             <div class="text-center pt-2">
               <v-pagination
                 v-model="page"
-                :length="Math.ceil(detailProject.length /itemsPerPage)"
+                :length="Math.ceil(detailProject.length / itemsPerPage)"
               ></v-pagination>
             </div>
           </template>
@@ -54,7 +54,7 @@
           hint="Định dạng: 11/11/2025"
           v-model="Date_Created_Edit"
         />
-        <InputField
+        <InputTextarea
           label="Ngày giao đơn"
           hint="Định dạng: 11/11/2025"
           v-model="Date_Delivery_Edit"
@@ -78,7 +78,7 @@
           hint="Định dạng: 11/11/2025"
           v-model="Date_Created_Add"
         />
-        <InputField
+        <InputTextarea
           label="Ngày giao đơn"
           hint="Định dạng: 11/11/2025"
           v-model="Date_Delivery_Add"
@@ -108,6 +108,10 @@ import axios from "axios";
 import { useRoute, useRouter } from "vue-router";
 import { ref, computed } from "vue";
 import InputSearch from "@/components/Input-Search.vue";
+import InputTextarea from "@/components/Input-Textarea.vue";
+import InputField from "@/components/Input-Field.vue";
+import ButtonAdd from "@/components/Button-Add.vue";
+import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
@@ -149,7 +153,7 @@ function GetItem(item) {
   Date_Delivery_Edit.value = item.Date_Delivery;
 }
 const SaveEdit = async () => {
-  DialogLoading.value = true
+  DialogLoading.value = true;
   const formData = reactive({
     PONumber: PONumber_Edit.value, // Giá trị ban đầu
     DateCreated: Date_Created_Edit.value,
@@ -201,12 +205,10 @@ const RemoveItem = async (id) => {
     });
 };
 const DDownloadOrder = async () => {
-  const id = route.params
-  const found = detailProject.value.find((v) => v.id === id)
+  const id = route.params;
+  const found = detailProject.value.find((v) => v.id === id);
   try {
-    const response = await fetch(
-      `${Url}/Download-Order/${found.PO}`
-    );
+    const response = await fetch(`${Url}/Download-Order/${found.PO}`);
     if (!response.ok) throw new Error("Download failed");
 
     // Convert response to blob
@@ -256,6 +258,10 @@ export default {
     ButtonEye,
     SnackbarFailed,
     Loading,
+    InputField,
+    InputTextarea,
+    ButtonAdd,
+    ButtonDelete,
   },
   data() {
     return {
@@ -279,9 +285,7 @@ export default {
       NamePO: localStorage.getItem("Customers"),
     };
   },
-  methods: {
-  
-  },
+  methods: {},
 };
 </script>
 <style lang=""></style>
