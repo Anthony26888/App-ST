@@ -42,7 +42,7 @@
         </template>
       </v-data-table>
     </v-card-text>
-    <v-card-text v-if="orders.length == 0">
+    <v-card-text v-else>
       <v-empty-state
         headline="OPPS !"
         title="Chưa có dữ liệu"
@@ -122,16 +122,18 @@ export default {
   data() {
     return {
       Headers: [
-        { title: "", key: "id", sortable: false },
         {
           key: "Name_PO",
           title: "Tên dự án",
+          width: "200px",
+          noWrap: true
         },
-        { key: "Quantity_Type", title: "Tổng loại linh kiện" },
-        { key: "Quantity_Items", title: "Tổng linh kiện sử dụng" },
-        { key: "Status", title: "Tình trạng" },
-        { key: "Creater", title: "Người tạo" },
-        { key: "Date", title: "Ngày tạo" },
+        { key: "Quantity_Type", title: "Tổng loại linh kiện", width: "150px", noWrap: true },
+        { key: "Quantity_Items", title: "Tổng linh kiện sử dụng", width: "150px", noWrap: true },
+        { key: "Status", title: "Tình trạng", width: "150px", noWrap: true },
+        { key: "Creater", title: "Người tạo", width: "150px", noWrap: true },
+        { key: "Date", title: "Ngày tạo", width: "150px", noWrap: true },
+        { title: "", key: "id", sortable: false, width: "100px", noWrap: true }
       ],
       search: "",
       itemsPerPage: 10,
@@ -143,4 +145,10 @@ export default {
   },
 };
 </script>
-<style lang=""></style>
+<style>
+.v-data-table-header th {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+</style>

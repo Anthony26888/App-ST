@@ -236,7 +236,7 @@ import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonAdd from "@/components/Button-Add.vue";
-import ButtonSearch from "@/components/Button-Search.vue"
+import ButtonSearch from "@/components/Button-Search.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputFiles from "@/components/Input-Files.vue";
@@ -256,6 +256,25 @@ const DialogAdd = ref(false);
 const DialogInfo = ref(false);
 const DialogCaution = ref(false);
 const DialogLoading = ref(false);
+const Headers = ref([
+  {
+    key: "Description",
+    sortable: false,
+    title: "Mô tả",
+    width: "200px",
+    noWrap: true
+  },
+  { key: "PartNumber_1", title: "Mã hàng 1", width: "150px", noWrap: true },
+  { key: "PartNumber_2", title: "Mã hàng 2", width: "150px", noWrap: true },
+  { key: "Input", title: "SL Nhập", width: "100px", noWrap: true },
+  { key: "Output", title: "SL Xuất", width: "100px", noWrap: true },
+  { key: "Inventory", title: "SL Tồn kho", width: "100px", noWrap: true },
+  { key: "Location", title: "Vị trí", width: "100px", noWrap: true },
+  { key: "Customer", title: "Mã kho", width: "100px", noWrap: true },
+  { key: "Note", title: "Ghi chú", width: "150px", noWrap: true },
+  { key: "Note_Output", title: "Ghi chú xuất", width: "150px", noWrap: true },
+  { key: "id", title: "Sửa", width: "100px", noWrap: true },
+]);
 const File = ref(null);
 const PartNumber1_Edit = ref("");
 const PartNumber2_Edit = ref("");
@@ -337,7 +356,7 @@ const SaveEdit = async () => {
     });
 };
 const SaveAdd = async () => {
-  DialogLoading.value = true
+  DialogLoading.value = true;
   const formData = {
     Description: Description_Add.value,
     PartNumber_1: PartNumber1_Add.value,
@@ -362,7 +381,7 @@ const SaveAdd = async () => {
     });
 };
 const RemoveItem = async () => {
-  DialogLoading.value = true
+  DialogLoading.value = true;
   axios
     .delete(`${Url}/WareHouse/delete-item/${GetID.value}`)
     .then(function (response) {
@@ -445,7 +464,6 @@ const getAccessToken = async (value) => {
       Error(),
       "Lỗi khi lấy access token:",
       error.response ? error.response.data : error.message
-      
     );
     return false;
   }
@@ -476,8 +494,8 @@ const searchProduct = async () => {
     console.error(
       "Lỗi khi tìm kiếm sản phẩm:",
       error.response ? error.response.data : error.message,
-      DialogCaution.value = true,
-      DialogLoading.value = false
+      (DialogCaution.value = true),
+      (DialogLoading.value = false)
     );
     return null;
   }
@@ -504,7 +522,7 @@ function Reset() {
 function Error() {
   DialogFailed.value = false;
   DialogLoading.value = false;
-  DialogCaution.value =true;
+  DialogCaution.value = true;
   DialogSuccess.value = false;
 }
 </script>
@@ -529,24 +547,7 @@ export default {
   data() {
     return {
       search: "",
-      Headers: [
-        {
-          key: "Description",
-          sortable: false,
-          title: "Mô tả",
-          width: "200px",
-        },
-        { key: "PartNumber_1", title: "Mã hàng 1" },
-        { key: "PartNumber_2", title: "Mã hàng 2" },
-        { key: "Input", title: "SL Nhập" },
-        { key: "Output", title: "SL Xuất" },
-        { key: "Inventory", title: "SL Tồn kho" },
-        { key: "Location", title: "Vị trí" },
-        { key: "Customer", title: "Mã kho" },
-        { key: "Note", title: "Ghi chú" },
-        { key: "Note_Output", title: "Ghi chú xuất" },
-        { key: "id", title: "Sửa" },
-      ],
+      
       itemsPerPage: 15,
       page: 1,
     };

@@ -222,12 +222,14 @@ export default {
           align: "start",
           key: "Username",
           title: "Tài khoản",
+          width: "150px",
+          noWrap: true
         },
-        { key: "FullName", title: "Tên người dùng" },
-        { key: "Email", title: "Email" },
-        { key: "Level", title: "Phân quyền" },
-        { key: "Date", title: "Ngày tạo" },
-        { key: "id", title: "Sửa" },
+        { key: "FullName", title: "Tên người dùng", width: "200px", noWrap: true },
+        { key: "Email", title: "Email", width: "200px", noWrap: true },
+        { key: "Level", title: "Phân quyền", width: "150px", noWrap: true },
+        { key: "Date", title: "Ngày tạo", width: "150px", noWrap: true },
+        { key: "id", title: "Sửa", width: "100px", noWrap: true },
       ],
       itemsPerPage: 15,
       page: 1,
@@ -236,4 +238,10 @@ export default {
   methods: {},
 };
 </script>
-<style lang=""></style>
+<style>
+.v-data-table-header th {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+</style>
