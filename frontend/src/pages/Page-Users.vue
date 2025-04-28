@@ -11,7 +11,30 @@
       <InputSearch v-model="search" />
     </v-card-title>
     <v-card-text>
-      <v-data-table :headers="headers" :items="users" :search="search">
+      <v-data-table 
+        :headers="headers" 
+        :items="users" 
+        :search="search"
+        class="elevation-1"
+        :items-per-page="10"
+        :footer-props="{
+          'items-per-page-options': [10, 20, 50, 100],
+          'items-per-page-text': 'Số hàng mỗi trang'
+        }"
+        :header-props="{
+          sortByText: 'Sắp xếp theo',
+          sortDescText: 'Giảm dần',
+          sortAscText: 'Tăng dần'
+        }"
+        :loading="DialogLoading"
+        loading-text="Đang tải dữ liệu..."
+        no-data-text="Không có dữ liệu"
+        no-results-text="Không tìm thấy kết quả"
+        :hover="true"
+        :dense="false"
+        :fixed-header="true"
+        :height="400"
+      >
         <template v-slot:item.id="{ value }">
           <ButtonEdit @click="GetItem(value)" />
         </template>
@@ -238,10 +261,77 @@ export default {
   methods: {},
 };
 </script>
-<style>
+<style scoped>
+.v-data-table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
 .v-data-table-header th {
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
+  background-color: #f5f5f5 !important;
+  color: #333 !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  padding: 12px 16px;
+}
+
+.v-data-table__wrapper {
+  border: 1px solid #e0e0e0;
+}
+
+.v-data-table__wrapper table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.v-data-table__wrapper tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.v-data-table__wrapper tbody tr:hover {
+  background-color: #f5f5f5 !important;
+}
+
+.v-data-table__wrapper tbody td {
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  color: #333;
+}
+
+.v-data-table__wrapper tbody tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.v-data-table__wrapper tbody tr.selected {
+  background-color: #e3f2fd !important;
+}
+
+.v-data-table__wrapper .v-data-table__empty-wrapper {
+  padding: 32px;
+  text-align: center;
+  color: #666;
+}
+
+.v-data-table__wrapper .v-data-table__loading {
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+.v-data-table__wrapper .v-data-table__footer {
+  border-top: 1px solid #e0e0e0;
+  padding: 8px 16px;
+  background-color: #f5f5f5;
+}
+
+.v-data-table__wrapper .v-data-table__footer .v-data-footer {
+  padding: 0;
+}
+
+.v-data-table__wrapper .v-data-table__footer .v-data-footer__select {
+  margin-right: 16px;
+}
+
+.v-data-table__wrapper .v-data-table__footer .v-data-footer__pagination {
+  margin-left: 16px;
 }
 </style>

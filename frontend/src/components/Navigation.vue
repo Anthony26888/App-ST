@@ -1,75 +1,68 @@
 <template lang="">
-  <v-navigation-drawer theme="light" permanent color="#18222D">
+  <v-navigation-drawer 
+    theme="light" 
+    permanent 
+    color="#1E293B"
+    class="custom-nav"
+    elevation="2"
+  >
     <template v-slot:prepend>
       <v-list-item
         lines="two"
+        class="user-info-section"
         prepend-avatar="https://sieuthuat.vn/wp-content/uploads/2019/06/logo-ST-_-original-02-1.png"
       >
         <template v-slot:title>
-          <p class="text-h6 font-weight-light ms-3">{{ UserInfo }}</p>
+          <p class="text-h6 font-weight-medium ms-3 text-white">{{ UserInfo }}</p>
         </template>
         <template v-slot:subtitle>
-          <p class="ms-3">{{ LevelUser }}</p>
+          <p class="ms-3 text-grey-lighten-1">{{ LevelUser }}</p>
         </template>
       </v-list-item>
     </template>
-    <v-divider></v-divider>
-    <v-list nav>
+    <v-divider class="border-opacity-25"></v-divider>
+    <v-list nav class="mt-4">
       <v-list-item
-        prepend-icon="mdi mdi-cart-arrow-down"
-        title="Kiểm tra số liệu"
-        value="Check"
-        to="/Kiem-tra-so-lieu"
-        :disabled="StatusOption_1"
-      ></v-list-item>
-      <v-list-item
-        prepend-icon="mdi mdi-warehouse"
-        title="Tồn Kho"
-        value="WareHouse"
-        to="/Ton-kho"
-        :disabled="StatusOption_2"
-      ></v-list-item>
-      <v-list-item
-        prepend-icon="mdi mdi-warehouse"
-        title="Tồn Kho Misa"
-        value="WareHouse2"
-        to="/Ton-kho-2"
-        :disabled="StatusOption_3"
-      ></v-list-item>
-      <v-list-item
-        prepend-icon="mdi mdi-order-bool-descending-variant"
-        title="Tình trạng đơn hàng"
-        value="Orders"
-        to="/Don-hang"
-        :disabled="StatusOption_4"
-      ></v-list-item>
-      <v-list-item
-        prepend-icon="mdi mdi-notebook-multiple"
-        title="Dự án"
-        value="Project"
-        to="/Du-an"
-        :disabled="StatusOption_5"
-      ></v-list-item>
-      <v-list-item
-        prepend-icon="mdi-cog"
-        title="Cài đặt"
-        value="Setting"
-        to="/Cai-dat"
-        :disabled="StatusOption_6"
-      ></v-list-item>
+        v-for="(item, i) in menuItems"
+        :key="i"
+        :prepend-icon="item.icon"
+        :title="item.title"
+        :value="item.value"
+        :to="item.to"
+        :disabled="item.disabled"
+        class="menu-item mb-2"
+        :class="{ 'menu-item-disabled': item.disabled }"
+      >
+        <template v-slot:prepend>
+          <v-icon :color="item.disabled ? 'grey' : 'white'" class="me-3">{{ item.icon }}</v-icon>
+        </template>
+        <template v-slot:title>
+          <span :class="item.disabled ? 'text-grey' : 'text-white'">{{ item.title }}</span>
+        </template>
+      </v-list-item>
     </v-list>
     <template v-slot:append>
-      <div class="pa-2">
-        <v-btn block @click="LogOut()" class="text-caption"> Đăng xuất </v-btn>
+      <div class="pa-4">
+        <v-btn 
+          block 
+          @click="LogOut()" 
+          class="logout-btn text-caption"
+          variant="tonal"
+          color="error"
+        >
+          <v-icon start>mdi-logout</v-icon>
+          Đăng xuất
+        </v-btn>
       </div>
     </template>
   </v-navigation-drawer>
   <SnackbarFailed v-model="DialogFailed" />
   <Loading v-model="DialogLoading" />
 </template>
+
 <script setup>
 import { jwtDecode } from "jwt-decode";
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 import Loading from "@/components/Loading.vue";
@@ -152,7 +145,53 @@ const FetchUser = async () => {
     router.push("/");
   }
 };
+
+const menuItems = computed(() => [
+  {
+    icon: 'mdi-cart-arrow-down',
+    title: 'Kiểm tra số liệu',
+    value: 'Check',
+    to: '/Kiem-tra-so-lieu',
+    disabled: StatusOption_1.value
+  },
+  {
+    icon: 'mdi-warehouse',
+    title: 'Tồn Kho',
+    value: 'WareHouse',
+    to: '/Ton-kho',
+    disabled: StatusOption_2.value
+  },
+  {
+    icon: 'mdi-warehouse',
+    title: 'Tồn Kho Misa',
+    value: 'WareHouse2',
+    to: '/Ton-kho-2',
+    disabled: StatusOption_3.value
+  },
+  {
+    icon: 'mdi-order-bool-descending-variant',
+    title: 'Tình trạng đơn hàng',
+    value: 'Orders',
+    to: '/Don-hang',
+    disabled: StatusOption_4.value
+  },
+  {
+    icon: 'mdi-notebook-multiple',
+    title: 'Dự án',
+    value: 'Project',
+    to: '/Du-an',
+    disabled: StatusOption_5.value
+  },
+  {
+    icon: 'mdi-cog',
+    title: 'Cài đặt',
+    value: 'Setting',
+    to: '/Cai-dat',
+    disabled: StatusOption_6.value
+  }
+]);
 </script>
+
 <script>
 export default {
   components: {
@@ -163,4 +202,100 @@ export default {
   methods: {},
 };
 </script>
-<style lang=""></style>
+
+<style lang="scss">
+.custom-nav {
+  .user-info-section {
+    background: rgba(255, 255, 255, 0.05);
+    margin: 8px;
+    border-radius: 12px;
+    padding: 8px;
+  }
+
+  .menu-item {
+    margin: 4px 8px;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    padding: 8px 16px;
+
+    &:not(.menu-item-disabled):hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(4px);
+    }
+
+    &.menu-item-disabled {
+      opacity: 0.5;
+    }
+
+    .v-list-item__content {
+      padding: 8px 0;
+    }
+  }
+
+  .logout-btn {
+    transition: all 0.3s ease;
+    border-radius: 12px;
+    padding: 8px 16px;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+  }
+
+  .v-divider {
+    margin: 8px 0;
+    opacity: 0.1;
+  }
+
+  .v-data-table {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    .v-table {
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .v-table__wrapper {
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .v-table__wrapper > table {
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .v-table__wrapper > table > thead > tr > th {
+      border-radius: 12px 12px 0 0;
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      font-weight: 500;
+      padding: 12px 16px;
+    }
+
+    .v-table__wrapper > table > tbody > tr > td {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .v-table__wrapper > table > tbody > tr:last-child > td {
+      border-bottom: none;
+    }
+
+    .v-table__wrapper > table > tbody > tr:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .v-table__wrapper > table > tbody > tr:last-child > td:first-child {
+      border-bottom-left-radius: 12px;
+    }
+
+    .v-table__wrapper > table > tbody > tr:last-child > td:last-child {
+      border-bottom-right-radius: 12px;
+    }
+  }
+}
+</style>

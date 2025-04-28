@@ -15,6 +15,24 @@
         :items="orders"
         :search="search"
         :items-per-page="itemsPerPage"
+        class="elevation-1"
+        :footer-props="{
+          'items-per-page-options': [10, 20, 50, 100],
+          'items-per-page-text': 'Số hàng mỗi trang'
+        }"
+        :header-props="{
+          sortByText: 'Sắp xếp theo',
+          sortDescText: 'Giảm dần',
+          sortAscText: 'Tăng dần'
+        }"
+        :loading="DialogLoading"
+        loading-text="Đang tải dữ liệu..."
+        no-data-text="Không có dữ liệu"
+        no-results-text="Không tìm thấy kết quả"
+        :hover="true"
+        :dense="false"
+        :fixed-header="true"
+        height="100%"
       >
         <template v-slot:item.id="{ value }">
           <ButtonEye @detail="PushItem(value)" />
