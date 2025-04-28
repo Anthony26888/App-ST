@@ -3,7 +3,7 @@
     density="compact"
     label="Tìm kiếm"
     prepend-inner-icon="mdi-magnify"
-    variant="solo-filled"
+    variant="solo"
     flat
     hide-details
     single-line
