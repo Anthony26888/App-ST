@@ -67,7 +67,11 @@
     </v-card-text>
   </v-card>
   <v-dialog v-model="DialogEdit" width="400">
-    <v-card max-width="400" prepend-icon="mdi-update" title="Cập nhật dữ liệu">
+    <v-card max-width="400">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
+        Cập nhật dữ liệu
+      </v-card-title>
       <v-card-text>
         <InputField label="Khách hàng" v-model="Customer_Edit" />
       </v-card-text>
@@ -81,7 +85,11 @@
   </v-dialog>
 
   <v-dialog v-model="DialogAdd" width="400">
-    <v-card max-width="400" prepend-icon="mdi-update" title="Thêm dữ liệu">
+    <v-card max-width="400">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
+        Thêm dữ liệu
+      </v-card-title>
       <v-card-text>
         <InputField label="Khách hàng" v-model="Customer_Add" />
       </v-card-text>

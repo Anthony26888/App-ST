@@ -121,7 +121,7 @@
             />
           </v-col>
           <v-col cols="12">
-            <Input-Textarea
+            <InputTextarea
               label="Mô tả" 
               v-model="MoTa_Edit"
             />
@@ -225,6 +225,7 @@ import { useMachine } from "@/composables/useMachine";
 import InputSearch from "@/components/Input-Search.vue";
 import InputFiles from "@/components/Input-Files.vue";
 import InputField from "@/components/Input-Field.vue";
+import InputTextarea from "@/components/Input-Textarea.vue";
 import ButtonImportFile from "@/components/Button-ImportFile.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonEye from "@/components/Button-Eye.vue";

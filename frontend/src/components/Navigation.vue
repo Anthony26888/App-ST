@@ -48,9 +48,9 @@
           @click="LogOut()" 
           class="logout-btn text-caption"
           variant="tonal"
-          color="error"
+          elevation="2"
         >
-          <v-icon start>mdi-logout</v-icon>
+          <v-icon start class="me-2">mdi-logout</v-icon>
           Đăng xuất
         </v-btn>
       </div>
@@ -245,11 +245,28 @@ export default {
   .logout-btn {
     transition: all 0.3s ease;
     border-radius: 12px;
-    padding: 8px 16px;
+    padding: 12px 24px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1)) !important;
+    border: 1px solid rgba(99, 102, 241, 0.2) !important;
+    backdrop-filter: blur(8px);
+    color: #fff !important;
     
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2)) !important;
+      border-color: rgba(99, 102, 241, 0.3) !important;
+    }
+
+    .v-icon {
+      transition: transform 0.3s ease;
+      color: #fff !important;
+    }
+
+    &:hover .v-icon {
+      transform: translateX(-2px);
     }
   }
 

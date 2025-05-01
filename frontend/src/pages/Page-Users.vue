@@ -88,12 +88,12 @@
             <InputField label="Email" v-model="Email_Edit" />
           </v-col>
           <v-col cols="12">
-            <v-select
+            <InputSelect
               label="Phân quyền"
               :items="['Admin', 'Kế hoạch', 'Thủ kho', 'Kinh doanh', 'Quản lý']"
               variant="solo-filled"
               v-model="Level_Edit"
-            ></v-select>
+            />
           </v-col>
         </v-row>
       </v-card-text>
@@ -113,12 +113,12 @@
         <InputField label="Tên người dùng" v-model="FullName_Add" />
         <InputField label="Email" v-model="Email_Add" />
         <InputField label="Password" type="password" v-model="Password_Add" />
-        <v-select
+        <InputSelect
           label="Phân quyền"
           :items="['Admin', 'Kế hoạch', 'Thủ kho', 'Kinh doanh', 'Quản lý']"
           variant="solo-filled"
           v-model="Level_Add"
-        ></v-select>
+        />
       </v-card-text>
       <template v-slot:actions>
         <ButtonCancel @cancel="DialogAdd = false" />
@@ -136,6 +136,7 @@ import { ref, watch } from "vue";
 import { useSocket } from "@/composables/useWebSocket";
 import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
+import InputSelect from "@/components/Input-Select.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
@@ -263,6 +264,8 @@ export default {
     SnackbarSuccess,
     SnackbarFailed,
     InputField,
+    InputSelect,
+    Loading,
   },
   data() {
     return {

@@ -73,9 +73,11 @@
     <v-card
       width="600"
       class="mx-auto overflow-y-auto"
-      prepend-icon="mdi-update"
-      title="Thêm linh kiện"
     >
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
+        Thêm linh kiện
+      </v-card-title>
       <v-card-text>
         <InputField label="Part Number 1" v-model="PartNumber1_Add" />
         <InputField label="Part Number 2" v-model="PartNumber2_Add" />
@@ -112,9 +114,11 @@
     <v-card
       width="600"
       class="mx-auto overflow-y-auto"
-      prepend-icon="mdi-update"
-      title="Cập nhật dữ liệu"
     >
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
+        Cập nhật dữ liệu
+      </v-card-title>
       <v-card-text>
         <InputField label="Part Number 1" v-model="PartNumber1_Edit" />
         <InputField label="Part Number 2" v-model="PartNumber2_Edit" />

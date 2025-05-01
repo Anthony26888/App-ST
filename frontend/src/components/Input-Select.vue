@@ -1,5 +1,6 @@
 <template>
   <v-select
+    variant="outlined"
     v-model="selectedValue"
     :items="items"
     :label="label"

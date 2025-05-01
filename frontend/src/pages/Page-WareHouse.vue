@@ -76,18 +76,15 @@
     <v-card
       width="600"
       class="mx-auto overflow-y-auto"
-      prepend-icon="mdi-update"
-      title="Thêm linh kiện"
     >
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
+        Thêm linh kiện
+      </v-card-title>
       <v-card-text>
         <InputField label="Part Number 1" v-model="PartNumber1_Add" />
         <InputField label="Part Number 2" v-model="PartNumber2_Add" />
-        <v-textarea
-          label="Mô tả"
-          variant="solo-filled"
-          v-model="Description_Add"
-          clearable
-        ></v-textarea>
+        <InputTextarea label="Mô tả" v-model="Description_Add" />
         <v-row>
           <v-col>
             <InputField label="Nhập kho" type="number" v-model="Input_Add" />
@@ -123,12 +120,7 @@
       <v-card-text >
         <InputField label="Part Number 1" v-model="PartNumber1_Edit" />
         <InputField label="Part Number 2" v-model="PartNumber2_Edit" />
-        <v-textarea
-          label="Mô tả"
-          variant="solo-filled"
-          v-model="Description_Edit"
-          clearable
-        ></v-textarea>
+        <InputTextarea label="Mô tả" v-model="Description_Edit" />
         <v-row>
           <v-col>
             <InputField
@@ -270,6 +262,7 @@ import ButtonSearch from "@/components/Button-Search.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputFiles from "@/components/Input-Files.vue";
+import InputTextarea from "@/components/Input-Textarea.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import SnackbarCaution from "@/components/Snackbar-Caution.vue";
@@ -560,6 +553,7 @@ function Error() {
 export default {
   components: {
     InputField,
+    InputTextarea,
     ButtonDelete,
     ButtonCancel,
     ButtonDownload,
