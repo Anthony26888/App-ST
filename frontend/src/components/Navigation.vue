@@ -77,6 +77,7 @@ const StatusOption_3 = ref(false);
 const StatusOption_4 = ref(false);
 const StatusOption_5 = ref(false);
 const StatusOption_6 = ref(false);
+const StatusOption_7 = ref(false);
 const Date_Expired = ref("");
 const DialogLoading = ref(false);
 const DialogFailed = ref(false);
@@ -128,12 +129,14 @@ const FetchUser = async () => {
         StatusOption_4.value = false;
         StatusOption_5.value = false;
         StatusOption_6.value = false;
+        StatusOption_7.value = false;
       } else {
         StatusOption_1.value = true;
         StatusOption_2.value = true;
         StatusOption_3.value = true;
         StatusOption_4.value = true;
         StatusOption_6.value = true;
+        StatusOption_7.value = true;
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
@@ -181,6 +184,13 @@ const menuItems = computed(() => [
     value: 'Project',
     to: '/Du-an',
     disabled: StatusOption_5.value
+  },
+  {
+    icon: 'mdi-wrench',
+    title: 'Bảo trì',
+    value: 'Maintenance',
+    to: '/Bao-tri',
+    disabled: StatusOption_7.value
   },
   {
     icon: 'mdi-cog',

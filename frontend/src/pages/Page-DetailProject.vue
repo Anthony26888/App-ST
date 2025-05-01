@@ -5,7 +5,7 @@
       <p class="text-h4 font-weight-light ms-3">Chi tiết PO</p>
     </v-card-title>
     <v-card-text>
-      <v-card flat>
+      <v-card variant="text">
         <v-card-title class="d-flex align-center pe-2">
           <v-icon icon="mdi mdi-account-badge-outline"></v-icon> &nbsp;
           {{ NamePO }}
@@ -18,7 +18,6 @@
           <InputSearch v-model="search" />
         </v-card-title>
 
-        <v-divider></v-divider>
         <v-data-table
           :search="search"
           :items="detailProject"
@@ -42,7 +41,7 @@
           :hover="true"
           :dense="false"
           :fixed-header="true"
-          height="100%"
+          height="calc(100vh - 200px)"
         >
           <template v-slot:bottom>
             <div class="text-center pt-2">

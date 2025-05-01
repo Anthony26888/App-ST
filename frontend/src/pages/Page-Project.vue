@@ -21,7 +21,6 @@
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
         </v-card-title>
-        <v-divider></v-divider>
         <v-card-text class="overflow-auto">
           <v-data-table
             :headers="Headers"
@@ -46,7 +45,7 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="100%"
+            height="calc(100vh - 200px)"
           >
             <template v-slot:bottom>
               <div class="text-center pt-2">

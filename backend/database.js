@@ -109,5 +109,60 @@ db.serialize(() => {
           FOREIGN KEY (CustomerID) REFERENCES Customers(id) ON DELETE CASCADE
       )
   `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS Machine (
+      MaThietBi INTEGER PRIMARY KEY AUTOINCREMENT,
+      TenThietBi TEXT NOT NULL,
+      LoaiThietBi TEXT,
+      NhaSanXuat TEXT,
+      NgayMua DATE,
+      ViTri TEXT,
+      MoTa TEXT
+    )
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS Maintenance (
+      MaBaoTri INTEGER PRIMARY KEY AUTOINCREMENT,
+      MaThietBi INTEGER NOT NULL,
+      NgayBaoTri DATE NOT NULL,
+      LoaiBaoTri TEXT NOT NULL, -- Ví dụ: Bảo trì định kỳ, Sửa chữa, Thay thế
+      MoTaLoi TEXT,
+      BienPhapKhacPhuc TEXT,
+      PhuongAn TEXT,
+      PhuTung TEXT,
+      NguoiTao TEXT,
+      NguoiThucHien TEXT,
+      ChiPhi REAL,
+      NgayHoanThanh DATE,
+      TrangThai TEXT, -- Ví dụ: Đã hoàn thành, Đang thực hiện, Chờ phê duyệt
+      FOREIGN KEY (MaThietBi) REFERENCES Machine(MaThietBi)
+  )
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS MaintenanceSchedule (
+      MaLich INTEGER PRIMARY KEY AUTOINCREMENT,
+      MaThietBi INTEGER NOT NULL,
+      LoaiBaoTri TEXT NOT NULL,
+      ChuKyBaoTri INTEGER NOT NULL, -- Ví dụ: 3 (tháng), 6 (tháng), 12 (tháng)
+      DonViChuKy TEXT NOT NULL, -- Ví dụ: Tháng, Năm
+      NgayBatDau DATE NOT NULL,
+      NgayBaoTriTiepTheo DATE,
+      GhiChu TEXT,
+      FOREIGN KEY (MaThietBi) REFERENCES Machine(MaThietBi)
+  )
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS SparePartUsage (
+      MaSuDung INTEGER PRIMARY KEY AUTOINCREMENT,
+      MaBaoTri INTEGER NOT NULL,
+      MaThietBi INTEGER NOT NULL,
+      TenPhuTung TEXT NOT NULL,
+      SoLuongSuDung INTEGER NOT NULL,
+      DonVi TEXT NOT NULL,
+      GhiChu TEXT,
+      FOREIGN KEY (MaBaoTri) REFERENCES Maintenance(MaBaoTri),
+      FOREIGN KEY (MaThietBi) REFERENCES Machine(MaThietBi)
+  )
+  `);
 });
 module.exports = db;

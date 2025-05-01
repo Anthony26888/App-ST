@@ -15,7 +15,6 @@
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
         </v-card-title>
-        <v-divider></v-divider>
         <v-card-text class="overflow-auto">
           <v-data-table
             :headers="Headers"
@@ -40,7 +39,7 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="100%"
+            height="calc(100vh - 200px)"
           >
             <template v-slot:bottom>
               <div class="text-center pt-2">
@@ -112,14 +111,16 @@
     </v-card>
   </v-dialog>
 
-  <v-dialog v-model="DialogEdit" width="400" scrollable>
+  <v-dialog v-model="DialogEdit" width="600" scrollable>
     <v-card
       width="600"
       class="mx-auto overflow-y-auto"
-      prepend-icon="mdi-update"
-      title="Cập nhật dữ liệu"
     >
-      <v-card-text>
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
+        Cập nhật dữ liệu
+      </v-card-title>
+      <v-card-text >
         <InputField label="Part Number 1" v-model="PartNumber1_Edit" />
         <InputField label="Part Number 2" v-model="PartNumber2_Edit" />
         <v-textarea
@@ -168,28 +169,39 @@
     </v-card>
   </v-dialog>
   <v-dialog v-model="DialogRemove" width="400">
-    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
-      <v-card-text> Bạn có chắc chắn muốn xoá linh kiện này ? </v-card-text>
-      <template v-slot:actions>
+    <v-card>
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
+        Xóa linh kiện
+      </v-card-title>
+
+      <v-card-text class="pa-4">
+        <div class="text-body-1">
+          Bạn có chắc chắn muốn xóa linh kiện này?
+        </div>
+      </v-card-text>
+
+      <v-card-actions class="pa-4">
+        <v-spacer></v-spacer>
         <ButtonCancel @cancel="DialogRemove = false" />
-        <ButtonDelete @delete="RemoveItem()" />
-      </template>
+        <ButtonDelete @delete="RemoveItem()" class="ms-2" />
+      </v-card-actions>
     </v-card>
   </v-dialog>
   <v-dialog v-model="DialogInfo" width="800">
-    <v-card
-      max-width="800"
-      prepend-icon="mdi-information-variant-circle"
-      title="Thông số kỹ thuật"
-    >
-      <template v-slot:append>
+    <v-card>
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-information-variant-circle" color="primary" class="me-2"></v-icon>
+        Thông số kỹ thuật
+        <v-spacer></v-spacer>
         <v-btn
           variant="text"
           icon="mdi-close"
           @click="DialogInfo = false"
         ></v-btn>
-      </template>
-      <v-card-text>
+      </v-card-title>
+
+      <v-card-text class="pa-4">
         <v-row>
           <v-col>
             <v-img :src="ResultSearch.Product.PhotoUrl"></v-img>

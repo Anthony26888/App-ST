@@ -138,6 +138,58 @@ io.on("connection", (socket) => {
         socket.emit("usersError", error);
       }
     }),
+    socket.on("getMachine", async () => {
+      try {
+        const query = `SELECT a.MaThietBi, a.TenThietBi, a.LoaiThietBi, a.NhaSanXuat, a.NgayMua, a.ViTri, a.MoTa, CAST((julianday(b.NgayBaoTriTiepTheo) - julianday('now')) AS INTEGER) AS SoNgayConLai
+                      FROM Machine a 
+                      LEFT JOIN MaintenanceSchedule b 
+                      ON a.MaThietBi = b.MaThietBi
+                      GROUP BY TenThietBi 
+                      ORDER BY SoNgayConLai ASC`;
+        db.all(query, [], (err, rows) => {
+          if (err) return socket.emit("MachineError", err);
+          socket.emit("MachineData", rows);
+        });
+      } catch (error) {
+        socket.emit("MachineError", error);
+      }
+    }),
+    socket.on("getMaintenance", async (id) => {
+      try {
+        const query = `SELECT DISTINCT * FROM Maintenance WHERE MaThietBi = ?`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("MaintenanceError", err);
+          socket.emit("MaintenanceData", rows);
+        });
+      } catch (error) {
+        socket.emit("MaintenanceError", error);
+      }
+    }),
+    socket.on("getMaintenanceSchedule", async (id) => {
+      try {
+        const query = `SELECT DISTINCT *,  CAST((julianday(NgayBaoTriTiepTheo) - julianday('now')) AS INTEGER) AS SoNgayConLai
+                      FROM MaintenanceSchedule 
+                      WHERE MaThietBi = ?`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("MaintenanceScheduleError", err);
+          socket.emit("MaintenanceScheduleData", rows);
+        });
+      } catch (error) {
+        socket.emit("MaintenanceScheduleError", error);
+      }
+    }),
+    socket.on("getSparePartUsage", async (id) => {
+      try {
+        const query = `SELECT DISTINCT * FROM SparePartUsage WHERE MaBaoTri = ?`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("SparePartUsageError", err);
+          socket.emit("SparePartUsageData", rows);  
+        });
+      } catch (error) {
+        socket.emit("SparePartUsageError", error);
+      }
+    }),
+    
     socket.on("disconnect", () => {
       console.log("Client disconnected:", socket.id);
     });
@@ -870,8 +922,286 @@ app.delete("/Project/Customer/Delete-Customer/:id", async (req, res) => {
   });
 });
 
-// Lắng nghe trên `0.0.0.0`
+// Router add new item in Maintenance table
+app.post("/Machine/Add", async (req, res) => {
+  const { TenThietBi, LoaiThietBi, NhaSanXuat, NgayMua, ViTri, MoTa } = req.body;
+  // Insert data into SQLite database 
+  const query = `
+    INSERT INTO Machine (TenThietBi, LoaiThietBi, NhaSanXuat, NgayMua, ViTri, MoTa)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `;
+  db.run(query, [TenThietBi, LoaiThietBi, NhaSanXuat, NgayMua, ViTri, MoTa], function (err) {
+    if (err) {
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
+    }
+    io.emit("MachineUpdate");
+    // Broadcast the new message to all clients   
+    res.json({ message: "Đã cập nhật dữ liệu thành công" });
+  });
+});
 
+// Router update item in Machine table
+app.put("/Machine/Edit/:id", async (req, res) => {
+  const { id } = req.params;
+  const { TenThietBi, LoaiThietBi, NhaSanXuat, NgayMua, ViTri, MoTa } = req.body;
+  // Insert data into SQLite database   
+  const query = `
+    UPDATE Machine 
+    SET TenThietBi = ?, LoaiThietBi = ?, NhaSanXuat = ?, NgayMua = ?, ViTri = ?, MoTa = ?
+    WHERE MaThietBi = ?
+  `;
+  db.run(query, [TenThietBi, LoaiThietBi, NhaSanXuat, NgayMua, ViTri, MoTa, id], function (err) {
+    if (err) {  
+      return res.status(500).json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
+    }
+    io.emit("MachineUpdate");
+    res.json({ message: "Đã cập nhật dữ liệu thành công" });
+  });
+});
+
+// Router delete item in Machine table
+app.delete("/Machine/Delete/:id", async (req, res) => {
+  const { id } = req.params;
+  // Insert data into SQLite database   
+  const query = `
+    DELETE FROM Machine WHERE MaThietBi = ?
+  `;
+  db.run(query, [id], function (err) {
+    if (err) {
+      return res.status(500).json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
+    }
+    io.emit("MachineUpdate");
+    res.json({ message: "Đã xoá dữ liệu thành công" });
+  });
+});
+
+
+// Router add new item in Maintenance table
+app.post("/Maintenance/Add", async (req, res) => {
+  try {
+    const { 
+      MaThietBi, 
+      NgayBaoTri,
+      LoaiBaoTri, 
+      MoTaLoi, 
+      BienPhapKhacPhuc, 
+      NguoiTao,
+      NguoiThucHien, 
+      ChiPhi, 
+      NgayHoanThanh, 
+      TrangThai,
+      PhuongAn,
+      PhuTung
+    } = req.body;
+    console.log(req.body);
+    // Insert data into SQLite database 
+    const query = `
+      INSERT INTO Maintenance (
+        MaThietBi, 
+        NgayBaoTri,
+        LoaiBaoTri, 
+        MoTaLoi, 
+        BienPhapKhacPhuc, 
+        NguoiTao,
+        NguoiThucHien, 
+        ChiPhi, 
+        NgayHoanThanh, 
+        TrangThai,
+        PhuongAn,
+        PhuTung
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    db.run(
+      query, 
+      [
+        MaThietBi, 
+        NgayBaoTri,
+        LoaiBaoTri, 
+        MoTaLoi, 
+        BienPhapKhacPhuc,
+        NguoiTao,
+        NguoiThucHien, 
+        ChiPhi, 
+        NgayHoanThanh, 
+        TrangThai,
+        PhuongAn,
+        PhuTung
+      ], 
+      function (err) {
+        if (err) {
+          console.error("Database error:", err);
+          return res.status(500).json({ 
+            error: "Lỗi khi thêm dữ liệu vào cơ sở dữ liệu",
+            details: err.message 
+          });
+        }
+        
+        io.emit("MaintenanceUpdate");
+        res.json({ 
+          message: "Thêm dữ liệu bảo trì thành công",
+          id: this.lastID 
+        });
+      }
+    );
+  } catch (error) {
+    console.error("Server error:", error);
+    res.status(500).json({ 
+      error: "Lỗi server",
+      details: error.message 
+    });
+  }
+});
+
+// Router update item in Maintenance table
+app.put("/Maintenance/Edit/:id", async (req, res) => {
+  const { id } = req.params;
+  const { MaThietBi, NgayBaoTri, LoaiBaoTri, MoTaLoi, BienPhapKhacPhuc, NguoiTao, NguoiThucHien, ChiPhi, NgayHoanThanh, TrangThai, PhuongAn, PhuTung } = req.body; 
+  // Insert data into SQLite database 
+  const query = `
+    UPDATE Maintenance 
+    SET MaThietBi = ?, NgayBaoTri = ?, LoaiBaoTri = ?, MoTaLoi = ?, BienPhapKhacPhuc = ?, NguoiTao = ?, NguoiThucHien = ?, ChiPhi = ?, NgayHoanThanh = ?, TrangThai = ?, PhuongAn = ?, PhuTung = ?
+    WHERE MaBaoTri = ?
+  `;
+  db.run(query, [MaThietBi, NgayBaoTri, LoaiBaoTri, MoTaLoi, BienPhapKhacPhuc, NguoiTao, NguoiThucHien, ChiPhi, NgayHoanThanh, TrangThai, PhuongAn, PhuTung, id], function (err) {
+    if (err) {
+      return res.status(500).json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
+    }
+    io.emit("MaintenanceUpdate");
+    res.json({ message: "Đã cập nhật dữ liệu thành công" });
+  });
+});
+
+// Router delete item in Maintenance table
+app.delete("/Maintenance/Delete/:id", async (req, res) => {
+  const { id } = req.params;
+  // Insert data into SQLite database 
+  const query = `
+    DELETE FROM Maintenance WHERE MaBaoTri = ?
+  `;
+  db.run(query, [id], function (err) {
+    if (err) {
+      return res.status(500).json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
+    }
+    io.emit("MaintenanceUpdate");
+    res.json({ message: "Đã xoá dữ liệu thành công" });
+  });
+});
+
+// Router add new item in MaintenanceSchedule table
+app.post("/MaintenanceSchedule/Add", async (req, res) => {
+  const { MaThietBi, LoaiBaoTri, ChuKyBaoTri, DonViChuKy, NgayBatDau, NgayBaoTriTiepTheo, GhiChu } = req.body;
+  // Insert data into SQLite database 
+  const query = `
+    INSERT INTO MaintenanceSchedule (MaThietBi, LoaiBaoTri, ChuKyBaoTri, DonViChuKy, NgayBatDau, NgayBaoTriTiepTheo, GhiChu)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `;
+  db.run(query, [MaThietBi, LoaiBaoTri, ChuKyBaoTri, DonViChuKy, NgayBatDau, NgayBaoTriTiepTheo, GhiChu], function (err) {
+    if (err) {
+      return res.status(500).json({ error: "Lỗi khi thêm dữ liệu vào cơ sở dữ liệu" });
+    }
+    io.emit("MaintenanceScheduleUpdate");
+    res.json({ message: "Đã thêm dữ liệu bảo trì định kỳ thành công" });
+  });
+});
+
+// Router update item in MaintenanceSchedule table
+app.put("/MaintenanceSchedule/Edit/:id", async (req, res) => {
+  const { id } = req.params;
+  const { MaThietBi, LoaiBaoTri, ChuKyBaoTri, DonViChuKy, NgayBatDau, NgayBaoTriTiepTheo, GhiChu } = req.body;
+  // Insert data into SQLite database  
+  const query = `
+    UPDATE MaintenanceSchedule 
+    SET MaThietBi = ?, LoaiBaoTri = ?, ChuKyBaoTri = ?, DonViChuKy = ?, NgayBatDau = ?, NgayBaoTriTiepTheo = ?, GhiChu = ?
+    WHERE MaThietBi = ?
+  `;
+  db.run(query, [MaThietBi, LoaiBaoTri, ChuKyBaoTri, DonViChuKy, NgayBatDau, NgayBaoTriTiepTheo, GhiChu, id], function (err) {
+    if (err) {
+      return res.status(500).json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
+    }
+    io.emit("MaintenanceScheduleUpdate");
+    res.json({ message: "Đã cập nhật dữ liệu bảo trì định kỳ thành công" });
+  });
+}); 
+
+// Router delete item in MaintenanceSchedule table
+app.delete("/MaintenanceSchedule/Delete/:id", async (req, res) => {
+  const { id } = req.params;
+  // Insert data into SQLite database  
+  const query = `
+    DELETE FROM MaintenanceSchedule WHERE MaThietBi = ?
+  `;
+  db.run(query, [id], function (err) {
+    if (err) {
+      return res.status(500).json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
+    }
+    io.emit("MaintenanceScheduleUpdate");
+    res.json({ message: "Đã xoá dữ liệu bảo trì định kỳ thành công" });
+  });
+});
+
+// Router add new item in SparePartUsage table
+app.post("/SparePartUsage/Add", async (req, res) => {
+  const { MaBaoTri, MaThietBi, TenPhuTung, SoLuongSuDung, DonVi, GhiChu } = req.body;
+  // Insert data into SQLite database  
+  const query = `
+    INSERT INTO SparePartUsage (MaBaoTri, MaThietBi, TenPhuTung, SoLuongSuDung, DonVi, GhiChu)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `;
+  db.run(query, [MaBaoTri, MaThietBi, TenPhuTung, SoLuongSuDung, DonVi, GhiChu], function (err) {
+    if (err) {
+      return res.status(500).json({ error: "Lỗi khi thêm dữ liệu vào cơ sở dữ liệu" });
+    }
+    io.emit("SparePartUsageUpdate");
+    res.json({ message: "Đã thêm dữ liệu sử dụng phụ tùng thành công" });
+  });
+});
+
+// Router update item in SparePartUsage table
+app.put("/SparePartUsage/Edit/:id", async (req, res) => {
+  const { id } = req.params;
+  const { MaBaoTri, MaThietBi, TenPhuTung, SoLuongSuDung, DonVi, GhiChu } = req.body;
+  // Insert data into SQLite database  
+  const query = `
+    UPDATE SparePartUsage 
+    SET MaBaoTri = ?, MaThietBi = ?, TenPhuTung = ?, SoLuongSuDung = ?, DonVi = ?, GhiChu = ?
+    WHERE MaSuDung = ?
+  `;
+  db.run(query, [MaBaoTri, MaThietBi, TenPhuTung, SoLuongSuDung, DonVi, GhiChu, id], function (err) {
+    if (err) {
+      return res.status(500).json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
+    }
+    io.emit("SparePartUsageUpdate");
+    res.json({ message: "Đã cập nhật dữ liệu sử dụng phụ tùng thành công" });
+  });
+});
+
+
+
+// Router delete item in SparePartUsage table
+app.delete("/SparePartUsage/Delete/:id", async (req, res) => {
+  const { id } = req.params;
+  // Insert data into SQLite database  
+  const query = `
+    DELETE FROM SparePartUsage WHERE MaSuDung = ?
+  `;
+  db.run(query, [id], function (err) {
+    if (err) {
+      return res.status(500).json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
+    }
+    io.emit("SparePartUsageUpdate");
+    res.json({ message: "Đã xoá dữ liệu sử dụng phụ tùng thành công" });
+  });
+});
+
+
+
+
+
+
+// Lắng nghe trên `0.0.0.0`
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });

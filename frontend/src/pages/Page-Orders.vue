@@ -8,7 +8,6 @@
       <v-spacer></v-spacer>
       <InputSearch v-model="search" />
     </v-card-title>
-    <v-divider></v-divider>
     <v-card-text v-if="orders.length > 0">
       <v-data-table
         :headers="Headers"
@@ -32,7 +31,7 @@
         :hover="true"
         :dense="false"
         :fixed-header="true"
-        height="100%"
+        height="calc(100vh - 200px)"
       >
         <template v-slot:item.id="{ value }">
           <ButtonEye @detail="PushItem(value)" />

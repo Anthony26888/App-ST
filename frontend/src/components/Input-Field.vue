@@ -1,6 +1,6 @@
 <template lang="">
   <v-text-field
-    variant="solo-filled"
+    variant="outlined"
     clearable
     :model-value="modelValue"
     @update:modelValue="$emit('update:modelValue', $event)"

@@ -33,7 +33,7 @@
         :hover="true"
         :dense="false"
         :fixed-header="true"
-        :height="400"
+        height="calc(100vh - 200px)"
       >
         <template v-slot:item.id="{ value }">
           <ButtonEdit @click="GetItem(value)" />
@@ -50,33 +50,60 @@
     </v-card-text>
   </v-card>
   <v-dialog v-model="DialogRemove" width="400">
-    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
-      <v-card-text> Bạn có chắc chắn muốn xoá thành viên này ? </v-card-text>
-      <template v-slot:actions>
+    <v-card>
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
+        Xóa người dùng
+      </v-card-title>
+
+      <v-card-text class="pa-4">
+        <div class="text-body-1">
+          Bạn có chắc chắn muốn xóa thành viên này?
+        </div>
+      </v-card-text>
+
+      <v-card-actions class="pa-4">
+        <v-spacer></v-spacer>
         <ButtonCancel @cancel="DialogRemove = false" />
-        <ButtonDelete @delete="RemoveUser()" />
-      </template>
+        <ButtonDelete @delete="RemoveUser()" class="ms-2" />
+      </v-card-actions>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogEdit" width="400">
-    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
-      <v-card-text>
-        <InputField label="Tên đăng nhập" v-model="Username_Edit" />
-        <InputField label="Tên người dùng" v-model="FullName_Edit" />
-        <InputField label="Email" v-model="Email_Edit" />
-        <v-select
-          label="Phân quyền"
-          :items="['Admin', 'Kế hoạch', 'Thủ kho', 'Kinh doanh', 'Quản lý']"
-          variant="solo-filled"
-          v-model="Level_Edit"
-        ></v-select>
+  <v-dialog v-model="DialogEdit" width="500">
+    <v-card>
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-pencil" color="primary" class="me-2"></v-icon>
+        Chỉnh sửa người dùng
+      </v-card-title>
+
+      <v-card-text class="pa-4">
+        <v-row>
+          <v-col cols="12">
+            <InputField label="Tên đăng nhập" v-model="Username_Edit" />
+          </v-col>
+          <v-col cols="12">
+            <InputField label="Tên người dùng" v-model="FullName_Edit" />
+          </v-col>
+          <v-col cols="12">
+            <InputField label="Email" v-model="Email_Edit" />
+          </v-col>
+          <v-col cols="12">
+            <v-select
+              label="Phân quyền"
+              :items="['Admin', 'Kế hoạch', 'Thủ kho', 'Kinh doanh', 'Quản lý']"
+              variant="solo-filled"
+              v-model="Level_Edit"
+            ></v-select>
+          </v-col>
+        </v-row>
       </v-card-text>
-      <template v-slot:actions>
+
+      <v-card-actions class="pa-4">
         <ButtonDelete @delete="DialogRemove = true" />
         <v-spacer></v-spacer>
         <ButtonCancel @cancel="DialogEdit = false" />
-        <ButtonSave @save="SaveEdit()" />
-      </template>
+        <ButtonSave @save="SaveEdit()" class="ms-2" />
+      </v-card-actions>
     </v-card>
   </v-dialog>
   <v-dialog v-model="DialogAdd" width="400">

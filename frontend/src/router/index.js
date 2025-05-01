@@ -15,6 +15,10 @@ import PageDetailOrders from "@/pages/Page-DetailOrders.vue";
 import PageProject from "@/pages/Page-Project.vue";
 import PageProjectDetail from "@/pages/Page-DetailProject.vue";
 import PagePODetail from "@/pages/Page-DetailProjectPO.vue"
+import PageMaintenance from "@/pages/Page-Maintenance.vue";
+import PageDetailMaintenance from "@/pages/Page-DetailMaintenance.vue";
+import PageMaintenanceSchedule from "@/pages/Page-MaintenanceSchedule.vue";
+import PageSparePartUsage from "@/pages/Page-SparePartUsage.vue";
 const routes = [
   {
     path: "/Trang-chủ",
@@ -92,7 +96,30 @@ const routes = [
         meta: { requiresAuth: true },
         component: PageDetailOrders,
       },
-      
+      {
+        path: "/Bao-tri",
+        name: "Maintenance",
+        meta: { requiresAuth: true },
+        component: PageMaintenance,
+      },
+      {
+        path: "/Bao-tri/Chi-tiet/:id",
+        name: "DetailMaintenance",
+        meta: { requiresAuth: true },
+        component: PageDetailMaintenance,
+      },
+      {
+        path: "/Bao-tri/Lich-bao-tri/:id",
+        name: "MaintenanceSchedule",
+        meta: { requiresAuth: true },
+        component: PageMaintenanceSchedule,
+      },
+      {
+        path: "/Bao-tri/Chi-tiet-su-dung-phu-tung/:id",
+        name: "SparePartUsage",
+        meta: { requiresAuth: true },
+        component: PageSparePartUsage,
+      },
     ],
   },
   {
