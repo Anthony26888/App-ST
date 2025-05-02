@@ -69,8 +69,12 @@
     </v-card-text>
   </v-card>
 
-  <v-dialog v-model="DialogRemove" width="400">
-    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
+  <v-dialog v-model="DialogRemove" width="400" scrollable>
+    <v-card class="overflow-y-auto">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
+        Xoá dữ liệu
+      </v-card-title>
       <v-card-text> Bạn có chắc chắn muốn xoá dự án này ? </v-card-text>
       <template v-slot:actions>
         <ButtonCancel @cancel="DialogRemove = false" />

@@ -55,6 +55,24 @@
             :search="search"
             :items-per-page="itemsPerPage"
             v-model:page="page"
+            class="elevation-1"
+            :footer-props="{
+              'items-per-page-options': [10, 20, 50, 100],
+              'items-per-page-text': 'Số hàng mỗi trang',
+            }"
+            :header-props="{
+              sortByText: 'Sắp xếp theo',
+              sortDescText: 'Giảm dần',
+              sortAscText: 'Tăng dần',
+            }"
+            :loading="DialogLoading"
+            loading-text="Đang tải dữ liệu..."
+            no-data-text="Không có dữ liệu"
+            no-results-text="Không tìm thấy kết quả"
+            :hover="true"
+            :dense="false"
+            :fixed-header="true"
+            height="calc(100vh - 200px)"
           >
             <template v-slot:bottom>
               <div class="text-center pt-2">
@@ -74,8 +92,12 @@
       </v-card>
     </v-card-text>
   </v-card>
-  <v-dialog v-model="Dialog" width="400">
-    <v-card max-width="400" prepend-icon="mdi-update" title="Thêm dữ liệu">
+  <v-dialog v-model="Dialog" width="400" scrollable>
+    <v-card class="overflow-y-auto">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
+        Thêm dữ liệu
+      </v-card-title>
       <v-card-text>
         <InputField label="Tên dự án" v-model="InputPO" :rules="[required]" />
         <InputField label="Tên Bom" v-model="InputBOM" :rules="[required]" />
@@ -92,9 +114,12 @@
       </template>
     </v-card>
   </v-dialog>
-  <SnackbarSuccess v-model="DialogSuccess" />
-  <v-dialog v-model="DialogEdit" width="400">
-    <v-card max-width="400" prepend-icon="mdi-update" title="Cập nhật dữ liệu">
+  <v-dialog v-model="DialogEdit" width="400" scrollable>
+    <v-card class="overflow-y-auto">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
+        Cập nhật dữ liệu
+      </v-card-title>
       <v-card-text>
         <InputField label="Dự toán hao phí" v-model="CostEstimate" />
       </v-card-text>
@@ -105,7 +130,11 @@
     </v-card>
   </v-dialog>
   <v-dialog v-model="DialogRemove" width="400">
-    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
+    <v-card class="overflow-y-auto">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
+        Xoá dữ liệu
+      </v-card-title>
       <v-card-text> Bạn có chắc chắn muốn xoá dự án này ? </v-card-text>
       <template v-slot:actions>
         <ButtonCancel @cancel="DialogRemove = false" />

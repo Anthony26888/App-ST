@@ -275,7 +275,7 @@ const Headers = [
   { title: "Ngày mua", key: "NgayMua" },
   { title: "Vị trí", key: "ViTri" },
   { title: "Mô tả", key: "MoTa" },
-  { title: "Bảo trì", key: "SoNgayConLai" },
+  { title: "Bảo trì định kỳ", key: "SoNgayConLai" },
   { title: "Thao tác", key: "MaThietBi", sortable: false },
 ];
 

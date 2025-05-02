@@ -27,12 +27,12 @@
           class="elevation-1"
           :footer-props="{
             'items-per-page-options': [10, 20, 50, 100],
-            'items-per-page-text': 'Số hàng mỗi trang'
+            'items-per-page-text': 'Số hàng mỗi trang',
           }"
           :header-props="{
             sortByText: 'Sắp xếp theo',
             sortDescText: 'Giảm dần',
-            sortAscText: 'Tăng dần'
+            sortAscText: 'Tăng dần',
           }"
           :loading="DialogLoading"
           loading-text="Đang tải dữ liệu..."
@@ -52,8 +52,19 @@
             </div>
           </template>
 
+          <template v-slot:item.Status="{ item }">
+            <div class="text-start">
+              <v-chip
+                :color="item.Status == 'true' ? 'green' : 'red'"
+                :text="
+                  item.Status == 'true' ? 'Hoàn thành' : 'Chưa hoàn thành'
+                "
+                size="small"
+              ></v-chip>
+            </div>
+          </template>
           <template v-slot:item.id="{ item }">
-            <div>
+            <div class="d-flex">
               <ButtonEye @detail="PushItem(item)" />
               <ButtonEdit @edit="GetItem(item)" />
             </div>
@@ -62,8 +73,12 @@
       </v-card>
     </v-card-text>
   </v-card>
-  <v-dialog v-model="DialogEdit" width="400">
-    <v-card max-width="400" prepend-icon="mdi-update" title="Cập nhật dữ liệu">
+  <v-dialog v-model="DialogEdit" width="400" scrollable>
+    <v-card class="overflow-y-auto">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
+        Cập nhật dữ liệu
+      </v-card-title>
       <v-card-text>
         <InputField label="Chi tiết đơn hàng" v-model="PONumber_Edit" />
         <InputField
@@ -86,8 +101,12 @@
     </v-card>
   </v-dialog>
 
-  <v-dialog v-model="DialogAdd" width="400">
-    <v-card max-width="400" prepend-icon="mdi-update" title="Thêm dữ liệu">
+  <v-dialog v-model="DialogAdd" width="400" scrollable>
+    <v-card class="overflow-y-auto">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
+        Thêm dữ liệu
+      </v-card-title>
       <v-card-text>
         <InputField label="Chi tiết đơn hàng" v-model="PONumber_Add" />
         <InputField
@@ -108,7 +127,11 @@
     </v-card>
   </v-dialog>
   <v-dialog v-model="DialogRemove" width="400">
-    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
+    <v-card class="overflow-y-auto">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
+        Xoá dữ liệu
+      </v-card-title>
       <v-card-text> Bạn có chắc chắn muốn xoá đơn hàng này ? </v-card-text>
       <template v-slot:actions>
         <ButtonCancel @cancel="DialogRemove = false" />
@@ -286,6 +309,7 @@ export default {
       search: "",
       Headers: [
         { key: "PO", title: "Đơn hàng" },
+        { key: "Status", title: "Trạng thái" },
         { key: "Total_Product", title: "Tổng đơn hàng" },
         { key: "Total_Delivered", title: "Tổng đơn đã giao" },
         { key: "Total_Amount", title: "Tổng nợ" },
@@ -294,7 +318,7 @@ export default {
         {
           key: "id",
           sortable: false,
-          title: "Xem",
+          title: "Thao tác",
         },
       ],
       itemsPerPage: 12,

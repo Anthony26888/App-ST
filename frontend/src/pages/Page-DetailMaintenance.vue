@@ -82,9 +82,11 @@
               ></v-chip>
             </div>
           </template>
-          <template v-slot:item.id="{ item }">
-            <ButtonEdit @edit="GetItem(item)" />
-            <ButtonEye @detail="PushItem(item)" />
+          <template v-slot:item.MaBaoTri="{ item }">
+            <div class="d-flex">
+              <ButtonEye @detail="PushItem(item)" />
+              <ButtonEdit @edit="GetItem(item)" />
+            </div>
           </template>
         </v-data-table>
       </v-card>
@@ -405,7 +407,7 @@ const Headers = [
   { title: "Ngày bảo trì", key: "NgayBaoTri" },
   { title: "Ngày hoàn thành", key: "NgayHoanThanh" },
   { title: "Trạng thái", key: "TrangThai" },
-  { title: "Thao tác", key: "id", sortable: false },
+  { title: "Thao tác", key: "MaBaoTri", sortable: false },
 ];
 function PushSchedule() {
   localStorage.setItem("MaintenanceID", id);

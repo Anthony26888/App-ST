@@ -14,6 +14,24 @@
         :search="search"
         :items-per-page="itemsPerPage"
         v-model:page="page"
+        class="elevation-1"
+            :footer-props="{
+              'items-per-page-options': [10, 20, 50, 100],
+              'items-per-page-text': 'Số hàng mỗi trang',
+            }"
+            :header-props="{
+              sortByText: 'Sắp xếp theo',
+              sortDescText: 'Giảm dần',
+              sortAscText: 'Tăng dần',
+            }"
+            :loading="DialogLoading"
+            loading-text="Đang tải dữ liệu..."
+            no-data-text="Không có dữ liệu"
+            no-results-text="Không tìm thấy kết quả"
+            :hover="true"
+            :dense="false"
+            :fixed-header="true"
+            height="calc(100vh - 200px)"
       >
         <template v-slot:bottom>
           <div class="text-center pt-2">
@@ -31,8 +49,12 @@
       </v-data-table>
     </v-card-text>
   </v-card>
-  <v-dialog v-model="DialogEdit" width="400">
-    <v-card max-width="400" prepend-icon="mdi-update" title="Cập nhật dữ liệu">
+  <v-dialog v-model="DialogEdit" width="400" scrollable>
+    <v-card class="overflow-y-auto">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
+        Cập nhật dữ liệu
+      </v-card-title>
       <v-card-text>
         <InputField label="Tên dự án" v-model="PO_Edit" />
         <InputField label="Số lượng board" v-model="Quantity_Edit" />
@@ -152,7 +174,7 @@ export default {
         { key: "SL_LK", title: "Số lượng linh kiện" },
         { key: "Creater", title: "Người tạo" },
         { key: "TimeStamp", title: "Thời gian tạo" },
-        { key: "id", title: "Sửa" },
+        { key: "id", title: "Thao tác" },
       ],
       search: "",
       itemsPerPage: 15,

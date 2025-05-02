@@ -160,8 +160,8 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogRemove" width="400">
-    <v-card>
+  <v-dialog v-model="DialogRemove" width="400" scrollable>
+    <v-card class="overflow-y-auto">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
         Xóa linh kiện
@@ -180,8 +180,8 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogInfo" width="800">
-    <v-card>
+  <v-dialog v-model="DialogInfo" width="800" scrollable>
+    <v-card class="overflow-y-auto">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-information-variant-circle" color="primary" class="me-2"></v-icon>
         Thông số kỹ thuật

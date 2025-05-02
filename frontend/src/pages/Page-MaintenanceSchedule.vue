@@ -8,8 +8,7 @@
       <v-card-text>
         <v-card variant="text">
           <v-card-title class="d-flex align-center pe-2">
-            <v-icon icon="mdi mdi-calendar-clock"></v-icon> &nbsp; Quản lý lịch
-            bảo trì định kì {{ route.params.id }}
+            <v-icon icon="mdi mdi-calendar-clock"></v-icon> &nbsp; {{ route.params.id }}
 
             <ButtonAdd @add="DialogAdd = true" />
             <p class="ms-2 font-weight-thin text-subtitle-1">

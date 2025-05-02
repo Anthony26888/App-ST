@@ -61,8 +61,12 @@
       </v-card>
     </v-card-text>
   </v-card>
-  <v-dialog v-model="DialogEdit" width="400">
-    <v-card max-width="400" prepend-icon="mdi-update" title="Cập nhật dữ liệu">
+  <v-dialog v-model="DialogEdit" width="400" scrollable>
+    <v-card class="overflow-y-auto">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
+        Cập nhật dữ liệu
+      </v-card-title>
       <v-card-text>
         <v-text-field
           label="Hao phí thực tế"
@@ -78,12 +82,12 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogAccept" width="400">
-    <v-card
-      max-width="400"
-      prepend-icon="mdi-update"
-      title="Kho xác nhận dữ liệu"
-    >
+  <v-dialog v-model="DialogAccept" width="400" scrollable>
+    <v-card class="overflow-y-auto">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
+        Kho xác nhận dữ liệu
+      </v-card-title>
       <v-card-text> Bạn có chắc chắn muốn xác nhận dữ liệu? </v-card-text>
       <v-card-actions>
         <ButtonCancel @cancel="DialogAccept = false" />
@@ -91,19 +95,19 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogInfo" width="800">
-    <v-card
-      max-width="800"
-      prepend-icon="mdi-information-variant-circle"
-      title="Thông số kỹ thuật"
-    >
-      <template v-slot:append>
+  <v-dialog v-model="DialogInfo" width="800" scrollable>
+    <v-card class="overflow-y-auto">
+      <v-card-title class="d-flex align-center">
+        <v-icon icon="mdi-information-variant-circle" color="primary" class="me-2"></v-icon>
+        Thông số kỹ thuật
+        <v-spacer></v-spacer>
         <v-btn
           variant="text"
           icon="mdi-close"
           @click="DialogInfo = false"
         ></v-btn>
-      </template>
+      </v-card-title>
+      
       <v-card-text>
         <v-row>
           <v-col>

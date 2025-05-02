@@ -263,7 +263,7 @@ export default {
         {
           key: "id",
           sortable: false,
-          title: "Xem",
+          title: "Thao tác",
         },
       ],
       itemsPerPage: 15,

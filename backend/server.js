@@ -107,7 +107,25 @@ io.on("connection", (socket) => {
     }),
     socket.on("getDetailProject", async (id) => {
       try {
-        const query = `SELECT DISTINCT p.id, p.PONumber AS PO, SUM(o.QuantityProduct) AS Total_Product,SUM(o.QuantityDelivered) AS Total_Delivered, SUM(o.QuantityAmount) AS Total_Amount, p.DateCreated AS Date_Created, p.DateDelivery AS Date_Delivery FROM PurchaseOrders p LEFT JOIN ProductDetails o ON p.id = o.POID WHERE p.CustomerID = ? GROUP BY p.PONumber ORDER BY p.PONumber ASC`;
+        const query = `
+          SELECT DISTINCT 
+            p.id, 
+            p.PONumber AS PO, 
+            CASE
+              WHEN SUM(o.QuantityProduct) =  SUM(o.QuantityDelivered) THEN 'true'
+              ELSE 'false'
+            END AS Status,
+            SUM(o.QuantityProduct) AS Total_Product, 
+            SUM(o.QuantityDelivered) AS Total_Delivered, 
+            SUM(o.QuantityAmount) AS Total_Amount, 
+            p.DateCreated AS Date_Created, 
+            p.DateDelivery AS Date_Delivery 
+          FROM PurchaseOrders p 
+          LEFT JOIN ProductDetails o ON p.id = o.POID 
+          WHERE p.CustomerID = ? 
+          GROUP BY p.PONumber 
+          ORDER BY p.PONumber ASC
+        `;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("DetailProjectError", err);
           socket.emit("DetailProjectData", rows);
