@@ -296,7 +296,7 @@ const Headers = ref([
   { key: "Customer", title: "Mã kho", width: "100px", noWrap: true },
   { key: "Note", title: "Ghi chú", width: "150px", noWrap: true },
   { key: "Note_Output", title: "Ghi chú xuất", width: "150px", noWrap: true },
-  { key: "id", title: "Sửa", width: "100px", noWrap: true },
+  { key: "id", title: "Thao tác", width: "100px", noWrap: true },
 ]);
 const File = ref(null);
 const PartNumber1_Edit = ref("");

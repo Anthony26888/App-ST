@@ -68,13 +68,7 @@
         Cập nhật dữ liệu
       </v-card-title>
       <v-card-text>
-        <v-text-field
-          label="Hao phí thực tế"
-          v-model="ActualCost"
-          clearable
-          type="number"
-          variant="solo-filled"
-        ></v-text-field>
+        <InputField label="Hao phí thực tế" v-model="ActualCost" />
       </v-card-text>
       <v-card-actions>
         <ButtonCancel @cancel="DialogEdit = false" />
@@ -98,7 +92,11 @@
   <v-dialog v-model="DialogInfo" width="800" scrollable>
     <v-card class="overflow-y-auto">
       <v-card-title class="d-flex align-center">
-        <v-icon icon="mdi-information-variant-circle" color="primary" class="me-2"></v-icon>
+        <v-icon
+          icon="mdi-information-variant-circle"
+          color="primary"
+          class="me-2"
+        ></v-icon>
         Thông số kỹ thuật
         <v-spacer></v-spacer>
         <v-btn
@@ -107,7 +105,7 @@
           @click="DialogInfo = false"
         ></v-btn>
       </v-card-title>
-      
+
       <v-card-text>
         <v-row>
           <v-col>
@@ -178,7 +176,7 @@ import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 import { useSocket } from "@/composables/useWebSocket";
 import { useDetailOrder } from "@/composables/useDetailOrder";
-import { Buffer } from "buffer"
+import { Buffer } from "buffer";
 const route = useRoute();
 const id = route.params.id;
 const { orders } = useSocket();
@@ -208,6 +206,10 @@ const accessToken = ref(null);
 const tokenType = ref(null);
 const expires_in = ref(null);
 const ResultSearch = ref(null);
+const search = ref("");
+const itemsPerPage = ref(12);
+const page = ref(1);
+
 onMounted(() => {
   const storeData = localStorage.getItem("PO");
   NamePO.value = storeData;
@@ -229,8 +231,7 @@ function generateHeaders(bomData) {
       title: key.replace(/_/g, " "), // Thay thế gạch dưới bằng khoảng trắng
       key: key, // key để v-data-table lấy dữ liệu
       sortable: true, // Có thể thêm sortable
-      width:200,
-      align:'center'
+      width: 200,
     }));
   } else {
     console.log("No data to generate headers, clearing headers."); // Log khi không có dữ liệu
@@ -373,8 +374,8 @@ const searchProduct = async () => {
     console.error(
       "Lỗi khi tìm kiếm sản phẩm:",
       error.response ? error.response.data : error.message,
-      DialogCaution.value = true,
-      DialogLoading.value = false
+      (DialogCaution.value = true),
+      (DialogLoading.value = false)
     );
     return null;
   }
@@ -406,42 +407,9 @@ export default {
     ButtonAgree,
   },
   data() {
-    return {
-      Url: import.meta.env.VITE_API_URL,
-      search: "",
-      Headers: [],
-
-      itemsPerPage: 12,
-      page: 1,
-    };
+    return {};
   },
-  methods: {
-    async DownloadOrder() {
-      try {
-        const response = await fetch(
-          `${this.Url}/Download-Order/${this.$route.params.PO}`
-        );
-        if (!response.ok) throw new Error("Download failed");
-
-        // Convert response to blob
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-
-        // Create a link to download
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${this.$route.params.PO}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-
-        // Cleanup
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error("Error downloading file:", error);
-      }
-    },
-  },
+  methods: {},
 };
 </script>
 <style lang=""></style>

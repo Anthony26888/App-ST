@@ -314,6 +314,24 @@ const accessToken = ref(null);
 const tokenType = ref(null);
 const expires_in = ref(null);
 const ResultSearch = ref(null);
+const search = ref("");
+const itemsPerPage = ref(15);
+const page = ref(1);
+const Headers = ref([
+  { key: "Description", title: "Mô tả", width: "200px" },
+  { key: "PartNumber_1", title: "Mã hàng 1" },
+  { key: "PartNumber_2", title: "Mã hàng 2" },
+  { key: "Input", title: "SL Nhập" },
+  { key: "Output", title: "SL Xuất" },  
+  { key: "Inventory", title: "SL Tồn kho" },
+  { key: "Location", title: "Vị trí" },
+  { key: "Customer", title: "Mã kho" },
+  { key: "Note", title: "Ghi chú" },
+  { key: "Note_Output", title: "Ghi chú xuất" },
+  { key: "id", title: "Thao tác" },
+]);
+
+
 function GetItem(value) {
   DialogEdit.value = true;
   GetID.value = value;
@@ -553,27 +571,6 @@ export default {
   },
   data() {
     return {
-      search: "",
-      Headers: [
-        {
-          key: "Description",
-          sortable: false,
-          title: "Mô tả",
-          width: "200px",
-        },
-        { key: "PartNumber_1", title: "Mã hàng 1" },
-        { key: "PartNumber_2", title: "Mã hàng 2" },
-        { key: "Input", title: "SL Nhập" },
-        { key: "Output", title: "SL Xuất" },
-        { key: "Inventory", title: "SL Tồn kho" },
-        { key: "Location", title: "Vị trí" },
-        { key: "Customer", title: "Mã kho" },
-        { key: "Note", title: "Ghi chú" },
-        { key: "Note_Output", title: "Ghi chú xuất" },
-        { key: "id", title: "Sửa" },
-      ],
-      itemsPerPage: 15,
-      page: 1,
     };
   },
   methods: {},

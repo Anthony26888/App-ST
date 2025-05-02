@@ -165,6 +165,18 @@ const FullName_Add = ref("");
 const Email_Add = ref("");
 const Password_Add = ref("");
 const Level_Add = ref("");
+const search = ref("");
+const itemsPerPage = ref(15);
+const page = ref(1);
+const Headers = ref([
+  { key: "Username", title: "Tài khoản", width: "150px", noWrap: true },
+  { key: "FullName", title: "Tên người dùng", width: "200px", noWrap: true }, 
+  { key: "Email", title: "Email", width: "200px", noWrap: true },
+  { key: "Level", title: "Phân quyền", width: "150px", noWrap: true },
+  { key: "Date", title: "Ngày tạo", width: "150px", noWrap: true },
+  { key: "id", title: "Sửa", width: "100px", noWrap: true },
+]);
+
 function GetItem(value) {
   DialogEdit.value = true;
   GetID.value = value;
@@ -269,23 +281,6 @@ export default {
   },
   data() {
     return {
-      search: "",
-      headers: [
-        {
-          align: "start",
-          key: "Username",
-          title: "Tài khoản",
-          width: "150px",
-          noWrap: true
-        },
-        { key: "FullName", title: "Tên người dùng", width: "200px", noWrap: true },
-        { key: "Email", title: "Email", width: "200px", noWrap: true },
-        { key: "Level", title: "Phân quyền", width: "150px", noWrap: true },
-        { key: "Date", title: "Ngày tạo", width: "150px", noWrap: true },
-        { key: "id", title: "Sửa", width: "100px", noWrap: true },
-      ],
-      itemsPerPage: 15,
-      page: 1,
     };
   },
   methods: {},
