@@ -85,7 +85,7 @@
       <v-card-text> Bạn có chắc chắn muốn xác nhận dữ liệu? </v-card-text>
       <v-card-actions>
         <ButtonCancel @cancel="DialogAccept = false" />
-        <ButtonAgree @agree="WareHouseAcceptWareHouse()" />
+        <ButtonAgree @agree="WareHouseAcceptWareHouse();WareHouse2AcceptWareHouse()" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -233,6 +233,7 @@ function generateHeaders(bomData) {
       sortable: true, // Có thể thêm sortable
       width: 200,
     }));
+
   } else {
     console.log("No data to generate headers, clearing headers."); // Log khi không có dữ liệu
     Headers.value = []; // Reset headers nếu không có dữ liệu
@@ -273,6 +274,20 @@ const WareHouseAcceptWareHouse = async () => {
     })
     .catch(function (error) {
       console.log(error);
+      Error();
+    });
+};
+
+const WareHouse2AcceptWareHouse = async () => {
+  DialogLoading.value = true;
+  axios
+    .put(`${Url}/WareHouse2/update-Inventory-CheckBom/${id}`)
+    .then(function (response) {
+      console.log(response);
+      WareHouseAccept();
+    })
+    .catch(function (error) {
+      console.log(error); 
       Error();
     });
 };

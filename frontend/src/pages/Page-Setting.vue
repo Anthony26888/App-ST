@@ -55,7 +55,7 @@
             </template>
 
             <v-list-item-title class="text-red"
-              >Xoá toàn bộ dữ liệu kho 2</v-list-item-title
+              >Xoá toàn bộ dữ liệu kho Misa</v-list-item-title
             >
           </v-list-item>
           <v-list-item

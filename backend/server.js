@@ -280,6 +280,13 @@ const getCompareInventory = async (id) => {
             ELSE 0 
           END AS SL_Cần_Mua
         `;
+        const BuyMisa = `
+          CASE 
+            WHEN (SUM(c.So_Luong * c.SL_Board) + SUM(IFNULL(c.Du_Toan_Hao_Phi, 0))) > IFNULL(w2.Inventory, 0) 
+            THEN SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Du_Toan_Hao_Phi, 0) - IFNULL(w2.Inventory, 0)
+            ELSE 0 
+          END AS SL_Cần_Mua_Misa
+        `;
         // Full SQL query
         const query = `
           SELECT 
@@ -296,12 +303,17 @@ const getCompareInventory = async (id) => {
             IFNULL(c.Du_Toan_Hao_Phi, 0) AS Dự_Toán_Hao_Phí,
             IFNULL(c.Hao_Phi_Thuc_Te, 0) AS Hao_Phí_Thực_Tế,
             IFNULL(i.Inventory, 0) AS SL_Tồn_Kho,
-            i.Customer AS Mã_Kho,
+            IFNULL(i.Customer, '') AS Mã_Kho,
+            IFNULL(w2.Inventory, 0) AS SL_Tồn_Kho_Misa,
+            IFNULL(w2.Customer, '') AS Mã_Kho_Misa,
             ${Buy},
+            ${BuyMisa},
             c.id AS Sửa
           FROM CheckBOM c
           LEFT JOIN WareHouse i 
             ON c.PartNumber_1 = i.PartNumber_1 
+          LEFT JOIN WareHouse2 w2
+            ON c.PartNumber_1 = w2.PartNumber_1
           WHERE c.PO = ?
           GROUP BY c.PartNumber_1;
         `;
@@ -714,6 +726,38 @@ app.put("/WareHouse/update-Inventory-CheckBom/:id", async (req, res) => {
         THEN Inventory - (SELECT SUM(cb.So_Luong * cb.SL_Board + cb.Hao_Phi_Thuc_Te)
                           FROM CheckBOM cb
                           WHERE cb.PartNumber_1 = WareHouse.PartNumber_1 AND cb.PO = ?)
+        ELSE 0
+      END
+    WHERE PartNumber_1 IN (SELECT PartNumber_1 FROM CheckBOM WHERE PO = ?)
+  `;
+  db.all(
+    query,
+    [poNumber, poNumber, poNumber],
+    function (err) {
+      if (err) {
+        return console.error(err.message);
+      }
+      io.emit("updateCompare");
+      // Broadcast the new message to all clients
+      res.json({ message: "Item inserted successfully" });
+    }
+  );
+});
+
+app.put("/WareHouse2/update-Inventory-CheckBom/:id", async (req, res) => {
+  const { id } = req.params;
+  const poNumber = id;
+  // Insert data into SQLite database
+  const query = `
+    UPDATE WareHouse2
+    SET Inventory = 
+      CASE 
+        WHEN Inventory > (SELECT SUM(cb.So_Luong * cb.SL_Board + cb.Hao_Phi_Thuc_Te)
+                          FROM CheckBOM cb
+                          WHERE cb.PartNumber_1 = WareHouse2.PartNumber_1 AND cb.PO = ?)
+        THEN Inventory - (SELECT SUM(cb.So_Luong * cb.SL_Board + cb.Hao_Phi_Thuc_Te)
+                          FROM CheckBOM cb
+                          WHERE cb.PartNumber_1 = WareHouse2.PartNumber_1 AND cb.PO = ?)
         ELSE 0
       END
     WHERE PartNumber_1 IN (SELECT PartNumber_1 FROM CheckBOM WHERE PO = ?)
