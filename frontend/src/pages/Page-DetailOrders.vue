@@ -160,6 +160,7 @@
   <Loading v-model="DialogLoading" />
 </template>
 <script setup>
+// Import
 import axios from "axios";
 import { computed } from "vue";
 import { useRoute } from "vue-router";
@@ -177,10 +178,16 @@ import Loading from "@/components/Loading.vue";
 import { useSocket } from "@/composables/useWebSocket";
 import { useDetailOrder } from "@/composables/useDetailOrder";
 import { Buffer } from "buffer";
+import emailjs from "@emailjs/browser";
+
+// Route
 const route = useRoute();
 const id = route.params.id;
+// Socket
 const { orders } = useSocket();
+// Detail Order
 const { compare, compareError, headers } = useDetailOrder(id);
+// Url
 const Url = import.meta.env.VITE_API_URL;
 const status = computed(() => {
   if (!orders.value || !Array.isArray(orders.value)) return null;
@@ -188,6 +195,7 @@ const status = computed(() => {
   return found ? found.Status : null;
 });
 const Headers = ref([]);
+// Dialog
 const DialogEdit = ref(false);
 const DialogAccept = ref(false);
 const DialogSuccess = ref(false);
@@ -195,21 +203,29 @@ const DialogFailed = ref(false);
 const DialogLoading = ref(false);
 const DialogCaution = ref(false);
 const DialogInfo = ref(false);
+// Data
 const NamePO = ref("");
 const PartNumber_1 = ref("");
 const GetID = ref("");
 const ActualCost = ref("");
 const GetDigikey = ref("");
-const clientId = import.meta.env.VITE_DIGIKEY_CLIENT_ID;
-const clientSecret = import.meta.env.VITE_DIGIKEY_CLIENT_SECRET;
-const accessToken = ref(null);
-const tokenType = ref(null);
 const expires_in = ref(null);
 const ResultSearch = ref(null);
 const search = ref("");
 const itemsPerPage = ref(12);
 const page = ref(1);
+// Digikey
+const clientId = import.meta.env.VITE_DIGIKEY_CLIENT_ID;
+const clientSecret = import.meta.env.VITE_DIGIKEY_CLIENT_SECRET;
+const accessToken = ref(null);
+const tokenType = ref(null);
+// Email
+const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
+
+// Mounted
 onMounted(() => {
   const storeData = localStorage.getItem("PO");
   NamePO.value = storeData;
@@ -222,6 +238,7 @@ watch(
   },
   { deep: true }
 ); // deep: trues
+// Generate Headers
 function generateHeaders(bomData) {
   if (bomData && bomData.length > 0) {
     // Lấy keys từ object ĐẦU TIÊN trong mảng
@@ -239,6 +256,7 @@ function generateHeaders(bomData) {
     Headers.value = []; // Reset headers nếu không có dữ liệu
   }
 }
+// Get Item
 function GetItem(value) {
   DialogEdit.value = true;
   GetID.value = value;
@@ -246,6 +264,7 @@ function GetItem(value) {
   PartNumber_1.value = found.PartNumber_1;
   ActualCost.value = found.Hao_Phí_Thực_Tế;
 }
+// Save Edit
 const SaveEdit = async () => {
   DialogLoading.value = true;
   const formData = {
@@ -277,7 +296,7 @@ const WareHouseAcceptWareHouse = async () => {
       Error();
     });
 };
-
+// WareHouse2 Accept
 const WareHouse2AcceptWareHouse = async () => {
   DialogLoading.value = true;
   axios
@@ -291,6 +310,7 @@ const WareHouse2AcceptWareHouse = async () => {
       Error();
     });
 };
+// WareHouse Accept
 const WareHouseAccept = async () => {
   axios
     .put(`${Url}/Orders/WareHouse-Accept/${id}`)
@@ -303,6 +323,7 @@ const WareHouseAccept = async () => {
       Error();
     });
 };
+// Download Order
 const DownloadOrder = async () => {
   try {
     const response = await fetch(`${Url}/Download-Order/${id}`);
@@ -393,6 +414,36 @@ const searchProduct = async () => {
       (DialogLoading.value = false)
     );
     return null;
+  }
+};
+// Send Email
+const sendEmail = async () => {
+  DialogLoading.value = true;
+  const found = users.value.find((v) => v.Username === UserInfo.value);
+  const foundAccept = users.value.find((v) => v.Username === Accept.value);
+  try {
+    const response = await emailjs.send(
+      serviceId,
+      templateId,
+      {
+        toName: foundAccept.FullName,
+        fromName: found.FullName,
+        message: `Đơn hàng ${namePO.value} đã được tạo thành công. Bộ phận Kho kiểm tra và xác nhận thông tin đơn hàng để tiến hành xuất hàng.`,
+        email: foundAccept.Email,
+        level: found.Level,
+      },
+      publicKey
+    );
+    console.log("SUCCESS!", response.status, response.text);
+    DialogSuccess.value = true;
+    DialogLoading.value = false;
+    // Reset form sau khi gửi thành công (tùy chọn)
+    toName.value = "";
+    email.value = "";
+  } catch (error) {
+    console.error("FAILED...", error);
+    DialogFailed.value = true;
+    DialogLoading.value = false;
   }
 };
 function Reset() {

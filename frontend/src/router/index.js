@@ -19,6 +19,8 @@ import PageMaintenance from "@/pages/Page-Maintenance.vue";
 import PageDetailMaintenance from "@/pages/Page-DetailMaintenance.vue";
 import PageMaintenanceSchedule from "@/pages/Page-MaintenanceSchedule.vue";
 import PageSparePartUsage from "@/pages/Page-SparePartUsage.vue";
+import PagePlanProduct from "@/pages/Page-Manufacture.vue";
+import PageDetailManufacture from "@/pages/Page-DetailManufacture.vue";
 const routes = [
   {
     path: "/Trang-chủ",
@@ -119,6 +121,18 @@ const routes = [
         name: "SparePartUsage",
         meta: { requiresAuth: true },
         component: PageSparePartUsage,
+      },
+      {
+        path: "/San-xuat",
+        name: "Manufacture",
+        meta: { requiresAuth: true },
+        component: PagePlanProduct,
+      },
+      {
+        path: "/San-xuat/Chi-tiet/:id",
+        name: "DetailManufacture",
+        meta: { requiresAuth: true },
+        component: PageDetailManufacture,
       },
     ],
   },

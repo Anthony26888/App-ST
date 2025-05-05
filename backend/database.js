@@ -164,5 +164,28 @@ db.serialize(() => {
       FOREIGN KEY (MaThietBi) REFERENCES Machine(MaThietBi)
   )
   `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS PlanManufacture (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      Name TEXT,
+      Total INTEGER,
+      Status TEXT,
+      Date TEXT,
+      Note TEXT,
+      Creater TEXT
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ManufactureDetails (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      PlanID INTEGER,
+      Input INTEGER NOT NULL,
+      Output INTEGER NOT NULL,
+      Date TEXT NOT NULL,
+      FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
+    )
+  `);
+
 });
 module.exports = db;

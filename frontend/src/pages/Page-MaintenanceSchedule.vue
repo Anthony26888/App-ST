@@ -89,7 +89,7 @@
                 ></v-chip>
               </div>
             </template>
-            <template v-slot:item.id="{ item }">
+            <template v-slot:item.MaLich="{ item }">
               <ButtonEdit @edit="GetItem(item)" />
             </template>
           </v-data-table>
@@ -311,7 +311,7 @@ const Headers = [
   },
   { title: "Hạn bảo trì", key: "SoNgayConLai", sortable: true },
   { title: "Ghi chú", key: "GhiChu", sortable: true },
-  { title: "Thao tác", key: "id", sortable: false },
+  { title: "Thao tác", key: "MaLich", sortable: false },
 ];
 
 // Form data for Add
@@ -401,8 +401,9 @@ const GetItem = (item) => {
   NgayBatDau_Edit.value = item.NgayBatDau;
   NgayBaoTriTiepTheo_Edit.value = item.NgayBaoTriTiepTheo;
   GhiChu_Edit.value = item.GhiChu;
-  GetID.value = item.id;
+  GetID.value = item.MaLich;
   DialogEdit.value = true;
+  console.log(GetID.value);
 };
 
 const SaveAdd = async () => {

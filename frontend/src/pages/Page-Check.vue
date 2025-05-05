@@ -41,7 +41,7 @@
             class="ms-2 text-caption"
             variant="tonal"
             :disabled="OrderAvailable"
-            @click="SaveTable()"
+            @click="DialogAccept = true"
             >Lưu dữ liệu</v-btn
           >
           <v-spacer></v-spacer>
@@ -129,6 +129,28 @@
       </template>
     </v-card>
   </v-dialog>
+  <v-dialog v-model="DialogAccept" width="400">
+    <v-card class="overflow-y-auto">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-check" color="success" class="me-2"></v-icon>
+        Xác nhận đơn hàng
+      </v-card-title>
+      <v-card-text>
+        <InputSelect
+          label="Chọn người nhận"
+          v-model="Accept"
+          :items="users"
+          item-title="FullName"
+          item-value="Username"
+        />
+      </v-card-text>
+      <template v-slot:actions>
+        <ButtonCancel @cancel="DialogAccept = false" />
+        <ButtonAgree @agree="SaveTable()" />
+        
+      </template>
+    </v-card>
+  </v-dialog>
   <v-dialog v-model="DialogRemove" width="400">
     <v-card class="overflow-y-auto">
       <v-card-title class="d-flex align-center pa-4">
@@ -150,24 +172,29 @@
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import { useRoute, useRouter } from "vue-router";
-import { ref, computed } from "vue";
+import { onMounted, ref, computed, watch } from "vue";
 import ButtonImportFile from "@/components/Button-ImportFile.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
+import ButtonAgree from "@/components/Button-Agree.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputFiles from "@/components/Input-Files.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
+import emailjs from "@emailjs/browser";
 import { useCheckBOM } from "@/composables/useCheckBom";
+import { useUsers } from "@/composables/useUsers";
 
 const { checkBOM, fetchData } = useCheckBOM();
+const { users } = useUsers();
 const Url = import.meta.env.VITE_API_URL;
 const Dialog = ref(false);
 const DialogEdit = ref(false);
 const DialogRemove = ref(false);
+const DialogAccept = ref(false);
 const DialogSuccess = ref(false);
 const DialogFailed = ref(false);
 const DialogLoading = ref(false);
@@ -181,6 +208,13 @@ const UserInfo = ref("");
 const NamePO = ref("");
 const namePO = ref("");
 const GetID = ref("");
+const Accept = ref(""); 
+const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+const toName = ref("Huỳnh Ngọc");
+
+const email = ref("haidang34821@gmail.com");
 onMounted(() => {
   const token = localStorage.getItem("token");
   if (token) {
@@ -228,6 +262,7 @@ function generateHeaders(bomData) {
     Headers.value = []; // Reset headers nếu không có dữ liệu
   }
 }
+// Import File
 const ImportFile = async () => {
   DialogLoading.value = true;
   const now = new Date();
@@ -276,6 +311,7 @@ const DownloadPO = async () => {
     console.error("Error downloading file:", error);
   }
 };
+// Save Table
 const SaveTable = async () => {
   const now = new Date();
   const day = String(now.getDate()).padStart(2, "0");
@@ -303,6 +339,7 @@ const SaveTable = async () => {
     .post(`${Url}/ListPO/upload-new-PO`, formData)
     .then(function (response) {
       console.log(response);
+      sendEmail();
       Reset();
     })
     .catch(function (error) {
@@ -330,11 +367,44 @@ const SaveEdit = () => {
       Error();
     });
 };
+// Send Email
+const sendEmail = async () => {
+  DialogLoading.value = true;
+  const found = users.value.find((v) => v.Username === UserInfo.value);
+  const foundAccept = users.value.find((v) => v.Username === Accept.value);
+  try {
+    const response = await emailjs.send(
+      serviceId,
+      templateId,
+      {
+        toName: foundAccept.FullName,
+        fromName: found.FullName,
+        message: `Đơn hàng ${namePO.value} đã được tạo thành công. Bộ phận Kho kiểm tra và xác nhận thông tin đơn hàng để tiến hành xuất hàng.`,
+        email: foundAccept.Email,
+        level: found.Level,
+      },
+      publicKey
+    );
+    console.log("SUCCESS!", response.status, response.text);
+    DialogSuccess.value = true;
+    DialogLoading.value = false;
+    // Reset form sau khi gửi thành công (tùy chọn)
+    toName.value = "";
+    email.value = "";
+  } catch (error) {
+    console.error("FAILED...", error);
+    DialogFailed.value = true;
+    DialogLoading.value = false;
+  }
+};
+
 function Reset() {
   DialogSuccess.value = true;
   Dialog.value = false;
   DialogLoading.value = false;
   DialogEdit.value = false;
+  DialogAccept.value = false;
+  DialogRemove.value = false;
 }
 function Error() {
   DialogFailed.value = true;
@@ -356,6 +426,7 @@ export default {
     SnackbarSuccess,
     SnackbarFailed,
     Loading,
+    ButtonAgree,
   },
   data() {
     return {

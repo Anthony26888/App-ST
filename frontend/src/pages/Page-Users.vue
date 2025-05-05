@@ -12,7 +12,7 @@
     </v-card-title>
     <v-card-text>
       <v-data-table 
-        :headers="headers" 
+        :headers="Headers" 
         :items="users" 
         :search="search"
         class="elevation-1"
@@ -174,7 +174,7 @@ const Headers = ref([
   { key: "Email", title: "Email", width: "200px", noWrap: true },
   { key: "Level", title: "Phân quyền", width: "150px", noWrap: true },
   { key: "Date", title: "Ngày tạo", width: "150px", noWrap: true },
-  { key: "id", title: "Sửa", width: "100px", noWrap: true },
+  { key: "id", title: "Thao tác", width: "100px", noWrap: true },
 ]);
 
 function GetItem(value) {

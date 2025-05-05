@@ -34,8 +34,10 @@
         height="calc(100vh - 200px)"
       >
         <template v-slot:item.id="{ value }">
-          <ButtonEye @detail="PushItem(value)" />
-          <ButtonRemove @remove="GetItem(value)" />
+          <div class="d-flex">
+            <ButtonEye @detail="PushItem(value)" />
+            <ButtonRemove @remove="GetItem(value)" />
+          </div>
         </template>
         <template v-slot:item.Status="{ item }">
           <div class="text-start">

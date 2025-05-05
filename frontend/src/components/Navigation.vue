@@ -193,6 +193,13 @@ const menuItems = computed(() => [
     disabled: StatusOption_7.value
   },
   {
+    icon: 'mdi-calendar-check',
+    title: 'Sản xuất',
+    value: 'Manufacture',
+    to: '/San-xuat',
+    disabled: StatusOption_6.value
+  },
+  {
     icon: 'mdi-cog',
     title: 'Cài đặt',
     value: 'Setting',
