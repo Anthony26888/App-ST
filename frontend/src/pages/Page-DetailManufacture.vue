@@ -125,9 +125,10 @@ const page = ref(1);
 const itemsPerPage = ref(10);
 const DialogLoading = ref(false);
 const DialogFailed = ref(false);
-const { manufactureDetails } = useManufactureDetails(id);
+const { manufactureDetails, connectionStatus } = useManufactureDetails(id);
 const { manufacture } = useManufacture();
 const { count } = useSensorCount(id);
+console.log("connectionStatus:", connectionStatus.value);
 // Production statistics
 const NameManufacture = localStorage.getItem("ProductName");
 

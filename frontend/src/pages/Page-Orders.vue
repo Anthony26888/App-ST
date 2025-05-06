@@ -106,6 +106,7 @@ const DialogFailed = ref(null);
 const GetID = ref("")
 function PushItem(value) {
   const found = orders.value.find((v) => v.id === value);
+  localStorage.setItem("Creater_Order", found.Creater);
   router.push(`/Don-hang/${found.Name_PO}`);
 }
 function GetItem(value) {

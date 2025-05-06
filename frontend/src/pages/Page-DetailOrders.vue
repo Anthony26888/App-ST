@@ -177,14 +177,20 @@ import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 import { useSocket } from "@/composables/useWebSocket";
 import { useDetailOrder } from "@/composables/useDetailOrder";
+import { jwtDecode } from "jwt-decode";
+import { useUsers } from "@/composables/useUsers";
+import { useOrders } from "@/composables/useOrders";
 import { Buffer } from "buffer";
 import emailjs from "@emailjs/browser";
 
 // Route
 const route = useRoute();
 const id = route.params.id;
-// Socket
-const { orders } = useSocket();
+
+// Orders
+const { orders } = useOrders();
+// Users
+const { users } = useUsers();
 // Detail Order
 const { compare, compareError, headers } = useDetailOrder(id);
 // Url
@@ -207,6 +213,7 @@ const DialogInfo = ref(false);
 const NamePO = ref("");
 const PartNumber_1 = ref("");
 const GetID = ref("");
+const UserInfo = ref("");
 const ActualCost = ref("");
 const GetDigikey = ref("");
 const expires_in = ref(null);
@@ -229,6 +236,13 @@ const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 onMounted(() => {
   const storeData = localStorage.getItem("PO");
   NamePO.value = storeData;
+  const token = localStorage.getItem("token");
+  if (token) {
+    const decoded = jwtDecode(token);
+    UserInfo.value = decoded.Username;
+  } else {
+    console.log("Không tìm thấy token!");
+  }
 });
 watch(
   compare,
@@ -316,7 +330,8 @@ const WareHouseAccept = async () => {
     .put(`${Url}/Orders/WareHouse-Accept/${id}`)
     .then(function (response) {
       console.log(response);
-      Reset();
+      sendEmail();
+      
     })
     .catch(function (error) {
       console.log(error);
@@ -420,7 +435,7 @@ const searchProduct = async () => {
 const sendEmail = async () => {
   DialogLoading.value = true;
   const found = users.value.find((v) => v.Username === UserInfo.value);
-  const foundAccept = users.value.find((v) => v.Username === Accept.value);
+  const foundAccept = users.value.find((v) => v.Username === localStorage.getItem("Creater_Order"));
   try {
     const response = await emailjs.send(
       serviceId,
@@ -428,22 +443,18 @@ const sendEmail = async () => {
       {
         toName: foundAccept.FullName,
         fromName: found.FullName,
-        message: `Đơn hàng ${namePO.value} đã được tạo thành công. Bộ phận Kho kiểm tra và xác nhận thông tin đơn hàng để tiến hành xuất hàng.`,
+        message: `Đơn hàng ${route.params.id} đã được bộ phận kho xác nhận hoàn tất kiểm tra.`,
         email: foundAccept.Email,
         level: found.Level,
       },
       publicKey
     );
     console.log("SUCCESS!", response.status, response.text);
-    DialogSuccess.value = true;
-    DialogLoading.value = false;
+    Reset();
     // Reset form sau khi gửi thành công (tùy chọn)
-    toName.value = "";
-    email.value = "";
   } catch (error) {
     console.error("FAILED...", error);
-    DialogFailed.value = true;
-    DialogLoading.value = false;
+    Error();
   }
 };
 function Reset() {
@@ -451,11 +462,19 @@ function Reset() {
   DialogLoading.value = false;
   DialogSuccess.value = true;
   DialogAccept.value = false;
+  DialogInfo.value = false;
+  DialogFailed.value = false;
+  DialogCaution.value = false;
 }
 function Error() {
   DialogFailed.value = true;
   DialogLoading.value = false;
   DialogAccept.value = false;
+  DialogInfo.value = false;
+  DialogCaution.value = false;
+  DialogEdit.value = false;
+  DialogSuccess.value = false;
+  
 }
 </script>
 <script>

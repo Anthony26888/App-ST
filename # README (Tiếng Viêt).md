@@ -111,3 +111,14 @@
 
 ## Cấu trúc Dự án
 
+
+## EmailJS
+1. Tài khoản
+    Email: sieuthuatapp@outlook.com
+    Mật khẩu: sieuthuat123
+
+## Digikey
+1. Tài khoản
+    Email: sieuthuatapp@outlook.com
+    Mật khẩu: sieuthuat123
+
