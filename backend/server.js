@@ -31,6 +31,7 @@ let arduinoParser = null;
 let isArduinoConnected = false;
 let pendingCommands = [];
 let reconnectInterval = null;
+let currentPortPath = "/dev/tty.usbserial-1420"; // Path mặc định
 
 // Hàm đóng kết nối Arduino an toàn
 function safeCloseArduino() {
@@ -48,14 +49,29 @@ function safeCloseArduino() {
 }
 
 // Hàm khởi tạo kết nối Arduino
-function initializeArduino() {
+function initializeArduino(portPath = currentPortPath) {
   try {
+    // Kiểm tra nếu không có port được chọn
+    if (!portPath) {
+      console.log('No port selected');
+      isArduinoConnected = false;
+      io.emit('arduinoStatus', { 
+        connected: false, 
+        message: 'Chưa chọn cổng kết nối',
+        portPath: ''
+      });
+      return;
+    }
+
     // Đóng kết nối cũ an toàn
     safeCloseArduino();
 
+    // Cập nhật path mới
+    currentPortPath = portPath;
+
     // Tạo kết nối mới
     arduinoPort = new SerialPort({
-      path: "/dev/cu.usbserial-1410",
+      path: currentPortPath,
       baudRate: 9600,
       autoOpen: false
     });
@@ -63,9 +79,13 @@ function initializeArduino() {
     arduinoParser = arduinoPort.pipe(new ReadlineParser({ delimiter: "\n" }));
 
     arduinoPort.on('open', () => {
-      console.log('Arduino connected successfully');
+      console.log('Arduino connected successfully on port:', currentPortPath);
       isArduinoConnected = true;
-      io.emit('arduinoStatus', { connected: true, message: 'Arduino đã kết nối' });
+      io.emit('arduinoStatus', { 
+        connected: true, 
+        message: 'Arduino đã kết nối',
+        portPath: currentPortPath
+      });
       
       // Dừng interval kết nối lại nếu đang chạy
       if (reconnectInterval) {
@@ -81,9 +101,13 @@ function initializeArduino() {
     });
 
     arduinoPort.on('close', () => {
-      console.log('Arduino disconnected');
+      console.log('Arduino disconnected from port:', currentPortPath);
       isArduinoConnected = false;
-      io.emit('arduinoStatus', { connected: false, message: 'Arduino mất kết nối' });
+      io.emit('arduinoStatus', { 
+        connected: false, 
+        message: 'Arduino mất kết nối',
+        portPath: currentPortPath
+      });
       
       // Bắt đầu thử kết nối lại
       startReconnectAttempts();
@@ -92,7 +116,11 @@ function initializeArduino() {
     arduinoPort.on('error', (err) => {
       console.error('Serial port error:', err);
       isArduinoConnected = false;
-      io.emit('arduinoStatus', { connected: false, message: 'Lỗi kết nối Arduino: ' + err.message });
+      io.emit('arduinoStatus', { 
+        connected: false, 
+        message: 'Lỗi kết nối Arduino: ' + err.message,
+        portPath: currentPortPath
+      });
       
       // Đóng kết nối an toàn
       safeCloseArduino();
@@ -108,7 +136,11 @@ function initializeArduino() {
       if (err) {
         console.error('Error opening port:', err);
         isArduinoConnected = false;
-        io.emit('arduinoStatus', { connected: false, message: 'Lỗi mở kết nối Arduino: ' + err.message });
+        io.emit('arduinoStatus', { 
+          connected: false, 
+          message: 'Lỗi mở kết nối Arduino: ' + err.message,
+          portPath: currentPortPath
+        });
         
         // Đóng kết nối an toàn
         safeCloseArduino();
@@ -121,7 +153,11 @@ function initializeArduino() {
   } catch (error) {
     console.error('Error initializing Arduino:', error);
     isArduinoConnected = false;
-    io.emit('arduinoStatus', { connected: false, message: 'Lỗi khởi tạo Arduino: ' + error.message });
+    io.emit('arduinoStatus', { 
+      connected: false, 
+      message: 'Lỗi khởi tạo Arduino: ' + error.message,
+      portPath: currentPortPath
+    });
     
     // Đóng kết nối an toàn
     safeCloseArduino();
@@ -140,7 +176,7 @@ function startReconnectAttempts() {
 
   // Thử kết nối lại mỗi 5 giây
   reconnectInterval = setInterval(() => {
-    console.log('Attempting to reconnect to Arduino...');
+    console.log('Attempting to reconnect to Arduino on port:', currentPortPath);
     initializeArduino();
   }, 5000);
 }
@@ -228,13 +264,69 @@ try {
   startReconnectAttempts();
 }
 
+// Route để thay đổi port và kết nối lại Arduino
+app.post("/arduino/connect", (req, res) => {
+  const { portPath } = req.body;
+  
+  if (!portPath) {
+    return res.status(400).json({ 
+      error: "Port path is required",
+      currentPort: currentPortPath
+    });
+  }
+
+  try {
+    // Dừng interval kết nối lại nếu đang chạy
+    if (reconnectInterval) {
+      clearInterval(reconnectInterval);
+      reconnectInterval = null;
+    }
+
+    // Khởi tạo lại kết nối với port mới
+    initializeArduino(portPath);
+    
+    res.json({ 
+      success: true, 
+      message: "Đang thử kết nối Arduino...",
+      portPath: portPath
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      error: "Lỗi khi thay đổi port: " + error.message,
+      currentPort: currentPortPath
+    });
+  }
+});
+
+// Route để lấy danh sách các port có sẵn
+app.get("/arduino/ports", async (req, res) => {
+  try {
+    const ports = await SerialPort.list();
+    res.json({
+      success: true,
+      ports: ports.map(port => ({
+        path: port.path,
+        manufacturer: port.manufacturer,
+        serialNumber: port.serialNumber,
+        isCurrentPort: port.path === currentPortPath
+      })),
+      currentPortPath: currentPortPath
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      error: "Lỗi khi lấy danh sách port: " + error.message 
+    });
+  }
+});
+
 // Route kiểm tra trạng thái Arduino
 app.get("/arduino/status", (req, res) => {
   res.json({
     connected: isArduinoConnected && arduinoPort && arduinoPort.isOpen,
     message: isArduinoConnected && arduinoPort && arduinoPort.isOpen ? "Arduino đã kết nối" : "Arduino chưa kết nối",
     pendingCommands: pendingCommands.length,
-    reconnecting: !!reconnectInterval
+    reconnecting: !!reconnectInterval,
+    currentPort: currentPortPath
   });
 });
 
@@ -252,6 +344,31 @@ app.post("/arduino/command", (req, res) => {
     connected: isArduinoConnected && arduinoPort && arduinoPort.isOpen,
     pendingCommands: pendingCommands.length
   });
+});
+
+// Route để ngắt kết nối Arduino
+app.post("/arduino/disconnect", (req, res) => {
+  try {
+    // Dừng interval kết nối lại nếu đang chạy
+    if (reconnectInterval) {
+      clearInterval(reconnectInterval);
+      reconnectInterval = null;
+    }
+
+    // Đóng kết nối an toàn
+    safeCloseArduino();
+    
+    res.json({ 
+      success: true, 
+      message: "Đã ngắt kết nối Arduino",
+      currentPort: currentPortPath
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      error: "Lỗi khi ngắt kết nối: " + error.message,
+      currentPort: currentPortPath
+    });
+  }
 });
 
 // Catch-all route cho frontend
@@ -1298,18 +1415,32 @@ app.put("/Machine/Edit/:id", async (req, res) => {
 // Router delete item in Machine table
 app.delete("/Machine/Delete/:id", async (req, res) => {
   const { id } = req.params;
-  // Insert data into SQLite database
-  const query = `
-    DELETE FROM Machine WHERE MaThietBi = ?
-  `;
-  db.run(query, [id], function (err) {
-    if (err) {
-      return res
-        .status(500)
-        .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
+  
+  // Start a transaction
+  db.serialize(() => {
+    db.run('BEGIN TRANSACTION');
+    
+    try {
+      // Delete related records first
+      db.run('DELETE FROM SparePartUsage WHERE MaThietBi = ?', [id]);
+      db.run('DELETE FROM Maintenance WHERE MaThietBi = ?', [id]);
+      db.run('DELETE FROM MaintenanceSchedule WHERE MaThietBi = ?', [id]);
+      
+      // Finally delete the machine
+      db.run('DELETE FROM Machine WHERE MaThietBi = ?', [id], function(err) {
+        if (err) {
+          db.run('ROLLBACK');
+          return res.status(500).json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
+        }
+        
+        db.run('COMMIT');
+        io.emit("MachineUpdate");
+        res.json({ message: "Đã xoá dữ liệu thiết bị thành công" });
+      });
+    } catch (error) {
+      db.run('ROLLBACK');
+      return res.status(500).json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
     }
-    io.emit("MachineUpdate");
-    res.json({ message: "Đã xoá dữ liệu thành công" });
   });
 });
 
@@ -1645,3 +1776,49 @@ app.post("/PlanManufacture/Add", async (req, res) => {
     res.json({ message: "Đã thêm dữ liệu dự án sản xuất thành công" });
   });
 });
+
+// Router update item in PlanManufacture table
+app.put("/PlanManufacture/Edit/:id", async (req, res) => {
+  const { id } = req.params;
+  const { Name, Date, Creater, Note, Total } = req.body;
+  // Insert data into SQLite database
+  const query = `
+      UPDATE PlanManufacture 
+      SET Name = ?, Date = ?, Creater = ?, Note = ?, Total = ?
+      WHERE id = ?
+    `;
+  db.run(
+    query,
+    [Name, Date, Creater, Note, Total, id],
+    function (err) {
+      if (err) {
+        return res
+          .status(500)
+          .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
+      }
+      io.emit("ManufactureUpdate");
+      res.json({ message: "Đã cập nhật dữ liệu dự án sản xuất thành công" });
+    }
+  );
+});
+
+// Router delete item in PlanManufacture table
+app.delete("/PlanManufacture/Delete/:id", async (req, res) => {
+  const { id } = req.params;
+  // Insert data into SQLite database
+  const query = `
+    DELETE FROM PlanManufacture WHERE id = ?
+  `;
+  db.run(query, [id], function (err) {
+    if (err) {
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
+    }
+    io.emit("ManufactureUpdate");
+    res.json({ message: "Đã xoá dữ liệu dự án sản xuất thành công" });
+  });
+});
+
+
+

@@ -122,3 +122,163 @@
     Email: sieuthuatapp@outlook.com
     Mật khẩu: sieuthuat123
 
+## Cài đặt và Chạy với Docker
+
+### Yêu cầu
+- Docker
+- Docker Compose
+
+### Các bước cài đặt
+
+1. **Tạo file Dockerfile cho Frontend**
+```dockerfile
+# frontend/Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Cài đặt các dependencies cần thiết
+RUN apk add --no-cache python3 make g++
+
+# Copy package files
+COPY package*.json ./
+
+# Cài đặt dependencies với legacy-peer-deps
+RUN npm install --legacy-peer-deps
+
+# Copy source code
+COPY . .
+
+# Build ứng dụng
+RUN npm run build
+
+# Cài đặt serve để chạy ứng dụng đã build
+RUN npm install -g serve
+
+# Expose port
+EXPOSE 3000
+
+# Chạy ứng dụng đã build
+CMD ["serve", "-s", "dist", "-l", "3000"]
+```
+
+2. **Tạo file Dockerfile cho Backend**
+```dockerfile
+# backend/Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Cài đặt các dependencies cần thiết
+RUN apk add --no-cache python3 make g++
+
+# Copy package files
+COPY package*.json ./
+
+# Cài đặt dependencies với legacy-peer-deps
+RUN npm install --legacy-peer-deps
+
+# Copy source code
+COPY . .
+
+EXPOSE 3000
+CMD ["node", "server.js"]
+```
+
+3. **Tạo file docker-compose.yml**
+```yaml
+version: '3.8'
+
+services:
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:3001
+      - NODE_ENV=production
+    depends_on:
+      - backend
+
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+```
+
+### Chạy ứng dụng
+
+1. **Xóa các container và image cũ**
+```bash
+# Xóa tất cả container và image
+docker-compose down --rmi all
+
+# Xóa node_modules và package-lock.json
+rm -rf frontend/node_modules frontend/package-lock.json
+rm -rf backend/node_modules backend/package-lock.json
+```
+
+2. **Build và chạy**
+```bash
+# Build với memory limit cao hơn
+docker-compose build --memory=4g
+
+# Chạy ứng dụng
+docker-compose up
+```
+
+### Truy cập ứng dụng
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:3001
+
+### Lưu ý
+- Đảm bảo các port 3000 và 3001 không bị sử dụng bởi ứng dụng khác
+- Nếu cần thay đổi port, có thể chỉnh sửa trong file docker-compose.yml
+- Để xem logs của các container:
+  ```bash
+  docker-compose logs -f
+  ```
+- Để xem logs của một service cụ thể:
+  ```bash
+  docker-compose logs -f frontend
+  docker-compose logs -f backend
+  ```
+
+### Troubleshooting
+1. Nếu gặp lỗi permission khi chạy Docker:
+   ```bash
+   sudo chmod 666 /var/run/docker.sock
+   ```
+
+2. Nếu gặp lỗi khi build:
+   ```bash
+   # Xóa node_modules và package-lock.json
+   rm -rf frontend/node_modules frontend/package-lock.json
+   rm -rf backend/node_modules backend/package-lock.json
+   
+   # Build lại với memory limit cao hơn
+   docker-compose build --memory=4g
+   ```
+
+3. Nếu gặp lỗi về dependencies:
+   ```bash
+   # Thử cài đặt dependencies thủ công
+   cd frontend && npm install --legacy-peer-deps
+   cd ../backend && npm install --legacy-peer-deps
+   
+   # Sau đó build lại
+   docker-compose up --build
+   ```
+

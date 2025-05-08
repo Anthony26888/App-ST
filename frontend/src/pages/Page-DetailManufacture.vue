@@ -7,11 +7,91 @@
     >
     <v-card-title class="d-flex align-center pe-2">
       <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
-          {{ NameManufacture }}
+      {{ NameManufacture }}
 
       <v-spacer></v-spacer>
       
+      <!-- Arduino Connection Controls -->
+      <v-menu location="bottom" :close-on-content-click="false">
+        <template v-slot:activator="{ props }">
+          <v-btn
+            v-bind="props"
+            :color="isArduinoConnected ? 'success' : 'error'"
+            :loading="isConnecting"
+            class="me-2"
+          >
+            <v-icon start>
+              {{ isArduinoConnected ? 'mdi-usb-port' : 'mdi-usb-off' }}
+            </v-icon>
+            {{ isArduinoConnected ? 'Đã kết nối' : 'Chưa kết nối' }}
+          </v-btn>
+        </template>
+        <v-card min-width="300">
+          <v-card-title class="text-subtitle-1 d-flex align-center">
+            <span>Kết nối Arduino</span>
+            <v-spacer></v-spacer>
+            <v-btn
+              icon="mdi-refresh"
+              variant="text"
+              size="small"
+              :loading="isLoadingPorts"
+              @click="fetchAvailablePorts"
+              :title="'Làm mới danh sách cổng'"
+            ></v-btn>
+          </v-card-title>
+          <v-card-text>
+            <v-select
+              v-model="selectedPort"
+              :items="['COM5','/dev/tty.usbserial-1420']"
+              label="Chọn cổng kết nối"
+              :loading="isLoadingPorts"
+              :disabled="isConnecting"
+              variant="outlined"
+              density="comfortable"
+              hide-details
+              class="mb-2"
+              :hint="selectedPort ? 'Đã chọn: ' + selectedPort : 'Chọn một cổng để kết nối'"
+              persistent-hint
+            >
+              
+            </v-select>
+            <div class="d-flex gap-2">
+              <v-btn
+                v-if="!isArduinoConnected"
+                block
+                color="primary"
+                :loading="isConnecting"
+                :disabled="!selectedPort || isConnecting"
+                @click="connectToArduino"
+              >
+                Kết nối
+              </v-btn>
+              <v-btn
+                v-else
+                block
+                color="error"
+                :loading="isConnecting"
+                :disabled="isConnecting"
+                @click="disconnectArduino"
+              >
+                Ngắt kết nối
+              </v-btn>
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-menu>
     </v-card-title>
+
+    <!-- Connection Status Snackbar -->
+    <v-snackbar
+      v-model="showStatusSnackbar"
+      :color="connectionStatusColor"
+      :timeout="3000"
+      location="bottom"
+    >
+      {{ connectionStatusMessage }}
+    </v-snackbar>
+
     <v-card-text>
       <!-- Production Statistics Cards -->
       <v-row class="mb-4">
@@ -96,7 +176,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, nextTick } from "vue";
+import { ref, reactive, onMounted, onBeforeMount, onUnmounted, computed, nextTick } from "vue";
 import axios from "axios";
 import { useRoute } from "vue-router";
 import Chart from "chart.js/auto";
@@ -114,7 +194,6 @@ import { watch } from "vue";
 import { useManufactureDetails } from "@/composables/useManufactureDetails";
 import { useManufacture } from "@/composables/useManufacture";
 import { useSensorCount } from "@/composables/useSensorCount";
-
 
 // ... existing refs and constants ...
 const Url = import.meta.env.VITE_API_URL;
@@ -161,10 +240,148 @@ const Data = {
 };
 console.log("Data:", Data);
 
+// Arduino connection state
+const isArduinoConnected = ref(false);
+const isConnecting = ref(false);
+const isLoadingPorts = ref(false);
+const availablePorts = ref([]);
+const selectedPort = ref(null);
+const showStatusSnackbar = ref(false);
+const connectionStatusMessage = ref('');
+const connectionStatusColor = ref('info');
+const lastConnectionState = ref(null);
+let statusInterval = null;
+
+// Function to fetch available ports
+async function fetchAvailablePorts() {
+  try {
+    isLoadingPorts.value = true;
+    const response = await axios.get(`${Url}/arduino/ports`);
+    if (response.data.success) {
+      availablePorts.value = response.data.ports.map(port => ({
+        label: `${port.path}${port.manufacturer ? ` - ${port.manufacturer}` : ''}${port.serialNumber ? ` (SN: ${port.serialNumber})` : ''}${port.isCurrentPort ? ' (Đang kết nối)' : ''}`,
+        value: port.path,
+        title: `Path: ${port.path}\nManufacturer: ${port.manufacturer || 'Unknown'}\nSerial Number: ${port.serialNumber || 'N/A'}${port.isCurrentPort ? '\nTrạng thái: Đang kết nối' : ''}`,
+        isCurrentPort: port.isCurrentPort
+      }));
+      
+      // Nếu có cổng đang kết nối, tự động chọn nó
+      if (response.data.currentPortPath) {
+        selectedPort.value = response.data.currentPortPath;
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching ports:', error);
+    showStatusMessage('Lỗi khi lấy danh sách cổng', 'error');
+  } finally {
+    isLoadingPorts.value = false;
+  }
+}
+
+// Function to show status message
+function showStatusMessage(message, color = 'info') {
+  if (message !== connectionStatusMessage.value) {
+    connectionStatusMessage.value = message;
+    connectionStatusColor.value = color;
+    showStatusSnackbar.value = true;
+  }
+}
+
+// Function to check Arduino status
+async function checkArduinoStatus() {
+  try {
+    const response = await axios.get(`${Url}/arduino/status`);
+    const currentState = {
+      connected: response.data.connected,
+      reconnecting: response.data.reconnecting,
+      portPath: response.data.currentPort
+    };
+
+    if (JSON.stringify(currentState) !== JSON.stringify(lastConnectionState.value)) {
+      isArduinoConnected.value = currentState.connected;
+      
+      if (currentState.connected) {
+        showStatusMessage(`Arduino đã kết nối (${currentState.portPath})`, 'success');
+      } else if (currentState.reconnecting) {
+        showStatusMessage(`Đang thử kết nối lại (${currentState.portPath})...`, 'warning');
+      } else {
+        showStatusMessage('Arduino chưa kết nối', 'error');
+      }
+
+      lastConnectionState.value = currentState;
+    }
+  } catch (error) {
+    console.error('Error checking Arduino status:', error);
+    if (lastConnectionState.value?.error !== error.message) {
+      showStatusMessage('Lỗi khi kiểm tra trạng thái Arduino', 'error');
+      lastConnectionState.value = { error: error.message };
+    }
+  }
+}
+
+// Function to connect to Arduino
+async function connectToArduino() {
+  if (!selectedPort.value) return;
+  
+  try {
+    isConnecting.value = true;
+    const response = await axios.post(`${Url}/arduino/connect`, {
+      portPath: selectedPort.value
+    });
+    
+    if (response.data.success) {
+      showStatusMessage(`Đang kết nối Arduino (${selectedPort.value})...`, 'info');
+      lastConnectionState.value = null;
+    }
+  } catch (error) {
+    console.error('Error connecting to Arduino:', error);
+    showStatusMessage('Lỗi khi kết nối Arduino', 'error');
+  } finally {
+    isConnecting.value = false;
+  }
+}
+
+// Function to disconnect Arduino
+async function disconnectArduino() {
+  try {
+    isConnecting.value = true;
+    const response = await axios.post(`${Url}/arduino/disconnect`);
+    
+    if (response.data.success) {
+      showStatusMessage('Đã ngắt kết nối Arduino', 'info');
+      isArduinoConnected.value = false;
+      lastConnectionState.value = null;
+    }
+  } catch (error) {
+    console.error('Error disconnecting Arduino:', error);
+    showStatusMessage('Lỗi khi ngắt kết nối Arduino', 'error');
+  } finally {
+    isConnecting.value = false;
+  }
+}
+
+// Khởi tạo trước khi component được mount
+onBeforeMount(async () => {
+  // Fetch available ports
+  await fetchAvailablePorts();
+  
+  // Check initial Arduino status
+  await checkArduinoStatus();
+  
+  // Set up periodic status check
+  statusInterval = setInterval(checkArduinoStatus, 5000);
+});
+
+// Cleanup khi component unmount
+onUnmounted(() => {
+  if (statusInterval) {
+    clearInterval(statusInterval);
+    statusInterval = null;
+  }
+});
 
 // Initialize chart
 onMounted(() => {
-  // Wait for next tick to ensure DOM is ready
   nextTick(() => {
     initializeChart();
     fetchProductionData();

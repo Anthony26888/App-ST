@@ -449,7 +449,7 @@ const SaveEdit = async () => {
 
   try {
     const response = await axios.put(
-      `${Url}/MaintenanceSchedule/Edit/${id}`,
+      `${Url}/MaintenanceSchedule/Edit/${GetID.value}`,
       formData
     );
     console.log(response.data);

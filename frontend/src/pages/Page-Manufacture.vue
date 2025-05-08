@@ -77,8 +77,10 @@
         Cập nhật dữ liệu
       </v-card-title>
       <v-card-text>
-        <InputField label="Tên sản phẩm" v-model="ProductName_Edit" />
-        <InputField label="Mô tả" v-model="Description_Edit" />
+        <InputField label="Tên dự án" v-model="Name_Edit" />
+        <InputField label="Tổng sản phẩm" type="number" v-model="Total_Edit" />
+        <InputField label="Ngày tạo" type="date" v-model="Date_Edit" />
+        <InputTextarea label="Ghi chú" v-model="Note_Edit" />
       </v-card-text>
       <v-card-actions>
         <ButtonDelete @delete="DialogRemove = true" />
@@ -160,8 +162,10 @@ const DialogRemove = ref(false);
 const DialogAdd = ref(false);
 const DialogLoading = ref(false);
 const File = ref(null);
-const ProductName_Edit = ref("");
-const Description_Edit = ref("");
+const Name_Edit = ref("");
+const Total_Edit = ref(0);
+const Date_Edit = ref("");
+const Note_Edit = ref("");
 const Name_Add = ref("");
 const Date_Add = ref("");
 const Note_Add = ref("");
@@ -205,19 +209,24 @@ function PushItem(value) {
 function GetItem(value) {
   DialogEdit.value = true;
   GetID.value = value;
-  const found = planProducts.value.find((v) => v.id === value);
-  ProductName_Edit.value = found.productName;
-  Description_Edit.value = found.description;
+  const found = manufacture.value.find((v) => v.id === value);
+  Name_Edit.value = found.Name;
+  Total_Edit.value = found.Total;
+  Date_Edit.value = found.Date;
+  Note_Edit.value = found.Note;
 }
 
 const SaveEdit = async () => {
   DialogLoading.value = true;
   const formData = reactive({
-    productName: ProductName_Edit.value,
-    description: Description_Edit.value,
+    Name: Name_Edit.value,
+    Date: Date_Edit.value,
+    Creater: UserInfo.value,
+    Note: Note_Edit.value,
+    Total: Total_Edit.value,
   });
   axios
-    .put(`${Url}/PlanProduct/Edit/${GetID.value}`, formData)
+    .put(`${Url}/PlanManufacture/Edit/${GetID.value}`, formData)
     .then(function (response) {
       console.log(response.data.message);
       Reset();
@@ -253,7 +262,7 @@ const SaveAdd = async () => {
 const RemoveItem = async () => {
   DialogLoading.value = true;
   axios
-    .delete(`${Url}/PlanProduct/Delete/${GetID.value}`)
+    .delete(`${Url}/PlanManufacture/Delete/${GetID.value}`)
     .then(function (response) {
       console.log(response.data.message);
       Reset();

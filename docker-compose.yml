@@ -1,3 +1,4 @@
+version: '3.8'
 
 services:
   backend:
@@ -27,17 +28,9 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        # ----> THAY ĐỔI Ở ĐÂY: Truyền biến từ file .env gốc vào build <----
-        # Docker Compose sẽ tự động thay thế các biến này bằng giá trị từ App-ST/.env
-        VITE_API_URL: ${VITE_API_URL}
-        VITE_SOCKET_URL: ${VITE_SOCKET_URL}
-        VITE_DIGIKEY_CLIENT_ID: ${VITE_DIGIKEY_CLIENT_ID}
-        # TUYỆT ĐỐI KHÔNG TRUYỀN BIẾN BÍ MẬT VÀO ĐÂY
     container_name: app-st-frontend
     ports:
-      # Sử dụng biến từ file .env gốc, nếu không có thì dùng 8080
-      - "${FRONTEND_HOST_PORT:-8080}:80"
+      - "80:80"
     # Thường không cần env_file hoặc environment cho frontend runtime (Nginx)
     # vì các biến VITE_ đã được "bake" vào code JS lúc build.
     depends_on:

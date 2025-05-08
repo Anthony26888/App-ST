@@ -72,8 +72,10 @@
               </div>
             </template>
             <template v-slot:item.MaThietBi="{ value }">
-              <ButtonEye @detail="PushItem(value)" />
-              <ButtonEdit @edit="GetItem(value)" />
+              <div class="d-flex ">
+                <ButtonEye @detail="PushItem(value)" />
+                <ButtonEdit @edit="GetItem(value)" />
+              </div>
             </template>
           </v-data-table>
         </v-card-text>

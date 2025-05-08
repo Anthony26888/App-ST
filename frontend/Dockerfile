@@ -16,24 +16,43 @@ ENV VITE_SOCKET_URL=${VITE_SOCKET_URL}
 ENV VITE_DIGIKEY_CLIENT_ID=${VITE_DIGIKEY_CLIENT_ID}
 # KHÔNG ĐẶT BIẾN BÍ MẬT Ở ĐÂY
 
-# Copy package files and install dependencies
-COPY package.json package-lock.json* ./
-RUN npm ci
+# Copy package files
+COPY package*.json ./
 
-# ----> THÊM BƯỚC NÀY: Gỡ bỏ các công cụ build sau khi cài xong <----
-RUN apk del .gyp
-    
-# Copy the rest of the application code
+# Install dependencies
+RUN npm install --legacy-peer-deps
+
+# Copy source code
 COPY . .
 
-# Build the application (sẽ sử dụng các biến ENV ở trên)
+# Build the application
 RUN npm run build
 
 # Stage 2: Serve the built application with Nginx
 FROM nginx:stable-alpine
 WORKDIR /usr/share/nginx/html
+
+# Remove default nginx static assets
 RUN rm -rf ./*
+
+# Copy static assets from builder stage
 COPY --from=build /app/dist .
+
+# Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Add permissions for nginx user
+RUN chown -R nginx:nginx /usr/share/nginx/html && \
+    chmod -R 755 /usr/share/nginx/html && \
+    chown -R nginx:nginx /var/cache/nginx && \
+    chown -R nginx:nginx /var/log/nginx && \
+    chown -R nginx:nginx /etc/nginx/conf.d && \
+    touch /var/run/nginx.pid && \
+    chown -R nginx:nginx /var/run/nginx.pid
+
+# Switch to non-root user
+USER nginx
+
 EXPOSE 80
+
 CMD ["nginx", "-g", "daemon off;"]
