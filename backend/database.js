@@ -183,6 +183,7 @@ db.serialize(() => {
       Input INTEGER NOT NULL,
       Output INTEGER NOT NULL,
       Date TEXT NOT NULL,
+      Time TEXT NOT NULL,
       FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
     )
   `);

@@ -1,7 +1,6 @@
 <template lang="">
   <v-card variant="text" class="overflow-y-auto" height="100vh">
-    <v-card-title class="text-h4 font-weight-light"
-      >
+    <v-card-title class="text-h4 font-weight-light">
       <ButtonBack to="/san-xuat" />
       Theo dõi sản xuất</v-card-title
     >
@@ -10,7 +9,7 @@
       {{ NameManufacture }}
 
       <v-spacer></v-spacer>
-      
+
       <!-- Arduino Connection Controls -->
       <v-menu location="bottom" :close-on-content-click="false">
         <template v-slot:activator="{ props }">
@@ -21,9 +20,9 @@
             class="me-2"
           >
             <v-icon start>
-              {{ isArduinoConnected ? 'mdi-usb-port' : 'mdi-usb-off' }}
+              {{ isArduinoConnected ? "mdi-usb-port" : "mdi-usb-off" }}
             </v-icon>
-            {{ isArduinoConnected ? 'Đã kết nối' : 'Chưa kết nối' }}
+            {{ isArduinoConnected ? "Đã kết nối" : "Chưa kết nối" }}
           </v-btn>
         </template>
         <v-card min-width="300">
@@ -42,7 +41,7 @@
           <v-card-text>
             <v-select
               v-model="selectedPort"
-              :items="['COM5','/dev/tty.usbserial-1420']"
+              :items="['COM5', '/dev/tty.usbserial-1420']"
               label="Chọn cổng kết nối"
               :loading="isLoadingPorts"
               :disabled="isConnecting"
@@ -50,10 +49,13 @@
               density="comfortable"
               hide-details
               class="mb-2"
-              :hint="selectedPort ? 'Đã chọn: ' + selectedPort : 'Chọn một cổng để kết nối'"
+              :hint="
+                selectedPort
+                  ? 'Đã chọn: ' + selectedPort
+                  : 'Chọn một cổng để kết nối'
+              "
               persistent-hint
             >
-              
             </v-select>
             <div class="d-flex gap-2">
               <v-btn
@@ -167,7 +169,65 @@
         </v-card-text>
       </v-card>
 
-      
+      <v-divider></v-divider>
+      <!-- Table -->
+      <v-card class="mt-4" variant="text">
+        <v-card-title class="d-flex align-center">
+          <span>Bảng chi tiết sản xuất</span>
+          <v-spacer></v-spacer>
+          <InputSearch v-model="search" />
+        </v-card-title>
+        <v-data-table
+          :headers="Headers"
+          :items="manufactureDetailsTable"
+          :search="search"
+          :items-per-page="itemsPerPage"
+          v-model:page="page"
+          class="elevation-1 mt-4"
+          :footer-props="{
+            'items-per-page-options': [10, 20, 50, 100],
+            'items-per-page-text': 'Số hàng mỗi trang',
+          }"
+          :header-props="{
+            sortByText: 'Sắp xếp theo',
+            sortDescText: 'Giảm dần',
+            sortAscText: 'Tăng dần',
+          }"
+          :loading="DialogLoading"
+          loading-text="Đang tải dữ liệu..."
+          no-data-text="Không có dữ liệu"
+          no-results-text="Không tìm thấy kết quả"
+          :hover="true"
+          :dense="false"
+          :fixed-header="true"
+          height="calc(100vh - 200px)"
+        >
+          <template v-slot:bottom>
+            <div class="text-center pt-2">
+              <v-pagination
+                v-model="page"
+                :length="
+                  Math.ceil(manufactureDetailsTable.length / itemsPerPage)
+                "
+              ></v-pagination>
+            </div>
+          </template>
+          <template v-slot:item.Status="{ value }">
+            <v-chip
+              :color="Boolean(value.Status) ? 'success' : 'red'"
+              variant="tonal"
+            >
+              {{ Boolean(value.Status) ? "Hoàn thành" : "Chưa hoàn thành" }}
+            </v-chip>
+          </template>
+          <template v-slot:item.id="{ value }">
+            <div class="d-flex">
+              <ButtonEye @detail="PushItem(value)" />
+              <ButtonEdit @edit="GetItem(value)" />
+            </div>
+          </template>
+        </v-data-table>
+      </v-card>
     </v-card-text>
   </v-card>
 
@@ -176,7 +236,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onBeforeMount, onUnmounted, computed, nextTick } from "vue";
+import {
+  ref,
+  reactive,
+  onMounted,
+  onBeforeMount,
+  onUnmounted,
+  computed,
+  nextTick,
+} from "vue";
 import axios from "axios";
 import { useRoute } from "vue-router";
 import Chart from "chart.js/auto";
@@ -192,6 +260,7 @@ import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 import { watch } from "vue";
 import { useManufactureDetails } from "@/composables/useManufactureDetails";
+import { useManufactureDetailsTable } from "@/composables/useManufactureDetails_Table";
 import { useManufacture } from "@/composables/useManufacture";
 import { useSensorCount } from "@/composables/useSensorCount";
 
@@ -205,12 +274,20 @@ const itemsPerPage = ref(10);
 const DialogLoading = ref(false);
 const DialogFailed = ref(false);
 const { manufactureDetails, connectionStatus } = useManufactureDetails(id);
+const { manufactureDetailsTable } = useManufactureDetailsTable(id);
 const { manufacture } = useManufacture();
 const { count } = useSensorCount(id);
-console.log("connectionStatus:", connectionStatus.value);
+console.log("manufactureDetails:", manufactureDetails.value);
 // Production statistics
 const NameManufacture = localStorage.getItem("ProductName");
-
+// Table
+const Headers = [
+  { title: "Đầu vào", key: "Input" },
+  { title: "Đầu ra", key: "Output" },
+  { title: "Ngày", key: "Date" },
+  { title: "Thời gian", key: "Time" },
+];
+// Production statistics
 const totalInput = ref(0);
 const totalOutput = ref(0);
 const totalTarget = ref(0);
@@ -227,16 +304,16 @@ const successRateColor = computed(() => {
 });
 
 // Chart configuration
-const chartTimeRange = ref('Tháng');
+const chartTimeRange = ref("Ngày");
 const productionChart = ref(null);
 let chart = null;
 
 // Data for chart
 const Data = {
-  labels: manufactureDetails.value?.map(item => item.Date) || [],
-  input: manufactureDetails.value?.map(item => item.Input) || [],
-  output: manufactureDetails.value?.map(item => item.Output) || [],
-  target: manufactureDetails.value?.map(item => item.Total) || []
+  labels: manufactureDetails.value?.map((item) => `${item.Date}`) || [],
+  input: manufactureDetails.value?.map((item) => item.Input) || [],
+  output: manufactureDetails.value?.map((item) => item.Output) || [],
+  target: manufactureDetails.value?.map((item) => item.Total) || [],
 };
 console.log("Data:", Data);
 
@@ -247,8 +324,8 @@ const isLoadingPorts = ref(false);
 const availablePorts = ref([]);
 const selectedPort = ref(null);
 const showStatusSnackbar = ref(false);
-const connectionStatusMessage = ref('');
-const connectionStatusColor = ref('info');
+const connectionStatusMessage = ref("");
+const connectionStatusColor = ref("info");
 const lastConnectionState = ref(null);
 let statusInterval = null;
 
@@ -258,28 +335,36 @@ async function fetchAvailablePorts() {
     isLoadingPorts.value = true;
     const response = await axios.get(`${Url}/arduino/ports`);
     if (response.data.success) {
-      availablePorts.value = response.data.ports.map(port => ({
-        label: `${port.path}${port.manufacturer ? ` - ${port.manufacturer}` : ''}${port.serialNumber ? ` (SN: ${port.serialNumber})` : ''}${port.isCurrentPort ? ' (Đang kết nối)' : ''}`,
+      availablePorts.value = response.data.ports.map((port) => ({
+        label: `${port.path}${
+          port.manufacturer ? ` - ${port.manufacturer}` : ""
+        }${port.serialNumber ? ` (SN: ${port.serialNumber})` : ""}${
+          port.isCurrentPort ? " (Đang kết nối)" : ""
+        }`,
         value: port.path,
-        title: `Path: ${port.path}\nManufacturer: ${port.manufacturer || 'Unknown'}\nSerial Number: ${port.serialNumber || 'N/A'}${port.isCurrentPort ? '\nTrạng thái: Đang kết nối' : ''}`,
-        isCurrentPort: port.isCurrentPort
+        title: `Path: ${port.path}\nManufacturer: ${
+          port.manufacturer || "Unknown"
+        }\nSerial Number: ${port.serialNumber || "N/A"}${
+          port.isCurrentPort ? "\nTrạng thái: Đang kết nối" : ""
+        }`,
+        isCurrentPort: port.isCurrentPort,
       }));
-      
+
       // Nếu có cổng đang kết nối, tự động chọn nó
       if (response.data.currentPortPath) {
         selectedPort.value = response.data.currentPortPath;
       }
     }
   } catch (error) {
-    console.error('Error fetching ports:', error);
-    showStatusMessage('Lỗi khi lấy danh sách cổng', 'error');
+    console.error("Error fetching ports:", error);
+    showStatusMessage("Lỗi khi lấy danh sách cổng", "error");
   } finally {
     isLoadingPorts.value = false;
   }
 }
 
 // Function to show status message
-function showStatusMessage(message, color = 'info') {
+function showStatusMessage(message, color = "info") {
   if (message !== connectionStatusMessage.value) {
     connectionStatusMessage.value = message;
     connectionStatusColor.value = color;
@@ -294,26 +379,34 @@ async function checkArduinoStatus() {
     const currentState = {
       connected: response.data.connected,
       reconnecting: response.data.reconnecting,
-      portPath: response.data.currentPort
+      portPath: response.data.currentPort,
     };
 
-    if (JSON.stringify(currentState) !== JSON.stringify(lastConnectionState.value)) {
+    if (
+      JSON.stringify(currentState) !== JSON.stringify(lastConnectionState.value)
+    ) {
       isArduinoConnected.value = currentState.connected;
-      
+
       if (currentState.connected) {
-        showStatusMessage(`Arduino đã kết nối (${currentState.portPath})`, 'success');
+        showStatusMessage(
+          `Arduino đã kết nối (${currentState.portPath})`,
+          "success"
+        );
       } else if (currentState.reconnecting) {
-        showStatusMessage(`Đang thử kết nối lại (${currentState.portPath})...`, 'warning');
+        showStatusMessage(
+          `Đang thử kết nối lại (${currentState.portPath})...`,
+          "warning"
+        );
       } else {
-        showStatusMessage('Arduino chưa kết nối', 'error');
+        showStatusMessage("Arduino chưa kết nối", "error");
       }
 
       lastConnectionState.value = currentState;
     }
   } catch (error) {
-    console.error('Error checking Arduino status:', error);
+    console.error("Error checking Arduino status:", error);
     if (lastConnectionState.value?.error !== error.message) {
-      showStatusMessage('Lỗi khi kiểm tra trạng thái Arduino', 'error');
+      showStatusMessage("Lỗi khi kiểm tra trạng thái Arduino", "error");
       lastConnectionState.value = { error: error.message };
     }
   }
@@ -322,20 +415,23 @@ async function checkArduinoStatus() {
 // Function to connect to Arduino
 async function connectToArduino() {
   if (!selectedPort.value) return;
-  
+
   try {
     isConnecting.value = true;
     const response = await axios.post(`${Url}/arduino/connect`, {
-      portPath: selectedPort.value
+      portPath: selectedPort.value,
     });
-    
+
     if (response.data.success) {
-      showStatusMessage(`Đang kết nối Arduino (${selectedPort.value})...`, 'info');
+      showStatusMessage(
+        `Đang kết nối Arduino (${selectedPort.value})...`,
+        "info"
+      );
       lastConnectionState.value = null;
     }
   } catch (error) {
-    console.error('Error connecting to Arduino:', error);
-    showStatusMessage('Lỗi khi kết nối Arduino', 'error');
+    console.error("Error connecting to Arduino:", error);
+    showStatusMessage("Lỗi khi kết nối Arduino", "error");
   } finally {
     isConnecting.value = false;
   }
@@ -346,15 +442,15 @@ async function disconnectArduino() {
   try {
     isConnecting.value = true;
     const response = await axios.post(`${Url}/arduino/disconnect`);
-    
+
     if (response.data.success) {
-      showStatusMessage('Đã ngắt kết nối Arduino', 'info');
+      showStatusMessage("Đã ngắt kết nối Arduino", "info");
       isArduinoConnected.value = false;
       lastConnectionState.value = null;
     }
   } catch (error) {
-    console.error('Error disconnecting Arduino:', error);
-    showStatusMessage('Lỗi khi ngắt kết nối Arduino', 'error');
+    console.error("Error disconnecting Arduino:", error);
+    showStatusMessage("Lỗi khi ngắt kết nối Arduino", "error");
   } finally {
     isConnecting.value = false;
   }
@@ -364,10 +460,10 @@ async function disconnectArduino() {
 onBeforeMount(async () => {
   // Fetch available ports
   await fetchAvailablePorts();
-  
+
   // Check initial Arduino status
   await checkArduinoStatus();
-  
+
   // Set up periodic status check
   statusInterval = setInterval(checkArduinoStatus, 5000);
 });
@@ -391,8 +487,8 @@ onMounted(() => {
 function initializeChart() {
   if (!productionChart.value) return;
 
-  const ctx = productionChart.value.getContext('2d');
-  
+  const ctx = productionChart.value.getContext("2d");
+
   // Destroy existing chart if it exists
   if (chart) {
     chart.destroy();
@@ -400,85 +496,75 @@ function initializeChart() {
 
   // Create new chart with initial data
   chart = new Chart(ctx, {
-    type: 'bar',
+    type: "bar",
     data: {
       labels: Data.labels,
       datasets: [
         {
-          label: 'Đầu vào',
-          backgroundColor: 'rgba(25, 118, 210, 0.8)',
-          borderColor: '#1976D2',
+          label: "Đầu vào",
+          backgroundColor: "rgba(25, 118, 210, 0.8)",
+          borderColor: "#1976D2",
           data: Data.input,
           borderWidth: 1,
           borderRadius: 4,
           barPercentage: 0.8,
-          categoryPercentage: 0.9
+          categoryPercentage: 0.9,
         },
         {
-          label: 'Đầu ra',
-          backgroundColor: 'rgba(76, 175, 80, 0.8)',
-          borderColor: '#4CAF50',
+          label: "Đầu ra",
+          backgroundColor: "rgba(76, 175, 80, 0.8)",
+          borderColor: "#4CAF50",
           data: Data.output,
           borderWidth: 1,
           borderRadius: 4,
           barPercentage: 0.8,
-          categoryPercentage: 0.9
+          categoryPercentage: 0.9,
         },
-        {
-          label: 'Mục tiêu',
-          type: 'line',
-          borderColor: '#FF9800',
-          backgroundColor: 'rgba(255, 152, 0, 0.1)',
-          data: Data.target,
-          borderWidth: 2,
-          borderDash: [5, 5],
-          fill: false,
-          pointStyle: 'dash',
-          pointRadius: 0
-        }
-      ]
+      ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       interaction: {
         intersect: false,
-        mode: 'index'
+        mode: "index",
       },
       plugins: {
         legend: {
-          position: 'top',
+          position: "top",
           labels: {
             usePointStyle: true,
-            padding: 20
-          }
+            padding: 20,
+          },
         },
         title: {
           display: true,
-          text: 'Biểu đồ sản xuất theo ngày',
+          text: "Biểu đồ sản xuất theo ngày",
           font: {
             size: 16,
-            weight: 'bold'
+            weight: "bold",
           },
           padding: {
             top: 10,
-            bottom: 20
-          }
+            bottom: 20,
+          },
         },
         tooltip: {
           callbacks: {
-            label: function(context) {
-              let label = context.dataset.label || '';
+            label: function (context) {
+              let label = context.dataset.label || "";
               if (label) {
-                label += ': ';
+                label += ": ";
               }
               if (context.parsed.y !== null) {
-                label += new Intl.NumberFormat('vi-VN').format(context.parsed.y);
+                label += new Intl.NumberFormat("vi-VN").format(
+                  context.parsed.y
+                );
               }
               return label;
-            }
-          }
-        }
+            },
+          },
+        },
       },
       scales: {
         y: {
@@ -486,35 +572,35 @@ function initializeChart() {
           stacked: false,
           title: {
             display: true,
-            text: 'Số lượng',
+            text: "Số lượng",
             font: {
-              weight: 'bold'
-            }
+              weight: "bold",
+            },
           },
           ticks: {
-            callback: function(value) {
-              return new Intl.NumberFormat('vi-VN').format(value);
-            }
+            callback: function (value) {
+              return new Intl.NumberFormat("vi-VN").format(value);
+            },
           },
           grid: {
-            color: 'rgba(0, 0, 0, 0.1)'
-          }
+            color: "rgba(0, 0, 0, 0.1)",
+          },
         },
         x: {
           stacked: false,
           title: {
             display: true,
-            text: 'Ngày',
+            text: "Ngày",
             font: {
-              weight: 'bold'
-            }
+              weight: "bold",
+            },
           },
           grid: {
-            display: false
-          }
-        }
-      }
-    }
+            display: false,
+          },
+        },
+      },
+    },
   });
 }
 
@@ -522,7 +608,7 @@ function initializeChart() {
 async function fetchProductionData() {
   try {
     DialogLoading.value = true;
-    
+
     // Use real data from manufactureDetails
     if (manufactureDetails.value && manufactureDetails.value.length > 0) {
       totalInput.value = Data.input.reduce((a, b) => a + b, 0);
@@ -530,7 +616,7 @@ async function fetchProductionData() {
       totalTarget.value = Data.target[0] || 0;
     }
   } catch (error) {
-    console.error('Error fetching production data:', error);
+    console.error("Error fetching production data:", error);
     DialogFailed.value = true;
   } finally {
     DialogLoading.value = false;
@@ -543,29 +629,31 @@ watch(chartTimeRange, () => {
 });
 
 // Watch for changes in manufactureDetails
-watch(manufactureDetails, (newData) => {
-  if (newData && newData.length > 0) {
-    // Update Data object
-    Data.labels = newData.map(item => item.Date);
-    Data.input = newData.map(item => item.Input);
-    Data.output = newData.map(item => item.Output);
-    Data.target = newData.map(item => item.Total);
+watch(
+  manufactureDetails,
+  (newData) => {
+    if (newData && newData.length > 0) {
+      // Update Data object
+      Data.labels = newData.map((item) => `${item.Date} ${item.Time}`);
+      Data.input = newData.map((item) => item.Input);
+      Data.output = newData.map((item) => item.Output);
 
-    // Update chart if it exists
-    if (chart) {
-      chart.data.labels = Data.labels;
-      chart.data.datasets[0].data = Data.input;
-      chart.data.datasets[1].data = Data.output;
-      chart.data.datasets[2].data = Data.target;
-      chart.update();
+      // Update chart if it exists
+      if (chart) {
+        chart.data.labels = Data.labels;
+        chart.data.datasets[0].data = Data.input;
+        chart.data.datasets[1].data = Data.output;
+        chart.update();
+      }
+
+      // Update statistics
+      totalInput.value = Data.input.reduce((a, b) => a + b, 0);
+      totalOutput.value = Data.output.reduce((a, b) => a + b, 0);
+      totalTarget.value = Data.target[0] || 0;
     }
-
-    // Update statistics
-    totalInput.value = Data.input.reduce((a, b) => a + b, 0);
-    totalOutput.value = Data.output.reduce((a, b) => a + b, 0);
-    totalTarget.value = Data.target[0] || 0;
-  }
-}, { deep: true, immediate: true });
+  },
+  { deep: true, immediate: true }
+);
 
 // ... existing methods ...
 </script>

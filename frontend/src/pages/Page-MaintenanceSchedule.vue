@@ -403,7 +403,6 @@ const GetItem = (item) => {
   GhiChu_Edit.value = item.GhiChu;
   GetID.value = item.MaLich;
   DialogEdit.value = true;
-  console.log(GetID.value);
 };
 
 const SaveAdd = async () => {
@@ -463,7 +462,7 @@ const SaveEdit = async () => {
 const DeleteItem = () => {
   // Implement delete logic here
   axios
-    .delete(`${Url}/MaintenanceSchedule/Delete/${id}`)
+    .delete(`${Url}/MaintenanceSchedule/Delete/${GetID.value}`)
     .then(function (response) {
       console.log(response.data.message);
       Reset();

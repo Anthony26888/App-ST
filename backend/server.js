@@ -235,15 +235,22 @@ function handleArduinoData(line) {
     if (projectId) {
       const today = new Date();
       const formattedDate = today.toISOString().split('T')[0];
+      const formattedTime = today.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit',
+        hour12: false 
+      });
       
       db.run(
-        "INSERT INTO ManufactureDetails (PlanID, Input, Output, Date) VALUES (?, ?, '0', ?)",
-        [projectId, 1, formattedDate],
+        "INSERT INTO ManufactureDetails (PlanID, Input, Output, Date, Time) VALUES (?, ?, '0', ?, ?)",
+        [projectId, 1, formattedDate, formattedTime],
         (err) => {
           if (err) {
             console.error("DB Error:", err);
           } else {
             io.emit("updateManufactureDetails");
+            io.emit("updateManufactureDetailsTable");
             console.log("Count saved to database");
           }
         }
@@ -577,10 +584,18 @@ io.on("connection", (socket) => {
     }),
     socket.on("getManufactureDetails", async (id) => {
       try {
-        const query = `SELECT DISTINCT b.Total, SUM(IFNULL(a.Input, 0)) AS Input, SUM(IFNULL(a.Output, 0)) AS Output, a.Date 
-                      FROM ManufactureDetails a 
-                      LEFT JOIN PlanManufacture b ON a.PlanID = b.id
-                      WHERE a.PlanID = ?`;
+        const query = `SELECT
+                        b.Total,  
+                        SUM(a.Input) AS Input, 
+                        SUM(a.Output) AS Output, 
+                        a.Input AS Input_Detail,
+                        a.Output AS Output_Detail,
+                        a.Date,
+                        a.Time
+                        FROM ManufactureDetails a 
+                        LEFT JOIN PlanManufacture b ON a.PlanID = b.id
+                        WHERE a.PlanID = ?
+                        GROUP BY a.Date`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("ManufactureDetailsError", err);
           socket.emit("ManufactureDetailsData", rows);
@@ -589,6 +604,18 @@ io.on("connection", (socket) => {
         socket.emit("ManufactureDetailsError", error);
       }
     }),
+    socket.on("getManufactureDetailsTable", async (id) => {
+      try {
+        const query = `SELECT * FROM ManufactureDetails WHERE PlanID = ? ORDER BY id DESC`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("ManufactureDetailsTableError", err);
+          socket.emit("ManufactureDetailsTableData", rows);
+        });
+      } catch (error) {
+        socket.emit("ManufactureDetailsTableError", error);
+      }
+    }),
+    
     socket.on("setProject", (id) => {
       console.log(`Client ${socket.id} chọn project_id = ${id}`);
       userProjects.set(socket.id, id);
@@ -1677,7 +1704,7 @@ app.delete("/MaintenanceSchedule/Delete/:id", async (req, res) => {
   const { id } = req.params;
   // Insert data into SQLite database
   const query = `
-    DELETE FROM MaintenanceSchedule WHERE MaThietBi = ?
+    DELETE FROM MaintenanceSchedule WHERE MaLich = ?
   `;
   db.run(query, [id], function (err) {
     if (err) {
