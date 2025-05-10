@@ -271,12 +271,20 @@ const connectionStatusColor = ref("info");
 const lastConnectionState = ref(null);
 let statusInterval = null;
 
+
+
 // Initialize chart
 onMounted(() => {
   nextTick(() => {
     initializeChart();
     fetchProductionData();
   });
+  if (localStorage.getItem("isRunning") === id) {
+    isBegin.value = true;
+  } else {
+    isBegin.value = false;
+    localStorage.removeItem("isRunning");
+  }
 });
 
 function initializeChart() {
@@ -466,6 +474,9 @@ const connectArduino = () => {
       connectionStatusColor.value = isBegin.value ? "success" : "error";
       showStatusSnackbar.value = true;
       localStorage.setItem("isRunning", id);
+      if (isBegin.value === false) {
+        localStorage.removeItem("isRunning");
+      }
     })
     .catch(function (error) {
       console.log(error);
