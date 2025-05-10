@@ -30,12 +30,12 @@
             class="elevation-1"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
-              'items-per-page-text': 'Số hàng mỗi trang'
+              'items-per-page-text': 'Số hàng mỗi trang',
             }"
             :header-props="{
               sortByText: 'Sắp xếp theo',
               sortDescText: 'Giảm dần',
-              sortAscText: 'Tăng dần'
+              sortAscText: 'Tăng dần',
             }"
             :loading="DialogLoading"
             loading-text="Đang tải dữ liệu..."
@@ -54,16 +54,16 @@
                 ></v-pagination>
               </div>
             </template>
-            <template v-slot:item.Status="{ value }">
-              <v-chip :color="Boolean(value.Status) ? 'success' : 'red'" variant="tonal">
-                {{ Boolean(value.Status) ? 'Hoàn thành' : 'Chưa hoàn thành' }}
-              </v-chip>
-            </template>
+ 
             <template v-slot:item.id="{ value }">
               <div class="d-flex">
                 <ButtonEye @detail="PushItem(value)" />
                 <ButtonEdit @edit="GetItem(value)" />
               </div>
+            </template>
+            <template v-slot:item.Status="{ value }">
+              <v-chip v-if="value == isRunning" color="success" variant="tonal"> Đang chạy </v-chip>
+              <v-chip v-else color="error" variant="tonal"> Đã dừng </v-chip>
             </template>
           </v-data-table>
         </v-card-text>
@@ -111,7 +111,9 @@
   </v-dialog>
   <v-dialog v-model="DialogRemove" width="400">
     <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
-      <v-card-text> Bạn có chắc chắn muốn xoá kế hoạch sản phẩm này ? </v-card-text>
+      <v-card-text>
+        Bạn có chắc chắn muốn xoá kế hoạch sản phẩm này ?
+      </v-card-text>
       <template v-slot:actions>
         <ButtonCancel @cancel="DialogRemove = false" />
         <ButtonDelete @delete="RemoveItem()" />
@@ -175,6 +177,7 @@ const Date_Expired = ref("");
 const search = ref("");
 const page = ref(1);
 const itemsPerPage = ref(10);
+const isRunning = localStorage.getItem('isRunning');
 
 const Headers = [
   { title: "Tên dự án", key: "Name" },

@@ -1,238 +1,182 @@
-<template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="100vh">
-    <v-card-title class="text-h4 font-weight-light">
-      <ButtonBack to="/san-xuat" />
-      Theo dõi sản xuất</v-card-title
-    >
-    <v-card-title class="d-flex align-center pe-2">
-      <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
-      {{ NameManufacture }}
+<template>
+  <div>
+    <v-card variant="text" class="overflow-y-auto" height="100vh">
+      <v-card-title class="text-h4 font-weight-light">
+        <ButtonBack to="/san-xuat" />
+        Theo dõi sản xuất</v-card-title
+      >
+      <v-card-title class="d-flex align-center pe-2">
+        <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
+        {{ NameManufacture }}
 
-      <v-spacer></v-spacer>
+        <v-spacer></v-spacer>
+        <v-btn
+          @click="connectArduino"
+          :color="isBegin ? 'error' : 'success'"
+          :loading="isConnecting"
+        >
+          <v-icon :icon="isBegin ? 'mdi-stop' : 'mdi-play'"></v-icon>
+          &nbsp;
+          {{ isBegin ? "Dừng" : "Bắt đầu" }}
+        </v-btn>
+        <v-btn @click="resetData" class="ms-2 text-caption" color="primary"
+          >Reset dữ liệu</v-btn
+        >
+      </v-card-title>
 
-      <!-- Arduino Connection Controls -->
-      <v-menu location="bottom" :close-on-content-click="false">
-        <template v-slot:activator="{ props }">
-          <v-btn
-            v-bind="props"
-            :color="isArduinoConnected ? 'success' : 'error'"
-            :loading="isConnecting"
-            class="me-2"
-          >
-            <v-icon start>
-              {{ isArduinoConnected ? "mdi-usb-port" : "mdi-usb-off" }}
-            </v-icon>
-            {{ isArduinoConnected ? "Đã kết nối" : "Chưa kết nối" }}
-          </v-btn>
-        </template>
-        <v-card min-width="300">
-          <v-card-title class="text-subtitle-1 d-flex align-center">
-            <span>Kết nối Arduino</span>
+      <v-card-text>
+        <v-snackbar
+          v-model="showStatusSnackbar"
+          :color="connectionStatusColor"
+          :timeout="3000"
+          location="bottom"
+        >
+          {{ connectionStatusMessage }}
+        </v-snackbar>
+
+        <!-- Production Statistics Cards -->
+        <v-row class="mb-4">
+          <v-col cols="12" sm="3">
+            <v-card class="mx-auto" elevation="2">
+              <v-card-text>
+                <div class="text-h6 mb-2">Số lượng đề ra</div>
+                <div class="text-h4 font-weight-bold text-info">
+                  {{ totalTarget }}
+                </div>
+                <div class="text-caption text-medium-emphasis">
+                  Tổng số lượng cần đạt được
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" sm="3">
+            <v-card class="mx-auto" elevation="2">
+              <v-card-text>
+                <div class="text-h6 mb-2">Số lượng đầu vào</div>
+                <div class="text-h4 font-weight-bold text-primary">
+                  {{ totalInput }}
+                </div>
+                <div class="text-caption text-medium-emphasis">
+                  Tổng số lượng sản phẩm đầu vào
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" sm="3">
+            <v-card class="mx-auto" elevation="2">
+              <v-card-text>
+                <div class="text-h6 mb-2">Số lượng đầu ra</div>
+                <div class="text-h4 font-weight-bold text-success">
+                  {{ totalOutput }}
+                </div>
+                <div class="text-caption text-medium-emphasis">
+                  Tổng số lượng sản phẩm đầu ra
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" sm="3">
+            <v-card class="mx-auto" elevation="2">
+              <v-card-text>
+                <div class="text-h6 mb-2">Tỉ lệ thành công</div>
+                <div class="text-h4 font-weight-bold" :class="successRateColor">
+                  {{ successRate }}%
+                </div>
+                <div class="text-caption text-medium-emphasis">
+                  Tỉ lệ sản phẩm đạt chuẩn
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+
+        <!-- Production Chart -->
+        <v-card class="mb-4" elevation="2">
+          <v-card-title class="d-flex align-center">
+            <span>Biểu đồ sản xuất</span>
             <v-spacer></v-spacer>
-            <v-btn
-              icon="mdi-refresh"
-              variant="text"
-              size="small"
-              :loading="isLoadingPorts"
-              @click="fetchAvailablePorts"
-              :title="'Làm mới danh sách cổng'"
-            ></v-btn>
+            <v-select
+              v-model="chartTimeRange"
+              :items="['Ngày']"
+              density="compact"
+              variant="outlined"
+              style="max-width: 150px"
+            ></v-select>
           </v-card-title>
           <v-card-text>
-            <v-select
-              v-model="selectedPort"
-              :items="['COM5', '/dev/tty.usbserial-1420']"
-              label="Chọn cổng kết nối"
-              :loading="isLoadingPorts"
-              :disabled="isConnecting"
-              variant="outlined"
-              density="comfortable"
-              hide-details
-              class="mb-2"
-              :hint="
-                selectedPort
-                  ? 'Đã chọn: ' + selectedPort
-                  : 'Chọn một cổng để kết nối'
-              "
-              persistent-hint
-            >
-            </v-select>
-            <div class="d-flex gap-2">
-              <v-btn
-                v-if="!isArduinoConnected"
-                block
-                color="primary"
-                :loading="isConnecting"
-                :disabled="!selectedPort || isConnecting"
-                @click="connectToArduino"
-              >
-                Kết nối
-              </v-btn>
-              <v-btn
-                v-else
-                block
-                color="error"
-                :loading="isConnecting"
-                :disabled="isConnecting"
-                @click="disconnectArduino"
-              >
-                Ngắt kết nối
-              </v-btn>
-            </div>
+            <canvas ref="productionChart" height="300"></canvas>
           </v-card-text>
         </v-card>
-      </v-menu>
-    </v-card-title>
 
-    <!-- Connection Status Snackbar -->
-    <v-snackbar
-      v-model="showStatusSnackbar"
-      :color="connectionStatusColor"
-      :timeout="3000"
-      location="bottom"
-    >
-      {{ connectionStatusMessage }}
-    </v-snackbar>
+        <v-divider></v-divider>
+        <!-- Table -->
+        <v-card class="mt-4" variant="text">
+          <v-card-title class="d-flex align-center">
+            <span>Bảng chi tiết sản xuất</span>
+            <v-spacer></v-spacer>
+            <InputSearch v-model="search" />
+          </v-card-title>
+          <v-data-table
+            :headers="Headers"
+            :items="manufactureDetailsTable"
+            :search="search"
+            :items-per-page="itemsPerPage"
+            v-model="page"
+            class="elevation-1 mt-4"
+            :footer-props="{
+              'items-per-page-options': [10, 20, 50, 100],
+              'items-per-page-text': 'Số hàng mỗi trang',
+            }"
+            :header-props="{
+              sortByText: 'Sắp xếp theo',
+              sortDescText: 'Giảm dần',
+              sortAscText: 'Tăng dần',
+            }"
+            :loading="DialogLoading"
+            loading-text="Đang tải dữ liệu..."
+            no-data-text="Không có dữ liệu"
+            no-results-text="Không tìm thấy kết quả"
+            :hover="true"
+            :dense="false"
+            :fixed-header="true"
+            height="calc(100vh - 200px)"
+          >
+            <template #[`bottom`]>
+              <div class="text-center pt-2">
+                <v-pagination
+                  v-model="page"
+                  :length="
+                    Math.ceil(manufactureDetailsTable.length / itemsPerPage)
+                  "
+                ></v-pagination>
+              </div>
+            </template>
+            <template #[`item.Status`]="{ item }">
+              <v-chip
+                :color="Boolean(item.Status) ? 'success' : 'red'"
+                variant="tonal"
+              >
+                {{ Boolean(item.Status) ? "Hoàn thành" : "Chưa hoàn thành" }}
+              </v-chip>
+            </template>
+            <template #[`item.id`]="{ item }">
+              <v-container class="pa-0">
+                <v-row no-gutters>
+                  <v-col>
+                    <ButtonEye @detail="PushItem(item)" />
+                    <ButtonEdit @edit="GetItem(item)" />
+                  </v-col>
+                </v-row>
+              </v-container>
+            </template>
+          </v-data-table>
+        </v-card>
+      </v-card-text>
+    </v-card>
 
-    <v-card-text>
-      <!-- Production Statistics Cards -->
-      <v-row class="mb-4">
-        <v-col cols="12" sm="3">
-          <v-card class="mx-auto" elevation="2">
-            <v-card-text>
-              <div class="text-h6 mb-2">Số lượng đề ra</div>
-              <div class="text-h4 font-weight-bold text-info">
-                {{ totalTarget }}
-              </div>
-              <div class="text-caption text-medium-emphasis">
-                Tổng số lượng cần đạt được
-              </div>
-            </v-card-text>
-          </v-card>
-        </v-col>
-        <v-col cols="12" sm="3">
-          <v-card class="mx-auto" elevation="2">
-            <v-card-text>
-              <div class="text-h6 mb-2">Số lượng đầu vào</div>
-              <div class="text-h4 font-weight-bold text-primary">
-                {{ totalInput }}
-              </div>
-              <div class="text-caption text-medium-emphasis">
-                Tổng số lượng sản phẩm đầu vào
-              </div>
-            </v-card-text>
-          </v-card>
-        </v-col>
-        <v-col cols="12" sm="3">
-          <v-card class="mx-auto" elevation="2">
-            <v-card-text>
-              <div class="text-h6 mb-2">Số lượng đầu ra</div>
-              <div class="text-h4 font-weight-bold text-success">
-                {{ totalOutput }}
-              </div>
-              <div class="text-caption text-medium-emphasis">
-                Tổng số lượng sản phẩm đầu ra
-              </div>
-            </v-card-text>
-          </v-card>
-        </v-col>
-        <v-col cols="12" sm="3">
-          <v-card class="mx-auto" elevation="2">
-            <v-card-text>
-              <div class="text-h6 mb-2">Tỉ lệ thành công</div>
-              <div class="text-h4 font-weight-bold" :class="successRateColor">
-                {{ successRate }}%
-              </div>
-              <div class="text-caption text-medium-emphasis">
-                Tỉ lệ sản phẩm đạt chuẩn
-              </div>
-            </v-card-text>
-          </v-card>
-        </v-col>
-      </v-row>
-
-      <!-- Production Chart -->
-      <v-card class="mb-4" elevation="2">
-        <v-card-title class="d-flex align-center">
-          <span>Biểu đồ sản xuất</span>
-          <v-spacer></v-spacer>
-          <v-select
-            v-model="chartTimeRange"
-            :items="['Ngày']"
-            density="compact"
-            variant="outlined"
-            style="max-width: 150px"
-          ></v-select>
-        </v-card-title>
-        <v-card-text>
-          <canvas ref="productionChart" height="300"></canvas>
-        </v-card-text>
-      </v-card>
-
-      <v-divider></v-divider>
-      <!-- Table -->
-      <v-card class="mt-4" variant="text">
-        <v-card-title class="d-flex align-center">
-          <span>Bảng chi tiết sản xuất</span>
-          <v-spacer></v-spacer>
-          <InputSearch v-model="search" />
-        </v-card-title>
-        <v-data-table
-          :headers="Headers"
-          :items="manufactureDetailsTable"
-          :search="search"
-          :items-per-page="itemsPerPage"
-          v-model:page="page"
-          class="elevation-1 mt-4"
-          :footer-props="{
-            'items-per-page-options': [10, 20, 50, 100],
-            'items-per-page-text': 'Số hàng mỗi trang',
-          }"
-          :header-props="{
-            sortByText: 'Sắp xếp theo',
-            sortDescText: 'Giảm dần',
-            sortAscText: 'Tăng dần',
-          }"
-          :loading="DialogLoading"
-          loading-text="Đang tải dữ liệu..."
-          no-data-text="Không có dữ liệu"
-          no-results-text="Không tìm thấy kết quả"
-          :hover="true"
-          :dense="false"
-          :fixed-header="true"
-          height="calc(100vh - 200px)"
-        >
-          <template v-slot:bottom>
-            <div class="text-center pt-2">
-              <v-pagination
-                v-model="page"
-                :length="
-                  Math.ceil(manufactureDetailsTable.length / itemsPerPage)
-                "
-              ></v-pagination>
-            </div>
-          </template>
-          <template v-slot:item.Status="{ value }">
-            <v-chip
-              :color="Boolean(value.Status) ? 'success' : 'red'"
-              variant="tonal"
-            >
-              {{ Boolean(value.Status) ? "Hoàn thành" : "Chưa hoàn thành" }}
-            </v-chip>
-          </template>
-          <template v-slot:item.id="{ value }">
-            <div class="d-flex">
-              <ButtonEye @detail="PushItem(value)" />
-              <ButtonEdit @edit="GetItem(value)" />
-            </div>
-          </template>
-        </v-data-table>
-      </v-card>
-    </v-card-text>
-  </v-card>
-
-  <!-- Existing dialogs -->
-  // ... existing dialogs ...
+    <!-- Existing dialogs -->
+    // ... existing dialogs ...
+  </div>
 </template>
 
 <script setup>
@@ -287,6 +231,7 @@ const Headers = [
   { title: "Ngày", key: "Date" },
   { title: "Thời gian", key: "Time" },
 ];
+const isBegin = ref(false);
 // Production statistics
 const totalInput = ref(0);
 const totalOutput = ref(0);
@@ -320,161 +265,11 @@ console.log("Data:", Data);
 // Arduino connection state
 const isArduinoConnected = ref(false);
 const isConnecting = ref(false);
-const isLoadingPorts = ref(false);
-const availablePorts = ref([]);
-const selectedPort = ref(null);
 const showStatusSnackbar = ref(false);
 const connectionStatusMessage = ref("");
 const connectionStatusColor = ref("info");
 const lastConnectionState = ref(null);
 let statusInterval = null;
-
-// Function to fetch available ports
-async function fetchAvailablePorts() {
-  try {
-    isLoadingPorts.value = true;
-    const response = await axios.get(`${Url}/arduino/ports`);
-    if (response.data.success) {
-      availablePorts.value = response.data.ports.map((port) => ({
-        label: `${port.path}${
-          port.manufacturer ? ` - ${port.manufacturer}` : ""
-        }${port.serialNumber ? ` (SN: ${port.serialNumber})` : ""}${
-          port.isCurrentPort ? " (Đang kết nối)" : ""
-        }`,
-        value: port.path,
-        title: `Path: ${port.path}\nManufacturer: ${
-          port.manufacturer || "Unknown"
-        }\nSerial Number: ${port.serialNumber || "N/A"}${
-          port.isCurrentPort ? "\nTrạng thái: Đang kết nối" : ""
-        }`,
-        isCurrentPort: port.isCurrentPort,
-      }));
-
-      // Nếu có cổng đang kết nối, tự động chọn nó
-      if (response.data.currentPortPath) {
-        selectedPort.value = response.data.currentPortPath;
-      }
-    }
-  } catch (error) {
-    console.error("Error fetching ports:", error);
-    showStatusMessage("Lỗi khi lấy danh sách cổng", "error");
-  } finally {
-    isLoadingPorts.value = false;
-  }
-}
-
-// Function to show status message
-function showStatusMessage(message, color = "info") {
-  if (message !== connectionStatusMessage.value) {
-    connectionStatusMessage.value = message;
-    connectionStatusColor.value = color;
-    showStatusSnackbar.value = true;
-  }
-}
-
-// Function to check Arduino status
-async function checkArduinoStatus() {
-  try {
-    const response = await axios.get(`${Url}/arduino/status`);
-    const currentState = {
-      connected: response.data.connected,
-      reconnecting: response.data.reconnecting,
-      portPath: response.data.currentPort,
-    };
-
-    if (
-      JSON.stringify(currentState) !== JSON.stringify(lastConnectionState.value)
-    ) {
-      isArduinoConnected.value = currentState.connected;
-
-      if (currentState.connected) {
-        showStatusMessage(
-          `Arduino đã kết nối (${currentState.portPath})`,
-          "success"
-        );
-      } else if (currentState.reconnecting) {
-        showStatusMessage(
-          `Đang thử kết nối lại (${currentState.portPath})...`,
-          "warning"
-        );
-      } else {
-        showStatusMessage("Arduino chưa kết nối", "error");
-      }
-
-      lastConnectionState.value = currentState;
-    }
-  } catch (error) {
-    console.error("Error checking Arduino status:", error);
-    if (lastConnectionState.value?.error !== error.message) {
-      showStatusMessage("Lỗi khi kiểm tra trạng thái Arduino", "error");
-      lastConnectionState.value = { error: error.message };
-    }
-  }
-}
-
-// Function to connect to Arduino
-async function connectToArduino() {
-  if (!selectedPort.value) return;
-
-  try {
-    isConnecting.value = true;
-    const response = await axios.post(`${Url}/arduino/connect`, {
-      portPath: selectedPort.value,
-    });
-
-    if (response.data.success) {
-      showStatusMessage(
-        `Đang kết nối Arduino (${selectedPort.value})...`,
-        "info"
-      );
-      lastConnectionState.value = null;
-    }
-  } catch (error) {
-    console.error("Error connecting to Arduino:", error);
-    showStatusMessage("Lỗi khi kết nối Arduino", "error");
-  } finally {
-    isConnecting.value = false;
-  }
-}
-
-// Function to disconnect Arduino
-async function disconnectArduino() {
-  try {
-    isConnecting.value = true;
-    const response = await axios.post(`${Url}/arduino/disconnect`);
-
-    if (response.data.success) {
-      showStatusMessage("Đã ngắt kết nối Arduino", "info");
-      isArduinoConnected.value = false;
-      lastConnectionState.value = null;
-    }
-  } catch (error) {
-    console.error("Error disconnecting Arduino:", error);
-    showStatusMessage("Lỗi khi ngắt kết nối Arduino", "error");
-  } finally {
-    isConnecting.value = false;
-  }
-}
-
-// Khởi tạo trước khi component được mount
-onBeforeMount(async () => {
-  // Fetch available ports
-  await fetchAvailablePorts();
-
-  // Check initial Arduino status
-  await checkArduinoStatus();
-
-  // Set up periodic status check
-  statusInterval = setInterval(checkArduinoStatus, 5000);
-});
-
-// Cleanup khi component unmount
-onUnmounted(() => {
-  if (statusInterval) {
-    clearInterval(statusInterval);
-    statusInterval = null;
-  }
-});
 
 // Initialize chart
 onMounted(() => {
@@ -656,6 +451,47 @@ watch(
 );
 
 // ... existing methods ...
+
+const connectArduino = () => {
+  const formData = reactive({
+    ProjectID: isBegin.value ? "" : route.params.id,
+  });
+  isConnecting.value = true;
+  axios
+    .post(`${Url}/set-project-id`, formData)
+    .then(function (response) {
+      console.log(response.data);
+      isBegin.value = !isBegin.value;
+      connectionStatusMessage.value = response.data.message;
+      connectionStatusColor.value = isBegin.value ? "success" : "error";
+      showStatusSnackbar.value = true;
+      localStorage.setItem("isRunning", id);
+    })
+    .catch(function (error) {
+      console.log(error);
+      connectionStatusMessage.value = "Có lỗi xảy ra";
+      connectionStatusColor.value = "error";
+      showStatusSnackbar.value = true;
+    })
+    .finally(() => {
+      isConnecting.value = false;
+    });
+};
+
+// Reset data
+const resetData = () => {
+  axios
+    .delete(`${Url}/reset-data/${id}`)
+    .then(function (response) {
+      console.log(response.data);
+      totalInput.value = 0;
+      totalOutput.value = 0;
+    })
+    .catch(function (error) {
+      console.log(error);
+    });
+  console.log("resetData");
+};
 </script>
 <script>
 export default {
