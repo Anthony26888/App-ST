@@ -1,43 +1,33 @@
-version: '3.8'
-
 services:
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: app-st-backend
-    ports:
-      # Sử dụng biến từ file .env gốc, nếu không có thì dùng 3000
-      - "${BACKEND_HOST_PORT:-3000}:3000"
-    # ----> THAY ĐỔI Ở ĐÂY: Nạp biến từ file .env chung và file secrets <----
-    env_file:
-      - ./.env # Nạp file .env chung (ở gốc App-ST)
-      - ./backend/.env.secrets # Nạp file bí mật của backend
-    command: npm run dev
-    volumes:
-      # Mount code từ host vào container
-      - ./backend:/app
-      # ----> DÒNG NÀY RẤT QUAN TRỌNG <----
-      # Ngăn node_modules trên host ghi đè node_modules trong container
-      - /app/node_modules
-    networks:
-      - app-network
-    # Không cần 'environment:' nếu các biến đã có trong env_file
-
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: app-st-frontend
     ports:
       - "80:80"
-    # Thường không cần env_file hoặc environment cho frontend runtime (Nginx)
-    # vì các biến VITE_ đã được "bake" vào code JS lúc build.
     depends_on:
       - backend
+    networks:
+      - app-network
+    env_file:
+      - ./.env
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    env_file:
+      - ./.env
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
     networks:
       - app-network
 
 networks:
   app-network:
-    driver: bridge
+    driver: bridge 

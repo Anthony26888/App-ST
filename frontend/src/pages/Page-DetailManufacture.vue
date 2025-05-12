@@ -11,6 +11,14 @@
 
         <v-spacer></v-spacer>
         <v-btn
+          prepend-icon="mdi-check"
+          class="text-caption"
+          color="grey"
+          @click="checkConnection"
+          >Kiểm tra kết nối</v-btn
+        >
+        <v-btn
+          class="text-caption ms-2"
           @click="connectArduino"
           :color="isBegin ? 'error' : 'success'"
           :loading="isConnecting"

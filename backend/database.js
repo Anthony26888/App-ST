@@ -188,5 +188,15 @@ db.serialize(() => {
     )
   `);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS StatusSensors (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      Device TEXT,
+      Status TEXT,
+      Date TEXT,
+      Time TEXT
+    )
+  `);
+
 });
 module.exports = db;

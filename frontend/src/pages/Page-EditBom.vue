@@ -99,6 +99,7 @@ const DialogEdit = ref(false);
 const DialogRemove = ref(false);
 const DialogFailed = ref(false);
 const DialogLoading = ref(false);
+const DialogSuccess = ref(false);
 const PO_Edit = ref("");
 const Bom_Edit = ref("");
 const Quantity_Edit = ref("");
@@ -146,6 +147,8 @@ function Reset() {
   DialogSuccess.value = true;
   DialogRemove.value = false;
   DialogLoading.value = false;
+  DialogRemove.value = false;
+  DialogFailed.value = false;
 }
 function Error() {
   DialogFailed.value = true;

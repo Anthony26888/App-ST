@@ -25,371 +25,6 @@ const io = new Server(server, {
   cors: { origin: "*" },
 });
 
-// // Biến theo dõi trạng thái Arduino
-// let arduinoPort = null;
-// let arduinoParser = null;
-// let isArduinoConnected = false;
-// let pendingCommands = [];
-// let reconnectInterval = null;
-// let currentPortPath = "/dev/tty.usbserial-1420"; // Path mặc định
-
-// // Hàm đóng kết nối Arduino an toàn
-// function safeCloseArduino() {
-//   try {
-//     if (arduinoPort && arduinoPort.isOpen) {
-//       arduinoPort.close();
-//     }
-//   } catch (error) {
-//     console.error("Error closing Arduino connection:", error);
-//   } finally {
-//     arduinoPort = null;
-//     arduinoParser = null;
-//     isArduinoConnected = false;
-//   }
-// }
-
-// // Hàm khởi tạo kết nối Arduino
-// function initializeArduino(portPath = currentPortPath) {
-//   try {
-//     // Kiểm tra nếu không có port được chọn
-//     if (!portPath) {
-//       console.log("No port selected");
-//       isArduinoConnected = false;
-//       io.emit("arduinoStatus", {
-//         connected: false,
-//         message: "Chưa chọn cổng kết nối",
-//         portPath: "",
-//       });
-//       return;
-//     }
-
-//     // Đóng kết nối cũ an toàn
-//     safeCloseArduino();
-
-//     // Cập nhật path mới
-//     currentPortPath = portPath;
-
-//     // Tạo kết nối mới
-//     arduinoPort = new SerialPort({
-//       path: currentPortPath,
-//       baudRate: 9600,
-//       autoOpen: false,
-//     });
-
-//     arduinoParser = arduinoPort.pipe(new ReadlineParser({ delimiter: "\n" }));
-
-//     arduinoPort.on("open", () => {
-//       console.log("Arduino connected successfully on port:", currentPortPath);
-//       isArduinoConnected = true;
-//       io.emit("arduinoStatus", {
-//         connected: true,
-//         message: "Arduino đã kết nối",
-//         portPath: currentPortPath,
-//       });
-
-//       // Dừng interval kết nối lại nếu đang chạy
-//       if (reconnectInterval) {
-//         clearInterval(reconnectInterval);
-//         reconnectInterval = null;
-//       }
-
-//       // Thực hiện các lệnh đang chờ
-//       while (pendingCommands.length > 0) {
-//         const command = pendingCommands.shift();
-//         executeCommand(command);
-//       }
-//     });
-
-//     arduinoPort.on("close", () => {
-//       console.log("Arduino disconnected from port:", currentPortPath);
-//       isArduinoConnected = false;
-//       io.emit("arduinoStatus", {
-//         connected: false,
-//         message: "Arduino mất kết nối",
-//         portPath: currentPortPath,
-//       });
-
-//       // Bắt đầu thử kết nối lại
-//       startReconnectAttempts();
-//     });
-
-//     arduinoPort.on("error", (err) => {
-//       console.error("Serial port error:", err);
-//       isArduinoConnected = false;
-//       io.emit("arduinoStatus", {
-//         connected: false,
-//         message: "Lỗi kết nối Arduino: " + err.message,
-//         portPath: currentPortPath,
-//       });
-
-//       // Đóng kết nối an toàn
-//       safeCloseArduino();
-
-//       // Bắt đầu thử kết nối lại
-//       startReconnectAttempts();
-//     });
-
-//     arduinoParser.on("data", handleArduinoData);
-
-//     // Mở port sau khi đã thiết lập các event handler
-//     arduinoPort.open((err) => {
-//       if (err) {
-//         console.error("Error opening port:", err);
-//         isArduinoConnected = false;
-//         io.emit("arduinoStatus", {
-//           connected: false,
-//           message: "Lỗi mở kết nối Arduino: " + err.message,
-//           portPath: currentPortPath,
-//         });
-
-//         // Đóng kết nối an toàn
-//         safeCloseArduino();
-
-//         // Bắt đầu thử kết nối lại
-//         startReconnectAttempts();
-//       }
-//     });
-//   } catch (error) {
-//     console.error("Error initializing Arduino:", error);
-//     isArduinoConnected = false;
-//     io.emit("arduinoStatus", {
-//       connected: false,
-//       message: "Lỗi khởi tạo Arduino: " + error.message,
-//       portPath: currentPortPath,
-//     });
-
-//     // Đóng kết nối an toàn
-//     safeCloseArduino();
-
-//     // Bắt đầu thử kết nối lại
-//     startReconnectAttempts();
-//   }
-// }
-
-// // Hàm bắt đầu thử kết nối lại
-// function startReconnectAttempts() {
-//   // Dừng interval cũ nếu có
-//   if (reconnectInterval) {
-//     clearInterval(reconnectInterval);
-//   }
-
-//   // Thử kết nối lại mỗi 5 giây
-//   reconnectInterval = setInterval(() => {
-//     console.log("Attempting to reconnect to Arduino on port:", currentPortPath);
-//     initializeArduino();
-//   }, 5000);
-// }
-
-// // Hàm thực hiện lệnh
-// function executeCommand(command) {
-//   if (!isArduinoConnected || !arduinoPort || !arduinoPort.isOpen) {
-//     console.log("Arduino not connected, adding command to queue");
-//     pendingCommands.push(command);
-//     return;
-//   }
-
-//   try {
-//     arduinoPort.write(command + "\n", (err) => {
-//       if (err) {
-//         console.error("Error sending command:", err);
-//         io.emit("arduinoStatus", {
-//           connected: false,
-//           message: "Lỗi gửi lệnh: " + err.message,
-//         });
-//         pendingCommands.push(command); // Thêm lại vào hàng đợi nếu gửi thất bại
-//       } else {
-//         console.log("Command sent successfully:", command);
-//       }
-//     });
-//   } catch (error) {
-//     console.error("Error executing command:", error);
-//     io.emit("arduinoStatus", {
-//       connected: false,
-//       message: "Lỗi thực hiện lệnh: " + error.message,
-//     });
-//     pendingCommands.push(command); // Thêm lại vào hàng đợi nếu thực hiện thất bại
-//   }
-// }
-
-// // Hàm xử lý dữ liệu từ Arduino
-// function handleArduinoData(line) {
-//   try {
-//     if (!isArduinoConnected || !arduinoPort || !arduinoPort.isOpen) {
-//       console.log("Arduino not connected, ignoring data");
-//       return;
-//     }
-
-//     const clean = line.trim();
-//     console.log("Raw data from Arduino:", clean);
-
-//     if (clean !== "1") {
-//       console.log("Ignoring non-count data");
-//       return;
-//     }
-
-//     console.log("Received count: 1");
-
-//     const lastSocketId = [...userProjects.keys()].at(-1);
-//     const projectId = userProjects.get(lastSocketId) || null;
-
-//     console.log(`Recording: project_id=${projectId}, count=1`);
-
-//     io.emit("updateCount", 1);
-//     console.log("Count emitted to clients");
-
-//     if (projectId) {
-//       const today = new Date();
-//       const formattedDate = today.toISOString().split("T")[0];
-//       const formattedTime = today.toLocaleTimeString("en-US", {
-//         hour: "2-digit",
-//         minute: "2-digit",
-//         second: "2-digit",
-//         hour12: false,
-//       });
-
-//       db.run(
-//         "INSERT INTO ManufactureDetails (PlanID, Input, Output, Date, Time) VALUES (?, ?, '0', ?, ?)",
-//         [projectId, 1, formattedDate, formattedTime],
-//         (err) => {
-//           if (err) {
-//             console.error("DB Error:", err);
-//           } else {
-//             io.emit("updateManufactureDetails");
-//             io.emit("updateManufactureDetailsTable");
-//             console.log("Count saved to database");
-//           }
-//         }
-//       );
-//     } else {
-//       console.log("No project ID available, skipping database save");
-//     }
-//   } catch (error) {
-//     console.error("Error processing Arduino data:", error);
-//   }
-// }
-
-// // Thử kết nối Arduino lần đầu
-// try {
-//   initializeArduino();
-// } catch (error) {
-//   console.error("Failed to initialize Arduino, continuing without it:", error);
-//   startReconnectAttempts();
-// }
-
-// // Route để thay đổi port và kết nối lại Arduino
-// app.post("/arduino/connect", (req, res) => {
-//   const { portPath } = req.body;
-
-//   if (!portPath) {
-//     return res.status(400).json({
-//       error: "Port path is required",
-//       currentPort: currentPortPath,
-//     });
-//   }
-
-//   try {
-//     // Dừng interval kết nối lại nếu đang chạy
-//     if (reconnectInterval) {
-//       clearInterval(reconnectInterval);
-//       reconnectInterval = null;
-//     }
-
-//     // Khởi tạo lại kết nối với port mới
-//     initializeArduino(portPath);
-
-//     res.json({
-//       success: true,
-//       message: "Đang thử kết nối Arduino...",
-//       portPath: portPath,
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       error: "Lỗi khi thay đổi port: " + error.message,
-//       currentPort: currentPortPath,
-//     });
-//   }
-// });
-
-// // Route để lấy danh sách các port có sẵn
-// app.get("/arduino/ports", async (req, res) => {
-//   try {
-//     const ports = await SerialPort.list();
-//     res.json({
-//       success: true,
-//       ports: ports.map((port) => ({
-//         path: port.path,
-//         manufacturer: port.manufacturer,
-//         serialNumber: port.serialNumber,
-//         isCurrentPort: port.path === currentPortPath,
-//       })),
-//       currentPortPath: currentPortPath,
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       error: "Lỗi khi lấy danh sách port: " + error.message,
-//     });
-//   }
-// });
-
-// // Route kiểm tra trạng thái Arduino
-// app.get("/arduino/status", (req, res) => {
-//   res.json({
-//     connected: isArduinoConnected && arduinoPort && arduinoPort.isOpen,
-//     message:
-//       isArduinoConnected && arduinoPort && arduinoPort.isOpen
-//         ? "Arduino đã kết nối"
-//         : "Arduino chưa kết nối",
-//     pendingCommands: pendingCommands.length,
-//     reconnecting: !!reconnectInterval,
-//     currentPort: currentPortPath,
-//   });
-// });
-
-// // Route để gửi lệnh đến Arduino
-// app.post("/arduino/command", (req, res) => {
-//   const { command } = req.body;
-//   if (!command) {
-//     return res.status(400).json({ error: "Command is required" });
-//   }
-
-//   executeCommand(command);
-//   res.json({
-//     success: true,
-//     message:
-//       isArduinoConnected && arduinoPort && arduinoPort.isOpen
-//         ? "Command sent"
-//         : "Command queued",
-//     connected: isArduinoConnected && arduinoPort && arduinoPort.isOpen,
-//     pendingCommands: pendingCommands.length,
-//   });
-// });
-
-// // Route để ngắt kết nối Arduino
-// app.post("/arduino/disconnect", (req, res) => {
-//   try {
-//     // Dừng interval kết nối lại nếu đang chạy
-//     if (reconnectInterval) {
-//       clearInterval(reconnectInterval);
-//       reconnectInterval = null;
-//     }
-
-//     // Đóng kết nối an toàn
-//     safeCloseArduino();
-
-//     res.json({
-//       success: true,
-//       message: "Đã ngắt kết nối Arduino",
-//       currentPort: currentPortPath,
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       error: "Lỗi khi ngắt kết nối: " + error.message,
-//       currentPort: currentPortPath,
-//     });
-//   }
-// });
-
-
 
 const userProjects = new Map();
 // Khi client kết nối
@@ -647,7 +282,7 @@ const getPivotQuery = async (id) => {
         // Create dynamic column aggregation
         const columns = Boms.map(
           (Boms) =>
-            `SUM(CASE WHEN Bom = '${Boms.Bom}' THEN (So_Luong * SL_Board) ELSE 0 END) AS [${Boms.Bom}]`
+            `ROUND(SUM(CASE WHEN Bom = '${Boms.Bom}' THEN (So_Luong * SL_Board) ELSE 0 END), 2) AS [${Boms.Bom}]`
         ).join(", ");
 
         // Full SQL query
@@ -661,7 +296,7 @@ const getPivotQuery = async (id) => {
             Manufacturer_3,
             PartNumber_3,  
             ${columns},
-            IFNULL(SUM(So_Luong * SL_Board), 0) AS SL_Tổng,
+            ROUND(IFNULL(SUM(So_Luong * SL_Board), 0), 2) AS SL_Tổng,
             IFNULL(SUM(SL_Board), 0) AS SL_Board,
             Du_Toan_Hao_Phi AS Dự_Toán_Hao_Phí,
             id AS Sửa
@@ -1922,6 +1557,31 @@ app.delete("/reset-data/:id", (req, res) => {
     io.emit("updateManufactureDetailsTable");
     res.json({ message: "Đã xoá dữ liệu sản xuất thành công" });
   });
+});
+
+// Biến lưu trữ trạng thái kết nối của thiết bị
+let deviceStatus = {};
+console.log(deviceStatus);
+// Endpoint để nhận trạng thái kết nối của thiết bị
+app.post('/status-sensor', (req, res) => {
+  const { status, device } = req.body;
+
+  if (!status || !device) {
+    return res.status(400).json({ error: 'Missing status or device' });
+  }
+
+  // Cập nhật trạng thái kết nối của thiết bị
+  deviceStatus[device] = status;
+
+  console.log(`Device: ${device}, Status: ${status}`);
+
+  // Trả lời thành công
+  res.status(200).json({ message: 'Status received successfully' });
+});
+
+// Endpoint để lấy trạng thái của tất cả thiết bị
+app.get('/status-sensor', (req, res) => {
+  res.status(200).json(deviceStatus);
 });
 // Catch-all route cho frontend
 app.get("*", (req, res) => {

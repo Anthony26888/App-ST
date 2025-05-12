@@ -1,23 +1,18 @@
-# Use an official Node.js runtime as a parent image
-FROM node:18-alpine
+FROM node:18
 
-# Set the working directory in the container
 WORKDIR /app
-
-# Install dependencies
-RUN apk add --no-cache python3 make g++
 
 # Copy package files
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install --legacy-peer-deps
+RUN npm install
 
-# Copy source code
+# Copy project files
 COPY . .
 
-# Expose port
+# Expose the port the app runs on
 EXPOSE 3000
 
-# Start the server
-CMD ["node", "server.js"]
+# Command to run the application
+CMD ["npm", "run", "dev"] 
