@@ -15,7 +15,7 @@
             @click="DialogAdd = true"
             >Thêm</v-btn
           >
-          <ButtonDownload @download-file="DownloadInventory()" />
+          <ButtonDownload @download-file="DownloadWareHouse()" />
           <p class="ms-2 font-weight-thin text-subtitle-1">
             ( {{ warehouse2.length }} linh kiện)
           </p>
@@ -544,11 +544,13 @@ function Reset() {
   Customer_Add.value = ref("");
   Note_Add.value = ref("");
   Note_Output_Add.value = ref("");
+  File.value = null;
 }
 function Error() {
   DialogLoading.value = false;
   DialogSuccess.value = false;
   DialogFailed.value = true;
+  File.value = null;
 }
 </script>
 <script>

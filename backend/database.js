@@ -33,6 +33,29 @@ db.serialize(() => {
       SL_Board TEXT,
       PO TEXT
     )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS DetailOrders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      Description TEXT,
+      Manufacturer_1 TEXT,
+      PartNumber_1 TEXT,
+      Manufacturer_2 TEXT,
+      PartNumber_2 TEXT,
+      Manufacturer_3 TEXT,
+      PartNumber_3 TEXT,
+      So_Luong INTEGER,
+      Du_Toan_Hao_Phi INTEGER,
+      Hao_Phi_Thuc_Te INTEGER,
+      Bom TEXT,
+      SL_Board TEXT,
+      PO TEXT,
+      SL_Ton_Kho INTEGER,
+      Ma_Kho TEXT,
+      Ma_Kho_Misa TEXT,
+      SL_Can_Mua INTEGER,
+      SL_Can_Mua_Misa INTEGER
+  )`);
+
   db.run(`CREATE TABLE IF NOT EXISTS WareHouse (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       Description TEXT,
@@ -189,12 +212,9 @@ db.serialize(() => {
   `);
 
   db.run(`
-    CREATE TABLE IF NOT EXISTS StatusSensors (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      Device TEXT,
-      Status TEXT,
-      Date TEXT,
-      Time TEXT
+    CREATE TABLE IF NOT EXISTS heartbeats (
+      device_id TEXT PRIMARY KEY,
+      last_seen INTEGER
     )
   `);
 

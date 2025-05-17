@@ -1,5 +1,7 @@
 require("dotenv").config();
 const express = require("express");
+const multer = require("multer");
+const xlsx = require("xlsx");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const path = require("path");
@@ -25,6 +27,18 @@ const io = new Server(server, {
   cors: { origin: "*" },
 });
 
+// Configure Multer for file storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/"); // folder to save images
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = `${file.originalname}`;
+    cb(null, uniqueSuffix);
+  },
+});
+
+const upload = multer({ storage: storage });
 
 const userProjects = new Map();
 // Khi client kết nối
@@ -32,7 +46,7 @@ io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
   socket.on("getCompare", async (id) => {
     try {
-      const query = await getCompareInventory(id);
+      const query = await getCompareWareHouse(id);
       db.all(query, [id], (err, rows) => {
         if (err) return socket.emit("compareError", err);
         socket.emit("compareData", rows);
@@ -94,6 +108,28 @@ io.on("connection", (socket) => {
         });
       } catch (error) {
         socket.emit("WareHouse2Error", error);
+      }
+    }),
+    socket.on("getWareHouseFind", async (id) => {
+      try {
+        const query = `SELECT DISTINCT Customer FROM WareHouse WHERE PartNumber_1 = ? ORDER BY id ASC`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("WareHouseFindError", err);
+          socket.emit("WareHouseFindData", rows);
+        });
+      } catch (error) {
+        socket.emit("WareHouseFindError", error);
+      }
+    }),
+    socket.on("getWareHouseFindMisa", async (id) => {
+      try {
+        const query = `SELECT DISTINCT Customer FROM WareHouse2 WHERE PartNumber_1 = ? ORDER BY id ASC`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("WareHouseFindMisaError", err);
+          socket.emit("WareHouseFindMisaData", rows);
+        });
+      } catch (error) {
+        socket.emit("WareHouseFindMisaError", error);
       }
     }),
     socket.on("getProject", async () => {
@@ -262,15 +298,6 @@ io.on("connection", (socket) => {
   });
 });
 
-const fetchTableData = (tableName) => {
-  return new Promise((resolve, reject) => {
-    db.all(`SELECT * FROM ${tableName} ORDER BY id DESC`, [], (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-    });
-  });
-};
-
 const getPivotQuery = async (id) => {
   return new Promise((resolve, reject) => {
     db.all(
@@ -322,20 +349,6 @@ const getCompareInventory = async (id) => {
           (Boms) =>
             `SUM(CASE WHEN c.Bom = '${Boms.Bom}' THEN (c.So_Luong * c.SL_Board) ELSE 0 END) AS [${Boms.Bom}]`
         ).join(", ");
-        const Buy = `
-          CASE 
-            WHEN (SUM(c.So_Luong * c.SL_Board) + SUM(IFNULL(c.Du_Toan_Hao_Phi, 0))) > IFNULL(i.Inventory, 0) 
-            THEN SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Du_Toan_Hao_Phi, 0) - IFNULL(i.Inventory, 0)
-            ELSE 0 
-          END AS SL_Cần_Mua
-        `;
-        const BuyMisa = `
-          CASE 
-            WHEN (SUM(c.So_Luong * c.SL_Board) + SUM(IFNULL(c.Du_Toan_Hao_Phi, 0))) > IFNULL(w2.Inventory, 0) 
-            THEN SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Du_Toan_Hao_Phi, 0) - IFNULL(w2.Inventory, 0)
-            ELSE 0 
-          END AS SL_Cần_Mua_Misa
-        `;
         // Full SQL query
         const query = `
           SELECT 
@@ -347,16 +360,15 @@ const getCompareInventory = async (id) => {
             c.Manufacturer_3,
             c.PartNumber_3,  
             ${columns},
+            c.So_Luong,
             SUM(c.So_Luong * c.SL_Board) AS SL_Tổng,
             IFNULL(c.SL_Board, 0) AS SL_Board,
-            IFNULL(c.Du_Toan_Hao_Phi, 0) AS Dự_Toán_Hao_Phí,
-            IFNULL(c.Hao_Phi_Thuc_Te, 0) AS Hao_Phí_Thực_Tế,
-            IFNULL(i.Inventory, 0) AS SL_Tồn_Kho,
-            IFNULL(i.Customer, '') AS Mã_Kho,
-            IFNULL(w2.Inventory, 0) AS SL_Tồn_Kho_Misa,
-            IFNULL(w2.Customer, '') AS Mã_Kho_Misa,
-            ${Buy},
-            ${BuyMisa},
+            IFNULL(c.Du_Toan_Hao_Phi, 0) AS Du_Toan_Hao_Phi,
+            IFNULL(c.Hao_Phi_Thuc_Te, 0) AS Hao_Phi_Thuc_Te,
+            i.Customer AS Ma_Kho,
+            w2.Customer AS Ma_Kho_Misa,
+            c.Bom,
+            c.PO,
             c.id AS Sửa
           FROM CheckBOM c
           LEFT JOIN WareHouse i 
@@ -372,18 +384,153 @@ const getCompareInventory = async (id) => {
   });
 };
 
-/// Hàm gửi dữ liệu cập nhật đến tất cả client
-const sendData = async () => {
-  try {
-    const users = await fetchTableData("Users");
-    const warehouse = await fetchTableData("WareHouse");
-    const orders = await fetchTableData("Orders"); // Chỉ sắp xếp bảng orders
-    const bom = await fetchTableData("CheckBOM");
-    io.emit("updateData", { users, warehouse, orders, bom });
-  } catch (error) {
-    console.error("Error fetching data:", error);
-  }
+const getCompareWareHouse = async (id) => {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `SELECT DISTINCT Bom FROM DetailOrders WHERE PO = ?`,
+      [id],
+      (err, Boms) => {
+        if (err) return reject(err);
+
+        // Create dynamic column aggregation
+        const columns = Boms.map(
+          (Boms) =>
+            `SUM(CASE WHEN c.Bom = '${Boms.Bom}' THEN (c.So_Luong * c.SL_Board) ELSE 0 END) AS [${Boms.Bom}]`
+        ).join(", ");
+        const Buy = `
+          CASE 
+            WHEN (SUM(c.So_Luong * c.SL_Board) + SUM(IFNULL(c.Du_Toan_Hao_Phi, 0))) > IFNULL(i.Inventory, 0) 
+            THEN SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Du_Toan_Hao_Phi, 0) - IFNULL(i.Inventory, 0)
+            ELSE 0 
+          END AS Số_Lượng_Cần_Mua
+        `;
+        const BuyMisa = `
+          CASE 
+            WHEN (SUM(c.So_Luong * c.SL_Board) + SUM(IFNULL(c.Du_Toan_Hao_Phi, 0))) > IFNULL(w2.Inventory, 0) 
+            THEN SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Du_Toan_Hao_Phi, 0) - IFNULL(w2.Inventory, 0)
+            ELSE 0 
+          END AS Số_Lượng_Cần_Mua_Misa
+        `;
+        // Full SQL query
+        const query = `
+          SELECT 
+            c.Description Mô_Tả, 
+            c.Manufacturer_1,
+            c.PartNumber_1,
+            c.Manufacturer_2,
+            c.PartNumber_2,
+            c.Manufacturer_3,
+            c.PartNumber_3,  
+            ${columns},
+            c.So_Luong AS Số_Lượng,
+            SUM(c.So_Luong * c.SL_Board) AS SL_Tổng,
+            IFNULL(c.SL_Board, 0) AS SL_Board,
+            IFNULL(c.Du_Toan_Hao_Phi, 0) AS Dự_Toán_Hao_Phí,
+            IFNULL(c.Hao_Phi_Thuc_Te, 0) AS Hao_Phi_Thực_Tế,
+            IFNULL(i.Inventory, 0) AS SL_Tồn_Kho,
+            c.Ma_Kho AS Mã_Kho,
+            IFNULL(w2.Inventory, 0) AS SL_Tồn_Kho_Misa,
+            c.Ma_Kho_Misa AS Mã_Kho_Misa,
+            ${Buy},
+            ${BuyMisa},
+            c.id AS Sửa
+          FROM DetailOrders c
+          LEFT JOIN WareHouse i 
+            ON c.PartNumber_1 = i.PartNumber_1
+            AND c.Ma_Kho = i.Customer
+          LEFT JOIN WareHouse2 w2
+            ON c.PartNumber_1 = w2.PartNumber_1
+          WHERE c.PO = ?
+          GROUP BY c.PartNumber_1, c.Ma_Kho, c.Ma_Kho_Misa;
+        `;
+        resolve(query);
+      }
+    );
+  });
 };
+
+app.post("/insert-compare-inventory/:id", async (req, res) => {
+  const id = req.params.id;
+  console.log("Processing insert-compare-inventory for PO:", id);
+
+  try {
+    const query = await getCompareInventory(id);
+    console.log("Generated query:", query);
+
+    db.all(query, [id], (err, rows) => {
+      if (err) {
+        console.error("Query error:", err.message);
+        return res.status(500).json({ error: "Query failed", details: err.message });
+      }
+
+      if (!rows || rows.length === 0) {
+        console.log("No data found for PO:", id);
+        return res.status(404).json({ error: "Không tìm thấy dữ liệu cho PO này" });
+      }
+
+      console.log("Found", rows.length, "rows to insert");
+
+      const insertStmt = db.prepare(`
+        INSERT INTO DetailOrders (
+          Description, Manufacturer_1, PartNumber_1, Manufacturer_2, PartNumber_2, 
+          Manufacturer_3, PartNumber_3, So_Luong, SL_Board, Du_Toan_Hao_Phi, 
+          Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, Bom, PO
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      rows.forEach((row, index) => {
+        try {
+          insertStmt.run(
+            row.Description,
+            row.Manufacturer_1,
+            row.PartNumber_1,
+            row.Manufacturer_2,
+            row.PartNumber_2,
+            row.Manufacturer_3,
+            row.PartNumber_3,
+            row.So_Luong,
+            row.SL_Board,
+            row.Du_Toan_Hao_Phi,
+            row.Hao_Phi_Thuc_Te,
+            row.Ma_Kho,
+            row.Ma_Kho_Misa,
+            row.Bom,
+            row.PO,
+            (err) => {
+              if (err) {
+                console.error(`Error inserting row ${index}:`, err.message);
+                errorCount++;
+              } else {
+                successCount++;
+              }
+            }
+          );
+        } catch (err) {
+          console.error(`Error preparing row ${index}:`, err.message);
+          errorCount++;
+        }
+      });
+
+      insertStmt.finalize();
+      console.log(`Insert completed. Success: ${successCount}, Errors: ${errorCount}`);
+      
+      res.json({ 
+        message: "Dữ liệu đã được chèn thành công!", 
+        total: rows.length,
+        success: successCount,
+        errors: errorCount
+      });
+      io.emit("updateDetailOrders");
+    });
+  } catch (err) {
+    console.error("Lỗi truy vấn:", err.message);
+    res.status(500).json({ error: "Không thể tạo truy vấn.", details: err.message });
+  }
+});
+
 
 // Router register user
 app.post("/Users/register", (req, res) => {
@@ -441,6 +588,89 @@ app.put("/Users/Edit-User/:id", async (req, res) => {
     res.json({ message: "Item inserted successfully" });
   });
 });
+// Router upload file xlsx to WareHouse table
+app.post("/WareHouse/Upload", upload.single("file"), async (req, res) => {
+  if (!req.file) return res.status(400).send("No file uploaded.");
+
+  // Read Excel file
+  const filePath = path.join(__dirname, req.file.path);
+  const workbook = xlsx.readFile(filePath);
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+
+  // Convert sheet data to JSON
+  const data = xlsx.utils.sheet_to_json(sheet);
+
+  try {
+    // Process each row sequentially
+    for (const row of data) {
+      // Check if PartNumber_1, Description, Customer, and Location match
+      const existingRow = await new Promise((resolve, reject) => {
+        db.get(
+          "SELECT * FROM WareHouse WHERE PartNumber_1 = ? AND Description = ? AND Customer = ? AND Location = ?",
+          [row.PartNumber_1, row.Description, row.Customer, row.Location],
+          (err, result) => {
+            if (err) reject(err);
+            else resolve(result);
+          }
+        );
+      });
+
+      if (existingRow) {
+        // Update existing row
+        await new Promise((resolve, reject) => {
+          const updateStmt = db.prepare(
+            "UPDATE WareHouse SET Input = Input + ?, Inventory = Inventory + ? WHERE PartNumber_1 = ? AND Description = ? AND Customer = ? AND Location = ?"
+          );
+          updateStmt.run(
+            row.Input || 0,
+            row.Inventory || 0,
+            row.PartNumber_1,
+            row.Description,
+            row.Customer,
+            row.Location,
+            (err) => {
+              updateStmt.finalize();
+              if (err) reject(err);
+              else resolve();
+            }
+          );
+        });
+      } else {
+        // Insert new row
+        await new Promise((resolve, reject) => {
+          const insertStmt = db.prepare(
+            "INSERT INTO WareHouse (Description, PartNumber_1, PartNumber_2, Input, Output, Inventory, Customer, Location, Note, Note_Output) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+          );
+          insertStmt.run(
+            row.Description,
+            row.PartNumber_1,
+            row.PartNumber_2,
+            row.Input || 0,
+            row.Output || 0,
+            row.Inventory || 0,
+            row.Customer,
+            row.Location,
+            row.Note,
+            row.Note_Output,
+            (err) => {
+              insertStmt.finalize();
+              if (err) reject(err);
+              else resolve();
+            }
+          );
+        });
+      }
+    }
+
+    res.send("File processed successfully.");
+    io.emit("WareHouseUpdate");
+  } catch (error) {
+    console.error("Error processing file:", error);
+    res.status(500).send("Error processing file: " + error.message);
+  }
+});
+
 
 // Router update item WareHouse table
 app.put("/WareHouse/update-item/:id", async (req, res) => {
@@ -549,20 +779,7 @@ app.delete("/WareHouse/delete-item/:id", async (req, res) => {
   });
 });
 
-// Router delete item in WareHouse2 table
-app.delete("/WareHouse2/delete-item/:id", async (req, res) => {
-  const { id } = req.params;
-  // Delete data into SQLite database
-  const query = `DELETE FROM WareHouse2 WHERE id = ?`;
-  db.run(query, [id], function (err) {
-    if (err) {
-      return console.error(err.message);
-    }
-    io.emit("WareHouse2Update");
-    // Broadcast the new message to all clients
-    res.json({ message: "Item inserted successfully" });
-  });
-});
+
 
 //Router post new item in WareHouse table
 app.post("/WareHouse/upload-new-item", (req, res) => {
@@ -604,6 +821,102 @@ app.post("/WareHouse/upload-new-item", (req, res) => {
       res.json({ message: "Item inserted successfully" });
     }
   );
+});
+
+// Router upload file xlsx to WareHouse2 table
+app.post("/WareHouse2/Upload", upload.single("file"), async (req, res) => {
+  if (!req.file) return res.status(400).send("No file uploaded.");
+
+  // Read Excel file
+  const filePath = path.join(__dirname, req.file.path);
+  const workbook = xlsx.readFile(filePath);
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+
+  // Convert sheet data to JSON
+  const data = xlsx.utils.sheet_to_json(sheet);
+
+  try {
+    // Process each row sequentially
+    for (const row of data) {
+      // Check if PartNumber_1, Description, Customer, and Location match
+      const existingRow = await new Promise((resolve, reject) => {
+        db.get(
+          "SELECT * FROM WareHouse2 WHERE PartNumber_1 = ? AND Description = ? AND Customer = ? AND Location = ?",
+          [row.PartNumber_1, row.Description, row.Customer, row.Location],
+          (err, result) => {
+            if (err) reject(err);
+            else resolve(result);
+          }
+        );
+      });
+
+      if (existingRow) {
+        // Update existing row
+        await new Promise((resolve, reject) => {
+          const updateStmt = db.prepare(
+            "UPDATE WareHouse2 SET Input = Input + ?, Inventory = Inventory + ? WHERE PartNumber_1 = ? AND Description = ? AND Customer = ? AND Location = ?"
+          );
+          updateStmt.run(
+            row.Input || 0,
+            row.Inventory || 0,
+            row.PartNumber_1,
+            row.Description,
+            row.Customer,
+            row.Location,
+            (err) => {
+              updateStmt.finalize();
+              if (err) reject(err);
+              else resolve();
+            }
+          );
+        });
+      } else {
+        // Insert new row
+        await new Promise((resolve, reject) => {
+          const insertStmt = db.prepare(
+            "INSERT INTO WareHouse2 (Description, PartNumber_1, PartNumber_2, Input, Output, Inventory, Customer, Location, Note, Note_Output) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+          );
+          insertStmt.run(
+            row.Description,
+            row.PartNumber_1,
+            row.PartNumber_2,
+            row.Input || 0,
+            row.Output || 0,
+            row.Inventory || 0,
+            row.Customer,
+            row.Location,
+            row.Note,
+            row.Note_Output,
+            (err) => {
+              insertStmt.finalize();
+              if (err) reject(err);
+              else resolve();
+            }
+          );
+        });
+      }
+    }
+    io.emit("WareHouse2Update");
+    res.send("File processed successfully.");
+  } catch (error) {
+    console.error("Error processing file:", error);
+    res.status(500).send("Error processing file: " + error.message);
+  }
+});
+// Router delete item in WareHouse2 table
+app.delete("/WareHouse2/delete-item/:id", async (req, res) => {
+  const { id } = req.params;
+  // Delete data into SQLite database
+  const query = `DELETE FROM WareHouse2 WHERE id = ?`;
+  db.run(query, [id], function (err) {
+    if (err) {
+      return console.error(err.message);
+    }
+    io.emit("WareHouse2Update");
+    // Broadcast the new message to all clients
+    res.json({ message: "Item inserted successfully" });
+  });
 });
 
 //Router post new item in WareHouse2 table
@@ -692,7 +1005,7 @@ app.post("/ListPO/upload-new-PO", async (req, res) => {
       if (err) {
         return console.error(err.message);
       }
-      sendData();
+      io.emit("updateOrders");
       // Broadcast the new message to all clients
       res.json({ message: "Item inserted successfully" });
     }
@@ -714,11 +1027,11 @@ app.put("/CheckBom/Update-Hao-Phi", async (req, res) => {
 });
 
 // Router update Hao_Phi_Thuc_Te in CheckBom table
-app.put("/CheckBom/Update-Hao-Phi-Thuc-Te", async (req, res) => {
-  const { Input_Hao_Phi_Thuc_Te, PartNumber_1 } = req.body;
+app.put("/DetailOrders/Update", async (req, res) => {
+  const { Input_Hao_Phi_Thuc_Te, PartNumber_1, Ma_Kho, Ma_Kho_Misa } = req.body;
   // Insert data into SQLite database
-  const query = `UPDATE CheckBOM SET Hao_Phi_Thuc_Te = ? WHERE PartNumber_1 = ?`;
-  db.run(query, [Input_Hao_Phi_Thuc_Te, PartNumber_1], function (err) {
+  const query = `UPDATE DetailOrders SET Hao_Phi_Thuc_Te = ?, Ma_Kho = ?, Ma_Kho_Misa = ? WHERE PartNumber_1 = ?`;
+  db.run(query, [Input_Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, PartNumber_1], function (err) {
     if (err) {
       return console.error(err.message);
     }
@@ -754,7 +1067,7 @@ app.put("/Orders/WareHouse-Accept/:id", async (req, res) => {
     if (err) {
       return console.error(err.message);
     }
-    sendData();
+    io.emit("updateOrders");
     // Broadcast the new message to all clients
     res.json({ message: "Item inserted successfully" });
   });
@@ -769,15 +1082,15 @@ app.put("/WareHouse/update-Inventory-CheckBom/:id", async (req, res) => {
     UPDATE WareHouse
     SET Inventory = 
       CASE 
-        WHEN Inventory > (SELECT SUM(cb.So_Luong * cb.SL_Board + cb.Hao_Phi_Thuc_Te)
-                          FROM CheckBOM cb
+        WHEN Inventory > (SELECT SUM(cb.So_Luong * cb.SL_Board + IFNULL(cb.Hao_Phi_Thuc_Te, 0))
+                          FROM DetailOrders cb
                           WHERE cb.PartNumber_1 = WareHouse.PartNumber_1 AND cb.PO = ?)
-        THEN Inventory - (SELECT SUM(cb.So_Luong * cb.SL_Board + cb.Hao_Phi_Thuc_Te)
-                          FROM CheckBOM cb
+        THEN Inventory - (SELECT SUM(cb.So_Luong * cb.SL_Board + IFNULL(cb.Hao_Phi_Thuc_Te, 0))
+                          FROM DetailOrders cb
                           WHERE cb.PartNumber_1 = WareHouse.PartNumber_1 AND cb.PO = ?)
         ELSE 0
       END
-    WHERE PartNumber_1 IN (SELECT PartNumber_1 FROM CheckBOM WHERE PO = ?)
+    WHERE PartNumber_1 IN (SELECT PartNumber_1 FROM DetailOrders WHERE PO = ?)
   `;
   db.all(query, [poNumber, poNumber, poNumber], function (err) {
     if (err) {
@@ -798,14 +1111,14 @@ app.put("/WareHouse2/update-Inventory-CheckBom/:id", async (req, res) => {
     SET Inventory = 
       CASE 
         WHEN Inventory > (SELECT SUM(cb.So_Luong * cb.SL_Board + cb.Hao_Phi_Thuc_Te)
-                          FROM CheckBOM cb
+                          FROM DetailOrders cb
                           WHERE cb.PartNumber_1 = WareHouse2.PartNumber_1 AND cb.PO = ?)
         THEN Inventory - (SELECT SUM(cb.So_Luong * cb.SL_Board + cb.Hao_Phi_Thuc_Te)
-                          FROM CheckBOM cb
+                          FROM DetailOrders cb
                           WHERE cb.PartNumber_1 = WareHouse2.PartNumber_1 AND cb.PO = ?)
         ELSE 0
       END
-    WHERE PartNumber_1 IN (SELECT PartNumber_1 FROM CheckBOM WHERE PO = ?)
+    WHERE PartNumber_1 IN (SELECT PartNumber_1 FROM DetailOrders WHERE PO = ?)
   `;
   db.all(query, [poNumber, poNumber, poNumber], function (err) {
     if (err) {
@@ -1559,30 +1872,46 @@ app.delete("/reset-data/:id", (req, res) => {
   });
 });
 
-// Biến lưu trữ trạng thái kết nối của thiết bị
-let deviceStatus = {};
-console.log(deviceStatus);
-// Endpoint để nhận trạng thái kết nối của thiết bị
-app.post('/status-sensor', (req, res) => {
-  const { status, device } = req.body;
+app.post("/api/heartbeat", (req, res) => {
+  const { device_id } = req.body;
+  const now = Date.now();
+  console.log(`Heartbeat from ${device_id} at ${new Date(now).toISOString()}`); // Thêm dòng này
 
-  if (!status || !device) {
-    return res.status(400).json({ error: 'Missing status or device' });
-  }
+  db.run(
+    `INSERT INTO heartbeats (device_id, last_seen)
+     VALUES (?, ?)
+     ON CONFLICT(device_id) DO UPDATE SET last_seen = ?`,
+    [device_id, now, now],
+    (err) => {
+      if (err) return res.status(500).json({ error: "Database error" });
+      io.emit('device-status', {
+        device_id,
+        status: 'online',
+        last_seen: now
+      });
 
-  // Cập nhật trạng thái kết nối của thiết bị
-  deviceStatus[device] = status;
-
-  console.log(`Device: ${device}, Status: ${status}`);
-
-  // Trả lời thành công
-  res.status(200).json({ message: 'Status received successfully' });
+      res.json({ message: "Heartbeat received" });
+    }
+  );
 });
 
-// Endpoint để lấy trạng thái của tất cả thiết bị
-app.get('/status-sensor', (req, res) => {
-  res.status(200).json(deviceStatus);
+app.get('/api/devices', (req, res) => {
+  const now = Date.now();
+  const timeout = 60000; // 1 phút
+
+  db.all(`SELECT device_id, last_seen FROM heartbeats`, [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+
+    const devices = rows.map(row => ({
+      device_id: row.device_id,
+      status: now - row.last_seen < timeout ? 'online' : 'offline',
+      last_seen: new Date(row.last_seen).toLocaleString()
+    }));
+
+    res.json(devices);
+  });
 });
+
 // Catch-all route cho frontend
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));

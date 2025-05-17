@@ -10,13 +10,15 @@
         {{ NameManufacture }}
 
         <v-spacer></v-spacer>
-        <v-btn
-          prepend-icon="mdi-check"
-          class="text-caption"
-          color="grey"
-          @click="checkConnection"
-          >Kiểm tra kết nối</v-btn
+        <v-chip
+          :prepend-icon="status === 'Online' ? 'mdi-contactless-payment-circle' : 'mdi-web-off'"
+          :color="status === 'Online' ? 'green' : 'red'"
+          class="ma-2"
+          dark
+          size="large"
         >
+          {{ status }}
+        </v-chip>
         <v-btn
           class="text-caption ms-2"
           @click="connectArduino"
@@ -27,6 +29,7 @@
           &nbsp;
           {{ isBegin ? "Dừng" : "Bắt đầu" }}
         </v-btn>
+        <p>{{  }}</p>
         <v-btn @click="resetData" class="ms-2 text-caption" color="primary"
           >Reset dữ liệu</v-btn
         >
@@ -215,6 +218,7 @@ import { useManufactureDetails } from "@/composables/useManufactureDetails";
 import { useManufactureDetailsTable } from "@/composables/useManufactureDetails_Table";
 import { useManufacture } from "@/composables/useManufacture";
 import { useSensorCount } from "@/composables/useSensorCount";
+import { useDeviceStatusSocket } from "@/composables/useStatusSensor";
 
 // ... existing refs and constants ...
 const Url = import.meta.env.VITE_API_URL;
@@ -227,9 +231,11 @@ const DialogLoading = ref(false);
 const DialogFailed = ref(false);
 const { manufactureDetails, connectionStatus } = useManufactureDetails(id);
 const { manufactureDetailsTable } = useManufactureDetailsTable(id);
+const { status } = useDeviceStatusSocket('esp32-001');
 const { manufacture } = useManufacture();
 const { count } = useSensorCount(id);
 console.log("manufactureDetails:", manufactureDetails.value);
+console.log("status:", status);
 // Production statistics
 const NameManufacture = localStorage.getItem("ProductName");
 // Table
@@ -240,6 +246,10 @@ const Headers = [
   { title: "Thời gian", key: "Time" },
 ];
 const isBegin = ref(false);
+const isConnecting = ref(false);
+const connectionStatusMessage = ref("");
+const connectionStatusColor = ref("");
+const showStatusSnackbar = ref(false);
 // Production statistics
 const totalInput = ref(0);
 const totalOutput = ref(0);
@@ -268,19 +278,10 @@ const Data = {
   output: manufactureDetails.value?.map((item) => item.Output) || [],
   target: manufactureDetails.value?.map((item) => item.Total) || [],
 };
-console.log("Data:", Data);
 
-// Arduino connection state
-const isArduinoConnected = ref(false);
-const isConnecting = ref(false);
-const showStatusSnackbar = ref(false);
-const connectionStatusMessage = ref("");
-const connectionStatusColor = ref("info");
-const lastConnectionState = ref(null);
-let statusInterval = null;
-
-
-
+// Status last seen
+const now = Date.now();
+const timeout = 60000;
 // Initialize chart
 onMounted(() => {
   nextTick(() => {

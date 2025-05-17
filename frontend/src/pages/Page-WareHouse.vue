@@ -541,12 +541,14 @@ function Reset() {
   Customer_Add.value = ref("");
   Note_Add.value = ref("");
   Note_Output_Add.value = ref("");
+  File.value = null;
 }
 function Error() {
   DialogFailed.value = false;
   DialogLoading.value = false;
   DialogCaution.value = true;
   DialogSuccess.value = false;
+  File.value = null;
 }
 </script>
 <script>

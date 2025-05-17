@@ -62,77 +62,9 @@ app.post("/upload", upload.single("file"), (req, res) => {
   res.send("File processed successfully.");
 });
 
-// Router upload file xlsx to WareHouse table
-app.post("/WareHouse/Upload", upload.single("file"), (req, res) => {
-  if (!req.file) return res.status(400).send("No file uploaded.");
 
-  // Read Excel file
-  const filePath = path.join(__dirname, req.file.path);
-  const workbook = xlsx.readFile(filePath);
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
 
-  // Convert sheet data to JSON
-  const data = xlsx.utils.sheet_to_json(sheet);
 
-  // Insert data into SQLite database
-  const stmt = db.prepare(
-    "INSERT INTO WareHouse (Description, PartNumber_1, PartNumber_2, Input, Output, Inventory, Customer, Location, Note, Note_Output) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-  );
-  data.forEach((row) => {
-    stmt.run(
-      row.Description,
-      row.PartNumber_1,
-      row.PartNumber_2,
-      row.Input,
-      row.Output,
-      row.Inventory,
-      row.Customer,
-      row.Location,
-      row.Note,
-      row.Note_Output
-    );
-  });
-  stmt.finalize();
-
-  res.send("File processed successfully.");
-});
-
-// Router upload file xlsx to WareHouse2 table
-app.post("/WareHouse2/Upload", upload.single("file"), (req, res) => {
-  if (!req.file) return res.status(400).send("No file uploaded.");
-
-  // Read Excel file
-  const filePath = path.join(__dirname, req.file.path);
-  const workbook = xlsx.readFile(filePath);
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-
-  // Convert sheet data to JSON
-  const data = xlsx.utils.sheet_to_json(sheet);
-
-  // Insert data into SQLite database
-  const stmt = db.prepare(
-    "INSERT INTO WareHouse2 (Description, PartNumber_1, PartNumber_2, Input, Output, Inventory, Customer, Location, Note, Note_Output) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-  );
-  data.forEach((row) => {
-    stmt.run(
-      row.Description,
-      row.PartNumber_1,
-      row.PartNumber_2,
-      row.Input,
-      row.Output,
-      row.Inventory,
-      row.Customer,
-      row.Location,
-      row.Note,
-      row.Note_Output
-    );
-  });
-  stmt.finalize();
-
-  res.send("File processed successfully.");
-});
 
 // Router upload file xlsx to Project table
 app.post("/Project/upload", upload.single("file"), async (req, res) => {
@@ -763,5 +695,86 @@ app.delete("/Project/delete-all", async (req, res) => {
     res.json({ message: "Item inserted successfully" });
   });
 });
+
+// // Router upload file xlsx to WareHouse table
+// app.post("/WareHouse/Upload", upload.single("file"), async (req, res) => {
+//   if (!req.file) return res.status(400).send("No file uploaded.");
+
+//   // Read Excel file
+//   const filePath = path.join(__dirname, req.file.path);
+//   const workbook = xlsx.readFile(filePath);
+//   const sheetName = workbook.SheetNames[0];
+//   const sheet = workbook.Sheets[sheetName];
+
+//   // Convert sheet data to JSON
+//   const data = xlsx.utils.sheet_to_json(sheet);
+
+//   try {
+//     // Process each row sequentially
+//     for (const row of data) {
+//       // Check if PartNumber_1 exists first
+//       const existingRow = await new Promise((resolve, reject) => {
+//         db.get(
+//           "SELECT * FROM WareHouse WHERE PartNumber_1 = ?",
+//           [row.PartNumber_1],
+//           (err, result) => {
+//             if (err) reject(err);
+//             else resolve(result);
+//           }
+//         );
+//       });
+
+//       if (existingRow) {
+//         // Update existing row
+//         await new Promise((resolve, reject) => {
+//           const updateStmt = db.prepare(
+//             "UPDATE WareHouse SET Input = Input + ?, Inventory = Inventory + ? WHERE PartNumber_1 = ?"
+//           );
+//           updateStmt.run(
+//             row.Input || 0,
+//             row.Inventory || 0,
+//             row.PartNumber_1,
+//             (err) => {
+//               updateStmt.finalize();
+//               if (err) reject(err);
+//               else resolve();
+//             }
+//           );
+//         });
+//       } else {
+//         // Insert new row
+//         await new Promise((resolve, reject) => {
+//           const insertStmt = db.prepare(
+//             "INSERT INTO WareHouse (Description, PartNumber_1, PartNumber_2, Input, Output, Inventory, Customer, Location, Note, Note_Output) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+//           );
+//           insertStmt.run(
+//             row.Description || '',
+//             row.PartNumber_1,
+//             row.PartNumber_2 || '',
+//             row.Input || 0,
+//             row.Output || 0,
+//             row.Inventory || 0,
+//             row.Customer || '',
+//             row.Location || '',
+//             row.Note || '',
+//             row.Note_Output || '',
+//             (err) => {
+//               insertStmt.finalize();
+//               if (err) reject(err);
+//               else resolve();
+//             }
+//           );
+//         });
+//       }
+//     }
+
+//     res.send("File processed successfully.");
+//   } catch (error) {
+//     console.error("Error processing file:", error);
+//     res.status(500).send("Error processing file: " + error.message);
+//   }
+// });
+
+
 
 module.exports = app;

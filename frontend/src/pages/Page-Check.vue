@@ -72,7 +72,7 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="calc(100vh - 200px)"
+            height="calc(100vh - 270px)"
           >
             <template v-slot:bottom>
               <div class="text-center pt-2">
@@ -340,11 +340,26 @@ const SaveTable = async () => {
     .then(function (response) {
       console.log(response);
       sendEmail();
+      SaveAddOrders();
       Reset();
     })
     .catch(function (error) {
       console.log(error);
       Error();
+    });
+};
+
+const SaveAddOrders = async () => {
+  DialogLoading.value = true;
+  axios
+    .post(`${Url}/insert-compare-inventory/${namePO.value}`)
+    .then(function (response) {
+      console.log(response.data);
+      Reset();
+    })
+    .catch(function (error) {
+      console.log(error);
+      Error()
     });
 };
 const SaveEdit = () => {

@@ -57,6 +57,7 @@
               <ButtonSearch @search="getAccessToken(value)" />
             </div>
           </template>
+
         </v-data-table>
       </v-card>
     </v-card-text>
@@ -68,6 +69,7 @@
         Cập nhật dữ liệu
       </v-card-title>
       <v-card-text>
+        <InputSelect label="Mã Kho" v-model="Ma_Kho" :items="Customer" />
         <InputField label="Hao phí thực tế" v-model="ActualCost" />
       </v-card-text>
       <v-card-actions>
@@ -166,6 +168,7 @@ import { computed } from "vue";
 import { useRoute } from "vue-router";
 import { ref, watch } from "vue";
 import InputSearch from "@/components/Input-Search.vue";
+import InputSelect from "@/components/Input-Select.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
@@ -177,6 +180,7 @@ import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 import { useSocket } from "@/composables/useWebSocket";
 import { useDetailOrder } from "@/composables/useDetailOrder";
+import { useWareHouseFind } from "@/composables/useWareHouseFind";
 import { jwtDecode } from "jwt-decode";
 import { useUsers } from "@/composables/useUsers";
 import { useOrders } from "@/composables/useOrders";
@@ -186,13 +190,15 @@ import emailjs from "@emailjs/browser";
 // Route
 const route = useRoute();
 const id = route.params.id;
-
+const PartNumber_1 = ref("");
 // Orders
 const { orders } = useOrders();
 // Users
 const { users } = useUsers();
 // Detail Order
 const { compare, compareError, headers } = useDetailOrder(id);
+// WareHouse Find
+const { WareHouseFind, WareHouseFindError } = useWareHouseFind(PartNumber_1);
 // Url
 const Url = import.meta.env.VITE_API_URL;
 const status = computed(() => {
@@ -211,8 +217,11 @@ const DialogCaution = ref(false);
 const DialogInfo = ref(false);
 // Data
 const NamePO = ref("");
-const PartNumber_1 = ref("");
+
 const GetID = ref("");
+const Ma_Kho = ref("");
+const Ma_Kho_Misa = ref("");
+const Customer = ref([]);
 const UserInfo = ref("");
 const ActualCost = ref("");
 const GetDigikey = ref("");
@@ -275,18 +284,30 @@ function GetItem(value) {
   DialogEdit.value = true;
   GetID.value = value;
   const found = compare.value.find((v) => v.Sửa === value);
-  PartNumber_1.value = found.PartNumber_1;
-  ActualCost.value = found.Hao_Phí_Thực_Tế;
+  if (found) {
+    PartNumber_1.value = found.PartNumber_1;
+    ActualCost.value = found.Hao_Phí_Thực_Tế;
+    Ma_Kho.value = found.Ma_Kho;
+    Ma_Kho_Misa.value = found.Ma_Kho_Misa;
+  }
 }
+// Watch for changes in WareHouseFind
+watch(WareHouseFind, (newData) => {
+  if (newData && newData.length > 0) {
+    Customer.value = newData.map(item => item.Customer);
+  }
+}, { immediate: true });
 // Save Edit
 const SaveEdit = async () => {
   DialogLoading.value = true;
   const formData = {
     Input_Hao_Phi_Thuc_Te: ActualCost.value,
+    Ma_Kho: Ma_Kho.value,
+    Ma_Kho_Misa: Ma_Kho_Misa.value,
     PartNumber_1: PartNumber_1.value,
   };
   axios
-    .put(`${Url}/CheckBom/Update-Hao-Phi-Thuc-Te`, formData)
+    .put(`${Url}/DetailOrders/Update`, formData)
     .then(function (response) {
       console.log(response);
       Reset();
@@ -295,6 +316,7 @@ const SaveEdit = async () => {
       console.log(error);
       Error();
     });
+
 };
 
 const WareHouseAcceptWareHouse = async () => {
