@@ -51,7 +51,9 @@ db.serialize(() => {
       Ma_Kho TEXT,
       Ma_Kho_Misa TEXT,
       Bom TEXT,
-      PO TEXT
+      PO TEXT,
+      Order_Id INTEGER,
+      FOREIGN KEY (Order_Id) REFERENCES Orders(id) ON DELETE CASCADE   
   )`);
 
   db.run(`CREATE TABLE IF NOT EXISTS WareHouse (

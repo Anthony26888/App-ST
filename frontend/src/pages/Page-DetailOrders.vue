@@ -353,7 +353,7 @@ const WareHouseAccept = async () => {
     .then(function (response) {
       console.log(response);
       sendEmail();
-      
+      Reset();
     })
     .catch(function (error) {
       console.log(error);

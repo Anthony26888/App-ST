@@ -454,35 +454,56 @@ app.post("/insert-compare-inventory/:id", async (req, res) => {
   console.log("Processing insert-compare-inventory for PO:", id);
 
   try {
+    // First get the Order_Id from Orders table
+    const orderId = await new Promise((resolve, reject) => {
+      const orderQuery = `SELECT id FROM Orders WHERE Name_PO = ?`;
+      db.get(orderQuery, [id], (err, orderRow) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        if (!orderRow) {
+          reject(new Error("Không tìm thấy đơn hàng tương ứng"));
+          return;
+        }
+        resolve(orderRow.id);
+      });
+    });
+
+    // Get the compare inventory data
     const query = await getCompareInventory(id);
     console.log("Generated query:", query);
 
-    db.all(query, [id], (err, rows) => {
-      if (err) {
-        console.error("Query error:", err.message);
-        return res.status(500).json({ error: "Query failed", details: err.message });
-      }
+    const rows = await new Promise((resolve, reject) => {
+      db.all(query, [id], (err, rows) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        if (!rows || rows.length === 0) {
+          reject(new Error("Không tìm thấy dữ liệu cho PO này"));
+          return;
+        }
+        resolve(rows);
+      });
+    });
 
-      if (!rows || rows.length === 0) {
-        console.log("No data found for PO:", id);
-        return res.status(404).json({ error: "Không tìm thấy dữ liệu cho PO này" });
-      }
+    console.log("Found", rows.length, "rows to insert");
 
-      console.log("Found", rows.length, "rows to insert");
+    const insertStmt = db.prepare(`
+      INSERT INTO DetailOrders (
+        Description, Manufacturer_1, PartNumber_1, Manufacturer_2, PartNumber_2, 
+        Manufacturer_3, PartNumber_3, So_Luong, SL_Board, Du_Toan_Hao_Phi, 
+        Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, Bom, PO, Order_Id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
 
-      const insertStmt = db.prepare(`
-        INSERT INTO DetailOrders (
-          Description, Manufacturer_1, PartNumber_1, Manufacturer_2, PartNumber_2, 
-          Manufacturer_3, PartNumber_3, So_Luong, SL_Board, Du_Toan_Hao_Phi, 
-          Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, Bom, PO
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
+    let successCount = 0;
+    let errorCount = 0;
 
-      let successCount = 0;
-      let errorCount = 0;
-
-      rows.forEach((row, index) => {
-        try {
+    for (const row of rows) {
+      try {
+        await new Promise((resolve, reject) => {
           insertStmt.run(
             row.Description,
             row.Manufacturer_1,
@@ -499,38 +520,41 @@ app.post("/insert-compare-inventory/:id", async (req, res) => {
             row.Ma_Kho_Misa,
             row.Bom,
             row.PO,
+            orderId,
             (err) => {
               if (err) {
-                console.error(`Error inserting row ${index}:`, err.message);
+                console.error(`Error inserting row:`, err.message);
                 errorCount++;
+                reject(err);
               } else {
                 successCount++;
+                resolve();
               }
             }
           );
-        } catch (err) {
-          console.error(`Error preparing row ${index}:`, err.message);
-          errorCount++;
-        }
-      });
+        });
+      } catch (err) {
+        console.error(`Error preparing row:`, err.message);
+        errorCount++;
+      }
+    }
 
-      insertStmt.finalize();
-      console.log(`Insert completed. Success: ${successCount}, Errors: ${errorCount}`);
-      
-      res.json({ 
-        message: "Dữ liệu đã được chèn thành công!", 
-        total: rows.length,
-        success: successCount,
-        errors: errorCount
-      });
-      io.emit("updateDetailOrders");
+    insertStmt.finalize();
+    console.log(`Insert completed. Success: ${successCount}, Errors: ${errorCount}`);
+    
+    res.json({ 
+      message: "Dữ liệu đã được chèn thành công!", 
+      total: rows.length,
+      success: successCount,
+      errors: errorCount
     });
+    io.emit("updateDetailOrders");
+
   } catch (err) {
     console.error("Lỗi truy vấn:", err.message);
     res.status(500).json({ error: "Không thể tạo truy vấn.", details: err.message });
   }
 });
-
 
 // Router register user
 app.post("/Users/register", (req, res) => {
