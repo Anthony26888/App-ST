@@ -34,6 +34,7 @@ db.serialize(() => {
       PO TEXT
     )`);
 
+
   db.run(`CREATE TABLE IF NOT EXISTS DetailOrders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       Description TEXT,
@@ -44,16 +45,13 @@ db.serialize(() => {
       Manufacturer_3 TEXT,
       PartNumber_3 TEXT,
       So_Luong INTEGER,
+      SL_Board TEXT,
       Du_Toan_Hao_Phi INTEGER,
       Hao_Phi_Thuc_Te INTEGER,
-      Bom TEXT,
-      SL_Board TEXT,
-      PO TEXT,
-      SL_Ton_Kho INTEGER,
       Ma_Kho TEXT,
       Ma_Kho_Misa TEXT,
-      SL_Can_Mua INTEGER,
-      SL_Can_Mua_Misa INTEGER
+      Bom TEXT,
+      PO TEXT
   )`);
 
   db.run(`CREATE TABLE IF NOT EXISTS WareHouse (
