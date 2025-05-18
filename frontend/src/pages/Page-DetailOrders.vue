@@ -156,17 +156,29 @@
       </v-card-text>
     </v-card>
   </v-dialog>
-  <SnackbarSuccess v-model="DialogSuccess" />
-  <SnackbarFailed v-model="DialogFailed" />
-  <SnackbarCaution v-model="DialogCaution" />
+  <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
+  <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
+  <SnackbarCaution v-model="DialogCaution" :message="MessageCautionDialog" />
   <Loading v-model="DialogLoading" />
 </template>
 <script setup>
-// Import
+// ===== IMPORTS =====
+// Core dependencies
 import axios from "axios";
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { ref, watch } from "vue";
+import { jwtDecode } from "jwt-decode";
+import { Buffer } from "buffer";
+import emailjs from "@emailjs/browser";
+
+// Composables
+import { useSocket } from "@/composables/useWebSocket";
+import { useDetailOrder } from "@/composables/useDetailOrder";
+import { useWareHouseFind } from "@/composables/useWareHouseFind";
+import { useUsers } from "@/composables/useUsers";
+import { useOrders } from "@/composables/useOrders";
+
+// Components
 import InputSearch from "@/components/Input-Search.vue";
 import InputSelect from "@/components/Input-Select.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
@@ -178,46 +190,33 @@ import ButtonAgree from "@/components/Button-Agree.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
-import { useSocket } from "@/composables/useWebSocket";
-import { useDetailOrder } from "@/composables/useDetailOrder";
-import { useWareHouseFind } from "@/composables/useWareHouseFind";
-import { jwtDecode } from "jwt-decode";
-import { useUsers } from "@/composables/useUsers";
-import { useOrders } from "@/composables/useOrders";
-import { Buffer } from "buffer";
-import emailjs from "@emailjs/browser";
 
-// Route
+// ===== STATE MANAGEMENT =====
+// Route and API Configuration
 const route = useRoute();
 const id = route.params.id;
-const PartNumber_1 = ref("");
-// Orders
-const { orders } = useOrders();
-// Users
-const { users } = useUsers();
-// Detail Order
-const { compare, compareError, headers } = useDetailOrder(id);
-// WareHouse Find
-const { WareHouseFind, WareHouseFindError } = useWareHouseFind(PartNumber_1);
-// Url
 const Url = import.meta.env.VITE_API_URL;
-const status = computed(() => {
-  if (!orders.value || !Array.isArray(orders.value)) return null;
-  const found = orders.value.find((v) => v.Name_PO === route.params.id);
-  return found ? found.Status : null;
-});
-const Headers = ref([]);
-// Dialog
-const DialogEdit = ref(false);
-const DialogAccept = ref(false);
-const DialogSuccess = ref(false);
-const DialogFailed = ref(false);
-const DialogLoading = ref(false);
-const DialogCaution = ref(false);
-const DialogInfo = ref(false);
-// Data
-const NamePO = ref("");
 
+// Initialize composables
+const { orders } = useOrders();
+const { users } = useUsers();
+const { compare, compareError, headers } = useDetailOrder(id);
+const { WareHouseFind, WareHouseFindError } = useWareHouseFind(PartNumber_1);
+
+// ===== DIALOG STATES =====
+// Control visibility of various dialogs
+const DialogEdit = ref(false);      // Edit item dialog
+const DialogAccept = ref(false);    // Accept confirmation dialog
+const DialogSuccess = ref(false);   // Success notification
+const DialogFailed = ref(false);    // Error notification
+const DialogLoading = ref(false);   // Loading state
+const DialogCaution = ref(false);   // Warning notification
+const DialogInfo = ref(false);      // Product info dialog
+
+// ===== FORM STATES =====
+// Item data states
+const PartNumber_1 = ref("");
+const NamePO = ref("");
 const GetID = ref("");
 const Ma_Kho = ref("");
 const Ma_Kho_Misa = ref("");
@@ -225,23 +224,48 @@ const Customer = ref([]);
 const UserInfo = ref("");
 const ActualCost = ref("");
 const GetDigikey = ref("");
-const expires_in = ref(null);
-const ResultSearch = ref(null);
 const search = ref("");
 const itemsPerPage = ref(12);
 const page = ref(1);
-// Digikey
+
+// ===== MESSAGE DIALOG =====
+// Message for success and error notifications
+const MessageDialog = ref("");
+const MessageErrorDialog = ref("");
+const MessageCautionDialog = ref("");
+
+// ===== TABLE CONFIGURATION =====
+const Headers = ref([]);
+
+// ===== DIGIKEY API CONFIGURATION =====
 const clientId = import.meta.env.VITE_DIGIKEY_CLIENT_ID;
 const clientSecret = import.meta.env.VITE_DIGIKEY_CLIENT_SECRET;
 const accessToken = ref(null);
 const tokenType = ref(null);
-// Email
+const expires_in = ref(null);
+const ResultSearch = ref(null);
+
+// ===== EMAIL CONFIGURATION =====
 const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
 const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
 const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
+// ===== COMPUTED PROPERTIES =====
+/**
+ * Computes the status of the current order
+ * @returns {number|null} The status of the order or null if not found
+ */
+const status = computed(() => {
+  if (!orders.value || !Array.isArray(orders.value)) return null;
+  const found = orders.value.find((v) => v.Name_PO === route.params.id);
+  return found ? found.Status : null;
+});
 
-// Mounted
+// ===== LIFECYCLE HOOKS =====
+/**
+ * Initialize component data on mount
+ * Sets up user info and PO data from localStorage
+ */
 onMounted(() => {
   const storeData = localStorage.getItem("PO");
   NamePO.value = storeData;
@@ -253,33 +277,55 @@ onMounted(() => {
     console.log("Không tìm thấy token!");
   }
 });
+
+// ===== WATCHERS =====
+/**
+ * Watch for changes in compare data to regenerate table headers
+ */
 watch(
   compare,
   (newBomData) => {
-    console.log("checkBOM changed, generating headers with:", newBomData); // Log để kiểm tra
-    generateHeaders(newBomData); // Gọi hàm generateHeaders với dữ liệu mới
+    console.log("checkBOM changed, generating headers with:", newBomData);
+    generateHeaders(newBomData);
   },
   { deep: true }
-); // deep: trues
-// Generate Headers
+);
+
+/**
+ * Watch for changes in WareHouseFind data to update Customer options
+ */
+watch(WareHouseFind, (newData) => {
+  if (newData && newData.length > 0) {
+    Customer.value = newData.map(item => item.Customer);
+  }
+}, { immediate: true });
+
+// ===== TABLE OPERATIONS =====
+/**
+ * Generates table headers based on BOM data structure
+ * @param {Array} bomData - The BOM data array
+ */
 function generateHeaders(bomData) {
   if (bomData && bomData.length > 0) {
-    // Lấy keys từ object ĐẦU TIÊN trong mảng
     const firstItemKeys = Object.keys(bomData[0]);
-    console.log("Generating headers from keys:", firstItemKeys); // Log để kiểm tra keys
+    console.log("Generating headers from keys:", firstItemKeys);
     Headers.value = firstItemKeys.map((key) => ({
-      title: key.replace(/_/g, " "), // Thay thế gạch dưới bằng khoảng trắng
-      key: key, // key để v-data-table lấy dữ liệu
-      sortable: true, // Có thể thêm sortable
+      title: key.replace(/_/g, " "),
+      key: key,
+      sortable: true,
       width: 200,
     }));
-
   } else {
-    console.log("No data to generate headers, clearing headers."); // Log khi không có dữ liệu
-    Headers.value = []; // Reset headers nếu không có dữ liệu
+    console.log("No data to generate headers, clearing headers.");
+    Headers.value = [];
   }
 }
-// Get Item
+
+// ===== CRUD OPERATIONS =====
+/**
+ * Fetches and populates item data for editing
+ * @param {string} value - The ID of the item to edit
+ */
 function GetItem(value) {
   DialogEdit.value = true;
   GetID.value = value;
@@ -291,13 +337,10 @@ function GetItem(value) {
     Ma_Kho_Misa.value = found.Ma_Kho_Misa;
   }
 }
-// Watch for changes in WareHouseFind
-watch(WareHouseFind, (newData) => {
-  if (newData && newData.length > 0) {
-    Customer.value = newData.map(item => item.Customer);
-  }
-}, { immediate: true });
-// Save Edit
+
+/**
+ * Saves edited item data
+ */
 const SaveEdit = async () => {
   DialogLoading.value = true;
   const formData = {
@@ -306,85 +349,100 @@ const SaveEdit = async () => {
     Ma_Kho_Misa: Ma_Kho_Misa.value,
     PartNumber_1: PartNumber_1.value,
   };
-  axios
-    .put(`${Url}/DetailOrders/Update`, formData)
-    .then(function (response) {
-      console.log(response);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error();
-    });
 
+  try {
+    const response = await axios.put(`${Url}/DetailOrders/Update`, formData);
+    console.log(response);
+    MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
+    Error();
+  }
 };
 
+// ===== WAREHOUSE OPERATIONS =====
+/**
+ * Updates warehouse inventory for the current order
+ */
 const WareHouseAcceptWareHouse = async () => {
   DialogLoading.value = true;
-  axios
-    .put(`${Url}/WareHouse/update-Inventory-CheckBom/${id}`)
-    .then(function (response) {
-      console.log(response);
-      WareHouseAccept();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error();
-    });
+  try {
+    const response = await axios.put(`${Url}/WareHouse/update-Inventory-CheckBom/${id}`);
+    console.log(response);
+    WareHouseAccept();
+  } catch (error) {
+    console.log(error);
+    Error();
+  }
 };
-// WareHouse2 Accept
+
+/**
+ * Updates warehouse2 inventory for the current order
+ */
 const WareHouse2AcceptWareHouse = async () => {
   DialogLoading.value = true;
-  axios
-    .put(`${Url}/WareHouse2/update-Inventory-CheckBom/${id}`)
-    .then(function (response) {
-      console.log(response);
-      WareHouseAccept();
-    })
-    .catch(function (error) {
-      console.log(error); 
-      Error();
-    });
+  try {
+    const response = await axios.put(`${Url}/WareHouse2/update-Inventory-CheckBom/${id}`);
+    console.log(response);
+    WareHouseAccept();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Xác nhận dữ liệu thất bại";
+    Error();
+  }
 };
-// WareHouse Accept
+
+/**
+ * Finalizes warehouse acceptance of the order
+ */
 const WareHouseAccept = async () => {
-  axios
-    .put(`${Url}/Orders/WareHouse-Accept/${id}`)
-    .then(function (response) {
-      console.log(response);
-      sendEmail();
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error();
-    });
+  try {
+    const response = await axios.put(`${Url}/Orders/WareHouse-Accept/${id}`);
+    console.log(response);
+    await sendEmail();
+    Reset();
+    MessageDialog.value = "Xác nhận dữ liệu thành công";
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Xác nhận dữ liệu thất bại";
+    Error();
+  }
 };
-// Download Order
+
+// ===== FILE OPERATIONS =====
+/**
+ * Downloads order data as an Excel file
+ */
 const DownloadOrder = async () => {
   try {
     const response = await fetch(`${Url}/Download-Order/${id}`);
     if (!response.ok) throw new Error("Download failed");
 
-    // Convert response to blob
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
 
-    // Create a link to download
     const a = document.createElement("a");
     a.href = url;
     a.download = `${id}.xlsx`;
     document.body.appendChild(a);
     a.click();
 
-    // Cleanup
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   } catch (error) {
+    MessageErrorDialog.value = "Tải file thất bại";
     console.error("Error downloading file:", error);
     Error();
   }
 };
+
+// ===== DIGIKEY API OPERATIONS =====
+/**
+ * Gets access token from DigiKey API
+ * @param {string} value - The ID of the item to search
+ */
 const getAccessToken = async (value) => {
   DialogLoading.value = true;
   const found = compare.value.find((v) => v.Sửa === value);
@@ -414,14 +472,17 @@ const getAccessToken = async (value) => {
     return true;
   } catch (error) {
     console.error(
-      Error(),
       "Lỗi khi lấy access token:",
       error.response ? error.response.data : error.message
     );
+    MessageErrorDialog.value = "Lấy access token thất bại";
     return false;
   }
 };
 
+/**
+ * Searches for product details using DigiKey API
+ */
 const searchProduct = async () => {
   if (!accessToken.value) {
     console.error("Chưa có access token. Vui lòng lấy token trước.");
@@ -439,25 +500,34 @@ const searchProduct = async () => {
       },
     });
     ResultSearch.value = response.data;
+    MessageDialog.value = "Tìm kiếm sản phẩm thành công";
     if (ResultSearch.value) {
-      return (DialogInfo.value = true), Reset();
+      DialogInfo.value = true;
+      Reset();
+      return;
     }
     return response.data;
   } catch (error) {
     console.error(
       "Lỗi khi tìm kiếm sản phẩm:",
-      error.response ? error.response.data : error.message,
-      (DialogCaution.value = true),
-      (DialogLoading.value = false)
+      error.response ? error.response.data : error.message
     );
+    MessageErrorDialog.value = "Tìm kiếm sản phẩm thất bại";
+    DialogCaution.value = true;
+    DialogLoading.value = false;
     return null;
   }
 };
-// Send Email
+
+// ===== EMAIL OPERATIONS =====
+/**
+ * Sends email notification about order status
+ */
 const sendEmail = async () => {
   DialogLoading.value = true;
   const found = users.value.find((v) => v.Username === UserInfo.value);
   const foundAccept = users.value.find((v) => v.Username === localStorage.getItem("Creater_Order"));
+  
   try {
     const response = await emailjs.send(
       serviceId,
@@ -472,13 +542,19 @@ const sendEmail = async () => {
       publicKey
     );
     console.log("SUCCESS!", response.status, response.text);
+    MessageDialog.value = "Gửi email thành công";
     Reset();
-    // Reset form sau khi gửi thành công (tùy chọn)
   } catch (error) {
     console.error("FAILED...", error);
+    MessageErrorDialog.value = "Gửi email thất bại";
     Error();
   }
 };
+
+// ===== UTILITY FUNCTIONS =====
+/**
+ * Resets all dialog states and shows success notification
+ */
 function Reset() {
   DialogEdit.value = false;
   DialogLoading.value = false;
@@ -488,6 +564,10 @@ function Reset() {
   DialogFailed.value = false;
   DialogCaution.value = false;
 }
+
+/**
+ * Handles error states and resets dialogs
+ */
 function Error() {
   DialogFailed.value = true;
   DialogLoading.value = false;
@@ -496,16 +576,22 @@ function Error() {
   DialogCaution.value = false;
   DialogEdit.value = false;
   DialogSuccess.value = false;
-  
 }
 </script>
+
 <script>
+/**
+ * Component Configuration
+ * Defines component registration and default data
+ */
 export default {
+  // Register child components
   components: {
     ButtonCancel,
     ButtonDownload,
     ButtonSave,
     InputSearch,
+    InputSelect,
     SnackbarSuccess,
     SnackbarFailed,
     Loading,
@@ -519,4 +605,5 @@ export default {
   methods: {},
 };
 </script>
+
 <style lang=""></style>

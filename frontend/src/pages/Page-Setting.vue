@@ -120,72 +120,107 @@
       </template>
     </v-card>
   </v-dialog>
-  <SnackbarSuccess v-model="DialogSuccess" />
-  <SnackbarFailed v-model="DialogFailed" />
+  <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
+  <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
+  <Loading v-model="DialogLoading" />
 </template>
 <script setup>
+// ===== IMPORTS =====
+// Core dependencies
 import axios from "axios";
 import { ref, watch } from "vue";
+
+// Components
 import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
+
+// ===== STATE MANAGEMENT =====
+// API Configuration
 const Url = import.meta.env.VITE_API_URL;
-const DialogRemoveWareHouse = ref(false);
-const DialogRemoveWareHouse2 = ref(false);
-const DialogRemoveCheckBOM = ref(false);
-const DialogRemoveProject = ref(false);
-const DialogSuccess = ref(false);
-const DialogFailed = ref(false);
+
+// ===== DIALOG STATES =====
+// Control visibility of various dialogs
+const DialogRemoveWareHouse = ref(false);    // Remove warehouse confirmation dialog
+const DialogRemoveWareHouse2 = ref(false);   // Remove warehouse2 confirmation dialog
+const DialogRemoveCheckBOM = ref(false);     // Remove BOM check confirmation dialog
+const DialogRemoveProject = ref(false);      // Remove project confirmation dialog
+const DialogSuccess = ref(false);            // Success notification
+const DialogFailed = ref(false);             // Error notification
+const DialogLoading = ref(false);            // Loading state
+// ===== CRUD OPERATIONS =====
+/**
+ * Removes all warehouse data
+ * Makes an API call to delete all warehouse records
+ */
 const RemoveWareHouse = async () => {
-  axios
-    .delete(`${Url}/WareHouse/delete-all`)
-    .then(function (response) {
-      console.log(response);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error();
-    });
-};
-const RemoveWareHouse2 = async () => {
-  axios
-    .delete(`${Url}/WareHouse2/delete-all`)
-    .then(function (response) {
-      console.log(response);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error();
-    });
-};
-const RemoveCheckBOM = async () => {
-  axios
-    .delete(`${Url}/CheckBOM/delete-all`)
-    .then(function (response) {
-      console.log(response);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error();
-    });
+  try {
+    const response = await axios.delete(`${Url}/WareHouse/delete-all`);
+    console.log(response);
+    Reset();
+  } catch (error) {
+    console.error("Error deleting warehouse data:", error);
+    Error();
+  }
 };
 
-const RemoveProject = async () => {
-  axios
-    .delete(`${Url}/Project/delete-all`)
-    .then(function (response) {
-      console.log(response);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error();
-    });
+/**
+ * Removes all warehouse2 data
+ * Makes an API call to delete all warehouse2 records
+ */
+const RemoveWareHouse2 = async () => {
+  try {
+    const response = await axios.delete(`${Url}/WareHouse2/delete-all`);
+    console.log(response);
+    MessageDialog.value = "Xoá dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.error("Error deleting warehouse2 data:", error);
+    MessageErrorDialog.value = "Xoá dữ liệu thất bại";
+    Error();
+  }
 };
+
+/**
+ * Removes all BOM check data
+ * Makes an API call to delete all BOM check records
+ */
+const RemoveCheckBOM = async () => {
+  try {
+    const response = await axios.delete(`${Url}/CheckBOM/delete-all`);
+    console.log(response);
+    MessageDialog.value = "Xoá dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.error("Error deleting BOM check data:", error);
+    MessageErrorDialog.value = "Xoá dữ liệu thất bại";
+    Error();
+  }
+};
+
+/**
+ * Removes all project data
+ * Makes an API call to delete all project records
+ */
+const RemoveProject = async () => {
+  try {
+    const response = await axios.delete(`${Url}/Project/delete-all`);
+    console.log(response);
+    MessageDialog.value = "Xoá dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.error("Error deleting project data:", error);
+    MessageErrorDialog.value = "Xoá dữ liệu thất bại";
+    Error();
+  }
+};
+
+// ===== UTILITY FUNCTIONS =====
+/**
+ * Resets all dialog states
+ * Called after successful operations
+ */
 function Reset() {
   DialogSuccess.value = true;
   DialogRemoveWareHouse.value = false;
@@ -193,6 +228,11 @@ function Reset() {
   DialogRemoveCheckBOM.value = false;
   DialogRemoveProject.value = false;
 }
+
+/**
+ * Handles error states
+ * Shows error notification
+ */
 function Error() {
   DialogFailed.value = true;
 }

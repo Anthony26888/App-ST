@@ -4,7 +4,7 @@
       >Danh sách đơn hàng
     </v-card-title>
     <v-card-title class="d-flex align-center pe-2">
-      <p class="text-subtitle-1">Có {{ orders.length }} đơn hàng</p>
+      <p class="text-subtitle-1 font-weight-thin text-subtitle-1">{{ orders.length }} đơn hàng</p>
       <v-spacer></v-spacer>
       <InputSearch v-model="search" />
     </v-card-title>
@@ -84,53 +84,103 @@
       </template>
     </v-card>
   </v-dialog>
-  <SnackbarSuccess v-model="DialogSuccess" />
+  <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
+  <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
 </template>
 <script setup>
+// ===== IMPORTS =====
+// Core dependencies
 import axios from "axios";
 import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+
+// Composables
 import { useOrders } from "@/composables/useOrders";
+
+// Components
 import InputSearch from "@/components/Input-Search.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonEye from "@/components/Button-Eye.vue";
+
+// ===== STATE MANAGEMENT =====
+// API Configuration
 const Url = import.meta.env.VITE_API_URL;
+
+// Initialize composables and router
 const { orders } = useOrders();
 const router = useRouter();
-const DialogRemove = ref(null);
-const DialogSuccess = ref(null);
-const DialogFailed = ref(null);
-const GetID = ref("")
+
+// ===== DIALOG STATES =====
+// Control visibility of various dialogs
+const DialogRemove = ref(null);    // Remove item confirmation dialog
+const DialogSuccess = ref(null);   // Success notification
+const DialogFailed = ref(null);    // Error notification
+
+// ===== MESSAGE DIALOG =====
+// Message for success and error notifications
+const MessageDialog = ref("");
+const MessageErrorDialog = ref("");
+
+// ===== ITEM STATES =====
+// Current item being processed
+const GetID = ref("");
+
+// ===== CRUD OPERATIONS =====
+/**
+ * Navigates to order details page and stores creator information
+ * @param {string} value - The ID of the order to view
+ */
 function PushItem(value) {
   const found = orders.value.find((v) => v.id === value);
   localStorage.setItem("Creater_Order", found.Creater);
   router.push(`/Don-hang/${found.Name_PO}`);
 }
+
+/**
+ * Prepares an item for deletion by setting up the confirmation dialog
+ * @param {string} value - The ID of the item to delete
+ */
 function GetItem(value) {
   DialogRemove.value = true;
-  GetID.value = value
+  GetID.value = value;
 }
+
+/**
+ * Removes an order from the system
+ * Makes an API call to delete the order and handles the response
+ */
 const RemoveItem = async () => {
-  axios
-    .delete(`${Url}/Orders/delete-item/${GetID.value}`)
-    .then(function (response) {
-      console.log(response);
-      Reset()
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error()
-    });
+  try {
+    const response = await axios.delete(`${Url}/Orders/delete-item/${GetID.value}`);
+    console.log(response);
+    MessageDialog.value = "Xoá dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.error(error);
+    MessageErrorDialog.value = "Xoá dữ liệu thất bại";
+    Error();
+  }
 };
-function Reset(){
+
+// ===== UTILITY FUNCTIONS =====
+/**
+ * Resets dialog states after successful operation
+ * Shows success notification and closes remove dialog
+ */
+function Reset() {
   DialogSuccess.value = true;
-  DialogRemove.value = false
+  DialogRemove.value = false;
 }
-function Error(){
-  DialogFailed.value = true
+
+/**
+ * Handles error states
+ * Shows error notification
+ */
+function Error() {
+  DialogFailed.value = true;
 }
 </script>
 <script>

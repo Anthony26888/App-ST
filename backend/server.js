@@ -68,7 +68,7 @@ io.on("connection", (socket) => {
     }),
     socket.on("getDetailBom", async () => {
       try {
-        const query = `SELECT DISTINCT id, PO, Bom, COUNT(Bom) AS SL_LK, SL_Board, Creater, TimeStamp FROM CheckBOM GROUP BY PO, Bom`;
+        const query = `SELECT DISTINCT id, PO, Bom, COUNT(Bom) AS SL_LK, SL_Board, Creater, TimeStamp FROM CheckBOM GROUP BY PO, Bom ORDER BY id DESC`;
         db.all(query, [], (err, rows) => {
           if (err) return socket.emit("detailBomError", err);
           socket.emit("detailBomData", rows);
@@ -1037,14 +1037,14 @@ app.post("/ListPO/upload-new-PO", async (req, res) => {
 });
 // Router update Hao_Phi in CheckBom table
 app.put("/CheckBom/Update-Hao-Phi", async (req, res) => {
-  const { Input_Hao_Phi, Name_Item } = req.body;
+  const { Input_Hao_Phi, Name_Item, PO } = req.body;
   // Insert data into SQLite database
-  const query = `UPDATE CheckBOM SET Du_Toan_Hao_Phi = ? WHERE PartNumber_1 = ?`;
-  db.run(query, [Input_Hao_Phi, Name_Item], function (err) {
+  const query = `UPDATE CheckBOM SET Du_Toan_Hao_Phi = ? WHERE PartNumber_1 = ? AND PO = ?`;
+  db.run(query, [Input_Hao_Phi, Name_Item, PO], function (err) {
     if (err) {
       return console.error(err.message);
     }
-    io.emit("updateCheckBOM");
+    io.emit("updateCheckBOM", PO);
     // Broadcast the new message to all clients
     res.json({ message: "Item inserted successfully" });
   });
@@ -1934,6 +1934,7 @@ app.get('/api/devices', (req, res) => {
 
     res.json(devices);
   });
+
 });
 
 // Catch-all route cho frontend

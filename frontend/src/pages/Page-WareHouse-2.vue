@@ -249,74 +249,71 @@
     </v-card>
   </v-dialog>
   <Loading v-model="DialogLoading" />
-  <SnackbarSuccess v-model="DialogSuccess" />
-  <SnackbarFailed v-model="DialogFailed" />
+  <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
+  <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <SnackbarCaution v-model="DialogCaution" />
 </template>
 <script setup>
+// ===== IMPORTS =====
+// Core dependencies
 import axios from "axios";
 import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { Buffer } from "buffer";
+
+// Composables
 import { useWareHouse2 } from "@/composables/useWareHouse2";
+
+// Components
 import ButtonImportFile from "@/components/Button-ImportFile.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
+import ButtonSearch from "@/components/Button-Search.vue";
+import ButtonEdit from "@/components/Button-Edit.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputFiles from "@/components/Input-Files.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import SnackbarCaution from "@/components/Snackbar-Caution.vue";
-import ButtonSearch from "@/components/Button-Search.vue";
-import ButtonEdit from "@/components/Button-Edit.vue";
-import Loading  from "@/components/Loading.vue";
-import { Buffer } from "buffer"
+import Loading from "@/components/Loading.vue";
+
+// ===== STATE MANAGEMENT =====
+// Initialize composables and router
 const { warehouse2 } = useWareHouse2();
 const router = useRouter();
+
+// API Configuration
 const Url = import.meta.env.VITE_API_URL;
-const Dialog = ref(false);
-const DialogEdit = ref(false);
-const DialogRemove = ref(false);
-const DialogSuccess = ref(false);
-const DialogFailed = ref(false);
-const DialogAdd = ref(false);
-const DialogInfo = ref(false);
-const DialogCaution = ref(false);
-const DialogLoading = ref(false);
-const File = ref(null);
-const PartNumber1_Edit = ref("");
-const PartNumber2_Edit = ref("");
-const Description_Edit = ref("");
-const Input_Edit = ref("");
-const Output_Edit = ref("");
-const inventory_Edit = ref("");
-const Location_Edit = ref("");
-const Customer_Edit = ref("");
-const Note_Edit = ref("");
-const Note_Output_Edit = ref("");
-const PartNumber1_Add = ref("");
-const PartNumber2_Add = ref("");
-const Description_Add = ref("");
-const Input_Add = ref("");
-const Output_Add = ref("");
-const inventory_Add = ref("");
-const Location_Add = ref("");
-const Customer_Add = ref("");
-const Note_Add = ref("");
-const Note_Output_Add = ref("");
-const GetID = ref("");
-const GetDigikey = ref("");
 const clientId = import.meta.env.VITE_DIGIKEY_CLIENT_ID;
 const clientSecret = import.meta.env.VITE_DIGIKEY_CLIENT_SECRET;
-const accessToken = ref(null);
-const tokenType = ref(null);
-const expires_in = ref(null);
-const ResultSearch = ref(null);
+
+// ===== DIALOG STATES =====
+// Control visibility of various dialogs
+const Dialog = ref(false);           // Import file dialog
+const DialogEdit = ref(false);       // Edit item dialog
+const DialogRemove = ref(false);     // Remove item confirmation dialog
+const DialogSuccess = ref(false);    // Success notification
+const DialogFailed = ref(false);     // Error notification
+const DialogAdd = ref(false);        // Add new item dialog
+const DialogInfo = ref(false);       // Product info dialog
+const DialogCaution = ref(false);    // Warning notification
+const DialogLoading = ref(false);    // Loading state
+
+// ===== MESSAGE DIALOG =====
+// Message for success and error notifications
+const MessageDialog = ref("");
+const MessageErrorDialog = ref("");
+
+// ===== TABLE CONFIGURATION =====
+// Table pagination and search
 const search = ref("");
 const itemsPerPage = ref(15);
 const page = ref(1);
+
+// Define table headers and their properties
 const Headers = ref([
   { key: "Description", title: "Mô tả", width: "200px" },
   { key: "PartNumber_1", title: "Mã hàng 1" },
@@ -331,7 +328,48 @@ const Headers = ref([
   { key: "id", title: "Thao tác" },
 ]);
 
+// ===== FORM STATES =====
+// File upload state
+const File = ref(null);
 
+// Edit form states
+const PartNumber1_Edit = ref("");
+const PartNumber2_Edit = ref("");
+const Description_Edit = ref("");
+const Input_Edit = ref("");
+const Output_Edit = ref("");
+const inventory_Edit = ref("");
+const Location_Edit = ref("");
+const Customer_Edit = ref("");
+const Note_Edit = ref("");
+const Note_Output_Edit = ref("");
+
+// Add form states
+const PartNumber1_Add = ref("");
+const PartNumber2_Add = ref("");
+const Description_Add = ref("");
+const Input_Add = ref("");
+const Output_Add = ref("");
+const inventory_Add = ref("");
+const Location_Add = ref("");
+const Customer_Add = ref("");
+const Note_Add = ref("");
+const Note_Output_Add = ref("");
+
+// ===== DIGIKEY API STATES =====
+// States for DigiKey API integration
+const GetID = ref("");
+const GetDigikey = ref("");
+const accessToken = ref(null);
+const tokenType = ref(null);
+const expires_in = ref(null);
+const ResultSearch = ref(null);
+
+// ===== CRUD OPERATIONS =====
+/**
+ * Fetches and populates item data for editing
+ * @param {string} value - The ID of the item to edit
+ */
 function GetItem(value) {
   DialogEdit.value = true;
   GetID.value = value;
@@ -347,6 +385,11 @@ function GetItem(value) {
   Note_Edit.value = found.Note;
   Note_Output_Edit.value = found.Note_Output_Edit;
 }
+
+/**
+ * Updates inventory count based on input and output values
+ * @param {Event} event - The input event containing the new value
+ */
 function updateInventoryOnOutput(event) {
   const outputValue = parseInt(event.target.value) || 0;
   const inputValue = parseInt(Input_Edit.value) || 0;
@@ -358,6 +401,10 @@ function updateInventoryOnOutput(event) {
     inventory_Edit.value = 0;
   }
 }
+
+/**
+ * Saves edited item data to the server
+ */
 const SaveEdit = async () => {
   DialogLoading.value = true;
   const formData = {
@@ -372,17 +419,21 @@ const SaveEdit = async () => {
     Note_Edit: Note_Edit.value,
     Note_Output_Edit: Note_Output_Edit.value,
   };
-  axios
-    .put(`${Url}/WareHouse2/update-item/${GetID.value}`, formData)
-    .then(function (response) {
-      console.log(response);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error();
-    });
+  try {
+    const response = await axios.put(`${Url}/WareHouse2/update-item/${GetID.value}`, formData);
+    console.log(response);
+    MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
+    Error();
+  }
 };
+
+/**
+ * Saves new item data to the server
+ */
 const SaveAdd = async () => {
   DialogLoading.value = true;
   const formData = {
@@ -397,68 +448,86 @@ const SaveAdd = async () => {
     Note: Note_Add.value,
     Note_Output: Note_Output_Add.value,
   };
-  axios
-    .post(`${Url}/WareHouse2/upload-new-item`, formData)
-    .then(function (response) {
-      console.log(response);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error();
-    });
+  try {
+    const response = await axios.post(`${Url}/WareHouse2/upload-new-item`, formData);
+    console.log(response);
+    MessageDialog.value = "Thêm dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Thêm dữ liệu thất bại";
+    Error();
+  }
 };
+
+/**
+ * Removes an item from the warehouse
+ */
 const RemoveItem = async () => {
   DialogLoading.value = true;
-  axios
-    .delete(`${Url}/WareHouse2/delete-item/${GetID.value}`)
-    .then(function (response) {
-      console.log(response);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error();
-    });
+  try {
+    const response = await axios.delete(`${Url}/WareHouse2/delete-item/${GetID.value}`);
+    console.log(response);
+    MessageDialog.value = "Xoá dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Xoá dữ liệu thất bại";
+    Error();
+  }
 };
+
+// ===== FILE OPERATIONS =====
+/**
+ * Imports warehouse data from an Excel file
+ */
 const ImportFile = async () => {
   DialogLoading.value = true;
   const formData = new FormData();
   formData.append("file", File.value);
-  axios
-    .post(`${Url}/WareHouse2/Upload`, formData)
-    .then(function (response) {
-      console.log(response);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error();
-    });
+  try {
+    const response = await axios.post(`${Url}/WareHouse2/Upload`, formData);
+    console.log(response);
+    MessageDialog.value = "Thêm dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Thêm dữ liệu thất bại";
+    Error();
+  }
 };
+
+/**
+ * Downloads warehouse data as an Excel file
+ */
 const DownloadWareHouse = async () => {
   try {
     const response = await fetch(`${Url}/Ware-House2/download`);
     if (!response.ok) throw new Error("Download failed");
 
-    // Convert response to blob
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
 
-    // Create a link to download
     const a = document.createElement("a");
     a.href = url;
     a.download = `Kho2.xlsx`;
     document.body.appendChild(a);
     a.click();
 
-    // Cleanup
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   } catch (error) {
     console.error("Error downloading file:", error);
+    MessageErrorDialog.value = "Lỗi tải file";
+    Error();
   }
 };
+
+// ===== DIGIKEY API OPERATIONS =====
+/**
+ * Gets access token from DigiKey API
+ * @param {string} value - The ID of the item to search
+ */
 const getAccessToken = async (value) => {
   DialogLoading.value = true;
   const found = warehouse2.value.find((v) => v.id === value);
@@ -492,10 +561,14 @@ const getAccessToken = async (value) => {
       "Lỗi khi lấy access token:",
       error.response ? error.response.data : error.message
     );
+    MessageErrorDialog.value = "Lỗi khi lấy access token";
     return false;
   }
 };
 
+/**
+ * Searches for product details using DigiKey API
+ */
 const searchProduct = async () => {
   if (!accessToken.value) {
     console.error("Chưa có access token. Vui lòng lấy token trước.");
@@ -513,6 +586,7 @@ const searchProduct = async () => {
       },
     });
     ResultSearch.value = response.data;
+    MessageDialog.value = "Tìm kiếm sản phẩm thành công";
     if (ResultSearch.value) {
       return (DialogInfo.value = true), Reset();
     }
@@ -521,12 +595,18 @@ const searchProduct = async () => {
     console.error(
       "Lỗi khi tìm kiếm sản phẩm:",
       error.response ? error.response.data : error.message,
-      DialogCaution.value = true,
-      DialogLoading.value = false
+      (DialogCaution.value = true),
+      (DialogLoading.value = false)
     );
+    MessageErrorDialog.value = "Lỗi khi tìm kiếm sản phẩm";
     return null;
   }
 };
+
+// ===== UTILITY FUNCTIONS =====
+/**
+ * Resets all form states and dialogs
+ */
 function Reset() {
   DialogEdit.value = false;
   DialogSuccess.value = true;
@@ -546,6 +626,10 @@ function Reset() {
   Note_Output_Add.value = ref("");
   File.value = null;
 }
+
+/**
+ * Handles error states and resets loading
+ */
 function Error() {
   DialogLoading.value = false;
   DialogSuccess.value = false;

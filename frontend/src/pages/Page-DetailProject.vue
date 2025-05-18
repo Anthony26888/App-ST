@@ -139,14 +139,18 @@
       </template>
     </v-card>
   </v-dialog>
-  <SnackbarSuccess v-model="DialogSuccess" />
-  <SnackbarFailed v-model="DialogFailed" />
+  <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
+  <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
 </template>
 <script setup>
+// ===== IMPORTS =====
+// Core dependencies
 import axios from "axios";
 import { useRoute, useRouter } from "vue-router";
 import { ref, computed } from "vue";
+
+// Components
 import InputSearch from "@/components/Input-Search.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";
 import InputField from "@/components/Input-Field.vue";
@@ -162,29 +166,64 @@ import ButtonEye from "@/components/Button-Eye.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
+
+// Composables
 import { useDetailProject } from "@/composables/useDetailProject";
+
+// ===== STATE MANAGEMENT =====
+// API Configuration
 const Url = import.meta.env.VITE_API_URL;
+
+// Router and Route
 const router = useRouter();
 const route = useRoute();
 const id = route.params.id;
-const DialogEdit = ref(false);
-const DialogSuccess = ref(false);
-const DialogFailed = ref(false);
-const DialogRemove = ref(false);
-const DialogAdd = ref(false);
-const DialogLoading = ref(false);
-const GetID = ref("");
-const PONumber_Edit = ref("");
-const Date_Created_Edit = ref("");
-const Date_Delivery_Edit = ref("");
-const PONumber_Add = ref("");
-const Date_Created_Add = ref("");
-const Date_Delivery_Add = ref("");
+
+// Initialize composables
 const { detailProject, detailProjectError } = useDetailProject(id);
+
+// ===== DIALOG STATES =====
+// Control visibility of various dialogs
+const DialogEdit = ref(false);      // Edit dialog
+const DialogSuccess = ref(false);   // Success notification
+const DialogFailed = ref(false);    // Error notification
+const DialogRemove = ref(false);    // Remove confirmation dialog
+const DialogAdd = ref(false);       // Add new item dialog
+const DialogLoading = ref(false);   // Loading state
+
+// ===== MESSAGE DIALOG =====
+// Message for success and error notifications
+const MessageDialog = ref("");
+const MessageErrorDialog = ref("");
+
+// ===== FORM STATES =====
+// Current item being processed
+const GetID = ref("");
+
+// Edit form states
+const PONumber_Edit = ref("");      // PO number for editing
+const Date_Created_Edit = ref("");  // Creation date for editing
+const Date_Delivery_Edit = ref(""); // Delivery date for editing
+
+// Add form states
+const PONumber_Add = ref("");       // PO number for adding new
+const Date_Created_Add = ref("");   // Creation date for adding new
+const Date_Delivery_Add = ref("");  // Delivery date for adding new
+
+// ===== CRUD OPERATIONS =====
+/**
+ * Navigates to order details page and stores PO information
+ * @param {Object} item - The order item containing PO and ID
+ */
 function PushItem(item) {
   localStorage.setItem("PO", item.PO);
   router.push(`/Du-an/Don-hang/${item.id}`);
 }
+
+/**
+ * Prepares an item for editing by setting up the edit dialog
+ * @param {Object} item - The item to edit containing PO, dates and ID
+ */
 function GetItem(item) {
   DialogEdit.value = true;
   GetID.value = item.id;
@@ -192,83 +231,119 @@ function GetItem(item) {
   Date_Created_Edit.value = item.Date_Created;
   Date_Delivery_Edit.value = item.Date_Delivery;
 }
+
+/**
+ * Saves edited order data
+ * Makes an API call to update order information
+ */
 const SaveEdit = async () => {
   DialogLoading.value = true;
   const formData = reactive({
-    PONumber: PONumber_Edit.value, // Giá trị ban đầu
+    PONumber: PONumber_Edit.value,
     DateCreated: Date_Created_Edit.value,
     DateDelivery: Date_Delivery_Edit.value,
     CustomerID: id,
   });
-  axios
-    .put(`${Url}/Project/Customer/Edit-Orders/${GetID.value}`, formData)
-    .then(function (response) {
-      console.log(response.data.message);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error();
-    });
+
+  try {
+    const response = await axios.put(
+      `${Url}/Project/Customer/Edit-Orders/${GetID.value}`,
+      formData
+    );
+    console.log(response.data.message);
+    MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
+    Error();
+  }
 };
 
+/**
+ * Saves new order data
+ * Makes an API call to create a new order
+ */
 const SaveAdd = async () => {
   DialogLoading.value = true;
   const formData = reactive({
-    PONumber: PONumber_Add.value, // Giá trị ban đầu
+    PONumber: PONumber_Add.value,
     DateCreated: Date_Created_Add.value,
     DateDelivery: Date_Delivery_Add.value,
     CustomerID: id,
   });
-  axios
-    .post(`${Url}/Project/Customer/Add-Orders`, formData)
-    .then(function (response) {
-      console.log(response.data);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error();
-    });
+
+  try {
+    const response = await axios.post(
+      `${Url}/Project/Customer/Add-Orders`,
+      formData
+    );
+    console.log(response.data);
+    MessageDialog.value = "Thêm dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Thêm dữ liệu thất bại";
+    Error();
+  }
 };
+
+/**
+ * Removes an order from the system
+ * Makes an API call to delete the order
+ */
 const RemoveItem = async (id) => {
   DialogLoading.value = true;
-  axios
-    .delete(`${Url}/Project/Customer/Delete-Orders/${GetID.value}`)
-    .then(function (response) {
-      console.log(response.data.message);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error();
-    });
+  try {
+    const response = await axios.delete(
+      `${Url}/Project/Customer/Delete-Orders/${GetID.value}`
+    );
+    console.log(response.data.message);
+    MessageDialog.value = "Xoá dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Xoá dữ liệu thất bại";
+    Error();
+  }
 };
+
+// ===== FILE OPERATIONS =====
+/**
+ * Downloads order data as an Excel file
+ * Makes an API call to get the file and triggers download
+ */
 const DDownloadOrder = async () => {
   const id = route.params;
   const found = detailProject.value.find((v) => v.id === id);
+  
   try {
     const response = await fetch(`${Url}/Download-Order/${found.PO}`);
     if (!response.ok) throw new Error("Download failed");
 
-    // Convert response to blob
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
 
-    // Create a link to download
     const a = document.createElement("a");
     a.href = url;
     a.download = `${found.PO}.xlsx`;
     document.body.appendChild(a);
     a.click();
 
-    // Cleanup
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+    MessageDialog.value = "Tải file thành công";
   } catch (error) {
     console.error("Error downloading file:", error);
+    MessageErrorDialog.value = "Tải file thất bại";
   }
 };
+
+// ===== UTILITY FUNCTIONS =====
+/**
+ * Resets all dialog states and form data
+ * Called after successful operations
+ */
 function Reset() {
   DialogRemove.value = false;
   DialogSuccess.value = true;
@@ -279,6 +354,11 @@ function Reset() {
   Date_Created_Add.value = "";
   Date_Delivery_Add.value = "";
 }
+
+/**
+ * Handles error states
+ * Shows error notification and resets loading state
+ */
 function Error() {
   DialogFailed.value = true;
   DialogLoading.value = false;

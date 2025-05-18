@@ -5,26 +5,26 @@
       <p class="text-h4 font-weight-light ms-3">Danh sách người sử dụng</p>
     </v-card-title>
     <v-card-title class="d-flex align-center pe-2">
-      <p class="text-subtitle-1">Có {{ users.length }} đơn hàng</p>
       <ButtonAdd @add="DialogAdd = true" />
+      <p class="text-subtitle-1 font-weight-thin text-subtitle-1 ms-2">Có {{ users.length }} người dùng</p>
       <v-spacer></v-spacer>
       <InputSearch v-model="search" />
     </v-card-title>
     <v-card-text>
-      <v-data-table 
-        :headers="Headers" 
-        :items="users" 
+      <v-data-table
+        :headers="Headers"
+        :items="users"
         :search="search"
         class="elevation-1"
         :items-per-page="10"
         :footer-props="{
           'items-per-page-options': [10, 20, 50, 100],
-          'items-per-page-text': 'Số hàng mỗi trang'
+          'items-per-page-text': 'Số hàng mỗi trang',
         }"
         :header-props="{
           sortByText: 'Sắp xếp theo',
           sortDescText: 'Giảm dần',
-          sortAscText: 'Tăng dần'
+          sortAscText: 'Tăng dần',
         }"
         :loading="DialogLoading"
         loading-text="Đang tải dữ liệu..."
@@ -57,9 +57,7 @@
       </v-card-title>
 
       <v-card-text class="pa-4">
-        <div class="text-body-1">
-          Bạn có chắc chắn muốn xóa thành viên này?
-        </div>
+        <div class="text-body-1">Bạn có chắc chắn muốn xóa thành viên này?</div>
       </v-card-text>
 
       <v-card-actions class="pa-4">
@@ -126,14 +124,21 @@
       </template>
     </v-card>
   </v-dialog>
-  <SnackbarSuccess v-model="DialogSuccess" />
-  <SnackbarFailed v-model="DialogFailed" />
+  <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
+  <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
 </template>
 <script setup>
+// ===== IMPORTS =====
+// Core dependencies
 import axios from "axios";
-import { ref, watch } from "vue";
+import { ref, watch, reactive } from "vue";
+
+// Composables
 import { useSocket } from "@/composables/useWebSocket";
+import { useUsers } from "@/composables/useUsers";
+
+// Components
 import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputSelect from "@/components/Input-Select.vue";
@@ -146,37 +151,66 @@ import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonBack from "@/components/Button-Back.vue";
 import ButtonEdit from "@/components/Button-Edit.vue";
 import ButtonAdd from "@/components/Button-Add.vue";
-import { useUsers } from "@/composables/useUsers";
-const { users } = useUsers();
+
+// ===== STATE MANAGEMENT =====
+// API Configuration
 const Url = import.meta.env.VITE_API_URL;
-const DialogRemove = ref(false);
-const DialogSuccess = ref(false);
-const DialogEdit = ref(false);
-const DialogAdd = ref(false);
-const DialogFailed = ref(false);
-const DialogLoading = ref(false);
+
+// Initialize composables
+const { users } = useUsers();
+
+// ===== DIALOG STATES =====
+// Control visibility of various dialogs
+const DialogRemove = ref(false);    // Remove confirmation dialog
+const DialogSuccess = ref(false);   // Success notification
+const DialogEdit = ref(false);      // Edit dialog
+const DialogAdd = ref(false);       // Add new item dialog
+const DialogFailed = ref(false);    // Error notification
+const DialogLoading = ref(false);   // Loading state
+
+// ===== MESSAGE DIALOG =====
+// Message for success and error notifications
+const MessageDialog = ref("");
+const MessageErrorDialog = ref("");
+
+// ===== FORM STATES =====
+// Current item being processed
 const GetID = ref("");
-const Username_Edit = ref("");
-const FullName_Edit = ref("");
-const Email_Edit = ref("");
-const Level_Edit = ref("");
-const Username_Add = ref("");
-const FullName_Add = ref("");
-const Email_Add = ref("");
-const Password_Add = ref("");
-const Level_Add = ref("");
+
+// Edit form states
+const Username_Edit = ref("");      // Username for editing
+const FullName_Edit = ref("");      // Full name for editing
+const Email_Edit = ref("");         // Email for editing
+const Level_Edit = ref("");         // User level for editing
+
+// Add form states
+const Username_Add = ref("");       // Username for adding
+const FullName_Add = ref("");       // Full name for adding
+const Email_Add = ref("");          // Email for adding
+const Password_Add = ref("");       // Password for adding
+const Level_Add = ref("");          // User level for adding
+
+// ===== TABLE CONFIGURATION =====
+// Search and pagination states
 const search = ref("");
 const itemsPerPage = ref(15);
 const page = ref(1);
+
+// Table headers configuration
 const Headers = ref([
   { key: "Username", title: "Tài khoản", width: "150px", noWrap: true },
-  { key: "FullName", title: "Tên người dùng", width: "200px", noWrap: true }, 
+  { key: "FullName", title: "Tên người dùng", width: "200px", noWrap: true },
   { key: "Email", title: "Email", width: "200px", noWrap: true },
   { key: "Level", title: "Phân quyền", width: "150px", noWrap: true },
   { key: "Date", title: "Ngày tạo", width: "150px", noWrap: true },
   { key: "id", title: "Thao tác", width: "100px", noWrap: true },
 ]);
 
+// ===== CRUD OPERATIONS =====
+/**
+ * Prepares a user for editing by setting up the edit dialog
+ * @param {string} value - The ID of the user to edit
+ */
 function GetItem(value) {
   DialogEdit.value = true;
   GetID.value = value;
@@ -186,65 +220,88 @@ function GetItem(value) {
   Email_Edit.value = found.Email_Edit;
   Level_Edit.value = found.Level;
 }
+
+/**
+ * Saves edited user data
+ * Makes an API call to update user information
+ */
 const SaveEdit = async () => {
   DialogLoading.value = true;
   const formData = reactive({
-    Username: Username_Edit.value, // Giá trị ban đầu
+    Username: Username_Edit.value,
     FullName: FullName_Edit.value,
     Email: Email_Edit.value,
     Level: Level_Edit.value,
   });
-  axios
-    .put(`${Url}/Users/Edit-User/${GetID.value}`, formData)
-    .then(function (response) {
-      console.log(response.data.message);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error();
-    });
+
+  try {
+    const response = await axios.put(`${Url}/Users/Edit-User/${GetID.value}`, formData);
+    console.log(response.data.message);
+    MessageDialog.value = "Cập nhật người dùng thành công";
+    Reset();
+  } catch (error) {
+    console.error("Error updating user:", error);
+    MessageErrorDialog.value = "Cập nhật người dùng thất bại";
+    Error();
+  }
 };
 
+/**
+ * Saves new user data
+ * Makes an API call to create a new user
+ */
 const SaveAdd = async () => {
   DialogLoading.value = true;
   const now = new Date();
   const day = String(now.getDate()).padStart(2, "0");
-  const month = String(now.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+  const month = String(now.getMonth() + 1).padStart(2, "0");
   const year = String(now.getFullYear()).slice(-2);
   const DateNow = `${day}/${month}/${year}`;
+
   const formData = reactive({
-    Username: Username_Add.value, // Giá trị ban đầu
+    Username: Username_Add.value,
     FullName: FullName_Add.value,
     Email: Email_Add.value,
     Password: Password_Add.value,
     Level: Level_Add.value,
     Date: DateNow,
   });
-  axios
-    .post(`${Url}/Users/register`, formData)
-    .then(function (response) {
-      console.log(response.data.message);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error();
-    });
+
+  try {
+    const response = await axios.post(`${Url}/Users/register`, formData);
+    console.log(response.data.message);
+    MessageDialog.value = "Thêm người dùng thành công";
+    Reset();
+  } catch (error) {
+    console.error("Error adding user:", error);
+    MessageErrorDialog.value = "Thêm người dùng thất bại";
+    Error();
+  }
 };
+
+/**
+ * Removes a user from the system
+ * Makes an API call to delete the user
+ */
 const RemoveUser = async () => {
   DialogLoading.value = true;
-  axios
-    .delete(`${Url}/Users/delete-user/${GetID.value}`)
-    .then(function (response) {
-      console.log(response);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error();
-    });
+  try {
+    const response = await axios.delete(`${Url}/Users/delete-user/${GetID.value}`);
+    console.log(response);
+    MessageDialog.value = "Xoá người dùng thành công";
+    Reset();
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    MessageErrorDialog.value = "Xoá người dùng thất bại";
+    Error();
+  }
 };
+
+// ===== UTILITY FUNCTIONS =====
+/**
+ * Resets all dialog states and form data
+ * Called after successful operations
+ */
 function Reset() {
   DialogRemove.value = false;
   DialogSuccess.value = true;
@@ -258,6 +315,11 @@ function Reset() {
   Password_Add.value = "";
   Level_Add.value = "";
 }
+
+/**
+ * Handles error states
+ * Shows error notification and resets loading state
+ */
 function Error() {
   DialogFailed.value = true;
   DialogLoading.value = false;
@@ -280,8 +342,7 @@ export default {
     Loading,
   },
   data() {
-    return {
-    };
+    return {};
   },
   methods: {},
 };

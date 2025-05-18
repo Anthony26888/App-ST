@@ -113,14 +113,18 @@
       </template>
     </v-card>
   </v-dialog>
-  <SnackbarSuccess v-model="DialogSuccess" />
-  <SnackbarFailed v-model="DialogFailed" />
+  <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
+  <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
 </template>
 <script setup>
+// ===== IMPORTS =====
+// Core dependencies
 import axios from "axios";
 import { useRoute } from "vue-router";
-import { ref, watch } from "vue";
+import { ref, watch, onMounted } from "vue";
+
+// Components
 import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
@@ -131,31 +135,63 @@ import ButtonEdit from "@/components/Button-Edit.vue";
 import ButtonAgree from "@/components/Button-Agree.vue";
 import ButtonAdd from "@/components/Button-Add.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
-import { useDetailProjectPO } from "@/composables/useDetailProjectPO";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
-import Loading from "@/components/Loading.vue"
+import Loading from "@/components/Loading.vue";
+
+// Composables
+import { useDetailProjectPO } from "@/composables/useDetailProjectPO";
+
+// ===== STATE MANAGEMENT =====
+// API Configuration
+const Url = import.meta.env.VITE_API_URL;
+
+// Route and ID
 const route = useRoute();
 const id = route.params.id;
-const Url = import.meta.env.VITE_API_URL;
-const DialogEdit = ref(false);
-const DialogSuccess = ref(false);
-const DialogFailed = ref(false);
-const DialogRemove = ref(false);
-const DialogAdd = ref(false);
-const DialogLoading = ref(false);
-const GetID = ref("");
-const Product_Detail_Edit = ref("");
-const Quantity_Product_Edit = ref("");
-const Quantity_Delivered_Edit = ref("");
-const Quantity_Amount_Edit = ref("");
-const Product_Detail_Add = ref("");
-const Quantity_Product_Add = ref("");
-const Quantity_Delivered_Add = ref("");
-const Quantity_Amount_Add = ref("");
-const CustomerID = ref(null);
-const NamePO = ref(null);
-const NameCustomer = ref(null);
+
+// Initialize composables
 const { detailProjectPO, detailProjectPOError } = useDetailProjectPO(id);
+
+// ===== DIALOG STATES =====
+// Control visibility of various dialogs
+const DialogEdit = ref(false);      // Edit dialog
+const DialogSuccess = ref(false);   // Success notification
+const DialogFailed = ref(false);    // Error notification
+const DialogRemove = ref(false);    // Remove confirmation dialog
+const DialogAdd = ref(false);       // Add new item dialog
+const DialogLoading = ref(false);   // Loading state
+
+// ===== MESSAGE DIALOG =====
+// Message for success and error notifications
+const MessageDialog = ref("");
+const MessageErrorDialog = ref("");
+
+// ===== FORM STATES =====
+// Current item being processed
+const GetID = ref("");
+
+// Edit form states
+const Product_Detail_Edit = ref("");      // Product details for editing
+const Quantity_Product_Edit = ref("");    // Product quantity for editing
+const Quantity_Delivered_Edit = ref("");  // Delivered quantity for editing
+const Quantity_Amount_Edit = ref("");     // Amount for editing
+
+// Add form states
+const Product_Detail_Add = ref("");       // Product details for adding new
+const Quantity_Product_Add = ref("");     // Product quantity for adding new
+const Quantity_Delivered_Add = ref("");   // Delivered quantity for adding new
+const Quantity_Amount_Add = ref("");      // Amount for adding new
+
+// Customer and PO information
+const CustomerID = ref(null);            // Customer ID from localStorage
+const NamePO = ref(null);                // PO name from localStorage
+const NameCustomer = ref(null);          // Customer name from localStorage
+
+// ===== LIFECYCLE HOOKS =====
+/**
+ * Initializes component data from localStorage
+ * Retrieves customer ID, PO name, and customer name
+ */
 onMounted(() => {
   const storedData = localStorage.getItem("CustomersID");
   const storeData = localStorage.getItem("PO");
@@ -165,6 +201,11 @@ onMounted(() => {
   NameCustomer.value = storedsData;
 });
 
+// ===== CRUD OPERATIONS =====
+/**
+ * Prepares an item for editing by setting up the edit dialog
+ * @param {Object} item - The item to edit containing product details and quantities
+ */
 function GetItem(item) {
   DialogEdit.value = true;
   GetID.value = item.id;
@@ -173,97 +214,136 @@ function GetItem(item) {
   Quantity_Delivered_Edit.value = item.Quantity_Delivered;
   Quantity_Amount_Edit.value = item.Quantity_Amount;
 }
+
+/**
+ * Saves edited item data
+ * Makes an API call to update item information
+ */
 const SaveEdit = async () => {
+  DialogLoading.value = true;
   const formData = reactive({
-    Product_Detail: Product_Detail_Edit.value, // Giá trị ban đầu
+    Product_Detail: Product_Detail_Edit.value,
     Quantity_Product: Quantity_Product_Edit.value,
     Quantity_Delivered: Quantity_Delivered_Edit.value,
     Quantity_Amount: Quantity_Amount_Edit.value,
   });
-  axios
-    .put(`${Url}/Project/Customer/Edit-Item/${GetID.value}`, formData)
-    .then(function (response) {
-      console.log(response.data.message);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error()
-    });
+
+  try {
+    const response = await axios.put(
+      `${Url}/Project/Customer/Edit-Item/${GetID.value}`,
+      formData
+    );
+    console.log(response.data.message);
+    MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
+    Error();
+  }
 };
 
+/**
+ * Saves new item data
+ * Makes an API call to create a new item
+ */
 const SaveAdd = async () => {
+  DialogLoading.value = true;
   const formData = reactive({
-    Product_Detail: Product_Detail_Add.value, // Giá trị ban đầu
+    Product_Detail: Product_Detail_Add.value,
     Quantity_Product: Quantity_Product_Add.value,
     Quantity_Delivered: Quantity_Delivered_Add.value,
     Quantity_Amount: Quantity_Amount_Add.value,
     POID: id,
   });
-  axios
-    .post(`${Url}/Project/Customer/Add-Item`, formData)
-    .then(function (response) {
-      console.log(response.data);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error()
-    });
-};
-const RemoveItem = async (id) => {
-  axios
-    .delete(`${Url}/Project/Customer/Delete-Item/${GetID.value}`)
-    .then(function (response) {
-      console.log(response.data.message);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error()
-    });
+
+  try {
+    const response = await axios.post(`${Url}/Project/Customer/Add-Item`, formData);
+    console.log(response.data);
+    MessageDialog.value = "Thêm dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Thêm dữ liệu thất bại";
+    Error();
+  }
 };
 
+/**
+ * Removes an item from the system
+ * Makes an API call to delete the item
+ */
+const RemoveItem = async () => {
+  DialogLoading.value = true;
+  try {
+    const response = await axios.delete(`${Url}/Project/Customer/Delete-Item/${GetID.value}`);
+    console.log(response.data.message);
+    MessageDialog.value = "Xoá dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Xoá dữ liệu thất bại";
+    Error();
+  }
+};
+
+// ===== FILE OPERATIONS =====
+/**
+ * Downloads order data as an Excel file
+ * Makes an API call to get the file and triggers download
+ */
 const DownloadOrder = async () => {
-  const NameExcel = `${NameCustomer.value}-${NamePO.value}`
+  const NameExcel = `${NameCustomer.value}-${NamePO.value}`;
+  
   try {
     const response = await fetch(
       `${Url}/Project/Customer/Orders/Download/${id}?filename=${encodeURIComponent(NameExcel)}`
     );
     if (!response.ok) throw new Error("Download failed");
 
-    // Convert response to blob
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
 
-    // Create a link to download
     const a = document.createElement("a");
     a.href = url;
     a.download = `${NameExcel}.xlsx`;
     document.body.appendChild(a);
     a.click();
 
-    // Cleanup
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+    MessageDialog.value = "Tải file thành công";
   } catch (error) {
     console.error("Error downloading file:", error);
-    Error()
+    MessageErrorDialog.value = "Tải file thất bại";
+    Error();
   }
 };
 
+// ===== UTILITY FUNCTIONS =====
+/**
+ * Resets all dialog states and form data
+ * Called after successful operations
+ */
 function Reset() {
   DialogRemove.value = false;
   DialogSuccess.value = true;
   DialogEdit.value = false;
   DialogAdd.value = false;
+  DialogLoading.value = false;
   Product_Detail_Add.value = "";
   Quantity_Product_Add.value = "";
   Quantity_Delivered_Add.value = "";
   Quantity_Amount_Add.value = "";
 }
-function Error(){
-  DialogFailed.value = true
+
+/**
+ * Handles error states
+ * Shows error notification and resets loading state
+ */
+function Error() {
+  DialogFailed.value = true;
+  DialogLoading.value = false;
 }
 </script>
 <script>

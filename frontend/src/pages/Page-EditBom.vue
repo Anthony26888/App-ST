@@ -4,7 +4,9 @@
       <ButtonBack to="/Kiem-tra-so-lieu" />
       <p class="text-h4 font-weight-light ms-3">Chỉnh sửa số liệu</p>
     </v-card-title>
-    <v-card-title>
+    <v-card-title class="d-flex align-center pe-2">
+      <p class="text-subtitle-1 font-weight-thin text-subtitle-1">{{ detailBom.length }} dự án</p>
+      <v-spacer></v-spacer>
       <InputSearch v-model="search" />
     </v-card-title>
     <v-card-text>
@@ -76,8 +78,8 @@
       </template>
     </v-card>
   </v-dialog>
-  <SnackbarSuccess v-model="DialogSuccess" />
-  <SnackbarFailed v-model="DialogFailed" />
+  <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
+  <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
 </template>
 <script setup>
@@ -100,6 +102,8 @@ const DialogRemove = ref(false);
 const DialogFailed = ref(false);
 const DialogLoading = ref(false);
 const DialogSuccess = ref(false);
+const MessageDialog = ref("");
+const MessageErrorDialog = ref("");
 const PO_Edit = ref("");
 const Bom_Edit = ref("");
 const Quantity_Edit = ref("");
@@ -122,10 +126,12 @@ const SaveEdit = async () => {
     .put(`${Url}/CheckBom/Edit-Item/${Bom_Edit.value}`, formData)
     .then(function (response) {
       console.log(response);
+      MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
       Reset();
     })
     .catch(function (error) {
       console.log(error);
+      MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
       Error();
     });
 };
@@ -135,10 +141,12 @@ const RemoveItem = async () => {
     .delete(`${Url}/CheckBom/Delete-Item/${Bom_Edit.value}`)
     .then(function (response) {
       console.log(response);
+      MessageDialog.value = "Xoá dữ liệu thành công";
       Reset();
     })
     .catch(function (error) {
       console.log(error);
+      MessageErrorDialog.value = "Xoá dữ liệu thất bại";
       Error();
     });
 };

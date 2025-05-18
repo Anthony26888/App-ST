@@ -5,7 +5,7 @@
     color="red"
   >
     <v-icon>mdi-close-circle</v-icon>
-    Cập nhật dữ liệu lỗi. Cần kiểm tra lại dữ liệu hoặc tải lại trang.
+    {{ message }}
   </v-snackbar>
 </template>
 <script setup>

@@ -195,15 +195,19 @@
     </v-card>
   </v-dialog>
 
-  <SnackbarSuccess v-model="DialogSuccess" />
-  <SnackbarFailed v-model="DialogFailed" />
+  <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
+  <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
 </template>
 
 <script setup>
+// ===== IMPORTS =====
+// Core dependencies
 import axios from "axios";
 import { useRoute, useRouter } from "vue-router";
 import { ref, computed, reactive } from "vue";
+
+// Components
 import InputSearch from "@/components/Input-Search.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";
 import InputField from "@/components/Input-Field.vue";
@@ -217,41 +221,61 @@ import ButtonEdit from "@/components/Button-Edit.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
+
+// Composables
 import { useSparePartUsage } from "@/composables/useSparePartUsage";
+
+// ===== STATE MANAGEMENT =====
+// API Configuration
 const Url = import.meta.env.VITE_API_URL;
+
+// Route and Router
 const router = useRouter();
 const route = useRoute();
+
+// Device and Maintenance IDs from localStorage
 const id = localStorage.getItem("DetailMaintenanceID");
 
-// Dialog states
-const DialogEdit = ref(false);
-const DialogSuccess = ref(false);
-const DialogFailed = ref(false);
-const DialogRemove = ref(false);
-const DialogAdd = ref(false);
-const DialogLoading = ref(false);
+// Initialize composables
+const { sparePartUsage } = useSparePartUsage(id);
+
+// ===== DIALOG STATES =====
+// Control visibility of various dialogs
+const DialogEdit = ref(false);      // Edit dialog
+const DialogSuccess = ref(false);   // Success notification
+const DialogFailed = ref(false);    // Error notification
+const DialogRemove = ref(false);    // Remove confirmation dialog
+const DialogAdd = ref(false);       // Add new item dialog
+const DialogLoading = ref(false);   // Loading state
+
+// ===== MESSAGE DIALOG =====
+// Message for success and error notifications
+const MessageDialog = ref("");
+const MessageErrorDialog = ref("");
+
+// ===== FORM STATES =====
+// Current item being processed
 const GetID = ref("");
 
-// Edit form fields
-const TenPhuTung_Edit = ref("");
-const SoLuong_Edit = ref("");
-const DonVi_Edit = ref("");
-const GhiChu_Edit = ref("");
+// Edit form states
+const TenPhuTung_Edit = ref("");    // Spare part name for editing
+const SoLuong_Edit = ref("");       // Quantity for editing
+const DonVi_Edit = ref("");         // Unit for editing
+const GhiChu_Edit = ref("");        // Notes for editing
 
-// Add form fields
-const TenPhuTung_Add = ref("");
-const SoLuongSuDung_Add = ref("");
-const DonVi_Add = ref("");
-const GhiChu_Add = ref("");
-// Table states
+// Add form states
+const TenPhuTung_Add = ref("");     // Spare part name for adding
+const SoLuongSuDung_Add = ref("");  // Quantity for adding
+const DonVi_Add = ref("");          // Unit for adding
+const GhiChu_Add = ref("");         // Notes for adding
+
+// ===== TABLE CONFIGURATION =====
+// Search and pagination states
 const search = ref("");
 const page = ref(1);
 const itemsPerPage = ref(10);
 
-// Data
-const { sparePartUsage } = useSparePartUsage(id);
-
-
+// Table headers configuration
 const Headers = [
   { title: "Tên phụ tùng", key: "TenPhuTung" },
   { title: "Số lượng sử dụng", key: "SoLuongSuDung" },
@@ -260,7 +284,11 @@ const Headers = [
   { title: "Thao tác", key: "id", sortable: false },
 ];
 
-
+// ===== CRUD OPERATIONS =====
+/**
+ * Prepares an item for editing by setting up the edit dialog
+ * @param {Object} item - The spare part usage item to edit
+ */
 function GetItem(item) {
   DialogEdit.value = true;
   GetID.value = item.MaSuDung;
@@ -270,6 +298,10 @@ function GetItem(item) {
   GhiChu_Edit.value = item.GhiChu;
 }
 
+/**
+ * Saves edited spare part usage data
+ * Makes an API call to update spare part usage information
+ */
 const SaveEdit = async () => {
   DialogLoading.value = true;
   const formData = reactive({
@@ -284,13 +316,19 @@ const SaveEdit = async () => {
   try {
     const response = await axios.put(`${Url}/SparePartUsage/Edit/${GetID.value}`, formData);
     console.log(response.data.message);
+    MessageDialog.value = "Cập nhật phụ tùng thành công";
     Reset();
   } catch (error) {
     console.error("Error updating spare part usage:", error);
+    MessageErrorDialog.value = "Cập nhật phụ tùng thất bại";
     Error();
   }
 };
 
+/**
+ * Saves new spare part usage data
+ * Makes an API call to create a new spare part usage record
+ */
 const SaveAdd = async () => {
   DialogLoading.value = true;
   const formData = reactive({
@@ -305,25 +343,38 @@ const SaveAdd = async () => {
   try {
     const response = await axios.post(`${Url}/SparePartUsage/Add`, formData);
     console.log(response.data);
+    MessageDialog.value = "Thêm phụ tùng thành công";
     Reset();
   } catch (error) {
     console.error("Error adding spare part usage:", error);
+    MessageErrorDialog.value = "Thêm phụ tùng thất bại";
     Error();
   }
 };
 
+/**
+ * Removes a spare part usage record from the system
+ * Makes an API call to delete the spare part usage record
+ */
 const RemoveItem = async () => {
   DialogLoading.value = true;
   try {
     const response = await axios.delete(`${Url}/SparePartUsage/Delete/${GetID.value}`);
     console.log(response.data.message);
+    MessageDialog.value = "Xoá phụ tùng thành công";
     Reset();
   } catch (error) {
     console.error("Error deleting spare part usage:", error);
+    MessageErrorDialog.value = "Xoá phụ tùng thất bại";
     Error();
   }
 };
 
+// ===== UTILITY FUNCTIONS =====
+/**
+ * Resets all dialog states and form data
+ * Called after successful operations
+ */
 function Reset() {
   DialogRemove.value = false;
   DialogSuccess.value = true;
@@ -336,6 +387,10 @@ function Reset() {
   GhiChu_Add.value = "";
 }
 
+/**
+ * Handles error states
+ * Shows error notification and resets loading state
+ */
 function Error() {
   DialogFailed.value = true;
   DialogLoading.value = false;
@@ -346,7 +401,6 @@ function Error() {
   DonVi_Add.value = "";
   GhiChu_Add.value = "";
 }
-
 </script>
 
 <script>

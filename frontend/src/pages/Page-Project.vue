@@ -119,13 +119,17 @@
       </template>
     </v-card>
   </v-dialog>
-  <SnackbarSuccess v-model="DialogSuccess" />
-  <SnackbarFailed v-model="DialogFailed" />
+  <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
+  <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
 </template>
 <script setup>
+// ===== IMPORTS =====
+// Core dependencies
 import axios from "axios";
 import { useRouter } from "vue-router";
+
+// Components
 import InputSearch from "@/components/Input-Search.vue";
 import InputFiles from "@/components/Input-Files.vue";
 import InputField from "@/components/Input-Field.vue";
@@ -134,28 +138,61 @@ import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonEye from "@/components/Button-Eye.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
+import Loading from "@/components/Loading.vue";
+
+// Composables
 import { useProject } from "@/composables/useProject";
-import Loading from "@/components/Loading.vue"
+
+// ===== STATE MANAGEMENT =====
+// API Configuration
 const Url = import.meta.env.VITE_API_URL;
+
+// Router
 const router = useRouter();
-const GetID = ref("");
-const Dialog = ref(false);
-const DialogEdit = ref(false);
-const DialogSuccess = ref(false);
-const DialogFailed = ref(false);
-const DialogRemove = ref(false);
-const DialogAdd = ref(false);
-const DialogLoading = ref(false);
-const File = ref(null);
-const Customer_Edit = ref("");
-const Customer_Add = ref("");
+
+// Initialize composables
 const { project } = useProject();
+
+// ===== DIALOG STATES =====
+// Control visibility of various dialogs
+const Dialog = ref(false);          // Main dialog
+const DialogEdit = ref(false);      // Edit dialog
+const DialogSuccess = ref(false);   // Success notification
+const DialogFailed = ref(false);    // Error notification
+const DialogRemove = ref(false);    // Remove confirmation dialog
+const DialogAdd = ref(false);       // Add new item dialog
+const DialogLoading = ref(false);   // Loading state
+
+// ===== MESSAGE DIALOG =====
+// Message for success and error notifications
+const MessageDialog = ref("");
+const MessageErrorDialog = ref("");
+
+// ===== FORM STATES =====
+// File upload state
+const File = ref(null);
+
+// Customer form states
+const Customer_Edit = ref("");      // Customer name for editing
+const Customer_Add = ref("");       // Customer name for adding new
+const GetID = ref("");              // Current item ID being processed
+
+// ===== CRUD OPERATIONS =====
+/**
+ * Navigates to customer details page and stores customer information
+ * @param {string} value - The ID of the customer to view
+ */
 function PushItem(value) {
   const found = project.value.find((v) => v.id === value);
   router.push(`/Du-an/Khach-hang/${value}`);
   localStorage.setItem("Customers", found.Customers);
   localStorage.setItem("CustomersID", value);
 }
+
+/**
+ * Prepares an item for editing by setting up the edit dialog
+ * @param {string} value - The ID of the item to edit
+ */
 function GetItem(value) {
   console.log(value);
   DialogEdit.value = true;
@@ -163,67 +200,104 @@ function GetItem(value) {
   const found = project.value.find((v) => v.id === value);
   Customer_Edit.value = found.Customers;
 }
+
+/**
+ * Saves edited customer data
+ * Makes an API call to update customer information
+ */
 const SaveEdit = async () => {
   DialogLoading.value = true;
   const formData = reactive({
-    CustomerName: Customer_Edit.value, // Giá trị ban đầu
+    CustomerName: Customer_Edit.value,
   });
-  axios
-    .put(`${Url}/Project/Customer/Edit-Customer/${GetID.value}`, formData)
-    .then(function (response) {
-      console.log(response.data.message);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error()
-    });
+
+  try {
+    const response = await axios.put(
+      `${Url}/Project/Customer/Edit-Customer/${GetID.value}`,
+      formData
+    );
+    console.log(response.data.message);
+    MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
+    Error();
+  }
 };
 
+/**
+ * Saves new customer data
+ * Makes an API call to create a new customer
+ */
 const SaveAdd = async () => {
   DialogLoading.value = true;
   const formData = reactive({
-    CustomerName: Customer_Add.value, // Giá trị ban đầu
+    CustomerName: Customer_Add.value,
   });
-  axios
-    .post(`${Url}/Project/Customer/Add-Customer`, formData)
-    .then(function (response) {
-      console.log(response.data);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error()
-    });
+
+  try {
+    const response = await axios.post(
+      `${Url}/Project/Customer/Add-Customer`,
+      formData
+    );
+    console.log(response.data);
+    MessageDialog.value = "Thêm dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Thêm dữ liệu thất bại";
+    Error();
+  }
 };
+
+/**
+ * Removes a customer from the system
+ * Makes an API call to delete the customer
+ */
 const RemoveItem = async (id) => {
   DialogLoading.value = true;
-  axios
-    .delete(`${Url}/Project/Customer/Delete-Customer/${GetID.value}`)
-    .then(function (response) {
-      console.log(response.data.message);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error()
-    });
+  try {
+    const response = await axios.delete(
+      `${Url}/Project/Customer/Delete-Customer/${GetID.value}`
+    );
+    console.log(response.data.message);
+    MessageDialog.value = "Xoá dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Xoá dữ liệu thất bại";
+    Error();
+  }
 };
+
+// ===== FILE OPERATIONS =====
+/**
+ * Imports customer data from a file
+ * Makes an API call to upload and process the file
+ */
 const ImportFile = async () => {
   DialogLoading.value = true;
   const formData = new FormData();
   formData.append("file", File.value);
-  axios
-    .post(`${Url}/Project/upload`, formData)
-    .then(function (response) {
-      console.log(response);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error()
-    });
+
+  try {
+    const response = await axios.post(`${Url}/Project/upload`, formData);
+    console.log(response);
+    MessageDialog.value = "Tải file thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Tải file thất bại";
+    Error();
+  }
 };
+
+// ===== UTILITY FUNCTIONS =====
+/**
+ * Resets all dialog states and form data
+ * Called after successful operations
+ */
 function Reset() {
   DialogRemove.value = false;
   DialogSuccess.value = true;
@@ -233,7 +307,12 @@ function Reset() {
   DialogLoading.value = false;
   Customer_Add.value = "";
 }
-function Error(){
+
+/**
+ * Handles error states
+ * Shows error notification and resets loading state
+ */
+function Error() {
   DialogFailed.value = true;
   DialogLoading.value = false;
 }

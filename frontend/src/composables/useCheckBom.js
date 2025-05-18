@@ -19,6 +19,7 @@ export function useCheckBOM() {
     });
     socket.on("updateCheckBOM", (id) => {
       socket.emit("getCheckBOM", id);
+
     });
 
     socket.on("connect", () => console.log("Socket connected:", socket.id));

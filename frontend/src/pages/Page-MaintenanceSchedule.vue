@@ -254,16 +254,20 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-    <SnackbarSuccess v-model="DialogSuccess" />
-    <SnackbarFailed v-model="DialogFailed" />
+    <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
+    <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
     <Loading v-model="DialogLoading" />
   </div>
 </template>
 
 <script setup>
+// ===== IMPORTS =====
+// Core dependencies
 import { ref, computed } from "vue";
 import axios from "axios";
 import { useRoute, useRouter } from "vue-router";
+
+// Components
 import InputSearch from "@/components/Input-Search.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";
 import InputField from "@/components/Input-Field.vue";
@@ -280,66 +284,88 @@ import ButtonEye from "@/components/Button-Eye.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
+
+// Composables
 import { useMaintenanceSchedule } from "@/composables/useMaintenanceSchedule";
 
+// ===== STATE MANAGEMENT =====
+// API Configuration
 const Url = import.meta.env.VITE_API_URL;
+
+// Route and Router
 const route = useRoute();
+const router = useRouter();
+
+// Device ID from localStorage
+const id = localStorage.getItem("MaintenanceID");
+
+// Initialize composables
+const { maintenanceSchedule } = useMaintenanceSchedule(id);
+
+// ===== DIALOG STATES =====
+// Control visibility of various dialogs
+const DialogLoading = ref(false);   // Loading state
+const DialogAdd = ref(false);       // Add new item dialog
+const DialogEdit = ref(false);      // Edit dialog
+const DialogRemove = ref(false);    // Remove confirmation dialog
+const DialogSuccess = ref(false);   // Success notification
+const DialogFailed = ref(false);    // Error notification
+
+// ===== MESSAGE DIALOG =====
+// Message for success and error notifications
+const MessageDialog = ref("");
+const MessageErrorDialog = ref("");
+
+// ===== FORM STATES =====
+// Current item being processed
+const GetID = ref("");
+
+// Add form states
+const LoaiBaoTri_Add = ref("");           // Maintenance type for adding
+const ChuKyBaoTri_Add = ref("");          // Maintenance cycle for adding
+const DonViChuKy_Add = ref("");           // Cycle unit for adding
+const NgayBatDau_Add = ref("");           // Start date for adding
+const NgayBaoTriTiepTheo_Add = ref("");   // Next maintenance date for adding
+const GhiChu_Add = ref("");               // Notes for adding
+
+// Edit form states
+const LoaiBaoTri_Edit = ref("");          // Maintenance type for editing
+const ChuKyBaoTri_Edit = ref("");         // Maintenance cycle for editing
+const DonViChuKy_Edit = ref("");          // Cycle unit for editing
+const NgayBatDau_Edit = ref("");          // Start date for editing
+const NgayBaoTriTiepTheo_Edit = ref("");  // Next maintenance date for editing
+const GhiChu_Edit = ref("");              // Notes for editing
+
+// ===== TABLE CONFIGURATION =====
+// Search and pagination states
 const search = ref("");
 const page = ref(1);
 const itemsPerPage = ref(10);
-const DialogLoading = ref(false);
-const DialogAdd = ref(false);
-const DialogEdit = ref(false);
-const DialogRemove = ref(false);
-const DialogSuccess = ref(false);
-const DialogFailed = ref(false);
-const id = localStorage.getItem("MaintenanceID");
-const GetID = ref("");
-// Data for table
-const { maintenanceSchedule } = useMaintenanceSchedule(id);
 
-// Headers for data table
+// Table headers configuration
 const Headers = [
   { title: "Loại bảo trì", key: "LoaiBaoTri", sortable: true },
   { title: "Chu kỳ bảo trì", key: "ChuKyBaoTri", sortable: true },
   { title: "Đơn vị chu kỳ", key: "DonViChuKy", sortable: true },
   { title: "Ngày bắt đầu", key: "NgayBatDau", sortable: true },
-  {
-    title: "Ngày bảo trì tiếp theo",
-    key: "NgayBaoTriTiepTheo",
-    sortable: true,
-  },
+  { title: "Ngày bảo trì tiếp theo", key: "NgayBaoTriTiepTheo", sortable: true },
   { title: "Hạn bảo trì", key: "SoNgayConLai", sortable: true },
   { title: "Ghi chú", key: "GhiChu", sortable: true },
   { title: "Thao tác", key: "MaLich", sortable: false },
 ];
 
-// Form data for Add
-const LoaiBaoTri_Add = ref("");
-const ChuKyBaoTri_Add = ref("");
-const DonViChuKy_Add = ref("");
-const NgayBatDau_Add = ref("");
-const NgayBaoTriTiepTheo_Add = ref("");
-const GhiChu_Add = ref("");
-
-// Form data for Edit
-const LoaiBaoTri_Edit = ref("");
-const ChuKyBaoTri_Edit = ref("");
-const DonViChuKy_Edit = ref("");
-const NgayBatDau_Edit = ref("");
-const NgayBaoTriTiepTheo_Edit = ref("");
-const GhiChu_Edit = ref("");
-
-// Add items for DonViChuKy select
+// ===== SELECT OPTIONS =====
+// Options for cycle unit selection
 const itemsDonViChuKy = ["Tháng", "Quý", "Năm"];
 
-// Add computed property for next date calculation
+// ===== COMPUTED PROPERTIES =====
+/**
+ * Calculates the next maintenance date based on start date, cycle and unit
+ * Updates the next maintenance date field automatically
+ * @returns {string} Message indicating the next maintenance date
+ */
 const calculateNextDate = computed(() => {
-  if (
-    !NgayBatDau_Add.value ||
-    !ChuKyBaoTri_Add.value ||
-    !DonViChuKy_Add.value
-  ) {
+  if (!NgayBatDau_Add.value || !ChuKyBaoTri_Add.value || !DonViChuKy_Add.value) {
     return "Vui lòng nhập đầy đủ thông tin ngày bắt đầu, chu kỳ và đơn vị";
   }
 
@@ -363,13 +389,13 @@ const calculateNextDate = computed(() => {
   return `Ngày bảo trì tiếp theo: ${nextDate.toLocaleDateString("vi-VN")}`;
 });
 
-// Add computed property for next date calculation in Edit dialog
+/**
+ * Calculates the next maintenance date for edit form
+ * Updates the next maintenance date field automatically
+ * @returns {string} Message indicating the next maintenance date
+ */
 const calculateNextDateEdit = computed(() => {
-  if (
-    !NgayBatDau_Edit.value ||
-    !ChuKyBaoTri_Edit.value ||
-    !DonViChuKy_Edit.value
-  ) {
+  if (!NgayBatDau_Edit.value || !ChuKyBaoTri_Edit.value || !DonViChuKy_Edit.value) {
     return "Vui lòng nhập đầy đủ thông tin ngày bắt đầu, chu kỳ và đơn vị";
   }
 
@@ -393,7 +419,11 @@ const calculateNextDateEdit = computed(() => {
   return `Ngày bảo trì tiếp theo: ${nextDate.toLocaleDateString("vi-VN")}`;
 });
 
-// Methods
+// ===== CRUD OPERATIONS =====
+/**
+ * Prepares an item for editing by setting up the edit dialog
+ * @param {Object} item - The maintenance schedule item to edit
+ */
 const GetItem = (item) => {
   LoaiBaoTri_Edit.value = item.LoaiBaoTri;
   ChuKyBaoTri_Edit.value = item.ChuKyBaoTri;
@@ -405,6 +435,10 @@ const GetItem = (item) => {
   DialogEdit.value = true;
 };
 
+/**
+ * Saves new maintenance schedule data
+ * Makes an API call to create a new maintenance schedule
+ */
 const SaveAdd = async () => {
   DialogLoading.value = true;
 
@@ -419,14 +453,13 @@ const SaveAdd = async () => {
   };
 
   try {
-    const response = await axios.post(
-      `${Url}/MaintenanceSchedule/Add`,
-      formData
-    );
+    const response = await axios.post(`${Url}/MaintenanceSchedule/Add`, formData);
     console.log(response.data);
+    MessageDialog.value = "Thêm lịch bảo trì thành công";
     Reset();
   } catch (error) {
     console.error("Error adding maintenance schedule:", error);
+    MessageErrorDialog.value = "Thêm lịch bảo trì thất bại";
     Error();
   } finally {
     DialogLoading.value = false;
@@ -434,6 +467,10 @@ const SaveAdd = async () => {
   }
 };
 
+/**
+ * Saves edited maintenance schedule data
+ * Makes an API call to update maintenance schedule information
+ */
 const SaveEdit = async () => {
   DialogLoading.value = true;
   const formData = {
@@ -452,28 +489,38 @@ const SaveEdit = async () => {
       formData
     );
     console.log(response.data);
+    MessageDialog.value = "Cập nhật lịch bảo trì thành công";
     Reset();
   } catch (error) {
     console.error("Error updating maintenance schedule:", error);
+    MessageErrorDialog.value = "Cập nhật lịch bảo trì thất bại";
     Error();
   }
 };
 
-const DeleteItem = () => {
-  // Implement delete logic here
-  axios
-    .delete(`${Url}/MaintenanceSchedule/Delete/${GetID.value}`)
-    .then(function (response) {
-      console.log(response.data.message);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error();
-    });
+/**
+ * Removes a maintenance schedule from the system
+ * Makes an API call to delete the maintenance schedule
+ */
+const DeleteItem = async () => {
+  DialogLoading.value = true;
+  try {
+    const response = await axios.delete(`${Url}/MaintenanceSchedule/Delete/${GetID.value}`);
+    console.log(response.data.message);
+    MessageDialog.value = "Xoá lịch bảo trì thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Xoá lịch bảo trì thất bại";
+    Error();
+  }
 };
 
-// Add Reset method
+// ===== UTILITY FUNCTIONS =====
+/**
+ * Resets all dialog states and form data
+ * Called after successful operations
+ */
 const Reset = () => {
   LoaiBaoTri_Add.value = "";
   ChuKyBaoTri_Add.value = "";
@@ -489,7 +536,10 @@ const Reset = () => {
   DialogRemove.value = false;
 };
 
-// Add ResetEdit method
+/**
+ * Handles error states
+ * Shows error notification and resets loading state
+ */
 const Error = () => {
   DialogFailed.value = true;
   DialogLoading.value = false;

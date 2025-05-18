@@ -15,7 +15,7 @@
             >Thêm</v-btn
           >
           <p class="ms-2 font-weight-thin text-subtitle-1">
-            ( {{ machine.length }} bản ghi)
+            ( {{ machine.length }} thiết bị)
           </p>
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
@@ -216,14 +216,20 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
-  <SnackbarSuccess v-model="DialogSuccess" />
-  <SnackbarFailed v-model="DialogFailed" />
+  <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
+  <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
 </template>
 <script setup>
+// ===== IMPORTS =====
+// Core dependencies
 import axios from "axios";
 import { useRouter } from "vue-router";
+
+// Composables
 import { useMachine } from "@/composables/useMachine";
+
+// Components
 import InputSearch from "@/components/Input-Search.vue";
 import InputFiles from "@/components/Input-Files.vue";
 import InputField from "@/components/Input-Field.vue";
@@ -233,43 +239,63 @@ import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonEye from "@/components/Button-Eye.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
-import Loading from "@/components/Loading.vue"
+import Loading from "@/components/Loading.vue";
 
-// Data
-const { machine } = useMachine();
+// ===== STATE MANAGEMENT =====
+// API Configuration
 const Url = import.meta.env.VITE_API_URL;
+
+// Router
 const router = useRouter();
-const GetID = ref("");
+
+// Initialize composables
+const { machine } = useMachine();
+
+// ===== DIALOG STATES =====
+// Control visibility of various dialogs
+const Dialog = ref(false);          // Main dialog
+const DialogEdit = ref(false);      // Edit dialog
+const DialogSuccess = ref(false);   // Success notification
+const DialogFailed = ref(false);    // Error notification
+const DialogRemove = ref(false);    // Remove confirmation dialog
+const DialogAdd = ref(false);       // Add new item dialog
+const DialogLoading = ref(false);   // Loading state
+
+// ===== MESSAGE DIALOG =====
+// Message for success and error notifications
+const MessageDialog = ref("");
+const MessageErrorDialog = ref("");
+
+// ===== FORM STATES =====
+// File upload state
 const File = ref(null);
-// Dialog
-const Dialog = ref(false);
-const DialogEdit = ref(false);
-const DialogSuccess = ref(false);
-const DialogFailed = ref(false);
-const DialogRemove = ref(false);
-const DialogAdd = ref(false);
-const DialogLoading = ref(false);
 
-// Edit
-const TenThietBi_Edit = ref("");
-const LoaiThietBi_Edit = ref("");
-const NhaSanXuat_Edit = ref("");
-const NgayMua_Edit = ref("");
-const ViTri_Edit = ref("");
-const MoTa_Edit = ref("");
-// Add
-const TenThietBi_Add = ref("");
-const LoaiThietBi_Add = ref("");
-const NhaSanXuat_Add = ref("");
-const NgayMua_Add = ref("");
-const ViTri_Add = ref("");
-const MoTa_Add = ref("");
+// Current item being processed
+const GetID = ref("");
 
-// Search
+// Edit form states
+const TenThietBi_Edit = ref("");    // Device name for editing
+const LoaiThietBi_Edit = ref("");   // Device type for editing
+const NhaSanXuat_Edit = ref("");    // Manufacturer for editing
+const NgayMua_Edit = ref("");       // Purchase date for editing
+const ViTri_Edit = ref("");         // Location for editing
+const MoTa_Edit = ref("");          // Description for editing
+
+// Add form states
+const TenThietBi_Add = ref("");     // Device name for adding new
+const LoaiThietBi_Add = ref("");    // Device type for adding new
+const NhaSanXuat_Add = ref("");     // Manufacturer for adding new
+const NgayMua_Add = ref("");        // Purchase date for adding new
+const ViTri_Add = ref("");          // Location for adding new
+const MoTa_Add = ref("");           // Description for adding new
+
+// ===== TABLE CONFIGURATION =====
+// Search and pagination states
 const search = ref("");
 const page = ref(1);
 const itemsPerPage = ref(10);
 
+// Table headers configuration
 const Headers = [
   { title: "Tên thiết bị", key: "TenThietBi" },
   { title: "Loại thiết bị", key: "LoaiThietBi" },
@@ -281,6 +307,11 @@ const Headers = [
   { title: "Thao tác", key: "MaThietBi", sortable: false },
 ];
 
+// ===== CRUD OPERATIONS =====
+/**
+ * Navigates to device details page and stores device information
+ * @param {string} value - The ID of the device to view
+ */
 function PushItem(value) {
   const found = machine.value.find((v) => v.MaThietBi === value);
   console.log(found);
@@ -288,6 +319,10 @@ function PushItem(value) {
   localStorage.setItem("MaintenanceID", value);
 }
 
+/**
+ * Prepares an item for editing by setting up the edit dialog
+ * @param {string} value - The ID of the item to edit
+ */
 function GetItem(value) {
   DialogEdit.value = true;
   GetID.value = value;
@@ -300,6 +335,10 @@ function GetItem(value) {
   MoTa_Edit.value = found.MoTa;
 }
 
+/**
+ * Saves edited device data
+ * Makes an API call to update device information
+ */
 const SaveEdit = async () => {
   DialogLoading.value = true;
   const formData = reactive({
@@ -310,18 +349,26 @@ const SaveEdit = async () => {
     ViTri: ViTri_Edit.value,
     MoTa: MoTa_Edit.value,
   });
-  axios
-    .put(`${Url}/Machine/Edit/${GetID.value}`, formData)
-    .then(function (response) {
-      console.log(response.data.message);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error()
-    });
+
+  try {
+    const response = await axios.put(
+      `${Url}/Machine/Edit/${GetID.value}`,
+      formData
+    );
+    console.log(response.data.message);
+    MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
+    Error();
+  }
 };
 
+/**
+ * Saves new device data
+ * Makes an API call to create a new device
+ */
 const SaveAdd = async () => {
   DialogLoading.value = true;
   const formData = reactive({
@@ -332,48 +379,64 @@ const SaveAdd = async () => {
     ViTri: ViTri_Add.value,
     MoTa: MoTa_Add.value,
   });
-  axios
-    .post(`${Url}/Machine/Add`, formData)
-    .then(function (response) {
-      console.log(response.data);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error()
-    });
+
+  try {
+    const response = await axios.post(`${Url}/Machine/Add`, formData);
+    console.log(response.data);
+    MessageDialog.value = "Thêm dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Thêm dữ liệu thất bại";
+    Error();
+  }
 };
 
+/**
+ * Removes a device from the system
+ * Makes an API call to delete the device
+ */
 const RemoveItem = async () => {
   DialogLoading.value = true;
-  axios
-    .delete(`${Url}/Machine/Delete/${GetID.value}`)
-    .then(function (response) {
-      console.log(response.data.message);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error()
-    });
+  try {
+    const response = await axios.delete(`${Url}/Machine/Delete/${GetID.value}`);
+    console.log(response.data.message);
+    MessageDialog.value = "Xoá dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Xoá dữ liệu thất bại";
+    Error();
+  }
 };
 
+// ===== FILE OPERATIONS =====
+/**
+ * Imports device data from a file
+ * Makes an API call to upload and process the file
+ */
 const ImportFile = async () => {
   DialogLoading.value = true;
   const formData = new FormData();
   formData.append("file", File.value);
-  axios
-    .post(`${Url}/Maintenance/upload`, formData)
-    .then(function (response) {
-      console.log(response);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error()
-    });
+
+  try {
+    const response = await axios.post(`${Url}/Maintenance/upload`, formData);
+    console.log(response);
+    MessageDialog.value = "Tải file thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Tải file thất bại";
+    Error();
+  }
 };
 
+// ===== UTILITY FUNCTIONS =====
+/**
+ * Resets all dialog states and form data
+ * Called after successful operations
+ */
 function Reset() {
   DialogRemove.value = false;
   DialogSuccess.value = true;
@@ -389,7 +452,11 @@ function Reset() {
   MoTa_Add.value = "";
 }
 
-function Error(){
+/**
+ * Handles error states
+ * Shows error notification and resets loading state
+ */
+function Error() {
   DialogFailed.value = true;
   DialogLoading.value = false;
 }

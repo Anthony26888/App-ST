@@ -3,9 +3,10 @@
     v-model="visible"
     :timeout="timeout"
     color="green"
+    class="text-center ms-5"
   >
     <v-icon>mdi-check-circle</v-icon>
-    Cập nhật dữ liệu thành công
+    {{ message }}
   </v-snackbar>
 </template>
 <script setup>
