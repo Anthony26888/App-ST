@@ -198,6 +198,7 @@ const id = route.params.id;
 const Url = import.meta.env.VITE_API_URL;
 
 // Initialize composables
+const PartNumber_1 = ref("");
 const { orders } = useOrders();
 const { users } = useUsers();
 const { compare, compareError, headers } = useDetailOrder(id);
@@ -215,7 +216,7 @@ const DialogInfo = ref(false);      // Product info dialog
 
 // ===== FORM STATES =====
 // Item data states
-const PartNumber_1 = ref("");
+
 const NamePO = ref("");
 const GetID = ref("");
 const Ma_Kho = ref("");
