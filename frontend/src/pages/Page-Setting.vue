@@ -149,6 +149,11 @@ const DialogRemoveProject = ref(false);      // Remove project confirmation dial
 const DialogSuccess = ref(false);            // Success notification
 const DialogFailed = ref(false);             // Error notification
 const DialogLoading = ref(false);            // Loading state
+
+// ===== MESSAGE DIALOG =====
+// Message for success and error notifications
+const MessageDialog = ref("");
+const MessageErrorDialog = ref("");
 // ===== CRUD OPERATIONS =====
 /**
  * Removes all warehouse data
