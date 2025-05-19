@@ -70,6 +70,7 @@
       </v-card-title>
       <v-card-text>
         <InputSelect label="Mã Kho" v-model="Ma_Kho" :items="Customer" />
+        <InputSelect label="Mã Kho Misa" v-model="Ma_Kho_Misa" :items="Customer_Misa" />
         <InputField label="Hao phí thực tế" v-model="ActualCost" />
       </v-card-text>
       <v-card-actions>
@@ -172,9 +173,9 @@ import { Buffer } from "buffer";
 import emailjs from "@emailjs/browser";
 
 // Composables
-import { useSocket } from "@/composables/useWebSocket";
 import { useDetailOrder } from "@/composables/useDetailOrder";
 import { useWareHouseFind } from "@/composables/useWareHouseFind";
+import { useWareHouse2Find } from "@/composables/useWareHouse2Find";
 import { useUsers } from "@/composables/useUsers";
 import { useOrders } from "@/composables/useOrders";
 
@@ -203,6 +204,7 @@ const { orders } = useOrders();
 const { users } = useUsers();
 const { compare, compareError, headers } = useDetailOrder(id);
 const { WareHouseFind, WareHouseFindError } = useWareHouseFind(PartNumber_1);
+const { WareHouse2Find, WareHouse2FindError } = useWareHouse2Find(PartNumber_1);
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
@@ -222,6 +224,7 @@ const GetID = ref("");
 const Ma_Kho = ref("");
 const Ma_Kho_Misa = ref("");
 const Customer = ref([]);
+const Customer_Misa = ref([]);
 const UserInfo = ref("");
 const ActualCost = ref("");
 const GetDigikey = ref("");
@@ -301,6 +304,15 @@ watch(WareHouseFind, (newData) => {
   }
 }, { immediate: true });
 
+/**
+ * Watch for changes in WareHouse2Find data to update Customer_Misa options
+ */
+watch(WareHouse2Find, (newData) => {
+  if (newData && newData.length > 0) {
+    Customer_Misa.value = newData.map(item => item.Customer);
+  }
+}, { immediate: true });
+
 // ===== TABLE OPERATIONS =====
 /**
  * Generates table headers based on BOM data structure
@@ -333,9 +345,10 @@ function GetItem(value) {
   const found = compare.value.find((v) => v.Sửa === value);
   if (found) {
     PartNumber_1.value = found.PartNumber_1;
-    ActualCost.value = found.Hao_Phí_Thực_Tế;
-    Ma_Kho.value = found.Ma_Kho;
-    Ma_Kho_Misa.value = found.Ma_Kho_Misa;
+    ActualCost.value = found.Hao_Phi_Thực_Tế;
+    Ma_Kho.value = found.Mã_Kho;
+    Ma_Kho_Misa.value = found.Mã_Kho_Misa;
+    console.log(found);
   }
 }
 

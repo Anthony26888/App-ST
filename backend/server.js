@@ -121,15 +121,15 @@ io.on("connection", (socket) => {
         socket.emit("WareHouseFindError", error);
       }
     }),
-    socket.on("getWareHouseFindMisa", async (id) => {
+    socket.on("getWareHouse2Find", async (id) => {
       try {
         const query = `SELECT DISTINCT Customer FROM WareHouse2 WHERE PartNumber_1 = ? ORDER BY id ASC`;
         db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("WareHouseFindMisaError", err);
-          socket.emit("WareHouseFindMisaData", rows);
+          if (err) return socket.emit("WareHouse2FindError", err);
+          socket.emit("WareHouse2FindData", rows);
         });
       } catch (error) {
-        socket.emit("WareHouseFindMisaError", error);
+        socket.emit("WareHouse2FindError", error);
       }
     }),
     socket.on("getProject", async () => {
