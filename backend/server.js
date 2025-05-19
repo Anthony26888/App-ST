@@ -347,7 +347,7 @@ const getCompareInventory = async (id) => {
         // Create dynamic column aggregation
         const columns = Boms.map(
           (Boms) =>
-            `SUM(CASE WHEN c.Bom = '${Boms.Bom}' THEN (c.So_Luong * c.SL_Board) ELSE 0 END) AS [${Boms.Bom}]`
+            `ROUND(SUM(CASE WHEN Bom = '${Boms.Bom}' THEN (So_Luong * SL_Board) ELSE 0 END), 2) AS [${Boms.Bom}]`
         ).join(", ");
         // Full SQL query
         const query = `
@@ -395,19 +395,19 @@ const getCompareWareHouse = async (id) => {
         // Create dynamic column aggregation
         const columns = Boms.map(
           (Boms) =>
-            `SUM(CASE WHEN c.Bom = '${Boms.Bom}' THEN (c.So_Luong * c.SL_Board) ELSE 0 END) AS [${Boms.Bom}]`
+            `ROUND(SUM(CASE WHEN Bom = '${Boms.Bom}' THEN (So_Luong * SL_Board) ELSE 0 END), 2) AS [${Boms.Bom}]`
         ).join(", ");
         const Buy = `
           CASE 
-            WHEN (SUM(c.So_Luong * c.SL_Board) + SUM(IFNULL(c.Du_Toan_Hao_Phi, 0))) > IFNULL(i.Inventory, 0) 
-            THEN SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Du_Toan_Hao_Phi, 0) - IFNULL(i.Inventory, 0)
+            WHEN (SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Hao_Phi_Thuc_Te, 0)) > IFNULL(i.Inventory, 0) 
+            THEN SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Hao_Phi_Thuc_Te, 0) - IFNULL(i.Inventory, 0)
             ELSE 0 
           END AS Số_Lượng_Cần_Mua
         `;
         const BuyMisa = `
           CASE 
-            WHEN (SUM(c.So_Luong * c.SL_Board) + SUM(IFNULL(c.Du_Toan_Hao_Phi, 0))) > IFNULL(w2.Inventory, 0) 
-            THEN SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Du_Toan_Hao_Phi, 0) - IFNULL(w2.Inventory, 0)
+            WHEN (SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Hao_Phi_Thuc_Te, 0)) > IFNULL(w2.Inventory, 0) 
+            THEN SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Hao_Phi_Thuc_Te, 0) - IFNULL(w2.Inventory, 0)
             ELSE 0 
           END AS Số_Lượng_Cần_Mua_Misa
         `;
@@ -1052,14 +1052,14 @@ app.put("/CheckBom/Update-Hao-Phi", async (req, res) => {
 
 // Router update Hao_Phi_Thuc_Te in CheckBom table
 app.put("/DetailOrders/Update", async (req, res) => {
-  const { Input_Hao_Phi_Thuc_Te, PartNumber_1, Ma_Kho, Ma_Kho_Misa } = req.body;
+  const { Input_Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, PartNumber_1, PO } = req.body;
   // Insert data into SQLite database
   const query = `UPDATE DetailOrders SET Hao_Phi_Thuc_Te = ?, Ma_Kho = ?, Ma_Kho_Misa = ? WHERE PartNumber_1 = ?`;
   db.run(query, [Input_Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, PartNumber_1], function (err) {
     if (err) {
       return console.error(err.message);
     }
-    io.emit("updateCompare");
+    io.emit("updateCompare", PO);
     // Broadcast the new message to all clients
     res.json({ message: "Item inserted successfully" });
   });

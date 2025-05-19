@@ -362,6 +362,7 @@ const SaveEdit = async () => {
     Ma_Kho: Ma_Kho.value,
     Ma_Kho_Misa: Ma_Kho_Misa.value,
     PartNumber_1: PartNumber_1.value,
+    PO: NamePO.value,
   };
 
   try {
