@@ -1310,7 +1310,7 @@ app.put("/Project/Customer/Edit-Customer/:id", async (req, res) => {
   // Insert data into SQLite database
   const query = `
     UPDATE Customers
-    SET CustomerName = ?
+    SET CustomerName = ?, Years = ?
     WHERE id = ?`;
   db.run(query, [CustomerName, id], function (err) {
     if (err) {
@@ -1326,13 +1326,13 @@ app.put("/Project/Customer/Edit-Customer/:id", async (req, res) => {
 
 // Router add new orders in PurchaseDetails table
 app.post("/Project/Customer/Add-Customer", async (req, res) => {
-  const { CustomerName } = req.body;
+  const { CustomerName, Years } = req.body;
   // Insert data into SQLite database
   const query = `
-    INSERT INTO Customers (CustomerName)
-    VALUES (?)
+    INSERT INTO Customers (CustomerName, Years)
+    VALUES (?, ?)
   `;
-  db.run(query, [CustomerName], function (err) {
+  db.run(query, [CustomerName, Years], function (err) {
     if (err) {
       return res
         .status(500)

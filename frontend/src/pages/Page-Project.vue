@@ -74,6 +74,7 @@
       </v-card-title>
       <v-card-text>
         <InputField label="Khách hàng" v-model="Customer_Edit" />
+        <InputField label="Năm tạo" v-model="Years_Edit" />
       </v-card-text>
       <v-card-actions>
         <ButtonDelete @delete="DialogRemove = true" />
@@ -92,6 +93,7 @@
       </v-card-title>
       <v-card-text>
         <InputField label="Khách hàng" v-model="Customer_Add" />
+        <InputField label="Năm tạo" v-model="Years_Add" />
       </v-card-text>
       <v-card-actions>
         <ButtonCancel @cancel="DialogAdd = false" />
@@ -174,7 +176,9 @@ const File = ref(null);
 
 // Customer form states
 const Customer_Edit = ref("");      // Customer name for editing
-const Customer_Add = ref("");       // Customer name for adding new
+const Customer_Add = ref("");
+const Years_Edit = ref("");
+const Years_Add = ref("");
 const GetID = ref("");              // Current item ID being processed
 
 // ===== CRUD OPERATIONS =====
@@ -199,6 +203,7 @@ function GetItem(value) {
   GetID.value = value;
   const found = project.value.find((v) => v.id === value);
   Customer_Edit.value = found.Customers;
+  Years_Edit.value = found.Years;
 }
 
 /**
@@ -209,6 +214,7 @@ const SaveEdit = async () => {
   DialogLoading.value = true;
   const formData = reactive({
     CustomerName: Customer_Edit.value,
+    Years: Years_Edit.value,
   });
 
   try {
@@ -234,6 +240,7 @@ const SaveAdd = async () => {
   DialogLoading.value = true;
   const formData = reactive({
     CustomerName: Customer_Add.value,
+    Years: Years_Add.value,
   });
 
   try {
@@ -306,6 +313,9 @@ function Reset() {
   Dialog.value = false;
   DialogLoading.value = false;
   Customer_Add.value = "";
+  Years_Add.value = "";
+  Customer_Edit.value = "";
+  Years_Edit.value = "";
 }
 
 /**
