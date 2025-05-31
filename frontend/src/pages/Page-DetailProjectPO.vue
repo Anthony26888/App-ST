@@ -43,7 +43,13 @@
           </template>
 
           <template v-slot:item.id="{ item }">
-            <ButtonEdit @edit="GetItem(item)" />
+            <ButtonEdit @edit="GetItem(value)" v-if="LevelUser == 'Admin' || LevelUser == 'Kinh doanh admin'" />
+          </template>
+
+          <template v-slot:item.Status="{ item }">
+            <v-chip :color="item.Status === 'Hoàn thành' ? 'success' : 'error'" variant="tonal">
+              {{ item.Status }}
+            </v-chip>
           </template>
         </v-data-table>
       </v-card>
@@ -172,20 +178,36 @@ const GetID = ref("");
 
 // Edit form states
 const Product_Detail_Edit = ref("");      // Product details for editing
-const Quantity_Product_Edit = ref("");    // Product quantity for editing
-const Quantity_Delivered_Edit = ref("");  // Delivered quantity for editing
-const Quantity_Amount_Edit = ref("");     // Amount for editing
+const Quantity_Product_Edit = ref(0);    // Product quantity for editing
+const Quantity_Delivered_Edit = ref(0);  // Delivered quantity for editing
 
 // Add form states
 const Product_Detail_Add = ref("");       // Product details for adding new
-const Quantity_Product_Add = ref("");     // Product quantity for adding new
-const Quantity_Delivered_Add = ref("");   // Delivered quantity for adding new
-const Quantity_Amount_Add = ref("");      // Amount for adding new
+const Quantity_Product_Add = ref(0);     // Product quantity for adding new
+const Quantity_Delivered_Add = ref(0);   // Delivered quantity for adding new
 
 // Customer and PO information
 const CustomerID = ref(null);            // Customer ID from localStorage
 const NamePO = ref(null);                // PO name from localStorage
 const NameCustomer = ref(null);          // Customer name from localStorage
+
+// Table states
+const Headers = ref([
+  { key: "Product_Detail", title: "Chi tiết đơn hàng" },
+  { key: "Status", title: "Trạng thái" },
+  { key: "Quantity_Product", title: "SL đơn hàng" },
+  { key: "Quantity_Delivered", title: "SL đã giao" },
+  { key: "Quantity_Amount", title: "SL còn nợ" },
+  { key: "Note", title: "Ghi chú" },
+  { key: "id", title: "Sửa" },
+]);
+const search = ref("");
+const itemsPerPage = ref(12);
+const page = ref(1);
+
+// ===== USER INFORMATION =====
+const LevelUser = localStorage.getItem("LevelUser");
+
 
 // ===== LIFECYCLE HOOKS =====
 /**
@@ -199,6 +221,15 @@ onMounted(() => {
   CustomerID.value = storedData;
   NamePO.value = storeData;
   NameCustomer.value = storedsData;
+});
+
+// ===== COMPUTED =====
+const Quantity_Amount_Edit = computed(() => {
+  return Quantity_Product_Edit.value - Quantity_Delivered_Edit.value;
+});
+
+const Quantity_Amount_Add = computed(() => {
+  return Quantity_Product_Add.value - Quantity_Delivered_Add.value;
 });
 
 // ===== CRUD OPERATIONS =====
@@ -364,20 +395,6 @@ export default {
   },
   data() {
     return {
-      search: "",
-      Headers: [
-        { key: "Product_Detail", title: "Chi tiết đơn hàng" },
-        { key: "Quantity_Product", title: "SL đơn hàng" },
-        { key: "Quantity_Delivered", title: "SL đơn đã giao" },
-        { key: "Quantity_Amount", title: "SL còn nợ" },
-        {
-          key: "id",
-          sortable: false,
-          title: "Sửa",
-        },
-      ],
-      itemsPerPage: 12,
-      page: 1,
     };
   },
   methods: {

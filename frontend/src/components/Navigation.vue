@@ -78,6 +78,7 @@ const StatusOption_4 = ref(false);
 const StatusOption_5 = ref(false);
 const StatusOption_6 = ref(false);
 const StatusOption_7 = ref(false);
+const StatusOption_8 = ref(false);
 const Date_Expired = ref("");
 const DialogLoading = ref(false);
 const DialogFailed = ref(false);
@@ -99,6 +100,8 @@ const LogOut = () => {
   localStorage.removeItem("token");
   localStorage.removeItem("CustomersID");
   localStorage.removeItem("PO");
+  localStorage.removeItem("Customers");
+  localStorage.removeItem("LevelUser");
   router.push("/");
 };
 const FetchUser = async () => {
@@ -107,10 +110,18 @@ const FetchUser = async () => {
       const res = await fetch(`${Url}/All-Users/${UserInfo.value}`);
       const Detail_User = await res.json();
       LevelUser.value = Detail_User[0].Level;
+      localStorage.setItem("LevelUser", LevelUser.value);
       if (LevelUser.value == "Kinh doanh") {
         StatusOption_1.value = true;
         StatusOption_4.value = true;
         StatusOption_6.value = true;
+        StatusOption_7.value = true;
+        StatusOption_8.value = true;
+      } else if (LevelUser.value == "Kinh doanh admin") {
+        StatusOption_1.value = true;
+        StatusOption_6.value = true;
+        StatusOption_7.value = true;
+        StatusOption_8.value = true;
       } else if (LevelUser.value == "Thủ kho") {
         StatusOption_1.value = true;
         StatusOption_5.value = true;
@@ -190,21 +201,21 @@ const menuItems = computed(() => [
     title: 'Bảo trì',
     value: 'Maintenance',
     to: '/Bao-tri',
-    disabled: StatusOption_7.value
+    disabled: StatusOption_6.value
   },
   {
     icon: 'mdi-calendar-check',
     title: 'Sản xuất',
     value: 'Manufacture',
     to: '/San-xuat',
-    disabled: StatusOption_6.value
+    disabled: StatusOption_7.value
   },
   {
     icon: 'mdi-cog',
     title: 'Cài đặt',
     value: 'Setting',
     to: '/Cai-dat',
-    disabled: StatusOption_6.value
+    disabled: StatusOption_8.value
   }
 ]);
 </script>

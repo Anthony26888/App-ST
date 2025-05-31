@@ -88,7 +88,7 @@
           <v-col cols="12">
             <InputSelect
               label="Phân quyền"
-              :items="['Admin', 'Kế hoạch', 'Thủ kho', 'Kinh doanh', 'Quản lý']"
+              :items="['Admin', 'Kế hoạch', 'Thủ kho', 'Kinh doanh', 'Kinh doanh admin', 'Quản lý']"
               variant="solo-filled"
               v-model="Level_Edit"
             />
@@ -113,7 +113,7 @@
         <InputField label="Password" type="password" v-model="Password_Add" />
         <InputSelect
           label="Phân quyền"
-          :items="['Admin', 'Kế hoạch', 'Thủ kho', 'Kinh doanh', 'Quản lý']"
+          :items="['Admin', 'Kế hoạch', 'Thủ kho', 'Kinh doanh', 'Kinh doanh admin', 'Quản lý']"
           variant="solo-filled"
           v-model="Level_Add"
         />
@@ -135,7 +135,6 @@ import axios from "axios";
 import { ref, watch, reactive } from "vue";
 
 // Composables
-import { useSocket } from "@/composables/useWebSocket";
 import { useUsers } from "@/composables/useUsers";
 
 // Components

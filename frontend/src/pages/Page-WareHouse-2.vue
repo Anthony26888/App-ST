@@ -48,7 +48,7 @@
             </template>
             <template v-slot:item.id="{ value }">
               <div>
-                <ButtonEdit @edit="GetItem(value)" />
+                <ButtonEdit @edit="GetItem(value)" v-if="LevelUser == 'Admin' || LevelUser == 'Thủ kho'" />
                 <ButtonSearch @search="getAccessToken(value)" />
               </div>
             </template>
@@ -364,6 +364,9 @@ const accessToken = ref(null);
 const tokenType = ref(null);
 const expires_in = ref(null);
 const ResultSearch = ref(null);
+
+// ===== User Information =====
+const LevelUser = localStorage.getItem("LevelUser");
 
 // ===== CRUD OPERATIONS =====
 /**

@@ -775,6 +775,33 @@ app.delete("/Project/delete-all", async (req, res) => {
 //   }
 // });
 
+// 📥 API to Download AOI data as XLSX
+app.get("/Download-AOI/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const query = "SELECT * FROM AOIDetails WHERE ManufactureID = ?";
+    db.all(query, [id], (err, rows) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      // Convert data to worksheet
+      const ws = xlsx.utils.json_to_sheet(rows);
+      const wb = xlsx.utils.book_new();
+      xlsx.utils.book_append_sheet(wb, ws, `AOI_Details`);
 
+      // Save the file temporarily
+      const filePath = path.join(__dirname, `AOI_${id}.xlsx`);
+      xlsx.writeFile(wb, filePath);
+
+      // Send the file to the client
+      res.download(filePath, `AOI_${id}.xlsx`, (err) => {
+        if (err) console.error("Error sending file:", err);
+        fs.unlinkSync(filePath); // Delete after sending
+      });
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 module.exports = app;

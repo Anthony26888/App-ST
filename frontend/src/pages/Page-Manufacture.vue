@@ -54,7 +54,7 @@
                 ></v-pagination>
               </div>
             </template>
- 
+
             <template v-slot:item.id="{ value }">
               <div class="d-flex">
                 <ButtonEye @detail="PushItem(value)" />
@@ -62,7 +62,9 @@
               </div>
             </template>
             <template v-slot:item.Status="{ value }">
-              <v-chip v-if="value == isRunning" color="success" variant="tonal"> Đang chạy </v-chip>
+              <v-chip v-if="value == isRunning" color="success" variant="tonal">
+                Đang chạy
+              </v-chip>
               <v-chip v-else color="error" variant="tonal"> Đã dừng </v-chip>
             </template>
           </v-data-table>
@@ -131,8 +133,8 @@
       </template>
     </v-card>
   </v-dialog>
-  <SnackbarSuccess v-model="DialogSuccess" />
-  <SnackbarFailed v-model="DialogFailed" />
+  <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
+  <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
 </template>
 
@@ -177,7 +179,9 @@ const Date_Expired = ref("");
 const search = ref("");
 const page = ref(1);
 const itemsPerPage = ref(10);
-const isRunning = localStorage.getItem('isRunning');
+const isRunning = localStorage.getItem("isRunning");
+const MessageDialog = ref("");
+const MessageErrorDialog = ref("");
 
 const Headers = [
   { title: "Tên dự án", key: "Name" },
@@ -232,10 +236,12 @@ const SaveEdit = async () => {
     .put(`${Url}/PlanManufacture/Edit/${GetID.value}`, formData)
     .then(function (response) {
       console.log(response.data.message);
+      MessageDialog.value = response.data.message;
       Reset();
     })
     .catch(function (error) {
       console.log(error);
+      MessageErrorDialog.value = error.response.data.message;
       Error();
     });
 };
@@ -254,10 +260,12 @@ const SaveAdd = async () => {
     .post(`${Url}/PlanManufacture/Add`, formData)
     .then(function (response) {
       console.log(response.data);
+      MessageDialog.value = response.data.message;
       Reset();
     })
     .catch(function (error) {
       console.log(error);
+      MessageErrorDialog.value = error.response.data.message;
       Error();
     });
 };
@@ -268,26 +276,12 @@ const RemoveItem = async () => {
     .delete(`${Url}/PlanManufacture/Delete/${GetID.value}`)
     .then(function (response) {
       console.log(response.data.message);
+      MessageDialog.value = response.data.message;
       Reset();
     })
     .catch(function (error) {
       console.log(error);
-      Error();
-    });
-};
-
-const ImportFile = async () => {
-  DialogLoading.value = true;
-  const formData = new FormData();
-  formData.append("file", File.value);
-  axios
-    .post(`${Url}/PlanProduct/upload`, formData)
-    .then(function (response) {
-      console.log(response);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
+      MessageErrorDialog.value = error.response.data.message;
       Error();
     });
 };

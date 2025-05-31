@@ -11,6 +11,30 @@
           {{ NamePO }}
 
           <ButtonAdd @add="DialogAdd = true" />
+          <v-menu :location="location">
+            <template v-slot:activator="{ props }">
+              <v-btn
+                color="orange"
+                v-bind="props"
+                class="ms-2 text-caption"
+                prepend-icon="mdi-filter"
+                variant="tonal"
+              >
+                Bộ lọc
+              </v-btn>
+            </template>
+
+            <v-list>
+              <v-list-item
+                v-for="(item, index) in itemsFilter"
+                :key="index"
+                :value="item.value"
+                @click="search = item.value"
+              >
+                <v-list-item-title>{{ item.title }}</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
           <p class="ms-2 font-weight-thin text-subtitle-1">
             ( {{ detailProject.length }} PO)
           </p>
@@ -52,22 +76,25 @@
             </div>
           </template>
 
-          <template v-slot:item.Status="{ item }">
+          <template v-slot:item.Status="{ value }">
             <div class="text-start">
               <v-chip
-                :color="item.Status == 'true' ? 'green' : 'red'"
-                :text="
-                  item.Status == 'true' ? 'Hoàn thành' : 'Chưa hoàn thành'
-                "
+                :color="value == 'Hoàn thành' ? 'green' : 'red'"
                 size="small"
-              ></v-chip>
+              >{{ value }}</v-chip>
             </div>
           </template>
           <template v-slot:item.id="{ item }">
             <div class="d-flex">
               <ButtonEye @detail="PushItem(item)" />
-              <ButtonEdit @edit="GetItem(item)" />
+              <ButtonEdit @edit="GetItem(item)" v-if="LevelUser == 'Admin' || LevelUser == 'Kinh doanh admin'" />
             </div>
+          </template>
+          <template v-slot:item.Date_Created="{ item }">
+            {{ item.Date_Created.split('-').reverse().join('/') }}
+          </template>
+          <template v-slot:item.Date_Delivery="{ item }">
+            {{ item.Date_Delivery.split('-').reverse().join('/') }}
           </template>
         </v-data-table>
       </v-card>
@@ -81,16 +108,17 @@
       </v-card-title>
       <v-card-text>
         <InputField label="Chi tiết đơn hàng" v-model="PONumber_Edit" />
-        <InputField
+        <InputDate
+          type="date"
           label="Ngày tạo đơn"
-          hint="Định dạng: 11/11/2025"
           v-model="Date_Created_Edit"
         />
-        <InputTextarea
+        <InputDate
+          type="date"
           label="Ngày giao đơn"
-          hint="Định dạng: 11/11/2025"
           v-model="Date_Delivery_Edit"
         />
+        <InputTextarea label="Ghi chú" v-model="Note_Edit" />
       </v-card-text>
       <v-card-actions>
         <ButtonDelete @delete="DialogRemove = true" />
@@ -109,16 +137,17 @@
       </v-card-title>
       <v-card-text>
         <InputField label="Chi tiết đơn hàng" v-model="PONumber_Add" />
-        <InputField
+        <InputDate
+          type="date"
           label="Ngày tạo đơn"
-          hint="Định dạng: 11/11/2025"
           v-model="Date_Created_Add"
         />
-        <InputTextarea
+        <InputDate
+          type="date"
           label="Ngày giao đơn"
-          hint="Định dạng: 11/11/2025"
           v-model="Date_Delivery_Add"
         />
+        <InputTextarea label="Ghi chú" v-model="Note_Add" />
       </v-card-text>
       <v-card-actions>
         <ButtonCancel @cancel="DialogAdd = false" />
@@ -154,6 +183,7 @@ import { ref, computed } from "vue";
 import InputSearch from "@/components/Input-Search.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";
 import InputField from "@/components/Input-Field.vue";
+
 import ButtonAdd from "@/components/Button-Add.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
@@ -184,12 +214,12 @@ const { detailProject, detailProjectError } = useDetailProject(id);
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
-const DialogEdit = ref(false);      // Edit dialog
-const DialogSuccess = ref(false);   // Success notification
-const DialogFailed = ref(false);    // Error notification
-const DialogRemove = ref(false);    // Remove confirmation dialog
-const DialogAdd = ref(false);       // Add new item dialog
-const DialogLoading = ref(false);   // Loading state
+const DialogEdit = ref(false); // Edit dialog
+const DialogSuccess = ref(false); // Success notification
+const DialogFailed = ref(false); // Error notification
+const DialogRemove = ref(false); // Remove confirmation dialog
+const DialogAdd = ref(false); // Add new item dialog
+const DialogLoading = ref(false); // Loading state
 
 // ===== MESSAGE DIALOG =====
 // Message for success and error notifications
@@ -201,14 +231,46 @@ const MessageErrorDialog = ref("");
 const GetID = ref("");
 
 // Edit form states
-const PONumber_Edit = ref("");      // PO number for editing
-const Date_Created_Edit = ref("");  // Creation date for editing
+const PONumber_Edit = ref(""); // PO number for editing
+const Date_Created_Edit = ref(""); // Creation date for editing
 const Date_Delivery_Edit = ref(""); // Delivery date for editing
+const Note_Edit = ref(""); // Note for editing
 
 // Add form states
-const PONumber_Add = ref("");       // PO number for adding new
-const Date_Created_Add = ref("");   // Creation date for adding new
-const Date_Delivery_Add = ref("");  // Delivery date for adding new
+const PONumber_Add = ref(""); // PO number for adding new
+const Date_Created_Add = ref(""); // Creation date for adding new
+const Date_Delivery_Add = ref(""); // Delivery date for adding new
+const Note_Add = ref(""); // Note for adding new
+
+// ===== TABLE STATES =====
+const Headers = ref([
+  { key: "PO", title: "Đơn hàng" },
+  { key: "Status", title: "Trạng thái" },
+  { key: "Total_Product", title: "Số lượng đơn hàng" },
+  { key: "Date_Created", title: "Ngày tạo" },
+  { key: "Date_Delivery", title: "Ngày giao", width: "150px" },
+  { key: "Note", title: "Ghi chú", width: "150px" },
+  {
+    key: "id",
+    sortable: false,
+    title: "Thao tác",
+  },
+]);
+const NamePO = ref(localStorage.getItem("Customers"));
+const search = ref("");
+const itemsPerPage = ref(12);
+const page = ref(1);
+
+// ====== User ==========
+const LevelUser = localStorage.getItem("LevelUser");
+
+// ===== FILTER STATES =====
+const itemsFilter = [
+  { title: "Tất cả", value:"" },
+  { title: "Chưa xong", value: "Chưa xong" },
+  { title: "Hoàn thành", value: "Hoàn thành" },
+];
+
 
 // ===== CRUD OPERATIONS =====
 /**
@@ -230,6 +292,7 @@ function GetItem(item) {
   PONumber_Edit.value = item.PO;
   Date_Created_Edit.value = item.Date_Created;
   Date_Delivery_Edit.value = item.Date_Delivery;
+  Note_Edit.value = item.Note;
 }
 
 /**
@@ -242,6 +305,7 @@ const SaveEdit = async () => {
     PONumber: PONumber_Edit.value,
     DateCreated: Date_Created_Edit.value,
     DateDelivery: Date_Delivery_Edit.value,
+    Note: Note_Edit.value,
     CustomerID: id,
   });
 
@@ -270,6 +334,7 @@ const SaveAdd = async () => {
     PONumber: PONumber_Add.value,
     DateCreated: Date_Created_Add.value,
     DateDelivery: Date_Delivery_Add.value,
+    Note: Note_Add.value,
     CustomerID: id,
   });
 
@@ -316,7 +381,7 @@ const RemoveItem = async (id) => {
 const DDownloadOrder = async () => {
   const id = route.params;
   const found = detailProject.value.find((v) => v.id === id);
-  
+
   try {
     const response = await fetch(`${Url}/Download-Order/${found.PO}`);
     if (!response.ok) throw new Error("Download failed");
@@ -386,24 +451,6 @@ export default {
   data() {
     return {
       Url: import.meta.env.VITE_API_URL,
-      search: "",
-      Headers: [
-        { key: "PO", title: "Đơn hàng" },
-        { key: "Status", title: "Trạng thái" },
-        { key: "Total_Product", title: "Tổng đơn hàng" },
-        { key: "Total_Delivered", title: "Tổng đơn đã giao" },
-        { key: "Total_Amount", title: "Tổng nợ" },
-        { key: "Date_Created", title: "Ngày tạo" },
-        { key: "Date_Delivery", title: "Ngày giao", width: "150px" },
-        {
-          key: "id",
-          sortable: false,
-          title: "Thao tác",
-        },
-      ],
-      itemsPerPage: 12,
-      page: 1,
-      NamePO: localStorage.getItem("Customers"),
     };
   },
   methods: {},

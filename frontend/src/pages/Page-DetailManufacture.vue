@@ -8,31 +8,6 @@
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
         {{ NameManufacture }}
-
-        <v-spacer></v-spacer>
-        <v-chip
-          :prepend-icon="status === 'Online' ? 'mdi-contactless-payment-circle' : 'mdi-web-off'"
-          :color="status === 'Online' ? 'green' : 'red'"
-          class="ma-2"
-          dark
-          size="large"
-        >
-          {{ status }}
-        </v-chip>
-        <v-btn
-          class="text-caption ms-2"
-          @click="connectArduino"
-          :color="isBegin ? 'error' : 'success'"
-          :loading="isConnecting"
-        >
-          <v-icon :icon="isBegin ? 'mdi-stop' : 'mdi-play'"></v-icon>
-          &nbsp;
-          {{ isBegin ? "Dừng" : "Bắt đầu" }}
-        </v-btn>
-        <p>{{  }}</p>
-        <v-btn @click="resetData" class="ms-2 text-caption" color="primary"
-          >Reset dữ liệu</v-btn
-        >
       </v-card-title>
 
       <v-card-text>
@@ -46,55 +21,160 @@
         </v-snackbar>
 
         <!-- Production Statistics Cards -->
+        <v-card elevation="2" class="mx-auto rounded-xl">
+          <v-row class="">
+            <v-col cols="12" sm="4">
+              <v-card class="mx-auto " variant="text" >
+                <v-card-text>
+                  <div class="text-h6 mb-2">Đầu vào</div>
+                  <div class="text-h4 font-weight-bold text-error">
+                    {{ totalInput }}
+                  </div>
+                  <div class="text-caption text-medium-emphasis">
+                    Tổng số lượng đầu vào
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-divider inset vertical></v-divider>
+            <v-col cols="12" sm="4">
+              <v-card class="mx-auto" variant="text" >
+                <v-card-text>
+                  <div class="text-h6 mb-2">Đầu ra</div>
+                  <div class="text-h4 font-weight-bold text-success">
+                    {{ totalOQC }}
+                  </div>
+                  <div class="text-caption text-medium-emphasis">
+                    Tổng số lượng đầu ra
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-divider inset vertical></v-divider>
+            <v-col cols="12" sm="4">
+              <v-card class="mx-auto" variant="text">
+                <v-card-text>
+                  <div class="text-h6 mb-2">Tỷ lệ</div>
+                  <div class="text-h4 font-weight-bold text-success">
+                    {{ percent }} %
+                  </div>
+                  <div class="text-caption text-medium-emphasis">
+                    Phần trăm số lượng đầu ra
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+          </v-row>
+        </v-card>
+
+        <v-row class="mb-4 mt-2">
+          <v-col cols="12" sm="4">
+            <v-card class="mx-auto rounded-xl" elevation="2">
+              <template v-slot:prepend>
+                <div class="text-h6 mb-2">SMT</div>
+              </template>
+              <template v-slot:append>
+                <ButtonNextManufacture :to="`/San-xuat/SMT/${id}`" />
+              </template>
+              <v-card-text>
+                <div class="text-h4 font-weight-bold color-SMT">
+                  {{ totalSMT }}
+                </div>
+                <div class="text-caption text-medium-emphasis">
+                  Tổng số lượng SMT
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" sm="4">
+            <v-card class="mx-auto rounded-xl" elevation="2">
+              <template v-slot:prepend>
+                <div class="text-h6 mb-2">AOI</div>
+              </template>
+              <template v-slot:append>
+                <ButtonNextManufacture :to="`/San-xuat/AOI/${id}`" />
+              </template>
+              <v-card-text>
+                <div class="text-h4 font-weight-bold color-AOI">
+                  {{ totalAOI }}
+                </div>
+                <div class="text-caption text-medium-emphasis">
+                  Tổng số lượng AOI
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" sm="4">
+            <v-card class="mx-auto rounded-xl" elevation="2">
+              <template v-slot:prepend>
+                <div class="text-h6 mb-2">Hàn tay</div>
+              </template>
+              <template v-slot:append>
+                <ButtonNextManufacture :to="`/San-xuat/Han-tay/${id}`" />
+              </template>
+              <v-card-text>
+                <div class="text-h4 font-weight-bold color-Hand">
+                  {{ totalHand }}
+                </div>
+                <div class="text-caption text-medium-emphasis">
+                  Tổng số lượng sản phẩm hàn tay
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+
         <v-row class="mb-4">
-          <v-col cols="12" sm="3">
-            <v-card class="mx-auto" elevation="2">
+          <v-col cols="12" sm="4">
+            <v-card class="mx-auto rounded-xl" elevation="2">
+              <template v-slot:prepend>
+                <div class="text-h6 mb-2">IPQC</div>
+              </template>
+              <template v-slot:append>
+                <ButtonNextManufacture :to="`/San-xuat/IPQC/${id}`" />
+              </template>
               <v-card-text>
-                <div class="text-h6 mb-2">Số lượng đề ra</div>
-                <div class="text-h4 font-weight-bold text-info">
-                  {{ totalTarget }}
+                <div class="text-h4 font-weight-bold color-IPQC">
+                  {{ totalIPQC }}
                 </div>
                 <div class="text-caption text-medium-emphasis">
-                  Tổng số lượng cần đạt được
+                  Tổng số lượng IPQC
                 </div>
               </v-card-text>
             </v-card>
           </v-col>
-          <v-col cols="12" sm="3">
-            <v-card class="mx-auto" elevation="2">
+          <v-col cols="12" sm="4">
+            <v-card class="mx-auto rounded-xl" elevation="2">
+              <template v-slot:prepend>
+                <div class="text-h6 mb-2">Test</div>
+              </template>
+              <template v-slot:append>
+                <ButtonNextManufacture :to="`/San-xuat/Test/${id}`" />
+              </template>
               <v-card-text>
-                <div class="text-h6 mb-2">Số lượng đầu vào</div>
-                <div class="text-h4 font-weight-bold text-primary">
-                  {{ totalInput }}
+                <div class="text-h4 font-weight-bold color-Test">
+                  {{ totalTest }}
                 </div>
                 <div class="text-caption text-medium-emphasis">
-                  Tổng số lượng sản phẩm đầu vào
+                  Tổng số lượng Test
                 </div>
               </v-card-text>
             </v-card>
           </v-col>
-          <v-col cols="12" sm="3">
-            <v-card class="mx-auto" elevation="2">
+          <v-col cols="12" sm="4">
+            <v-card class="mx-auto rounded-xl" elevation="2">
+              <template v-slot:prepend>
+                <div class="text-h6 mb-2">OQC</div>
+              </template>
+              <template v-slot:append>
+                <ButtonNextManufacture :to="`/San-xuat/OQC/${id}`" />
+              </template>
               <v-card-text>
-                <div class="text-h6 mb-2">Số lượng đầu ra</div>
-                <div class="text-h4 font-weight-bold text-success">
-                  {{ totalOutput }}
+                <div class="text-h4 font-weight-bold color-OQC">
+                  {{ totalOQC }}
                 </div>
                 <div class="text-caption text-medium-emphasis">
-                  Tổng số lượng sản phẩm đầu ra
-                </div>
-              </v-card-text>
-            </v-card>
-          </v-col>
-          <v-col cols="12" sm="3">
-            <v-card class="mx-auto" elevation="2">
-              <v-card-text>
-                <div class="text-h6 mb-2">Tỉ lệ thành công</div>
-                <div class="text-h4 font-weight-bold" :class="successRateColor">
-                  {{ successRate }}%
-                </div>
-                <div class="text-caption text-medium-emphasis">
-                  Tỉ lệ sản phẩm đạt chuẩn
+                  Tổng số lượng OQC
                 </div>
               </v-card-text>
             </v-card>
@@ -102,91 +182,38 @@
         </v-row>
 
         <!-- Production Chart -->
-        <v-card class="mb-4" elevation="2">
-          <v-card-title class="d-flex align-center">
-            <span>Biểu đồ sản xuất</span>
-            <v-spacer></v-spacer>
-            <v-select
-              v-model="chartTimeRange"
-              :items="['Ngày']"
-              density="compact"
-              variant="outlined"
-              style="max-width: 150px"
-            ></v-select>
-          </v-card-title>
-          <v-card-text>
-            <canvas ref="productionChart" height="300"></canvas>
-          </v-card-text>
-        </v-card>
-
-        <v-divider></v-divider>
-        <!-- Table -->
-        <v-card class="mt-4" variant="text">
-          <v-card-title class="d-flex align-center">
-            <span>Bảng chi tiết sản xuất</span>
-            <v-spacer></v-spacer>
-            <InputSearch v-model="search" />
-          </v-card-title>
-          <v-data-table
-            :headers="Headers"
-            :items="manufactureDetailsTable"
-            :search="search"
-            :items-per-page="itemsPerPage"
-            v-model="page"
-            class="elevation-1 mt-4"
-            :footer-props="{
-              'items-per-page-options': [10, 20, 50, 100],
-              'items-per-page-text': 'Số hàng mỗi trang',
-            }"
-            :header-props="{
-              sortByText: 'Sắp xếp theo',
-              sortDescText: 'Giảm dần',
-              sortAscText: 'Tăng dần',
-            }"
-            :loading="DialogLoading"
-            loading-text="Đang tải dữ liệu..."
-            no-data-text="Không có dữ liệu"
-            no-results-text="Không tìm thấy kết quả"
-            :hover="true"
-            :dense="false"
-            :fixed-header="true"
-            height="calc(100vh - 200px)"
-          >
-            <template #[`bottom`]>
-              <div class="text-center pt-2">
-                <v-pagination
-                  v-model="page"
-                  :length="
-                    Math.ceil(manufactureDetailsTable.length / itemsPerPage)
-                  "
-                ></v-pagination>
-              </div>
-            </template>
-            <template #[`item.Status`]="{ item }">
-              <v-chip
-                :color="Boolean(item.Status) ? 'success' : 'red'"
-                variant="tonal"
-              >
-                {{ Boolean(item.Status) ? "Hoàn thành" : "Chưa hoàn thành" }}
-              </v-chip>
-            </template>
-            <template #[`item.id`]="{ item }">
-              <v-container class="pa-0">
-                <v-row no-gutters>
-                  <v-col>
-                    <ButtonEye @detail="PushItem(item)" />
-                    <ButtonEdit @edit="GetItem(item)" />
-                  </v-col>
-                </v-row>
-              </v-container>
-            </template>
-          </v-data-table>
-        </v-card>
+        <v-row>
+          <v-col cols="12" md="8">
+            <v-card class="mb-4 rounded-xl" elevation="2" height="400px">
+              <v-card-title class="d-flex align-center">
+                <span>Biểu đồ sản xuất</span>
+                <v-spacer></v-spacer>
+                <v-select
+                  v-model="chartTimeRange"
+                  :items="['Ngày']"
+                  density="compact"
+                  variant="outlined"
+                  style="max-width: 150px"
+                ></v-select>
+              </v-card-title>
+              <v-card-text>
+                <canvas ref="productionChart" height="300"></canvas>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" md="4">
+            <v-card class="mb-4 rounded-xl" elevation="2" height="400px">
+              <v-card-title class="d-flex align-center">
+                <span>Tỷ lệ sản xuất</span>
+              </v-card-title>
+              <v-card-text>
+                <canvas ref="doughnutChart" height="300"></canvas>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
       </v-card-text>
     </v-card>
-
-    <!-- Existing dialogs -->
-    // ... existing dialogs ...
   </div>
 </template>
 
@@ -210,15 +237,14 @@ import ButtonImportFile from "@/components/Button-ImportFile.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonBack from "@/components/Button-Back.vue";
 import ButtonEye from "@/components/Button-Eye.vue";
+import ButtonNextManufacture from "@/components/Button-Next-Manufacture.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
+
+// ... existing imports ...
 import { watch } from "vue";
 import { useManufactureDetails } from "@/composables/useManufactureDetails";
-import { useManufactureDetailsTable } from "@/composables/useManufactureDetails_Table";
-import { useManufacture } from "@/composables/useManufacture";
-import { useSensorCount } from "@/composables/useSensorCount";
-import { useDeviceStatusSocket } from "@/composables/useStatusSensor";
 
 // ... existing refs and constants ...
 const Url = import.meta.env.VITE_API_URL;
@@ -230,62 +256,64 @@ const itemsPerPage = ref(10);
 const DialogLoading = ref(false);
 const DialogFailed = ref(false);
 const { manufactureDetails, connectionStatus } = useManufactureDetails(id);
-const { manufactureDetailsTable } = useManufactureDetailsTable(id);
-const { status } = useDeviceStatusSocket('esp32-001');
-const { manufacture } = useManufacture();
-const { count } = useSensorCount(id);
-console.log("manufactureDetails:", manufactureDetails.value);
-console.log("status:", status);
+
 // Production statistics
 const NameManufacture = localStorage.getItem("ProductName");
 // Table
-const Headers = [
-  { title: "Đầu vào", key: "Input" },
-  { title: "Đầu ra", key: "Output" },
-  { title: "Ngày", key: "Date" },
-  { title: "Thời gian", key: "Time" },
-];
+
 const isBegin = ref(false);
 const isConnecting = ref(false);
 const connectionStatusMessage = ref("");
 const connectionStatusColor = ref("");
 const showStatusSnackbar = ref(false);
+
 // Production statistics
 const totalInput = ref(0);
-const totalOutput = ref(0);
-const totalTarget = ref(0);
-const successRate = computed(() => {
-  if (totalInput.value === 0) return 0;
-  return ((totalOutput.value / totalInput.value) * 100).toFixed(1);
+const totalSMT = ref(0);
+const totalAOI = ref(0);
+const totalHand = ref(0);
+const totalIPQC = ref(0);
+const totalTest = ref(0);
+const totalOQC = ref(0);
+
+// Computed percent Input and Output
+const percent = computed(() => {
+  if (totalInput.value === 0 || totalOQC.value === 0) {
+    return 0;
+  }
+  return Math.round((totalOQC.value / totalInput.value) * 100);
 });
 
-const successRateColor = computed(() => {
-  const rate = parseFloat(successRate.value);
-  if (rate >= 90) return "text-success";
-  if (rate >= 70) return "text-warning";
-  return "text-error";
-});
-
-// Chart configuration
-const chartTimeRange = ref("Ngày");
-const productionChart = ref(null);
-let chart = null;
+// Add new ref for doughnut chart
+const doughnutChart = ref(null);
+let doughnutChartInstance = null;
 
 // Data for chart
 const Data = {
   labels: manufactureDetails.value?.map((item) => `${item.Date}`) || [],
-  input: manufactureDetails.value?.map((item) => item.Input) || [],
-  output: manufactureDetails.value?.map((item) => item.Output) || [],
-  target: manufactureDetails.value?.map((item) => item.Total) || [],
+  SMT: manufactureDetails.value?.map((item) => item.SMT) || [],
+  AOI: manufactureDetails.value?.map((item) => item.AOI) || [],
+  Hand: manufactureDetails.value?.map((item) => item.Hand) || [],
+  IPQC: manufactureDetails.value?.map((item) => item.IPQC) || [],
+  Test: manufactureDetails.value?.map((item) => item.Test) || [],
+  OQC: manufactureDetails.value?.map((item) => item.OQC) || [],
 };
 
 // Status last seen
 const now = Date.now();
 const timeout = 60000;
+
+// Add to script section
+
+const chartTimeRange = ref("Ngày");
+const productionChart = ref(null);
+let chart = null;
+
 // Initialize chart
 onMounted(() => {
   nextTick(() => {
     initializeChart();
+    initializeDoughnutChart();
     fetchProductionData();
   });
   if (localStorage.getItem("isRunning") === id) {
@@ -313,20 +341,60 @@ function initializeChart() {
       labels: Data.labels,
       datasets: [
         {
-          label: "Đầu vào",
+          label: "SMT",
           backgroundColor: "rgba(25, 118, 210, 0.8)",
           borderColor: "#1976D2",
-          data: Data.input,
+          data: Data.SMT,
           borderWidth: 1,
           borderRadius: 4,
           barPercentage: 0.8,
           categoryPercentage: 0.9,
         },
         {
-          label: "Đầu ra",
+          label: "AOI",
+          backgroundColor: "rgba(192,192,192, 0.8)",
+          borderColor: "#C0C0C0",
+          data: Data.AOI,
+          borderWidth: 1,
+          borderRadius: 4,
+          barPercentage: 0.8,
+          categoryPercentage: 0.9,
+        },
+        {
+          label: "Hàn tay",
+          backgroundColor: "rgba(255, 0, 0, 0.8)",
+          borderColor: "#FF0000",
+          data: Data.Hand,
+          borderWidth: 1,
+          borderRadius: 4,
+          barPercentage: 0.8,
+          categoryPercentage: 0.9,
+        },
+        {
+          label: "IPQC",
+          backgroundColor: "rgba(255, 0, 255, 0.8)",
+          borderColor: "#FF00FF",
+          data: Data.IPQC,
+          borderWidth: 1,
+          borderRadius: 4,
+          barPercentage: 0.8,
+          categoryPercentage: 0.9,
+        },
+        {
+          label: "Test",
+          backgroundColor: "rgba(255, 165, 0, 0.8)",
+          borderColor: "#FFA500",
+          data: Data.Test,
+          borderWidth: 1,
+          borderRadius: 4,
+          barPercentage: 0.8,
+          categoryPercentage: 0.9,
+        },
+        {
+          label: "OQC",
           backgroundColor: "rgba(76, 175, 80, 0.8)",
           borderColor: "#4CAF50",
-          data: Data.output,
+          data: Data.OQC,
           borderWidth: 1,
           borderRadius: 4,
           barPercentage: 0.8,
@@ -416,6 +484,86 @@ function initializeChart() {
   });
 }
 
+// Add doughnut chart initialization function
+function initializeDoughnutChart() {
+  if (!doughnutChart.value) return;
+
+  const ctx = doughnutChart.value.getContext("2d");
+
+  // Destroy existing chart if it exists
+  if (doughnutChartInstance) {
+    doughnutChartInstance.destroy();
+  }
+
+  // Calculate total for percentage
+  const total =
+    Data.SMT.reduce((a, b) => a + b, 0) +
+    Data.AOI.reduce((a, b) => a + b, 0) +
+    Data.Hand.reduce((a, b) => a + b, 0) +
+    Data.IPQC.reduce((a, b) => a + b, 0) +
+    Data.Test.reduce((a, b) => a + b, 0) +
+    Data.OQC.reduce((a, b) => a + b, 0);
+
+  // Create new chart
+  doughnutChartInstance = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: ["SMT", "AOI", "Hàn tay", "IPQC", "Test", "OQC"],
+      datasets: [
+        {
+          data: [
+            ((Data.SMT.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
+            ((Data.AOI.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
+            ((Data.Hand.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
+            ((Data.IPQC.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
+            ((Data.Test.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
+            ((Data.OQC.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
+          ],
+          backgroundColor: [
+            "rgba(25, 118, 210, 0.8)",
+            "rgba(192,192,192, 0.8)",
+            "rgba(255, 0, 0, 0.8)",
+            "rgba(255, 0, 255, 0.8)",
+            "rgba(255, 165, 0, 0.8)",
+            "rgba(76, 175, 80, 0.8)",
+          ],
+          borderColor: [
+            "#1976D2",
+            "#C0C0C0",
+            "#FF0000",
+            "#FF00FF",
+            "#FFA500",
+            "#4CAF50",
+          ],
+          borderWidth: 1,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "right",
+          labels: {
+            usePointStyle: true,
+            padding: 20,
+          },
+        },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              const label = context.label || "";
+              const value = context.raw || 0;
+              return `${label}: ${value}%`;
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
 // Update fetchProductionData to use real data
 async function fetchProductionData() {
   try {
@@ -423,9 +571,12 @@ async function fetchProductionData() {
 
     // Use real data from manufactureDetails
     if (manufactureDetails.value && manufactureDetails.value.length > 0) {
-      totalInput.value = Data.input.reduce((a, b) => a + b, 0);
-      totalOutput.value = Data.output.reduce((a, b) => a + b, 0);
-      totalTarget.value = Data.target[0] || 0;
+      totalSMT.value = Data.SMT.reduce((a, b) => a + b, 0);
+      totalAOI.value = Data.AOI.reduce((a, b) => a + b, 0);
+      totalHand.value = Data.Hand.reduce((a, b) => a + b, 0);
+      totalIPQC.value = Data.IPQC.reduce((a, b) => a + b, 0);
+      totalTest.value = Data.Test.reduce((a, b) => a + b, 0);
+      totalOQC.value = Data.OQC.reduce((a, b) => a + b, 0);
     }
   } catch (error) {
     console.error("Error fetching production data:", error);
@@ -446,72 +597,64 @@ watch(
   (newData) => {
     if (newData && newData.length > 0) {
       // Update Data object
-      Data.labels = newData.map((item) => `${item.Date} ${item.Time}`);
-      Data.input = newData.map((item) => item.Input);
-      Data.output = newData.map((item) => item.Output);
+      Data.labels = newData.map((item) => `${item.Date}`);
+      Data.SMT = newData.map((item) => item.SMT);
+      Data.AOI = newData.map((item) => item.AOI);
+      Data.Hand = newData.map((item) => item.Hand);
+      Data.IPQC = newData.map((item) => item.IPQC);
+      Data.Test = newData.map((item) => item.Test);
+      Data.OQC = newData.map((item) => item.OQC);
 
-      // Update chart if it exists
+      // Calculate total input
+      totalInput.value = newData.reduce(
+        (sum, item) => sum + (item.Total || 0),
+        0
+      );
+
+      // Update bar chart if it exis
       if (chart) {
         chart.data.labels = Data.labels;
-        chart.data.datasets[0].data = Data.input;
-        chart.data.datasets[1].data = Data.output;
+        chart.data.datasets[0].data = Data.SMT;
+        chart.data.datasets[1].data = Data.AOI;
+        chart.data.datasets[2].data = Data.Hand;
+        chart.data.datasets[3].data = Data.IPQC;
+        chart.data.datasets[4].data = Data.Test;
+        chart.data.datasets[5].data = Data.OQC;
         chart.update();
       }
 
+      // Update doughnut chart if it exists
+      if (doughnutChartInstance) {
+        const total =
+          Data.SMT.reduce((a, b) => a + b, 0) +
+          Data.AOI.reduce((a, b) => a + b, 0) +
+          Data.Hand.reduce((a, b) => a + b, 0) +
+          Data.IPQC.reduce((a, b) => a + b, 0) +
+          Data.Test.reduce((a, b) => a + b, 0) +
+          Data.OQC.reduce((a, b) => a + b, 0);
+
+        doughnutChartInstance.data.datasets[0].data = [
+          ((Data.SMT.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
+          ((Data.AOI.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
+          ((Data.Hand.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
+          ((Data.IPQC.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
+          ((Data.Test.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
+          ((Data.OQC.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
+        ];
+        doughnutChartInstance.update();
+      }
+
       // Update statistics
-      totalInput.value = Data.input.reduce((a, b) => a + b, 0);
-      totalOutput.value = Data.output.reduce((a, b) => a + b, 0);
-      totalTarget.value = Data.target[0] || 0;
+      totalSMT.value = Data.SMT.reduce((a, b) => a + b, 0);
+      totalAOI.value = Data.AOI.reduce((a, b) => a + b, 0);
+      totalHand.value = Data.Hand.reduce((a, b) => a + b, 0);
+      totalIPQC.value = Data.IPQC.reduce((a, b) => a + b, 0);
+      totalTest.value = Data.Test.reduce((a, b) => a + b, 0);
+      totalOQC.value = Data.OQC.reduce((a, b) => a + b, 0);
     }
   },
   { deep: true, immediate: true }
 );
-
-// ... existing methods ...
-
-const connectArduino = () => {
-  const formData = reactive({
-    ProjectID: isBegin.value ? "" : route.params.id,
-  });
-  isConnecting.value = true;
-  axios
-    .post(`${Url}/set-project-id`, formData)
-    .then(function (response) {
-      console.log(response.data);
-      isBegin.value = !isBegin.value;
-      connectionStatusMessage.value = response.data.message;
-      connectionStatusColor.value = isBegin.value ? "success" : "error";
-      showStatusSnackbar.value = true;
-      localStorage.setItem("isRunning", id);
-      if (isBegin.value === false) {
-        localStorage.removeItem("isRunning");
-      }
-    })
-    .catch(function (error) {
-      console.log(error);
-      connectionStatusMessage.value = "Có lỗi xảy ra";
-      connectionStatusColor.value = "error";
-      showStatusSnackbar.value = true;
-    })
-    .finally(() => {
-      isConnecting.value = false;
-    });
-};
-
-// Reset data
-const resetData = () => {
-  axios
-    .delete(`${Url}/reset-data/${id}`)
-    .then(function (response) {
-      console.log(response.data);
-      totalInput.value = 0;
-      totalOutput.value = 0;
-    })
-    .catch(function (error) {
-      console.log(error);
-    });
-  console.log("resetData");
-};
 </script>
 <script>
 export default {
@@ -523,6 +666,10 @@ export default {
     InputFiles,
     ButtonImportFile,
     ButtonDownload,
+    ButtonNextManufacture,
+    SnackbarSuccess,
+    SnackbarFailed,
+    Loading,
   },
 };
 </script>
@@ -533,5 +680,23 @@ export default {
 }
 .v-card:hover {
   transform: translateY(-2px);
+}
+.color-SMT {
+  color: #1976d2;
+}
+.color-AOI {
+  color: #c0c0c0;
+}
+.color-Hand {
+  color: #ff0000;
+}
+.color-IPQC {
+  color: #ff00ff;
+}
+.color-Test {
+  color: #ffa500;
+}
+.color-OQC {
+  color: #4caf50;
 }
 </style>

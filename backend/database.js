@@ -200,13 +200,60 @@ db.serialize(() => {
   `);
 
   db.run(`
-    CREATE TABLE IF NOT EXISTS ManufactureDetails (
+    CREATE TABLE IF NOT EXISTS ManufactureSMT (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      PlanID INTEGER NOT NULL,
+      Input INTEGER NOT NULL,
+      Timestamp TEXT NOT NULL,
+      FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ManufactureAOI (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       PlanID INTEGER,
-      Input INTEGER NOT NULL,
-      Output INTEGER NOT NULL,
-      Date TEXT NOT NULL,
-      Time TEXT NOT NULL,
+      PartNumber TEXT NOT NULL,
+      Timestamp TEXT NOT NULL,
+      FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
+    )
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ManufactureHand (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      PlanID INTEGER,
+      PartNumber TEXT NOT NULL,
+      Timestamp TEXT NOT NULL,
+      FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ManufactureIPQC (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      PlanID INTEGER,
+      PartNumber TEXT NOT NULL,
+      Timestamp TEXT NOT NULL,
+      FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ManufactureTest (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      PlanID INTEGER,
+      PartNumber TEXT NOT NULL,
+      Timestamp TEXT NOT NULL,
+      FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ManufactureOQC (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      PlanID INTEGER,
+      PartNumber TEXT NOT NULL,
+      Timestamp TEXT NOT NULL,
       FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
     )
   `);

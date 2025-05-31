@@ -21,6 +21,14 @@ import PageMaintenanceSchedule from "@/pages/Page-MaintenanceSchedule.vue";
 import PageSparePartUsage from "@/pages/Page-SparePartUsage.vue";
 import PagePlanProduct from "@/pages/Page-Manufacture.vue";
 import PageDetailManufacture from "@/pages/Page-DetailManufacture.vue";
+import PageDetailSMT from "@/pages/Page-DetailSMT.vue";
+import PageDetailAOI from "@/pages/Page-DetailAOI.vue";
+import PageDetailHand from "@/pages/Page-DetailHand.vue";
+import PageDetailIPQC from "@/pages/Page-DetailIPQC.vue";
+import PageDetailTest from "@/pages/Page-DetailTest.vue";
+import PageDetailOQC from "@/pages/Page-DetailOQC.vue";
+
+
 const routes = [
   {
     path: "/Trang-chủ",
@@ -133,6 +141,42 @@ const routes = [
         name: "DetailManufacture",
         meta: { requiresAuth: true },
         component: PageDetailManufacture,
+      },
+      {
+        path: "/San-xuat/SMT/:id",
+        name: "DetailSMT",
+        meta: { requiresAuth: true },
+        component: PageDetailSMT,
+      },
+      {
+        path: "/San-xuat/AOI/:id",
+        name: "DetailAOI",
+        meta: { requiresAuth: true },
+        component: PageDetailAOI,
+      },
+      {
+        path: "/San-xuat/Han-tay/:id",
+        name: "DetailHand",
+        meta: { requiresAuth: true },
+        component: PageDetailHand,
+      },
+      {
+        path: "/San-xuat/IPQC/:id",
+        name: "DetailIPQC",
+        meta: { requiresAuth: true },
+        component: PageDetailIPQC,
+      },
+      {
+        path: "/San-xuat/Test/:id",
+        name: "DetailTest",
+        meta: { requiresAuth: true },
+        component: PageDetailTest,
+      },
+      {
+        path: "/San-xuat/OQC/:id",
+        name: "DetailOQC",
+        meta: { requiresAuth: true },
+        component: PageDetailOQC,
       },
     ],
   },

@@ -8,6 +8,7 @@ const path = require("path");
 const bcrypt = require("bcrypt");
 const db = require("./database.js");
 const routes = require("./routes");
+const axios = require('axios');
 const app = express();
 const { Server } = require("socket.io");
 const { send } = require("process");
@@ -134,7 +135,31 @@ io.on("connection", (socket) => {
     }),
     socket.on("getProject", async () => {
       try {
-        const query = `SELECT DISTINCT c.id, c.CustomerName AS Customers, COUNT(p.PONumber) AS Quantity_PO, Years FROM Customers c LEFT JOIN PurchaseOrders p ON c.id = p.CustomerID GROUP BY c.CustomerName ORDER BY c.Years DESC`;
+        const query = `
+        SELECT DISTINCT
+          a.id,
+          a.CustomerName AS Customer, 
+          CASE
+            WHEN IFNULL(b.total_qty, 0) = IFNULL(b.total_delivered, 0) THEN 'Hoàn thành'
+            ELSE 'Chưa xong'
+          END AS Status,
+          IFNULL(c.po_count, 0) AS Quantity_PO,
+          a.Years
+        FROM Customers a
+        LEFT JOIN (
+          SELECT CustomerID, 
+                SUM(QuantityProduct) AS total_qty, 
+                SUM(QuantityDelivered) AS total_delivered
+          FROM ProductDetails
+          GROUP BY CustomerID
+        ) b ON a.id = b.CustomerID
+        LEFT JOIN (
+          SELECT CustomerID, COUNT(PONumber) AS po_count
+          FROM PurchaseOrders
+          GROUP BY CustomerID
+        ) c ON a.id = c.CustomerID
+        ORDER BY Status ASC
+        `;
         db.all(query, [], (err, rows) => {
           if (err) return socket.emit("ProjectError", err);
           socket.emit("ProjectData", rows);
@@ -150,19 +175,18 @@ io.on("connection", (socket) => {
             p.id, 
             p.PONumber AS PO, 
             CASE
-              WHEN SUM(o.QuantityProduct) =  SUM(o.QuantityDelivered) THEN 'true'
-              ELSE 'false'
+              WHEN SUM(o.QuantityProduct) =  SUM(o.QuantityDelivered) THEN 'Hoàn thành'
+              ELSE 'Chưa xong'
             END AS Status,
-            SUM(o.QuantityProduct) AS Total_Product, 
-            SUM(o.QuantityDelivered) AS Total_Delivered, 
-            SUM(o.QuantityAmount) AS Total_Amount, 
+            COUNT(o.id) AS Total_Product, 
             p.DateCreated AS Date_Created, 
-            p.DateDelivery AS Date_Delivery 
+            p.DateDelivery AS Date_Delivery,
+            p.Note AS Note
           FROM PurchaseOrders p 
           LEFT JOIN ProductDetails o ON p.id = o.POID 
           WHERE p.CustomerID = ? 
           GROUP BY p.PONumber 
-          ORDER BY p.PONumber ASC
+          ORDER BY Status ASC, Date_Created ASC
         `;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("DetailProjectError", err);
@@ -174,7 +198,22 @@ io.on("connection", (socket) => {
     }),
     socket.on("getDetailProjectPO", async (id) => {
       try {
-        const query = `SELECT o.id,  o.ProductDetail AS Product_Detail, o.QuantityProduct AS Quantity_Product, o.QuantityDelivered AS Quantity_Delivered, o.QuantityAmount AS Quantity_Amount FROM ProductDetails o LEFT JOIN PurchaseOrders p ON o.POID = p.id WHERE o.POID = ? ORDER BY o.ProductDetail ASC`;
+        const query = `SELECT 
+                        o.id, 
+                        p.PONumber AS PO, 
+                        o.ProductDetail AS Product_Detail,
+                        CASE
+                          WHEN o.QuantityProduct = o.QuantityDelivered THEN 'Hoàn thành'
+                          ELSE 'Chưa xong'
+                        END AS Status,
+                        o.QuantityProduct AS Quantity_Product, 
+                        o.QuantityDelivered AS Quantity_Delivered, 
+                        o.QuantityAmount AS Quantity_Amount,
+                        p.Note AS Note 
+                      FROM ProductDetails o 
+                      LEFT JOIN PurchaseOrders p ON o.POID = p.id 
+                      WHERE o.POID = ? 
+                      ORDER BY Status ASC, Product_Detail ASC`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("DetailProjectPOError", err);
           socket.emit("DetailProjectPOData", rows);
@@ -259,17 +298,24 @@ io.on("connection", (socket) => {
     socket.on("getManufactureDetails", async (id) => {
       try {
         const query = `SELECT
-                        b.Total,  
-                        SUM(a.Input) AS Input, 
-                        SUM(a.Output) AS Output, 
-                        a.Input AS Input_Detail,
-                        a.Output AS Output_Detail,
-                        a.Date,
-                        a.Time
-                        FROM ManufactureDetails a 
-                        LEFT JOIN PlanManufacture b ON a.PlanID = b.id
-                        WHERE a.PlanID = ?
-                        GROUP BY a.Date`;
+                        a.id,  
+                        a.Total,
+                        COUNT(DISTINCT h.id) AS SMT, 
+                        COUNT(DISTINCT c.id) AS AOI, 
+                        COUNT(DISTINCT d.id) AS Hand, 
+                        COUNT(DISTINCT e.id) AS IPQC, 
+                        COUNT(DISTINCT f.id) AS Test, 
+                        COUNT(DISTINCT g.id) AS OQC, 
+                        a.Date
+                      FROM PlanManufacture a 
+                      LEFT JOIN ManufactureAOI c ON a.id = c.PlanID
+                      LEFT JOIN ManufactureHand d ON a.id = d.PlanID
+                      LEFT JOIN ManufactureIPQC e ON a.id = e.PlanID
+                      LEFT JOIN ManufactureTest f ON a.id = f.PlanID
+                      LEFT JOIN ManufactureOQC g ON a.id= g.PlanID
+                      LEFT JOIN ManufactureSMT h ON a.id = h.PlanID
+                      WHERE a.id = ?
+                      GROUP BY a.id`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("ManufactureDetailsError", err);
           socket.emit("ManufactureDetailsData", rows);
@@ -278,21 +324,99 @@ io.on("connection", (socket) => {
         socket.emit("ManufactureDetailsError", error);
       }
     }),
-    socket.on("getManufactureDetailsTable", async (id) => {
-      try {
-        const query = `SELECT * FROM ManufactureDetails WHERE PlanID = ? ORDER BY id DESC`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("ManufactureDetailsTableError", err);
-          socket.emit("ManufactureDetailsTableData", rows);
-        });
-      } catch (error) {
-        socket.emit("ManufactureDetailsTableError", error);
-      }
-    }),
     socket.on("setProject", (id) => {
       console.log(`Client ${socket.id} chọn project_id = ${id}`);
       userProjects.set(socket.id, id);
     });
+    socket.on("getManufactureAOI", async (id) => {
+      try {
+        const query = `SELECT *
+                      FROM ManufactureAOI
+                      WHERE PlanID = ?
+                      ORDER BY Timestamp DESC`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("ManufactureHandError", err);
+          socket.emit("ManufactureAOIData", rows);
+        });
+      } catch (error) {
+        socket.emit("ManufactureAOIError", error);
+      }
+    }),
+    socket.on("getManufactureHand", async (id) => {
+      try {
+        const query = `SELECT *
+                      FROM ManufactureHand
+                      WHERE PlanID = ?
+                      ORDER BY Timestamp DESC`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("ManufactureHandError", err);
+          socket.emit("ManufactureHandData", rows);
+
+        });
+      } catch (error) {
+        socket.emit("ManufactureHandError", error);
+      }
+    }),
+    socket.on("getManufactureIPQC", async (id) => {
+      try {
+        const query = `SELECT *
+                      FROM ManufactureIPQC
+                      WHERE PlanID = ?
+                      ORDER BY Timestamp DESC`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("ManufactureIPQCError", err);
+          socket.emit("ManufactureIPQCData", rows);
+
+        });
+      } catch (error) {
+        socket.emit("ManufactureIPQCError", error);
+      }
+    }),
+    socket.on("getManufactureTest", async (id) => {
+      try {
+        const query = `SELECT *
+                      FROM ManufactureTest
+                      WHERE PlanID = ?
+                      ORDER BY Timestamp DESC`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("ManufactureTestError", err);
+          socket.emit("ManufactureTestData", rows);
+
+        });
+      } catch (error) {
+        socket.emit("ManufactureTestError", error);
+      }
+    }),
+    socket.on("getManufactureOQC", async (id) => {
+      try {
+        const query = `SELECT *
+                      FROM ManufactureOQC
+                      WHERE PlanID = ?
+                      ORDER BY Timestamp DESC`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("ManufactureOQCError", err);
+          socket.emit("ManufactureOQCData", rows);
+
+        });
+      } catch (error) {
+        socket.emit("ManufactureOQCError", error);
+      }
+    }),
+    socket.on("getManufactureSMT", async (id) => {
+      try {
+        const query = `SELECT *
+                      FROM ManufactureSMT
+                      WHERE PlanID = ?
+                      ORDER BY Timestamp DESC`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("ManufactureSMTError", err);
+          socket.emit("ManufactureSMTData", rows);
+
+        });
+      } catch (error) {
+        socket.emit("ManufactureSMTError", error);
+      }
+    }),
   socket.on("disconnect", () => {
     console.log("Client disconnected:", socket.id);
   });
@@ -540,19 +664,22 @@ app.post("/insert-compare-inventory/:id", async (req, res) => {
     }
 
     insertStmt.finalize();
-    console.log(`Insert completed. Success: ${successCount}, Errors: ${errorCount}`);
-    
-    res.json({ 
-      message: "Dữ liệu đã được chèn thành công!", 
+    console.log(
+      `Insert completed. Success: ${successCount}, Errors: ${errorCount}`
+    );
+
+    res.json({
+      message: "Dữ liệu đã được chèn thành công!",
       total: rows.length,
       success: successCount,
-      errors: errorCount
+      errors: errorCount,
     });
     io.emit("updateDetailOrders");
-
   } catch (err) {
     console.error("Lỗi truy vấn:", err.message);
-    res.status(500).json({ error: "Không thể tạo truy vấn.", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Không thể tạo truy vấn.", details: err.message });
   }
 });
 
@@ -695,7 +822,6 @@ app.post("/WareHouse/Upload", upload.single("file"), async (req, res) => {
   }
 });
 
-
 // Router update item WareHouse table
 app.put("/WareHouse/update-item/:id", async (req, res) => {
   const {
@@ -802,8 +928,6 @@ app.delete("/WareHouse/delete-item/:id", async (req, res) => {
     res.json({ message: "Item inserted successfully" });
   });
 });
-
-
 
 //Router post new item in WareHouse table
 app.post("/WareHouse/upload-new-item", (req, res) => {
@@ -1052,17 +1176,22 @@ app.put("/CheckBom/Update-Hao-Phi", async (req, res) => {
 
 // Router update Hao_Phi_Thuc_Te in CheckBom table
 app.put("/DetailOrders/Update", async (req, res) => {
-  const { Input_Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, PartNumber_1, PO } = req.body;
+  const { Input_Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, PartNumber_1, PO } =
+    req.body;
   // Insert data into SQLite database
   const query = `UPDATE DetailOrders SET Hao_Phi_Thuc_Te = ?, Ma_Kho = ?, Ma_Kho_Misa = ? WHERE PartNumber_1 = ?`;
-  db.run(query, [Input_Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, PartNumber_1], function (err) {
-    if (err) {
-      return console.error(err.message);
+  db.run(
+    query,
+    [Input_Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, PartNumber_1],
+    function (err) {
+      if (err) {
+        return console.error(err.message);
+      }
+      io.emit("updateCompare", PO);
+      // Broadcast the new message to all clients
+      res.json({ message: "Item inserted successfully" });
     }
-    io.emit("updateCompare", PO);
-    // Broadcast the new message to all clients
-    res.json({ message: "Item inserted successfully" });
-  });
+  );
 });
 
 // Router update item in CheckBom table
@@ -1238,16 +1367,16 @@ app.delete("/Project/Customer/Delete-Item/:id", async (req, res) => {
 
 // Router update orders in PurchaseDetails table
 app.put("/Project/Customer/Edit-Orders/:id", async (req, res) => {
-  const { PONumber, DateCreated, DateDelivery, CustomerID } = req.body;
+  const { PONumber, DateCreated, DateDelivery, Note, CustomerID } = req.body;
   const { id } = req.params;
   // Insert data into SQLite database
   const query = `
     UPDATE PurchaseOrders
-    SET PONumber = ?, DateCreated = ?, DateDelivery = ?, CustomerID = ?
+    SET PONumber = ?, DateCreated = ?, DateDelivery = ?, Note = ?, CustomerID = ?
     WHERE id = ?`;
   db.run(
     query,
-    [PONumber, DateCreated, DateDelivery, CustomerID, id],
+    [PONumber, DateCreated, DateDelivery, Note, CustomerID, id],
     function (err) {
       if (err) {
         return res
@@ -1263,15 +1392,15 @@ app.put("/Project/Customer/Edit-Orders/:id", async (req, res) => {
 
 // Router add new orders in PurchaseDetails table
 app.post("/Project/Customer/Add-Orders", async (req, res) => {
-  const { PONumber, DateCreated, DateDelivery, CustomerID } = req.body;
+  const { PONumber, DateCreated, DateDelivery, Note, CustomerID } = req.body;
   // Insert data into SQLite database
   const query = `
-    INSERT INTO PurchaseOrders (PONumber, DateCreated, DateDelivery, CustomerID)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO PurchaseOrders (PONumber, DateCreated, DateDelivery, Note, CustomerID)
+    VALUES (?, ?, ?, ?, ?)
   `;
   db.run(
     query,
-    [PONumber, DateCreated, DateDelivery, CustomerID],
+    [PONumber, DateCreated, DateDelivery, Note, CustomerID],
     function (err) {
       if (err) {
         return res
@@ -1821,64 +1950,52 @@ app.delete("/PlanManufacture/Delete/:id", async (req, res) => {
   });
 });
 
-let currentProjectId = ""; // gán từ frontend
 
-// API từ frontend để đặt projectId hiện tại
-app.post("/set-project-id", (req, res) => {
-  const { ProjectID } = req.body;
-  if (!ProjectID) {
-    currentProjectId = "";
-    console.log("Project ID cleared");
-    return res.send({ success: true, message: "Đã dừng theo dõi" });
+const ESP32_IP = "http://192.168.2.241"; // IP ESP32 (phải đổi đúng IP của bạn)
+
+app.post('/api/project-id', async (req, res) => {
+  const { project_id } = req.body;
+  try {
+    const response = await axios.post(`${ESP32_IP}/set-project`, {
+      project_id
+    }, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    res.json({ status: 'project_id sent to esp32', esp32Response: response.data });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to send project_id to esp32', detail: error.message });
   }
-  currentProjectId = ProjectID;
-  console.log("Project ID set to:", currentProjectId);
-  res.send({ success: true, message: "Đã bắt đầu theo dõi" });
 });
 
-// API nhận dữ liệu từ Arduino
-app.post("/api/sensor", (req, res) => {
-  const { input_value } = req.body;
-  const today = new Date();
-  const formattedDate = today.toISOString().split("T")[0];
-  const formattedTime = today.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-
-  if (typeof input_value !== "number") {
-    return res.status(400).send("Invalid input/output values");
-  }
-  // Bỏ qua nếu cả hai đều bằng 0
-  if (input_value === 0) {
-    return res.status(200).json({ message: "Ignored 0-0 input" });
+app.post('/api/sensor', (req, res) => {
+  const { project_id, input_value } = req.body;
+  const Timestamp= new Date().toLocaleString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).replace(/,/g, '');
+  if (!project_id || input_value === undefined) {
+    return res.status(400).json({ error: "Missing project_id or sensor_value" });
   }
 
-  if (!currentProjectId) {
-    return res.status(400).send("Project ID not set");
-  }
-
-  const query = `
-    INSERT INTO ManufactureDetails (PlanID, Input, Output, Date, Time) 
-    VALUES (?, ?, '0', ?, ?)
-  `;
-
-  db.run(
-    query,
-    [currentProjectId, input_value, formattedDate, formattedTime],
-    function (err) {
-      if (err) {
-        console.error("Database error:", err);
-        return res.status(500).send("Database error");
-      }
-      io.emit("updateManufactureDetails");
-      io.emit("updateManufactureDetailsTable");
-      res.send({ success: true, id: this.lastID });
+  const stmt = db.prepare("INSERT INTO ManufactureSMT (PlanID, Input, Timestamp) VALUES (?, ?, ?)");
+  stmt.run(project_id, input_value, Timestamp, function(err) {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Database error" });
     }
-  );
+    io.emit("UpdateManufactureSMT");
+    io.emit("updateManufactureDetails")
+    res.json({ success: true, id: this.lastID });
+  });
+  stmt.finalize();
 });
+
 app.delete("/reset-data/:id", (req, res) => {
   const { id } = req.params;
   const query = `
@@ -1908,10 +2025,10 @@ app.post("/api/heartbeat", (req, res) => {
     [device_id, now, now],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
-      io.emit('device-status', {
+      io.emit("device-status", {
         device_id,
-        status: 'online',
-        last_seen: now
+        status: "online",
+        last_seen: now,
       });
 
       res.json({ message: "Heartbeat received" });
@@ -1919,23 +2036,108 @@ app.post("/api/heartbeat", (req, res) => {
   );
 });
 
-app.get('/api/devices', (req, res) => {
+app.get("/api/devices", (req, res) => {
   const now = Date.now();
   const timeout = 60000; // 1 phút
 
   db.all(`SELECT device_id, last_seen FROM heartbeats`, [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
 
-    const devices = rows.map(row => ({
+    const devices = rows.map((row) => ({
       device_id: row.device_id,
-      status: now - row.last_seen < timeout ? 'online' : 'offline',
-      last_seen: new Date(row.last_seen).toLocaleString()
+      status: now - row.last_seen < timeout ? "online" : "offline",
+      last_seen: new Date(row.last_seen).toLocaleString(),
     }));
 
     res.json(devices);
   });
-
 });
+
+// Post value in table ManufactureAOI
+app.post("/Manufacture/AOI", (req, res) => {
+  const { PartNumber, PlanID, Timestamp } = req.body;
+  
+  db.run(
+    `INSERT INTO ManufactureAOI (PlanID, PartNumber, Timestamp)
+     VALUES (?, ?, ?)`,
+    [PlanID, PartNumber, Timestamp],
+    (err) => {
+      if (err) return res.status(500).json({ error: "Database error" });
+      io.emit("UpdateManufactureAOI");
+      io.emit("updateManufactureDetails")
+      res.json({ message: "ManufactureAOI received" });
+    }
+  );
+});
+
+// Post value in table ManufactureHand
+app.post("/Manufacture/Hand", (req, res) => {
+  const { PartNumber, PlanID, Timestamp } = req.body;
+  
+  db.run(
+    `INSERT INTO ManufactureHand (PlanID, PartNumber, Timestamp)
+     VALUES (?, ?, ?)`,
+    [PlanID, PartNumber, Timestamp],
+    (err) => {
+      if (err) return res.status(500).json({ error: "Database error" });
+      io.emit("UpdateManufactureHand");
+      io.emit("updateManufactureDetails")
+      res.json({ message: "ManufactureHand received" });
+    }
+  );
+});
+
+// Post value in table ManufactureIPQC
+app.post("/Manufacture/IPQC", (req, res) => {
+  const { PartNumber, PlanID, Timestamp } = req.body;
+  
+  db.run(
+    `INSERT INTO ManufactureIPQC (PlanID, PartNumber, Timestamp)
+     VALUES (?, ?, ?)`,
+    [PlanID, PartNumber, Timestamp],
+    (err) => {
+      if (err) return res.status(500).json({ error: "Database error" });
+      io.emit("UpdateManufactureIPQC");
+      io.emit("updateManufactureDetails")
+      res.json({ message: "ManufactureIPQC received" });
+    }
+  );
+});
+
+// Post value in table ManufactureTest
+app.post("/Manufacture/Test", (req, res) => {
+  const { PartNumber, PlanID, Timestamp } = req.body;
+  
+  db.run(
+    `INSERT INTO ManufactureTest (PlanID, PartNumber, Timestamp)
+     VALUES (?, ?, ?)`,
+    [PlanID, PartNumber, Timestamp],
+    (err) => {
+      if (err) return res.status(500).json({ error: "Database error" });
+      io.emit("UpdateManufactureTest");
+      io.emit("updateManufactureDetails")
+      res.json({ message: "ManufactureTest received" });
+    }
+  );
+});
+
+// Post value in table ManufactureOQC
+app.post("/Manufacture/OQC", (req, res) => {
+  const { PartNumber, PlanID, Timestamp } = req.body;
+  
+  db.run(
+    `INSERT INTO ManufactureOQC (PlanID, PartNumber, Timestamp)
+     VALUES (?, ?, ?)`,
+    [PlanID, PartNumber, Timestamp],
+    (err) => {
+      if (err) return res.status(500).json({ error: "Database error" });
+      io.emit("UpdateManufactureOQC");
+      io.emit("updateManufactureDetails")
+      res.json({ message: "ManufactureOQC received" });
+    }
+  );
+});
+
 
 // Catch-all route cho frontend
 app.get("*", (req, res) => {

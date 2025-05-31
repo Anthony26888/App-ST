@@ -7,17 +7,35 @@
       <v-card variant="text">
         <v-card-title class="d-flex align-center pe-2">
           <ButtonImportFile @import-file="Dialog = true" />
-          <v-btn
-            prepend-icon="mdi mdi-plus"
-            variant="tonal"
-            color="primary"
-            class="text-caption ms-2"
-            @click="DialogAdd = true"
-            >Thêm</v-btn
-          >
+          <ButtonAdd @add="DialogAdd = true" />
+          <v-menu :location="location">
+            <template v-slot:activator="{ props }">
+              <v-btn
+                color="orange"
+                v-bind="props"
+                class="ms-2 text-caption"
+                prepend-icon="mdi-filter"
+                variant="tonal"
+              >
+                Bộ lọc
+              </v-btn>
+            </template>
+
+            <v-list>
+              <v-list-item
+                v-for="(item, index) in itemsFilter"
+                :key="index"
+                :value="item.value"
+                @click="search = item.value"
+              >
+                <v-list-item-title>{{ item.title }}</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
           <p class="ms-2 font-weight-thin text-subtitle-1">
             ( {{ project.length }} dự án)
           </p>
+
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
         </v-card-title>
@@ -31,12 +49,12 @@
             class="elevation-1"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
-              'items-per-page-text': 'Số hàng mỗi trang'
+              'items-per-page-text': 'Số hàng mỗi trang',
             }"
             :header-props="{
               sortByText: 'Sắp xếp theo',
               sortDescText: 'Giảm dần',
-              sortAscText: 'Tăng dần'
+              sortAscText: 'Tăng dần',
             }"
             :loading="DialogLoading"
             loading-text="Đang tải dữ liệu..."
@@ -55,10 +73,24 @@
                 ></v-pagination>
               </div>
             </template>
-            <template v-slot:item.id="{ value }">
+            <template v-slot:item.Status="{ value }">
               <div>
+                <v-chip
+                  :color="value === 'Hoàn thành' ? 'success' : 'error'"
+                  variant="tonal"
+                  class="text-caption"
+                >
+                  {{ value }}
+                </v-chip>
+              </div>
+            </template>
+            <template v-slot:item.id="{ value }">
+              <div class="d-flex align-center">
                 <ButtonEye @detail="PushItem(value)" />
-                <ButtonEdit @edit="GetItem(value)" />
+                <ButtonEdit
+                  @edit="GetItem(value)"
+                  v-if="LevelUser == 'Admin' || LevelUser == 'Kinh doanh admin'"
+                />
               </div>
             </template>
           </v-data-table>
@@ -130,11 +162,13 @@
 // Core dependencies
 import axios from "axios";
 import { useRouter } from "vue-router";
+import { ref, reactive, computed } from "vue";
 
 // Components
 import InputSearch from "@/components/Input-Search.vue";
 import InputFiles from "@/components/Input-Files.vue";
 import InputField from "@/components/Input-Field.vue";
+import InputSelect from "@/components/Input-Select.vue";
 import ButtonImportFile from "@/components/Button-ImportFile.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonEye from "@/components/Button-Eye.vue";
@@ -157,13 +191,13 @@ const { project } = useProject();
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
-const Dialog = ref(false);          // Main dialog
-const DialogEdit = ref(false);      // Edit dialog
-const DialogSuccess = ref(false);   // Success notification
-const DialogFailed = ref(false);    // Error notification
-const DialogRemove = ref(false);    // Remove confirmation dialog
-const DialogAdd = ref(false);       // Add new item dialog
-const DialogLoading = ref(false);   // Loading state
+const Dialog = ref(false); // Main dialog
+const DialogEdit = ref(false); // Edit dialog
+const DialogSuccess = ref(false); // Success notification
+const DialogFailed = ref(false); // Error notification
+const DialogRemove = ref(false); // Remove confirmation dialog
+const DialogAdd = ref(false); // Add new item dialog
+const DialogLoading = ref(false); // Loading state
 
 // ===== MESSAGE DIALOG =====
 // Message for success and error notifications
@@ -175,23 +209,47 @@ const MessageErrorDialog = ref("");
 const File = ref(null);
 
 // Customer form states
-const Customer_Edit = ref("");      // Customer name for editing
+const Customer_Edit = ref(""); // Customer name for editing
 const Customer_Add = ref("");
 const Years_Edit = ref("");
 const Years_Add = ref("");
-const GetID = ref("");              // Current item ID being processed
+const GetID = ref(""); // Current item ID being processed
 
-// ===== CRUD OPERATIONS =====
-/**
- * Navigates to customer details page and stores customer information
- * @param {string} value - The ID of the customer to view
- */
-function PushItem(value) {
-  const found = project.value.find((v) => v.id === value);
-  router.push(`/Du-an/Khach-hang/${value}`);
-  localStorage.setItem("Customers", found.Customers);
-  localStorage.setItem("CustomersID", value);
-}
+// ===== Table States =====
+const Headers = ref([
+  { key: "Customer", title: "Khách hàng", width: "300" },
+  { key: "Status", title: "Trạng thái" },
+  { key: "Quantity_PO", title: "Số lượng PO" },
+  { key: "Years", title: "Năm tạo", sortable: true },
+  { key: "id", sortable: false, title: "Thao tác" },
+]);
+
+const search = ref("");
+const itemsPerPage = ref(15);
+const page = ref(1);
+
+// ===== User Information =====
+const UserInfo = ref(null);
+const LevelUser = localStorage.getItem("LevelUser");
+
+// ===== FILTER STATES =====
+const itemsFilter = [
+  { title: "Tất cả", value:"" },
+  { title: "Chưa xong", value: "Chưa xong" },
+  { title: "Hoàn thành", value: "Hoàn thành" },
+];
+  // ===== CRUD OPERATIONS =====
+  /**
+   * Navigates to customer details page and stores customer information
+   * @param {string} value - The ID of the customer to view
+   */
+  function PushItem(value) {
+    const found = project.value.find((v) => v.id === value);
+    router.push(`/Du-an/Khach-hang/${value}`);
+    console.log(found);
+    localStorage.setItem("Customers", found.Customer);
+    localStorage.setItem("CustomersID", value);
+  };
 
 /**
  * Prepares an item for editing by setting up the edit dialog
@@ -338,29 +396,13 @@ export default {
     ButtonEye,
     SnackbarSuccess,
     SnackbarFailed,
-    Loading
+    Loading,
+    InputSelect,
   },
   data() {
-    return {
-      Url: import.meta.env.VITE_API_URL,
-      File: null,
-      search: "",
-      Headers: [
-        { key: "Customers", title: "Khách hàng" },
-        { key: "Quantity_PO", title: "Số lượng PO" },
-        { key: "Years", title: "Năm tạo" },
-        {
-          key: "id",
-          sortable: false,
-          title: "Thao tác",
-        },
-      ],
-      itemsPerPage: 15,
-      page: 1,
-    };
+    return {};
   },
-  methods: {
-  },
+  methods: {},
 };
 </script>
 <style lang=""></style>

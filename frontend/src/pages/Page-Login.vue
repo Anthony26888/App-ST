@@ -125,7 +125,7 @@ const FetchUser = async () => {
     if (LevelUser == "Admin" || LevelUser == "Kế hoạch" || LevelUser == "Quản lý") {
       router.push(`/Kiem-tra-so-lieu`);
       DialogLoading.value = false;
-    } else if(LevelUser == "Kinh doanh" || LevelUser == "Thủ kho") {
+    } else if(LevelUser == "Kinh doanh" || LevelUser == "Thủ kho" || LevelUser == "Kinh doanh admin") {
       DialogLoading.value = false;
       router.push(`/Ton-kho`);
     } else{
