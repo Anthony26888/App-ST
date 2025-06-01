@@ -17,7 +17,6 @@ export function useManufactureSMT(id) {
     fetchData();
 
     socket.on("ManufactureSMTData", (data) => {
-      console.log("Received Manufacture SMT:", data);
       // Ensure data is an array before assigning
       manufactureSMT.value = data;
     });

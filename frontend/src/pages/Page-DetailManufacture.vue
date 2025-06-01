@@ -55,7 +55,7 @@
               <v-card class="mx-auto" variant="text">
                 <v-card-text>
                   <div class="text-h6 mb-2">Tỷ lệ</div>
-                  <div class="text-h4 font-weight-bold text-success">
+                  <div class="text-h4 font-weight-bold text-primary">
                     {{ percent }} %
                   </div>
                   <div class="text-caption text-medium-emphasis">

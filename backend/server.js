@@ -1894,13 +1894,13 @@ app.delete("/SparePartUsage/Delete/:id", async (req, res) => {
 
 // Router add new item in PlanManufacture table
 app.post("/PlanManufacture/Add", async (req, res) => {
-  const { Name, Status, Date, Creater, Note, Total } = req.body;
+  const { Name, Status, Date, Creater, Note, Total, DelaySMT = 0 } = req.body; // Set default value for DelaySMT
   // Insert data into SQLite database
   const query = `
-    INSERT INTO PlanManufacture (Name, Status, Date, Creater, Note, Total)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO PlanManufacture (Name, Status, Date, Creater, Note, Total, DelaySMT)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
-  db.run(query, [Name, Status, Date, Creater, Note, Total], function (err) {
+  db.run(query, [Name, Status, Date, Creater, Note, Total, DelaySMT], function (err) {
     if (err) {
       return res
         .status(500)
@@ -1914,14 +1914,14 @@ app.post("/PlanManufacture/Add", async (req, res) => {
 // Router update item in PlanManufacture table
 app.put("/PlanManufacture/Edit/:id", async (req, res) => {
   const { id } = req.params;
-  const { Name, Date, Creater, Note, Total } = req.body;
+  const { Name, Date, Creater, Note, Total, DelaySMT } = req.body;
   // Insert data into SQLite database
   const query = `
       UPDATE PlanManufacture 
-      SET Name = ?, Date = ?, Creater = ?, Note = ?, Total = ?
+      SET Name = ?, Date = ?, Creater = ?, Note = ?, Total = ?, DelaySMT = ?
       WHERE id = ?
     `;
-  db.run(query, [Name, Date, Creater, Note, Total, id], function (err) {
+  db.run(query, [Name, Date, Creater, Note, Total, DelaySMT, id], function (err) {
     if (err) {
       return res
         .status(500)
@@ -1953,11 +1953,11 @@ app.delete("/PlanManufacture/Delete/:id", async (req, res) => {
 
 const ESP32_IP = "http://192.168.2.241"; // IP ESP32 (phải đổi đúng IP của bạn)
 
-app.post('/api/project-id', async (req, res) => {
-  const { project_id } = req.body;
+app.post('/api/esp-config', async (req, res) => {
+  const { project_id, delay } = req.body;
   try {
     const response = await axios.post(`${ESP32_IP}/set-project`, {
-      project_id
+      project_id, delay
     }, {
       headers: { 'Content-Type': 'application/json' }
     });
@@ -1999,7 +1999,7 @@ app.post('/api/sensor', (req, res) => {
 app.delete("/reset-data/:id", (req, res) => {
   const { id } = req.params;
   const query = `
-    DELETE FROM ManufactureDetails WHERE PlanID = ?
+    DELETE FROM ManufactureSMT WHERE PlanID = ?
   `;
   db.run(query, [id], function (err) {
     if (err) {
@@ -2007,8 +2007,8 @@ app.delete("/reset-data/:id", (req, res) => {
         .status(500)
         .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
     }
+    io.emit("UpdateManufactureSMT");
     io.emit("updateManufactureDetails");
-    io.emit("updateManufactureDetailsTable");
     res.json({ message: "Đã xoá dữ liệu sản xuất thành công" });
   });
 });

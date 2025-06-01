@@ -145,7 +145,7 @@
   <v-dialog v-model="Dialog" width="400">
     <v-card max-width="400" prepend-icon="mdi-update" title="Thêm dữ liệu">
       <v-card-text>
-        <InputFiles abel="Thêm File Excel" v-model="File" />
+        <InputFiles label="Thêm File Excel" v-model="File" />
       </v-card-text>
       <template v-slot:actions>
         <ButtonCancel @cancel="Dialog = false" />

@@ -193,6 +193,7 @@ db.serialize(() => {
       Name TEXT,
       Total INTEGER,
       Status TEXT,
+      DelaySMT INTEGER,
       Date TEXT,
       Note TEXT,
       Creater TEXT
