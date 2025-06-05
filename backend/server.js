@@ -7,8 +7,9 @@ const bodyParser = require("body-parser");
 const path = require("path");
 const bcrypt = require("bcrypt");
 const db = require("./database.js");
+const { v4: uuidv4 } = require("uuid"); // tạo UUID
 const routes = require("./routes");
-const axios = require('axios');
+const axios = require("axios");
 const app = express();
 const { Server } = require("socket.io");
 const { send } = require("process");
@@ -324,25 +325,52 @@ io.on("connection", (socket) => {
     }),
     socket.on("getManufactureDetails", async (id) => {
       try {
-        const query = `SELECT
-                        a.id,  
-                        a.Total,
-                        COUNT(DISTINCT h.id) * a.Quantity AS SMT,
-                        COUNT(DISTINCT c.id) AS AOI, 
-                        COUNT(DISTINCT d.id) AS Hand, 
-                        COUNT(DISTINCT e.id) AS IPQC, 
-                        COUNT(DISTINCT f.id) AS Test, 
-                        COUNT(DISTINCT g.id) AS OQC, 
-                        a.Date
-                      FROM PlanManufacture a 
-                      LEFT JOIN ManufactureAOI c ON a.id = c.PlanID
-                      LEFT JOIN ManufactureRW d ON a.id = d.PlanID
-                      LEFT JOIN ManufactureIPQC e ON a.id = e.PlanID
-                      LEFT JOIN ManufactureAssembly f ON a.id = f.PlanID
-                      LEFT JOIN ManufactureOQC g ON a.id= g.PlanID
-                      LEFT JOIN ManufactureSMT h ON a.id = h.PlanID
-                      WHERE a.id = ?
-                      GROUP BY a.id`;
+        const query = `SELECT 
+                          h.Total,
+                          SUM(IFNULL(b.SMT, 0)) AS SMT,
+                          SUM(IFNULL(c.AOI, 0)) AS AOI,
+                          SUM(IFNULL(d.RW, 0)) AS RW,
+                          SUM(IFNULL(e.IPQC, 0)) AS IPQC,
+                          SUM(IFNULL(f.Assembly, 0)) AS Assembly,
+                          SUM(IFNULL(g.OQC, 0)) AS OQC
+                      FROM Summary a
+                      LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS SMT 
+                          FROM ManufactureSMT 
+                          GROUP BY HistoryID
+                      ) b ON a.id = b.HistoryID
+                      LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS AOI 
+                          FROM ManufactureAOI 
+                          GROUP BY HistoryID
+                      ) c ON a.id = c.HistoryID
+                      LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS RW 
+                          FROM ManufactureRW 
+                          GROUP BY HistoryID
+                      ) d ON a.id = d.HistoryID
+                      LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS IPQC 
+                          FROM ManufactureIPQC 
+                          GROUP BY HistoryID
+                      ) e ON a.id = e.HistoryID
+                      LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS Assembly 
+                          FROM ManufactureAssembly 
+                          GROUP BY HistoryID
+                      ) f ON a.id = f.HistoryID
+                      LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS OQC 
+                          FROM ManufactureOQC 
+                          GROUP BY HistoryID
+                      ) g ON a.id = g.HistoryID
+                      LEFT JOIN (
+                          SELECT id, Total 
+                          FROM PlanManufacture
+                      ) h ON a.PlanID = h.id
+                      WHERE a.PlanID = ?
+                      GROUP BY h.Total;
+                      `;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("ManufactureDetailsError", err);
           socket.emit("ManufactureDetailsData", rows);
@@ -355,30 +383,29 @@ io.on("connection", (socket) => {
       console.log(`Client ${socket.id} chọn project_id = ${id}`);
       userProjects.set(socket.id, id);
     });
-    socket.on("getManufactureAOI", async (id) => {
-      try {
-        const query = `SELECT *
+  socket.on("getManufactureAOI", async (id) => {
+    try {
+      const query = `SELECT *
                       FROM ManufactureAOI
-                      WHERE PlanID = ?
+                      WHERE HistoryID = ?
                       ORDER BY Timestamp DESC`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("ManufactureHandError", err);
-          socket.emit("ManufactureAOIData", rows);
-        });
-      } catch (error) {
-        socket.emit("ManufactureAOIError", error);
-      }
-    }),
+      db.all(query, [id], (err, rows) => {
+        if (err) return socket.emit("ManufactureHandError", err);
+        socket.emit("ManufactureAOIData", rows);
+      });
+    } catch (error) {
+      socket.emit("ManufactureAOIError", error);
+    }
+  }),
     socket.on("getManufactureHand", async (id) => {
       try {
         const query = `SELECT *
                       FROM ManufactureRW
-                      WHERE PlanID = ?
+                      WHERE HistoryID = ?
                       ORDER BY Timestamp DESC`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("ManufactureHandError", err);
           socket.emit("ManufactureHandData", rows);
-
         });
       } catch (error) {
         socket.emit("ManufactureHandError", error);
@@ -388,12 +415,11 @@ io.on("connection", (socket) => {
       try {
         const query = `SELECT *
                       FROM ManufactureIPQC
-                      WHERE PlanID = ?
+                      WHERE HistoryID = ?
                       ORDER BY Timestamp DESC`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("ManufactureIPQCError", err);
           socket.emit("ManufactureIPQCData", rows);
-
         });
       } catch (error) {
         socket.emit("ManufactureIPQCError", error);
@@ -403,12 +429,11 @@ io.on("connection", (socket) => {
       try {
         const query = `SELECT *
                       FROM ManufactureAssembly
-                      WHERE PlanID = ?
+                      WHERE HistoryID = ?
                       ORDER BY Timestamp DESC`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("ManufactureTestError", err);
           socket.emit("ManufactureTestData", rows);
-
         });
       } catch (error) {
         socket.emit("ManufactureTestError", error);
@@ -418,12 +443,11 @@ io.on("connection", (socket) => {
       try {
         const query = `SELECT *
                       FROM ManufactureOQC
-                      WHERE PlanID = ?
+                      WHERE HistoryID = ?
                       ORDER BY Timestamp DESC`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("ManufactureOQCError", err);
           socket.emit("ManufactureOQCData", rows);
-
         });
       } catch (error) {
         socket.emit("ManufactureOQCError", error);
@@ -433,12 +457,11 @@ io.on("connection", (socket) => {
       try {
         const query = `SELECT *
                       FROM ManufactureSMT
-                      WHERE PlanID = ?
+                      WHERE HistoryID = ?
                       ORDER BY Timestamp DESC`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("ManufactureSMTError", err);
           socket.emit("ManufactureSMTData", rows);
-
         });
       } catch (error) {
         socket.emit("ManufactureSMTError", error);
@@ -447,25 +470,26 @@ io.on("connection", (socket) => {
     socket.on("getSummary", async (id) => {
       try {
         const query = `SELECT 
-                          a.id,
-                          a.Type,
-                          a.PONumber,
-                          a.Category,
-                          a.Quantity_Plan,
-                          a.CycleTime_Plan,
-                          a.Time_Plan,
-                          CASE
-                            WHEN a.Type = 'SMT' THEN IFNULL(b.SMT, 0)
-                            WHEN a.Type = 'AOI-IPQC' THEN IFNULL(c.AOI, 0)
-                            WHEN a.Type = 'RW' THEN IFNULL(d.RW, 0)
-                            WHEN a.Type = 'Assembly' THEN IFNULL(e.IPQC, 0)
-                            WHEN a.Type = 'IPQC' THEN IFNULL(f.Assembly, 0)
-                            WHEN a.Type = 'OQC' THEN IFNULL(g.OQC, 0)
-                            ELSE 0
-                          END AS Quantity_Real,
-                          CASE 
-                            WHEN a.Quantity_Plan > 0 THEN 
-                              CASE
+                        a.id,
+                        a.Type,
+                        a.PONumber,
+                        a.Category,
+                        a.Quantity_Plan,
+                        a.CycleTime_Plan,
+                        a.Time_Plan,
+                        a.Created_At,
+                        CASE
+                          WHEN a.Type = 'SMT' THEN IFNULL(b.SMT, 0)
+                          WHEN a.Type = 'AOI-IPQC' THEN IFNULL(c.AOI, 0)
+                          WHEN a.Type = 'RW' THEN IFNULL(d.RW, 0)
+                          WHEN a.Type = 'Assembly' THEN IFNULL(e.IPQC, 0)
+                          WHEN a.Type = 'IPQC' THEN IFNULL(f.Assembly, 0)
+                          WHEN a.Type = 'OQC' THEN IFNULL(g.OQC, 0)
+                          ELSE 0
+                        END AS Quantity_Real,
+                        CASE 
+                          WHEN a.Quantity_Plan > 0 THEN 
+                            CASE
                               WHEN a.Type = 'SMT' THEN (IFNULL(b.SMT, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'AOI-IPQC' THEN (IFNULL(c.AOI, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'RW' THEN (IFNULL(d.RW, 0) * 100.0) / a.Quantity_Plan
@@ -473,51 +497,73 @@ io.on("connection", (socket) => {
                               WHEN a.Type = 'IPQC' THEN (IFNULL(f.Assembly, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'OQC' THEN (IFNULL(g.OQC, 0) * 100.0) / a.Quantity_Plan
                               ELSE 0
-                              END
-                            ELSE 0
-                          END AS Percent
-                          FROM Summary a
-                          LEFT JOIN (SELECT id, HistoryID, COUNT(id) AS SMT FROM ManufactureSMT) b ON a.id = b.HistoryID
-                          LEFT JOIN (SELECT id, HistoryID, COUNT(id) AS AOI FROM ManufactureAOI) c ON a.id = c.HistoryID
-                          LEFT JOIN (SELECT id, HistoryID, COUNT(id) AS RW FROM ManufactureRW) d ON a.id = c.HistoryID
-                          LEFT JOIN (SELECT id, HistoryID, COUNT(id) AS IPQC FROM ManufactureIPQC ) e ON a.id = c.HistoryID
-                          LEFT JOIN (SELECT id, HistoryID, COUNT(id) AS Assembly FROM ManufactureAssembly ) f ON a.id = c.HistoryID
-                          LEFT JOIN (SELECT id, HistoryID, COUNT(id) AS OQC FROM ManufactureOQC ) g ON a.id = c.HistoryID
-                          WHERE Created_At = ?
-                          ORDER BY Created_At DESC`;
+                            END
+                          ELSE 0
+                        END AS Percent
+                      FROM Summary a
+                      LEFT JOIN (
+                        SELECT HistoryID, COUNT(id) AS SMT 
+                        FROM ManufactureSMT 
+                        GROUP BY HistoryID
+                      ) b ON a.id = b.HistoryID
+                      LEFT JOIN (
+                        SELECT HistoryID, COUNT(id) AS AOI 
+                        FROM ManufactureAOI 
+                        GROUP BY HistoryID
+                      ) c ON a.id = c.HistoryID
+                      LEFT JOIN (
+                        SELECT HistoryID, COUNT(id) AS RW 
+                        FROM ManufactureRW 
+                        GROUP BY HistoryID
+                      ) d ON a.id = d.HistoryID
+                      LEFT JOIN (
+                        SELECT HistoryID, COUNT(id) AS IPQC 
+                        FROM ManufactureIPQC 
+                        GROUP BY HistoryID
+                      ) e ON a.id = e.HistoryID
+                      LEFT JOIN (
+                        SELECT HistoryID, COUNT(id) AS Assembly 
+                        FROM ManufactureAssembly 
+                        GROUP BY HistoryID
+                      ) f ON a.id = f.HistoryID
+                      LEFT JOIN (
+                        SELECT HistoryID, COUNT(id) AS OQC 
+                        FROM ManufactureOQC 
+                        GROUP BY HistoryID
+                      ) g ON a.id = g.HistoryID
+                      WHERE a.Created_At = ?
+                      ORDER BY a.Created_At DESC`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("SummaryError", err);
           socket.emit("SummaryData", rows);
-
         });
       } catch (error) {
         socket.emit("SummaryError", error);
       }
     }),
-
     socket.on("getHistory", async (id) => {
       try {
         const query = `SELECT 
-                          a.id,
-                          a.Type,
-                          a.PONumber,
-                          a.Category,
-                          a.Quantity_Plan,
-                          a.CycleTime_Plan,
-                          a.Time_Plan,
-                          a.Created_At,
-                          CASE
-                            WHEN a.Type = 'SMT' THEN IFNULL(b.SMT, 0)
-                            WHEN a.Type = 'AOI-IPQC' THEN IFNULL(c.AOI, 0)
-                            WHEN a.Type = 'RW' THEN IFNULL(d.RW, 0)
-                            WHEN a.Type = 'Assembly' THEN IFNULL(e.IPQC, 0)
-                            WHEN a.Type = 'IPQC' THEN IFNULL(f.Assembly, 0)
-                            WHEN a.Type = 'OQC' THEN IFNULL(g.OQC, 0)
-                            ELSE 0
-                          END AS Quantity_Real,
-                          CASE 
-                            WHEN a.Quantity_Plan > 0 THEN 
-                              CASE
+                        a.id,
+                        a.Type,
+                        a.PONumber,
+                        a.Category,
+                        a.Quantity_Plan,
+                        a.CycleTime_Plan,
+                        a.Time_Plan,
+                        a.Created_At,
+                        CASE
+                          WHEN a.Type = 'SMT' THEN IFNULL(b.SMT, 0)
+                          WHEN a.Type = 'AOI-IPQC' THEN IFNULL(c.AOI, 0)
+                          WHEN a.Type = 'RW' THEN IFNULL(d.RW, 0)
+                          WHEN a.Type = 'Assembly' THEN IFNULL(e.IPQC, 0)
+                          WHEN a.Type = 'IPQC' THEN IFNULL(f.Assembly, 0)
+                          WHEN a.Type = 'OQC' THEN IFNULL(g.OQC, 0)
+                          ELSE 0
+                        END AS Quantity_Real,
+                        CASE 
+                          WHEN a.Quantity_Plan > 0 THEN 
+                            CASE
                               WHEN a.Type = 'SMT' THEN (IFNULL(b.SMT, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'AOI-IPQC' THEN (IFNULL(c.AOI, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'RW' THEN (IFNULL(d.RW, 0) * 100.0) / a.Quantity_Plan
@@ -525,30 +571,53 @@ io.on("connection", (socket) => {
                               WHEN a.Type = 'IPQC' THEN (IFNULL(f.Assembly, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'OQC' THEN (IFNULL(g.OQC, 0) * 100.0) / a.Quantity_Plan
                               ELSE 0
-                              END
-                            ELSE 0
-                          END AS Percent
-                          FROM Summary a
-                          LEFT JOIN (SELECT id, HistoryID, COUNT(id) AS SMT FROM ManufactureSMT) b ON a.id = b.HistoryID
-                          LEFT JOIN (SELECT id, HistoryID, COUNT(id) AS AOI FROM ManufactureAOI) c ON a.id = c.HistoryID
-                          LEFT JOIN (SELECT id, HistoryID, COUNT(id) AS RW FROM ManufactureRW) d ON a.id = c.HistoryID
-                          LEFT JOIN (SELECT id, HistoryID, COUNT(id) AS IPQC FROM ManufactureIPQC ) e ON a.id = c.HistoryID
-                          LEFT JOIN (SELECT id, HistoryID, COUNT(id) AS Assembly FROM ManufactureAssembly ) f ON a.id = c.HistoryID
-                          LEFT JOIN (SELECT id, HistoryID, COUNT(id) AS OQC FROM ManufactureOQC ) g ON a.id = c.HistoryID
-                          WHERE PlanID = ?
-                          ORDER BY Created_At DESC`;
+                            END
+                          ELSE 0
+                        END AS Percent
+                      FROM Summary a
+                      LEFT JOIN (
+                        SELECT HistoryID, COUNT(id) AS SMT 
+                        FROM ManufactureSMT 
+                        GROUP BY HistoryID
+                      ) b ON a.id = b.HistoryID
+                      LEFT JOIN (
+                        SELECT HistoryID, COUNT(id) AS AOI 
+                        FROM ManufactureAOI 
+                        GROUP BY HistoryID
+                      ) c ON a.id = c.HistoryID
+                      LEFT JOIN (
+                        SELECT HistoryID, COUNT(id) AS RW 
+                        FROM ManufactureRW 
+                        GROUP BY HistoryID
+                      ) d ON a.id = d.HistoryID
+                      LEFT JOIN (
+                        SELECT HistoryID, COUNT(id) AS IPQC 
+                        FROM ManufactureIPQC 
+                        GROUP BY HistoryID
+                      ) e ON a.id = e.HistoryID
+                      LEFT JOIN (
+                        SELECT HistoryID, COUNT(id) AS Assembly 
+                        FROM ManufactureAssembly 
+                        GROUP BY HistoryID
+                      ) f ON a.id = f.HistoryID
+                      LEFT JOIN (
+                        SELECT HistoryID, COUNT(id) AS OQC 
+                        FROM ManufactureOQC 
+                        GROUP BY HistoryID
+                      ) g ON a.id = g.HistoryID
+                      WHERE a.PlanID = ?
+                      ORDER BY a.Created_At DESC`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("HistoryError", err);
           socket.emit("HistoryData", rows);
-
         });
       } catch (error) {
         socket.emit("HistoryError", error);
       }
     }),
-  socket.on("disconnect", () => {
-    console.log("Client disconnected:", socket.id);
-  });
+    socket.on("disconnect", () => {
+      console.log("Client disconnected:", socket.id);
+    });
 });
 
 const getPivotQuery = async (id) => {
@@ -2023,42 +2092,61 @@ app.delete("/SparePartUsage/Delete/:id", async (req, res) => {
 
 // Router add new item in PlanManufacture table
 app.post("/PlanManufacture/Add", async (req, res) => {
-  const { Name, Status, Date, Creater, Note, Total, DelaySMT, Level, Quantity } = req.body; // Set default value for DelaySMT
+  const {
+    Name,
+    Status,
+    Date,
+    Creater,
+    Note,
+    Total,
+    DelaySMT,
+    Level,
+    Quantity,
+  } = req.body; // Set default value for DelaySMT
   // Insert data into SQLite database
   const query = `
     INSERT INTO PlanManufacture (Name, Status, Date, Creater, Note, Total, DelaySMT, Level, Quantity)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
-  db.run(query, [Name, Status, Date, Creater, Note, Total, DelaySMT, Level, Quantity], function (err) {
-    if (err) {
-      return res
-        .status(500)
-        .json({ error: "Lỗi khi thêm dữ liệu vào cơ sở dữ liệu" });
+  db.run(
+    query,
+    [Name, Status, Date, Creater, Note, Total, DelaySMT, Level, Quantity],
+    function (err) {
+      if (err) {
+        return res
+          .status(500)
+          .json({ error: "Lỗi khi thêm dữ liệu vào cơ sở dữ liệu" });
+      }
+      io.emit("ManufactureUpdate");
+      res.json({ message: "Đã thêm dữ liệu dự án sản xuất thành công" });
     }
-    io.emit("ManufactureUpdate");
-    res.json({ message: "Đã thêm dữ liệu dự án sản xuất thành công" });
-  });
+  );
 });
 
 // Router update item in PlanManufacture table
 app.put("/PlanManufacture/Edit/:id", async (req, res) => {
   const { id } = req.params;
-  const { Name, Date, Creater, Note, Total, DelaySMT, Level, Quantity } = req.body;
+  const { Name, Date, Creater, Note, Total, DelaySMT, Level, Quantity } =
+    req.body;
   // Insert data into SQLite database
   const query = `
       UPDATE PlanManufacture 
       SET Name = ?, Date = ?, Creater = ?, Note = ?, Total = ?, DelaySMT = ?, Level = ?, Quantity = ?
       WHERE id = ?
     `;
-  db.run(query, [Name, Date, Creater, Note, Total, DelaySMT, Level, Quantity, id], function (err) {
-    if (err) {
-      return res
-        .status(500)
-        .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
+  db.run(
+    query,
+    [Name, Date, Creater, Note, Total, DelaySMT, Level, Quantity, id],
+    function (err) {
+      if (err) {
+        return res
+          .status(500)
+          .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
+      }
+      io.emit("ManufactureUpdate");
+      res.json({ message: "Đã cập nhật dữ liệu dự án sản xuất thành công" });
     }
-    io.emit("ManufactureUpdate");
-    res.json({ message: "Đã cập nhật dữ liệu dự án sản xuất thành công" });
-  });
+  );
 });
 
 // Router delete item in PlanManufacture table
@@ -2079,47 +2167,67 @@ app.delete("/PlanManufacture/Delete/:id", async (req, res) => {
   });
 });
 
-
 const ESP32_IP = "http://192.168.2.241"; // IP ESP32 (phải đổi đúng IP của bạn)
 
-app.post('/api/esp-config', async (req, res) => {
+app.post("/api/esp-config", async (req, res) => {
   const { project_id, delay } = req.body;
   try {
-    const response = await axios.post(`${ESP32_IP}/set-project`, {
-      project_id, delay
-    }, {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    const response = await axios.post(
+      `${ESP32_IP}/set-project`,
+      {
+        project_id,
+        delay,
+      },
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
 
-    res.json({ status: 'project_id sent to esp32', esp32Response: response.data });
+    res.json({
+      status: "project_id sent to esp32",
+      esp32Response: response.data,
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to send project_id to esp32', detail: error.message });
+    res
+      .status(500)
+      .json({
+        error: "Failed to send project_id to esp32",
+        detail: error.message,
+      });
   }
 });
 
-app.post('/api/sensor', (req, res) => {
-  const { project_id, input_value, history_id } = req.body;
-  const Timestamp= new Date().toLocaleString('en-GB', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  }).replace(/,/g, '');
+app.post("/api/sensor", (req, res) => {
+  const { project_id, input_value } = req.body;
+  const Timestamp = new Date()
+    .toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    })
+    .replace(/,/g, "");
   if (!project_id || input_value === undefined) {
-    return res.status(400).json({ error: "Missing project_id or sensor_value" });
+    return res
+      .status(400)
+      .json({ error: "Missing project_id or sensor_value" });
   }
 
-  const stmt = db.prepare("INSERT INTO ManufactureSMT (PlanID, Input, HistoryID, Timestamp) VALUES (?, ?, ?, ?)");
-  stmt.run(project_id, input_value, history_id, Timestamp, function(err) {
+  const stmt = db.prepare(
+    "INSERT INTO ManufactureSMT (HistoryID, Input, Timestamp) VALUES (?, ?, ?)"
+  );
+  stmt.run(project_id, input_value, Timestamp, function (err) {
     if (err) {
       console.error(err);
       return res.status(500).json({ error: "Database error" });
     }
     io.emit("UpdateManufactureSMT");
-    io.emit("updateManufactureDetails")
+    io.emit("updateManufactureDetails");
+    io.emit("UpdateHistory");
+    io.emit("UpdateSummary");
     res.json({ success: true, id: this.lastID });
   });
   stmt.finalize();
@@ -2185,15 +2293,15 @@ app.get("/api/devices", (req, res) => {
 // Post value in table ManufactureAOI
 app.post("/Manufacture/AOI", (req, res) => {
   const { PartNumber, HistoryID, Timestamp } = req.body;
-  
+
   db.run(
-    `INSERT INTO ManufactureAOI (PartNumber, HistoryID Timestamp)
+    `INSERT INTO ManufactureAOI (PartNumber, HistoryID, Timestamp)
      VALUES (?, ?, ?)`,
     [PartNumber, HistoryID, Timestamp],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureAOI");
-      io.emit("updateManufactureDetails")
+      io.emit("updateManufactureDetails");
       res.json({ message: "ManufactureAOI received" });
     }
   );
@@ -2201,16 +2309,16 @@ app.post("/Manufacture/AOI", (req, res) => {
 
 // Post value in table ManufactureHand
 app.post("/Manufacture/RW", (req, res) => {
-  const { PartNumber, PlanID, Timestamp } = req.body;
-  
+  const { PartNumber, HistoryID, Timestamp } = req.body;
+
   db.run(
-    `INSERT INTO ManufactureRW (PlanID, PartNumber, Timestamp)
+    `INSERT INTO ManufactureRW (HistoryID, PartNumber, Timestamp)
      VALUES (?, ?, ?)`,
-    [PlanID, PartNumber, Timestamp],
+    [HistoryID, PartNumber, Timestamp],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureHand");
-      io.emit("updateManufactureDetails")
+      io.emit("updateManufactureDetails");
       res.json({ message: "ManufactureHand received" });
     }
   );
@@ -2218,16 +2326,16 @@ app.post("/Manufacture/RW", (req, res) => {
 
 // Post value in table ManufactureIPQC
 app.post("/Manufacture/IPQC", (req, res) => {
-  const { PartNumber, PlanID, Timestamp } = req.body;
-  
+  const { PartNumber, HistoryID, Timestamp } = req.body;
+
   db.run(
-    `INSERT INTO ManufactureIPQC (PlanID, PartNumber, Timestamp)
+    `INSERT INTO ManufactureIPQC (HistoryID, PartNumber, Timestamp)
      VALUES (?, ?, ?)`,
-    [PlanID, PartNumber, Timestamp],
+    [HistoryID, PartNumber, Timestamp],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureIPQC");
-      io.emit("updateManufactureDetails")
+      io.emit("updateManufactureDetails");
       res.json({ message: "ManufactureIPQC received" });
     }
   );
@@ -2236,7 +2344,7 @@ app.post("/Manufacture/IPQC", (req, res) => {
 // Post value in table ManufactureTest
 app.post("/Manufacture/Assembly", (req, res) => {
   const { PartNumber, PlanID, Timestamp } = req.body;
-  
+
   db.run(
     `INSERT INTO ManufactureAssembly (PlanID, PartNumber, Timestamp)
      VALUES (?, ?, ?)`,
@@ -2244,7 +2352,7 @@ app.post("/Manufacture/Assembly", (req, res) => {
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureTest");
-      io.emit("updateManufactureDetails")
+      io.emit("updateManufactureDetails");
       res.json({ message: "ManufactureTest received" });
     }
   );
@@ -2252,16 +2360,16 @@ app.post("/Manufacture/Assembly", (req, res) => {
 
 // Post value in table ManufactureOQC
 app.post("/Manufacture/OQC", (req, res) => {
-  const { PartNumber, PlanID, Timestamp } = req.body;
-  
+  const { PartNumber, HistoryID, Timestamp } = req.body;
+
   db.run(
-    `INSERT INTO ManufactureOQC (PlanID, PartNumber, Timestamp)
+    `INSERT INTO ManufactureOQC (HistoryID, PartNumber, Timestamp)
      VALUES (?, ?, ?)`,
-    [PlanID, PartNumber, Timestamp],
+    [HistoryID, PartNumber, Timestamp],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureOQC");
-      io.emit("updateManufactureDetails")
+      io.emit("updateManufactureDetails");
       res.json({ message: "ManufactureOQC received" });
     }
   );
@@ -2269,19 +2377,40 @@ app.post("/Manufacture/OQC", (req, res) => {
 
 // Post value in table Summary
 app.post("/Summary/Add-item", (req, res) => {
-  const { Type, PlanID, PONumber, Category, Quantity_Plan, CycleTime_Plan, Time_Plan, Note, Created_At } = req.body;
-  
+  const {
+    Type,
+    PlanID,
+    PONumber,
+    Category,
+    Quantity_Plan,
+    CycleTime_Plan,
+    Time_Plan,
+    Note,
+    Created_At,
+  } = req.body;
   db.run(
     `INSERT INTO Summary (Type, PlanID, PONumber, Category, Quantity_Plan, CycleTime_Plan, Time_Plan, Note, Created_At)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [Type, PlanID, PONumber, Category, Quantity_Plan, CycleTime_Plan, Time_Plan, Note, Created_At],
+    [
+      Type,
+      PlanID,
+      PONumber,
+      Category,
+      Quantity_Plan,
+      CycleTime_Plan,
+      Time_Plan,
+      Note,
+      Created_At,
+    ],
     (err) => {
       if (err) {
         console.error("Database error:", err);
-        return res.status(500).json({ error: "Database error", details: err.message });
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
       }
-      io.emit("UpdateSummary")
-      io.emit("UpdateHistory")
+      io.emit("UpdateSummary");
+      io.emit("UpdateHistory");
       res.json({ message: "Summary received" });
     }
   );
@@ -2289,22 +2418,40 @@ app.post("/Summary/Add-item", (req, res) => {
 
 // Update value in table Summary
 app.put("/Summary/Edit-item/:id", (req, res) => {
-  const { Type, PONumber, Category, Quantity_Plan, CycleTime_Plan, Time_Plan, Note, Created_At } = req.body;
-  const {id} = req.params;
+  const {
+    Type,
+    PONumber,
+    Category,
+    Quantity_Plan,
+    CycleTime_Plan,
+    Time_Plan,
+    Note,
+    Created_At,
+  } = req.body;
+  const { id } = req.params;
   db.run(
     `UPDATE Summary
       SET Type=?, PONumber=?, Category=?, Quantity_Plan=?, CycleTime_Plan=?, Time_Plan=?, Note=?, Created_At=?
       WHERE id=?`,
-    [Type, PONumber, Category, Quantity_Plan, CycleTime_Plan, Time_Plan, Note, Created_At, id],
+    [
+      Type,
+      PONumber,
+      Category,
+      Quantity_Plan,
+      CycleTime_Plan,
+      Time_Plan,
+      Note,
+      Created_At,
+      id,
+    ],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
-      io.emit("UpdateSummary")
-      io.emit("UpdateHistory")
+      io.emit("UpdateSummary");
+      io.emit("UpdateHistory");
       res.json({ message: "Summary received" });
     }
   );
 });
-
 
 // Catch-all route cho frontend
 app.get("*", (req, res) => {

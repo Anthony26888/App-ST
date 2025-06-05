@@ -83,6 +83,30 @@
         </v-col>
       </v-row>
 
+      <!-- Charts -->
+      <v-row>
+        <v-col cols="12" md="8">
+          <v-card class="mb-4 rounded-xl" elevation="2" height="400px">
+            <v-card-title class="d-flex align-center">
+              <span>Biểu đồ so sánh kế hoạch và thực tế theo hạng mục</span>
+            </v-card-title>
+            <v-card-text>
+              <canvas ref="summaryChart" height="300"></canvas>
+            </v-card-text>
+          </v-card>
+        </v-col>
+        <v-col cols="12" md="4">
+          <v-card class="mb-4 rounded-xl" elevation="2" height="400px">
+            <v-card-title class="d-flex align-center">
+              <span>Phân bố theo loại</span>
+            </v-card-title>
+            <v-card-text>
+              <canvas ref="pieChart" height="300"></canvas>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
+
       <!-- Bảng dữ liệu -->
       <v-data-table
         :headers="Headers"
@@ -102,8 +126,6 @@
               ></v-icon>
               Báo cáo chi tiết
             </v-toolbar-title>
-
-            <ButtonAdd label="Thêm" @click="DialogAdd = true" />
           </v-toolbar>
         </template>
 
@@ -122,16 +144,11 @@
             </td>
           </tr>
         </template>
-
-        <template v-slot:item.id="{ item }">
-          <div class="d-flex gap-2">
-            <ButtonEdit @click="GetItem(item)" />
-          </div>
-        </template>
         <template v-slot:item.Percent="{ item }">
-          {{ item.Percent }}%
+          <v-progress-linear v-model="item.Percent" height="25" color="success">
+            <strong>{{ Math.ceil(item.Percent) }}%</strong>
+          </v-progress-linear>
         </template>
-
         <template v-slot:bottom>
           <div class="text-center pt-2">
             <v-pagination
@@ -142,107 +159,6 @@
         </template>
       </v-data-table>
     </v-card-text>
-
-    <v-dialog v-model="DialogAdd" width="500" scrollable>
-      <v-card max-width="500" class="overflow-y-auto">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
-          Thêm dữ liệu kế hoạch
-        </v-card-title>
-        <v-card-text>
-          <InputSelect
-            label="Công đoạn"
-            :items="['SMT', 'AOI-IPQC', 'RW', 'ASSEMBLY', 'IPQC', 'OQC']"
-            variant="solo-filled"
-            v-model="Type_Add"
-          />
-          <InputField label="Số PO" v-model="PONumber_Add" />
-          <InputField label="Hạng mục" v-model="Category_Add" />
-
-          <v-row>
-            <v-col cols="12" sm="4">
-              <InputField
-                label="Số lượng"
-                type="number"
-                v-model="Quantity_Plan_Add"
-              />
-            </v-col>
-            <v-col cols="12" sm="4">
-              <InputField
-                label="Vòng lặp"
-                type="number"
-                v-model="CycleTime_Add"
-              />
-            </v-col>
-            <v-col cols="12" sm="4">
-              <InputField label="Thời gian" type="number" v-model="Time_Add" />
-            </v-col>
-          </v-row>
-          <InputTextarea label="Ghi chú" v-model="Note_Add" />
-        </v-card-text>
-        <v-card-actions>
-          <ButtonCancel @cancel="DialogAdd = false" />
-          <ButtonSave @save="SaveAdd()" />
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- Dialog Edit ---->
-    <v-dialog v-model="DialogEdit" width="500" scrollable>
-      <v-card max-width="500" class="overflow-y-auto">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon icon="mdi-pencil" color="primary" class="me-2"></v-icon>
-          Sửa dữ liệu kế hoạch
-        </v-card-title>
-        <v-card-text>
-          <InputSelect
-            label="Công đoạn"
-            :items="['SMT', 'AOI-IPQC', 'RW', 'ASSEMBLY', 'IPQC', 'OQC']"
-            variant="solo-filled"
-            v-model="Type_Edit"
-          />
-          <InputField label="Số PO" v-model="PONumber_Edit" />
-          <InputField label="Hạng mục" v-model="Category_Edit" />
-
-          <v-row>
-            <v-col cols="12" sm="4">
-              <InputField
-                label="Số lượng"
-                type="number"
-                v-model="Quantity_Plan_Edit"
-              />
-            </v-col>
-            <v-col cols="12" sm="4">
-              <InputField
-                label="Vòng lặp"
-                type="number"
-                v-model="CycleTime_Edit"
-              />
-            </v-col>
-            <v-col cols="12" sm="4">
-              <InputField label="Thời gian" type="number" v-model="Time_Edit" />
-            </v-col>
-          </v-row>
-          <InputTextarea label="Ghi chú" v-model="Note_Edit" />
-        </v-card-text>
-        <v-card-actions>
-          <ButtonCancel @cancel="DialogEdit = false" />
-          <ButtonSave @save="SaveEdit()" />
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-    <!-- Dialog xác nhận xóa -->
-    <v-dialog v-model="DialogRemove" max-width="500px">
-      <v-card>
-        <v-card-title>Xác nhận xóa</v-card-title>
-        <v-card-text>Bạn có chắc chắn muốn xóa dự án này?</v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn color="primary" @click="RemoveItem">Xác nhận</v-btn>
-          <v-btn color="error" @click="DialogRemove = false">Hủy</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
   </v-card>
 
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
@@ -254,7 +170,8 @@
 // Core dependencies
 import axios from "axios";
 import { useRouter } from "vue-router";
-import { ref, reactive, computed, watch } from "vue";
+import { ref, reactive, computed, watch, onMounted, nextTick } from "vue";
+import Chart from "chart.js/auto";
 
 // Components
 import InputSearch from "@/components/Input-Search.vue";
@@ -286,32 +203,10 @@ const router = useRouter();
 const DialogSuccess = ref(false); // Success notification
 const DialogFailed = ref(false); // Error notification
 const DialogLoading = ref(false); // Loading state
-const DialogRemove = ref(false); // Remove confirmation dialog
-const DialogAdd = ref(false); // Add new item dialog
-const DialogEdit = ref(false); // Edit dialog
-const GetID = ref("");
 // ===== MESSAGE DIALOG =====
 // Message for success and error notifications
 const MessageDialog = ref("");
 const MessageErrorDialog = ref("");
-
-// ===== FORM ADD =====
-const Type_Add = ref("");
-const PONumber_Add = ref("");
-const Category_Add = ref("");
-const Quantity_Plan_Add = ref("");
-const CycleTime_Add = ref("");
-const Time_Add = ref("");
-const Note_Add = ref("");
-
-// ===== FORM EDIT =====
-const Type_Edit = ref("");
-const PONumber_Edit = ref("");
-const Category_Edit = ref("");
-const Quantity_Plan_Edit = ref("");
-const CycleTime_Edit = ref("");
-const Time_Edit = ref("");
-const Note_Edit = ref("");
 
 // ===== Table States =====
 const search = ref("");
@@ -338,7 +233,6 @@ const Headers = ref([
       { title: "Ghi chú", key: "Note" },
     ],
   },
-  { key: "id", sortable: false, title: "Thao tác" },
 ]);
 
 // ===== COMPUTED =======
@@ -401,128 +295,309 @@ watch(
   { deep: true }
 );
 
-// ===== CRUD OPERATIONS =====
-/**
- * Navigates to customer details page and stores customer information
- * @param {string} value - The ID of the customer to view
- */
+// ===== CHART CONFIGURATION =====
+const summaryChart = ref(null);
+const pieChart = ref(null);
+let chart = null;
+let pieChartInstance = null;
 
-/** CRUD
- * Saves edited customer data
- * Makes an API call to update customer information
- */
-
-const GetItem = (item) => {
-  DialogEdit.value = true;
-  Type_Edit.value = item.Type;
-  PONumber_Edit.value = item.PONumber;
-  Category_Edit.value = item.Category;
-  Quantity_Plan_Edit.value = item.Quantity_Plan;
-  CycleTime_Edit.value = item.CycleTime_Plan;
-  Time_Edit.value = item.Time_Plan;
-  Note_Edit.value = item.Note;
-  GetID.value = item.id;
-};
-
-const SaveEdit = async () => {
-  DialogLoading.value = true;
-  const formData = reactive({
-    Type: Type_Edit.value,
-    PONumber: PONumber_Edit.value,
-    Category: Category_Edit.value,
-    Quantity_Plan: Quantity_Plan_Edit.value,
-    CycleTime_Plan: CycleTime_Edit.value,
-    Time_Plan: Time_Edit.value,
-    Note: Note_Edit.value,
-    Created_At: formattedSelectedDate.value,
+// Initialize charts
+onMounted(() => {
+  nextTick(() => {
+    initializeChart();
+    initializePieChart();
   });
+});
 
-  try {
-    const response = await axios.put(
-      `${Url}/Summary/Edit-item/${GetID.value}`,
-      formData
-    );
-    console.log(response.data.message);
-    MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
-    Reset();
-  } catch (error) {
-    console.log(error);
-    MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
-    Error();
+function initializeChart() {
+  if (!summaryChart.value) return;
+
+  const ctx = summaryChart.value.getContext("2d");
+
+  // Destroy existing chart if it exists
+  if (chart) {
+    chart.destroy();
   }
-};
 
-/**
- * Saves new customer data
- * Makes an API call to create a new customer
- */
-const SaveAdd = async () => {
-  DialogLoading.value = true;
-  const formData = reactive({
-    Type: Type_Add.value,
-    PONumber: PONumber_Add.value,
-    Category: Category_Add.value,
-    Quantity_Plan: Quantity_Plan_Add.value,
-    CycleTime_Plan: CycleTime_Add.value,
-    Time_Plan: Time_Add.value,
-    Note: Note_Add.value,
-    Created_At: formattedSelectedDate.value,
+  // Group data by Category
+  const groupedData =
+    summary.value?.reduce((acc, item) => {
+      if (!acc[item.Category]) {
+        acc[item.Category] = {
+          plan: 0,
+          real: 0,
+        };
+      }
+      acc[item.Category].plan += Number(item.Quantity_Plan) || 0;
+      acc[item.Category].real += Number(item.Quantity_Real) || 0;
+      return acc;
+    }, {}) || {};
+
+  // Sort categories by total quantity (plan + real)
+  const sortedCategories = Object.entries(groupedData)
+    .sort(([, a], [, b]) => b.plan + b.real - (a.plan + a.real))
+    .reduce((acc, [key, value]) => {
+      acc[key] = value;
+      return acc;
+    }, {});
+
+  // Prepare data for chart
+  const chartData = {
+    labels: Object.keys(sortedCategories),
+    datasets: [
+      {
+        label: "Kế hoạch",
+        data: Object.values(sortedCategories).map((item) => item.plan),
+        backgroundColor: "rgba(25, 118, 210, 0.8)",
+        borderColor: "#1976D2",
+        borderWidth: 1,
+        borderRadius: 4,
+        barPercentage: 0.8,
+        categoryPercentage: 0.9,
+      },
+      {
+        label: "Thực tế",
+        data: Object.values(sortedCategories).map((item) => item.real),
+        backgroundColor: "rgba(76, 175, 80, 0.8)",
+        borderColor: "#4CAF50",
+        borderWidth: 1,
+        borderRadius: 4,
+        barPercentage: 0.8,
+        categoryPercentage: 0.9,
+      },
+    ],
+  };
+
+  // Create new chart
+  chart = new Chart(ctx, {
+    type: "bar",
+    data: chartData,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: "index",
+      },
+      plugins: {
+        legend: {
+          position: "top",
+          labels: {
+            usePointStyle: true,
+            padding: 20,
+          },
+        },
+        title: {
+          display: true,
+          text: "Biểu đồ so sánh kế hoạch và thực tế theo hạng mục",
+          font: {
+            size: 16,
+            weight: "bold",
+          },
+          padding: {
+            top: 10,
+            bottom: 20,
+          },
+        },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              let label = context.dataset.label || "";
+              if (label) {
+                label += ": ";
+              }
+              if (context.parsed.y !== null) {
+                label += new Intl.NumberFormat("vi-VN").format(
+                  context.parsed.y
+                );
+              }
+              return label;
+            },
+          },
+        },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          stacked: false,
+          title: {
+            display: true,
+            text: "Số lượng",
+            font: {
+              weight: "bold",
+            },
+          },
+          ticks: {
+            callback: function (value) {
+              return new Intl.NumberFormat("vi-VN").format(value);
+            },
+          },
+          grid: {
+            color: "rgba(0, 0, 0, 0.1)",
+          },
+        },
+        x: {
+          stacked: false,
+          title: {
+            display: true,
+            text: "Hạng mục",
+            font: {
+              weight: "bold",
+            },
+          },
+          grid: {
+            display: false,
+          },
+          ticks: {
+            maxRotation: 0,
+            minRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 10,
+          },
+        },
+      },
+      layout: {
+        padding: {
+          bottom: 20,
+        },
+      },
+    },
   });
+}
 
-  try {
-    const response = await axios.post(`${Url}/Summary/Add-item`, formData);
-    console.log(response.data);
-    MessageDialog.value = "Thêm dữ liệu thành công";
-    Reset();
-  } catch (error) {
-    console.log(error);
-    MessageErrorDialog.value = "Thêm dữ liệu thất bại";
-    Error();
+function initializePieChart() {
+  if (!pieChart.value) return;
+
+  const ctx = pieChart.value.getContext("2d");
+
+  // Destroy existing chart if it exists
+  if (pieChartInstance) {
+    pieChartInstance.destroy();
   }
-};
 
+  // Group data by Type
+  const groupedData = summary.value?.reduce((acc, item) => {
+    if (!acc[item.Type]) {
+      acc[item.Type] = 0;
+    }
+    acc[item.Type] += Number(item.Quantity_Real) || 0;
+    return acc;
+  }, {}) || {};
 
-/**
- * Removes a customer from the system
- * Makes an API call to delete the customer
- */
-const RemoveItem = async (id) => {
-  DialogLoading.value = true;
-  try {
-    const response = await axios.delete(
-      `${Url}/Project/Customer/Delete-Customer/${GetID.value}`
-    );
-    console.log(response.data.message);
-    MessageDialog.value = "Xoá dữ liệu thành công";
-    Reset();
-  } catch (error) {
-    console.log(error);
-    MessageErrorDialog.value = "Xoá dữ liệu thất bại";
-    Error();
-  }
-};
+  // Calculate total for percentage
+  const total = Object.values(groupedData).reduce((sum, value) => sum + value, 0);
 
-// ===== FILE OPERATIONS =====
-/**
- * Imports customer data from a file
- * Makes an API call to upload and process the file
- */
-const ImportFile = async () => {
-  DialogLoading.value = true;
-  const formData = new FormData();
-  formData.append("file", File.value);
+  // Create new chart
+  pieChartInstance = new Chart(ctx, {
+    type: "pie",
+    data: {
+      labels: Object.keys(groupedData),
+      datasets: [
+        {
+          data: Object.values(groupedData).map(value => ((value / total) * 100).toFixed(1)),
+          backgroundColor: [
+            "rgba(25, 118, 210, 0.8)",
+            "rgba(76, 175, 80, 0.8)",
+            "rgba(255, 152, 0, 0.8)",
+            "rgba(233, 30, 99, 0.8)",
+            "rgba(156, 39, 176, 0.8)",
+            "rgba(0, 150, 136, 0.8)",
+          ],
+          borderColor: [
+            "#1976D2",
+            "#4CAF50",
+            "#FF9800",
+            "#E91E63",
+            "#9C27B0",
+            "#009688",
+          ],
+          borderWidth: 1,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "right",
+          labels: {
+            usePointStyle: true,
+            padding: 20,
+          },
+        },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              const label = context.label || "";
+              const value = context.raw || 0;
+              return `${label}: ${value}%`;
+            },
+          },
+        },
+      },
+    },
+  });
+}
 
-  try {
-    const response = await axios.post(`${Url}/Project/upload`, formData);
-    console.log(response);
-    MessageDialog.value = "Tải file thành công";
-    Reset();
-  } catch (error) {
-    console.log(error);
-    MessageErrorDialog.value = "Tải file thất bại";
-    Error();
-  }
-};
+// Watch for changes in summary data
+watch(
+  summary,
+  (newData) => {
+    if (newData) {
+      if (chart) {
+        // Update bar chart
+        const groupedData = newData.reduce((acc, item) => {
+          if (!acc[item.Category]) {
+            acc[item.Category] = {
+              plan: 0,
+              real: 0,
+            };
+          }
+          acc[item.Category].plan += Number(item.Quantity_Plan) || 0;
+          acc[item.Category].real += Number(item.Quantity_Real) || 0;
+          return acc;
+        }, {});
+
+        const sortedCategories = Object.entries(groupedData)
+          .sort(([, a], [, b]) => b.plan + b.real - (a.plan + a.real))
+          .reduce((acc, [key, value]) => {
+            acc[key] = value;
+            return acc;
+          }, {});
+
+        chart.data.labels = Object.keys(sortedCategories);
+        chart.data.datasets[0].data = Object.values(sortedCategories).map(
+          (item) => item.plan
+        );
+        chart.data.datasets[1].data = Object.values(sortedCategories).map(
+          (item) => item.real
+        );
+        chart.update();
+      }
+
+      if (pieChartInstance) {
+        // Update pie chart
+        const groupedData = newData.reduce((acc, item) => {
+          if (!acc[item.Type]) {
+            acc[item.Type] = 0;
+          }
+          acc[item.Type] += Number(item.Quantity_Real) || 0;
+          return acc;
+        }, {});
+
+        const total = Object.values(groupedData).reduce((sum, value) => sum + value, 0);
+
+        pieChartInstance.data.labels = Object.keys(groupedData);
+        pieChartInstance.data.datasets[0].data = Object.values(groupedData).map(
+          value => ((value / total) * 100).toFixed(1)
+        );
+        pieChartInstance.update();
+      }
+    }
+  },
+  { deep: true }
+);
 
 // ===== UTILITY FUNCTIONS =====
 /**

@@ -205,65 +205,59 @@ db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS ManufactureSMT (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      PlanID INTEGER NOT NULL,
       HistoryID INTEGER NOT NULL,
       Input INTEGER NOT NULL,
       Timestamp TEXT NOT NULL,
-      FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
+      FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
 
   db.run(`
     CREATE TABLE IF NOT EXISTS ManufactureAOI (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      PlanID INTEGER,
       HistoryID INTEGER NOT NULL,
       PartNumber TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
-      FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
+      FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
   db.run(`
     CREATE TABLE IF NOT EXISTS ManufactureRW (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      PlanID INTEGER,
       HistoryID INTEGER NOT NULL,
       PartNumber TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
-      FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
+      FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
 
   db.run(`
     CREATE TABLE IF NOT EXISTS ManufactureIPQC (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      PlanID INTEGER,
       HistoryID INTEGER NOT NULL,
       PartNumber TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
-      FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
+      FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
 
   db.run(`
     CREATE TABLE IF NOT EXISTS ManufactureAssembly (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      PlanID INTEGER,
       HistoryID INTEGER NOT NULL,
       PartNumber TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
-      FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
+      FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
 
   db.run(`
     CREATE TABLE IF NOT EXISTS ManufactureOQC (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      PlanID INTEGER,
       HistoryID INTEGER NOT NULL,
       PartNumber TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
-      FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
+      FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
 
@@ -279,7 +273,8 @@ db.serialize(() => {
       CycleTime_Plan INTEGER,
       Time_Plan INTEGER,
       Note TEXT,
-      Created_At TEXT 
+      Created_At TEXT, 
+      FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
     )
   `);
 

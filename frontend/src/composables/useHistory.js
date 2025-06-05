@@ -71,6 +71,11 @@ export function useHistory(id) {
       historyError.value = error.message || "Failed to fetch history data";
     });
 
+    socket.on("UpdateHistory", () => {
+      console.log("UpdateHistory from socket");
+      fetchData();
+    });
+
     socket.on("disconnect", () => {
       console.log("Socket disconnected");
     });
@@ -86,6 +91,7 @@ export function useHistory(id) {
     if (socket) {
       socket.off("HistoryData");
       socket.off("HistoryError");
+      socket.off("UpdateHistory");
       socket.off("connect");
       socket.off("disconnect");
       socket.off("connect_error");

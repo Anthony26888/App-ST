@@ -150,9 +150,9 @@
           <InputSelect
             label="Quy trình"
             :items="[
-              'SMT - AOI - Hàn tay - IPQC - Test - OQC',
-              'SMT - AOI - Hàn tay - OQC',
-              'SMT - Hàn tay - OQC'
+              'SMT - AOI - RW - IPQC - Assembly - OQC',
+              'SMT - AOI - RW - OQC',
+              'SMT - RW - OQC'
             ]"
             variant="solo-filled"
             v-model="Level_Edit"
@@ -223,9 +223,9 @@
           <InputSelect
             label="Quy trình"
             :items="[
-              'SMT - AOI - Hàn tay - IPQC - Test - OQC',
-              'SMT - AOI - Hàn tay - OQC',
-              'SMT - Hàn tay - OQC'
+              'SMT - AOI - RW - IPQC - Assembly - OQC',
+              'SMT - AOI - RW - OQC',
+              'SMT - RW - OQC'
             ]"
             v-model="Level_Add"
           />
@@ -357,7 +357,7 @@ const Note_Add = ref("");
 const Total_Add = ref(0);
 const DelaySMT_Add = ref(50);
 const Level_Add = ref("");
-const Quantity_Add = ref(0);
+const Quantity_Add = ref(1);
 
 
 

@@ -105,7 +105,7 @@
               </v-card-text>
             </v-card>
           </v-col>
-          <v-col cols="12" sm="4" v-if="Level_Hand == true">
+          <v-col cols="12" sm="4" v-if="Level_RW == true">
             <v-card class="mx-auto rounded-xl" elevation="2">
               <template v-slot:prepend>
                 <div class="text-h6 mb-2">RW</div>
@@ -115,7 +115,7 @@
               </template>
               <v-card-text>
                 <div class="text-h4 font-weight-bold color-Hand">
-                  {{ totalHand }}
+                  {{ totalRW }}
                 </div>
                 <div class="text-caption text-medium-emphasis">
                   Tổng số lượng sản phẩm RW
@@ -141,7 +141,7 @@
               </v-card-text>
             </v-card>
           </v-col>
-          <v-col cols="12" sm="4" v-if="Level_Test == true">
+          <v-col cols="12" sm="4" v-if="Level_Assembly == true">
             <v-card class="mx-auto rounded-xl" elevation="2">
               <template v-slot:prepend>
                 <div class="text-h6 mb-2">Assembly</div>
@@ -151,7 +151,7 @@
               </template>
               <v-card-text>
                 <div class="text-h4 font-weight-bold color-Test">
-                  {{ totalTest }}
+                  {{ totalAssembly }}
                 </div>
                 <div class="text-caption text-medium-emphasis">
                   Tổng số lượng Assembly
@@ -254,13 +254,14 @@
               </td>
             </tr>
           </template>
-
+          
           <template v-slot:item.id="{ item }">
             <div class="d-flex gap-2">
               <ButtonEye @click="PushItem(item)" />
               <ButtonEdit @click="GetItem(item)" />
             </div>
           </template>
+          
 
           <template v-slot:no-data>
             <v-alert type="info" text="Không có dữ liệu" class="ma-4"></v-alert>
@@ -270,7 +271,9 @@
             <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
           </template>
           <template v-slot:item.Percent="{ item }">
-            {{ item.Percent }}%
+            <v-progress-linear v-model="item.Percent" height="25" color="success">
+              <strong>{{ Math.ceil(item.Percent) }}%</strong>
+            </v-progress-linear>
           </template>
           <template v-slot:bottom>
             <div class="text-center pt-2">
@@ -293,7 +296,7 @@
         <v-card-text>
           <InputSelect
             label="Công đoạn"
-            :items="['SMT', 'AOI-IPQC', 'RW', 'ASSEMBLY', 'IPQC', 'OQC']"
+            :items="['SMT', 'AOI', 'RW', 'ASSEMBLY', 'IPQC', 'OQC']"
             variant="solo-filled"
             v-model="Type_Add"
           />
@@ -338,7 +341,7 @@
         <v-card-text>
           <InputSelect
             label="Công đoạn"
-            :items="['SMT', 'AOI-IPQC', 'RW', 'ASSEMBLY', 'IPQC', 'OQC']"
+            :items="['SMT', 'AOI', 'RW', 'ASSEMBLY', 'IPQC', 'OQC']"
             variant="solo-filled"
             v-model="Type_Edit"
           />
@@ -443,17 +446,17 @@ const GetID = ref(null);
 const totalInput = ref(0);
 const totalSMT = ref(0);
 const totalAOI = ref(0);
-const totalHand = ref(0);
+const totalRW = ref(0);
 const totalIPQC = ref(0);
-const totalTest = ref(0);
+const totalAssembly = ref(0);
 const totalOQC = ref(0);
 
 // Level
 const Level_SMT = ref(false);
 const Level_AOI = ref(0);
-const Level_Hand = ref(0);
+const Level_RW = ref(0);
 const Level_IPQC = ref(0);
-const Level_Test = ref(0);
+const Level_Assembly = ref(0);
 const Level_OQC = ref(0);
 
 // Data
@@ -500,9 +503,9 @@ watch(
       // Initialize levels based on DataManufacture
       Level_SMT.value = DataManufacture.value?.includes("SMT") || false;
       Level_AOI.value = DataManufacture.value?.includes("AOI") || false;
-      Level_Hand.value = DataManufacture.value?.includes("Hàn tay") || false;
+      Level_RW.value = DataManufacture.value?.includes("RW") || false;
       Level_IPQC.value = DataManufacture.value?.includes("IPQC") || false;
-      Level_Test.value = DataManufacture.value?.includes("Test") || false;
+      Level_Assembly.value = DataManufacture.value?.includes("Assembly") || false;
       Level_OQC.value = DataManufacture.value?.includes("OQC") || false;
     } else {
       console.warn("No manufacture data found or Level is undefined");
@@ -536,9 +539,9 @@ const Data = {
   labels: manufactureDetails.value?.map((item) => `${item.Date}`) || [],
   SMT: manufactureDetails.value?.map((item) => item.SMT) || [],
   AOI: manufactureDetails.value?.map((item) => item.AOI) || [],
-  Hand: manufactureDetails.value?.map((item) => item.Hand) || [],
+  RW: manufactureDetails.value?.map((item) => item.RW) || [],
   IPQC: manufactureDetails.value?.map((item) => item.IPQC) || [],
-  Test: manufactureDetails.value?.map((item) => item.Test) || [],
+  Assembly: manufactureDetails.value?.map((item) => item.Assembly) || [],
   OQC: manufactureDetails.value?.map((item) => item.OQC) || [],
 };
 
@@ -575,12 +578,12 @@ const PushItem = (item) => {
   localStorage.setItem("ManufactureID", id);
   if (item.Type === "SMT") {
     router.push(`/san-xuat/SMT/${item.id}`);
-  } else if (item.Type === "AOI-IPQC") {
+  } else if (item.Type === "AOI") {
     router.push(`/san-xuat/AOI/${item.id}`);
   } else if (item.Type === "RW") {
-    router.push(`/san-xuat/Han-tay/${item.id}`);
-  } else if (item.Type === "ASSEMBLY") {
-    router.push(`/san-xuat/Test/${item.id}`);
+    router.push(`/san-xuat/RW/${item.id}`);
+  } else if (item.Type === "Assembly") {
+    router.push(`/san-xuat/Assembly/${item.id}`);
   } else if (item.Type === "IPQC") {
     router.push(`/san-xuat/IPQC/${itemid}`);
   } else if (item.Type === "OQC") {
@@ -714,7 +717,7 @@ function initializeChart() {
           categoryPercentage: 0.9,
         },
         {
-          label: "Hàn tay",
+          label: "RW",
           backgroundColor: "rgba(255, 0, 0, 0.8)",
           borderColor: "#FF0000",
           data: Data.Hand,
@@ -734,7 +737,7 @@ function initializeChart() {
           categoryPercentage: 0.9,
         },
         {
-          label: "Test",
+          label: "Assembly",
           backgroundColor: "rgba(255, 165, 0, 0.8)",
           borderColor: "#FFA500",
           data: Data.Test,
@@ -852,24 +855,24 @@ function initializeDoughnutChart() {
   const total =
     Data.SMT.reduce((a, b) => a + b, 0) +
     Data.AOI.reduce((a, b) => a + b, 0) +
-    Data.Hand.reduce((a, b) => a + b, 0) +
+    Data.RW.reduce((a, b) => a + b, 0) +
     Data.IPQC.reduce((a, b) => a + b, 0) +
-    Data.Test.reduce((a, b) => a + b, 0) +
+    Data.Assembly.reduce((a, b) => a + b, 0) +
     Data.OQC.reduce((a, b) => a + b, 0);
 
   // Create new chart
   doughnutChartInstance = new Chart(ctx, {
     type: "doughnut",
     data: {
-      labels: ["SMT", "AOI", "Hàn tay", "IPQC", "Test", "OQC"],
+      labels: ["SMT", "AOI", "RW", "IPQC", "Assembly", "OQC"],
       datasets: [
         {
           data: [
             ((Data.SMT.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
             ((Data.AOI.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
-            ((Data.Hand.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
+            ((Data.RW.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
             ((Data.IPQC.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
-            ((Data.Test.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
+            ((Data.Assembly.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
             ((Data.OQC.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
           ],
           backgroundColor: [
@@ -926,9 +929,9 @@ async function fetchProductionData() {
     if (manufactureDetails.value && manufactureDetails.value.length > 0) {
       totalSMT.value = Data.SMT.reduce((a, b) => a + b, 0);
       totalAOI.value = Data.AOI.reduce((a, b) => a + b, 0);
-      totalHand.value = Data.Hand.reduce((a, b) => a + b, 0);
+      totalRW.value = Data.RW.reduce((a, b) => a + b, 0);
       totalIPQC.value = Data.IPQC.reduce((a, b) => a + b, 0);
-      totalTest.value = Data.Test.reduce((a, b) => a + b, 0);
+      totalAssembly.value = Data.Assembly.reduce((a, b) => a + b, 0);
       totalOQC.value = Data.OQC.reduce((a, b) => a + b, 0);
     }
   } catch (error) {
@@ -953,9 +956,9 @@ watch(
       Data.labels = newData.map((item) => `${item.Date}`);
       Data.SMT = newData.map((item) => item.SMT);
       Data.AOI = newData.map((item) => item.AOI);
-      Data.Hand = newData.map((item) => item.Hand);
+      Data.RW = newData.map((item) => item.RW);
       Data.IPQC = newData.map((item) => item.IPQC);
-      Data.Test = newData.map((item) => item.Test);
+      Data.Assembly = newData.map((item) => item.Assembly);
       Data.OQC = newData.map((item) => item.OQC);
 
       // Calculate total input
@@ -969,9 +972,9 @@ watch(
         chart.data.labels = Data.labels;
         chart.data.datasets[0].data = Data.SMT;
         chart.data.datasets[1].data = Data.AOI;
-        chart.data.datasets[2].data = Data.Hand;
+        chart.data.datasets[2].data = Data.RW;
         chart.data.datasets[3].data = Data.IPQC;
-        chart.data.datasets[4].data = Data.Test;
+        chart.data.datasets[4].data = Data.Assembly;
         chart.data.datasets[5].data = Data.OQC;
         chart.update();
       }
@@ -981,17 +984,17 @@ watch(
         const total =
           Data.SMT.reduce((a, b) => a + b, 0) +
           Data.AOI.reduce((a, b) => a + b, 0) +
-          Data.Hand.reduce((a, b) => a + b, 0) +
+          Data.RW.reduce((a, b) => a + b, 0) +
           Data.IPQC.reduce((a, b) => a + b, 0) +
-          Data.Test.reduce((a, b) => a + b, 0) +
+          Data.Assembly.reduce((a, b) => a + b, 0) +
           Data.OQC.reduce((a, b) => a + b, 0);
 
         doughnutChartInstance.data.datasets[0].data = [
           ((Data.SMT.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
           ((Data.AOI.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
-          ((Data.Hand.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
+          ((Data.RW.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
           ((Data.IPQC.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
-          ((Data.Test.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
+          ((Data.Assembly.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
           ((Data.OQC.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
         ];
         doughnutChartInstance.update();
@@ -1000,9 +1003,9 @@ watch(
       // Update statistics
       totalSMT.value = Data.SMT.reduce((a, b) => a + b, 0);
       totalAOI.value = Data.AOI.reduce((a, b) => a + b, 0);
-      totalHand.value = Data.Hand.reduce((a, b) => a + b, 0);
+      totalRW.value = Data.RW.reduce((a, b) => a + b, 0);
       totalIPQC.value = Data.IPQC.reduce((a, b) => a + b, 0);
-      totalTest.value = Data.Test.reduce((a, b) => a + b, 0);
+      totalAssembly.value = Data.Assembly.reduce((a, b) => a + b, 0);
       totalOQC.value = Data.OQC.reduce((a, b) => a + b, 0);
     }
   },

@@ -2,7 +2,7 @@
   <div>
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <v-card-title class="text-h4 font-weight-light">
-        <ButtonBack :to="`/San-xuat/Chi-tiet/${id}`" />
+        <ButtonBack :to="`/San-xuat/Chi-tiet/${back}`" />
         Theo dõi sản xuất hàn tay</v-card-title
       >
       <v-card-title class="d-flex align-center pe-2">
@@ -111,7 +111,7 @@ import { useRoute } from "vue-router";
 import axios from "axios";
 
 // Composables
-import { useManufactureDetails } from "@/composables/useManufactureDetails";
+import { useHistory } from "@/composables/useHistory";
 import { useManufactureHand } from "@/composables/useManufactureHand";
 
 // Components
@@ -124,6 +124,11 @@ import InputField from "@/components/Input-Field.vue";
 const Url = import.meta.env.VITE_API_URL;
 const route = useRoute();
 const id = route.params.id;
+const back = localStorage.getItem("ManufactureID");
+
+// Initialize composables for data fetching
+const { history, historyError } = useHistory(back);
+const { manufactureHand, manufactureHandError } = useManufactureHand(id);
 
 // Table configuration
 const Headers = [
@@ -133,9 +138,7 @@ const Headers = [
 ];
 
 // ===== Composables & Data Management =====
-// Initialize composables for data fetching
-const manufactureDetails = useManufactureDetails(id);
-const { manufactureHand, manufactureHandError } = useManufactureHand(id);
+
 
 // ===== Reactive State =====
 // UI State
@@ -168,10 +171,14 @@ watch(manufactureHandError, (error) => {
 
 // Watch for changes in manufacture details to calculate total input
 watch(
-  () => manufactureDetails.manufactureDetails,
+  () => history,
   (newData) => {
+    console.log("History data:", newData);
     if (newData?.value && Array.isArray(newData.value)) {
-      totalInput.value = newData.value.reduce((sum, item) => sum + (item.Total || 0), 0);
+      const filteredHistory = newData.value.filter(item => item.Type === 'RW');
+      console.log("Filtered AOI history:", filteredHistory);
+      totalInput.value = filteredHistory.reduce((sum, item) => sum + (Number(item.Quantity_Plan) || 0), 0);
+      console.log("Total input calculated:", totalInput.value);
     }
   },
   { immediate: true, deep: true },
@@ -204,7 +211,7 @@ const submitBarcode = async () => {
   
   // Prepare form data with current timestamp
   const formData = reactive({
-    PlanID: id,
+    HistoryID: id,
     PartNumber: Input.value.trim(),
     Timestamp: new Date().toLocaleString('en-GB', {
       day: '2-digit',

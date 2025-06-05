@@ -176,7 +176,7 @@ import { useRoute } from "vue-router";
 import axios from "axios";
 
 // Import các composables
-import { useManufactureDetails } from "@/composables/useManufactureDetails";
+import { useHistory } from "@/composables/useHistory";
 import { useManufactureSMT } from "@/composables/useManufactureSMT";
 import { useManufacture } from "@/composables/useManufacture";
 import { useDeviceStatusSocket } from "@/composables/useStatusSensor";
@@ -204,10 +204,9 @@ const Headers = [
 ];
 
 // ===== Khởi tạo composables và quản lý dữ liệu =====
-const manufactureDetails = useManufactureDetails(id);
 const { manufactureSMT, manufactureSMTError } = useManufactureSMT(id);
 const { manufacture, manufactureFound, manufactureError } = useManufacture();
-
+const { history, historyError } = useHistory(back);
 const { status } = useDeviceStatusSocket("esp32-001");
 
 // ===== Khai báo các biến reactive =====
@@ -251,19 +250,7 @@ onMounted(() => {
 
 
 // ===== Watchers =====
-// Theo dõi thay đổi chi tiết sản xuất để tính tổng đầu vào
-watch(
-  () => manufactureDetails.manufactureDetails,
-  (newData) => {
-    if (newData?.value && Array.isArray(newData.value)) {
-      totalInput.value = newData.value.reduce(
-        (sum, item) => sum + (item.Total || 0),
-        0
-      );
-    }
-  },
-  { immediate: true, deep: true }
-);
+
 
 // Thêm watch để theo dõi manufactureFound
 watch(manufactureFound, (newValue) => {
@@ -273,6 +260,20 @@ watch(manufactureFound, (newValue) => {
   }
 }, { immediate: true });
 
+// Watch for changes in manufacture details to calculate total input
+watch(
+  () => history,
+  (newData) => {
+    console.log("History data:", newData);
+    if (newData?.value && Array.isArray(newData.value)) {
+      const filteredHistory = newData.value.filter(item => item.Type === 'SMT');
+      console.log("Filtered SMT history:", filteredHistory);
+      totalInput.value = filteredHistory.reduce((sum, item) => sum + (Number(item.Quantity_Plan) || 0), 0);
+      console.log("Total input calculated:", totalInput.value);
+    }
+  },
+  { immediate: true, deep: true },
+);
 // ===== Các phương thức =====
 /**
  * Kết nối với thiết bị Arduino và quản lý trạng thái sản xuất
