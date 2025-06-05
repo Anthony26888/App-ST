@@ -2,32 +2,32 @@
 import { createRouter, createWebHistory } from "vue-router";
 import App from "@/layouts/default.vue"
 import Login from "@/layouts/login.vue"
-import PageCheck from "@/pages/Page-Check.vue"
-import PageWareHouse from "@/pages/Page-WareHouse.vue";
-import PageWareHouse2 from "@/pages/Page-WareHouse-2.vue";
-import PageOrders from "@/pages/Page-Orders.vue";
-import PageSetting from "@/pages/Page-Setting.vue";
-import PageLogin from "@/pages/Page-Login.vue";
-import PageUsers from "@/pages/Page-Users.vue"
-import PageReg from "@/pages/Page-Reg.vue";
-import PageEditBom from "@/pages/Page-EditBom.vue";
-import PageDetailOrders from "@/pages/Page-DetailOrders.vue";
-import PageProject from "@/pages/Page-Project.vue";
-import PageProjectDetail from "@/pages/Page-DetailProject.vue";
-import PagePODetail from "@/pages/Page-DetailProjectPO.vue"
-import PageMaintenance from "@/pages/Page-Maintenance.vue";
-import PageDetailMaintenance from "@/pages/Page-DetailMaintenance.vue";
-import PageMaintenanceSchedule from "@/pages/Page-MaintenanceSchedule.vue";
-import PageSparePartUsage from "@/pages/Page-SparePartUsage.vue";
-import PagePlanProduct from "@/pages/Page-Manufacture.vue";
-import PageDetailManufacture from "@/pages/Page-DetailManufacture.vue";
-import PageDetailSMT from "@/pages/Page-DetailSMT.vue";
-import PageDetailAOI from "@/pages/Page-DetailAOI.vue";
-import PageDetailHand from "@/pages/Page-DetailHand.vue";
-import PageDetailIPQC from "@/pages/Page-DetailIPQC.vue";
-import PageDetailTest from "@/pages/Page-DetailTest.vue";
-import PageDetailOQC from "@/pages/Page-DetailOQC.vue";
-
+import PageCheck from "@/pages/Page-Check/Page-Check.vue"
+import PageWareHouse from "@/pages/Page-Warehouse/Page-WareHouse.vue";
+import PageWareHouse2 from "@/pages/Page-Warehouse/Page-WareHouse-2.vue";
+import PageOrders from "@/pages/Page-Orders/Page-Orders.vue";
+import PageSetting from "@/pages/Page-Setting/Page-Setting.vue";
+import PageLogin from "@/pages/Page-Setting/Page-Login.vue";
+import PageUsers from "@/pages/Page-Setting/Page-Users.vue"
+import PageReg from "@/pages/Page-Setting/Page-Reg.vue";
+import PageEditBom from "@/pages/Page-Check/Page-EditBom.vue";
+import PageDetailOrders from "@/pages/Page-Orders/Page-DetailOrders.vue";
+import PageProject from "@/pages/Page-Project/Page-Project.vue";
+import PageProjectDetail from "@/pages/Page-Project/Page-DetailProject.vue";
+import PagePODetail from "@/pages/Page-Project/Page-DetailProjectPO.vue"
+import PageMaintenance from "@/pages/Page-Maintaince/Page-Maintenance.vue";
+import PageDetailMaintenance from "@/pages/Page-Maintaince/Page-DetailMaintenance.vue";
+import PageMaintenanceSchedule from "@/pages/Page-Maintaince/Page-MaintenanceSchedule.vue";
+import PageSparePartUsage from "@/pages/Page-Maintaince/Page-SparePartUsage.vue";
+import PagePlanProduct from "@/pages/Page-Manufacture/Page-Manufacture.vue";
+import PageDetailManufacture from "@/pages/Page-Manufacture/Page-DetailManufacture.vue";
+import PageDetailSMT from "@/pages/Page-Manufacture/Page-DetailSMT.vue";
+import PageDetailAOI from "@/pages/Page-Manufacture/Page-DetailAOI.vue";
+import PageDetailRW from "@/pages/Page-Manufacture/Page-DetailRW.vue";
+import PageDetailIPQC from "@/pages/Page-Manufacture/Page-DetailIPQC.vue";
+import PageDetailAssembly from "@/pages/Page-Manufacture/Page-DetailAssembly.vue";
+import PageDetailOQC from "@/pages/Page-Manufacture/Page-DetailOQC.vue";
+import PageSummary from "@/pages/Page-Summary/Page-Summary.vue"
 
 const routes = [
   {
@@ -155,10 +155,10 @@ const routes = [
         component: PageDetailAOI,
       },
       {
-        path: "/San-xuat/Han-tay/:id",
+        path: "/San-xuat/RW/:id",
         name: "DetailHand",
         meta: { requiresAuth: true },
-        component: PageDetailHand,
+        component: PageDetailRW,
       },
       {
         path: "/San-xuat/IPQC/:id",
@@ -167,16 +167,22 @@ const routes = [
         component: PageDetailIPQC,
       },
       {
-        path: "/San-xuat/Test/:id",
-        name: "DetailTest",
+        path: "/San-xuat/Assembly/:id",
+        name: "DetailAssembly",
         meta: { requiresAuth: true },
-        component: PageDetailTest,
+        component: PageDetailAssembly,
       },
       {
         path: "/San-xuat/OQC/:id",
         name: "DetailOQC",
         meta: { requiresAuth: true },
         component: PageDetailOQC,
+      },
+      {
+        path: "/Bao-cao-san-xuat",
+        name: "Summary",
+        meta: { requiresAuth: true },
+        component: PageSummary,
       },
     ],
   },

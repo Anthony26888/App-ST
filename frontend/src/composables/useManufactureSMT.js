@@ -23,7 +23,7 @@ export function useManufactureSMT(id) {
 
     socket.on("ManufactureSMTError", (message) => {
       console.error("ManufactureSMT Error:", message);
-      manufactureAOIError.value = message;
+      manufactureSMTError.value = message;
     });
 
     socket.on("UpdateManufactureSMT", () => {

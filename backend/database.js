@@ -194,6 +194,8 @@ db.serialize(() => {
       Total INTEGER,
       Status TEXT,
       DelaySMT INTEGER,
+      Quantity INTEGER,
+      Level INTEGER,
       Date TEXT,
       Note TEXT,
       Creater TEXT
@@ -204,6 +206,7 @@ db.serialize(() => {
     CREATE TABLE IF NOT EXISTS ManufactureSMT (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       PlanID INTEGER NOT NULL,
+      HistoryID INTEGER NOT NULL,
       Input INTEGER NOT NULL,
       Timestamp TEXT NOT NULL,
       FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
@@ -214,15 +217,17 @@ db.serialize(() => {
     CREATE TABLE IF NOT EXISTS ManufactureAOI (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       PlanID INTEGER,
+      HistoryID INTEGER NOT NULL,
       PartNumber TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
       FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
     )
   `);
   db.run(`
-    CREATE TABLE IF NOT EXISTS ManufactureHand (
+    CREATE TABLE IF NOT EXISTS ManufactureRW (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       PlanID INTEGER,
+      HistoryID INTEGER NOT NULL,
       PartNumber TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
       FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
@@ -233,6 +238,7 @@ db.serialize(() => {
     CREATE TABLE IF NOT EXISTS ManufactureIPQC (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       PlanID INTEGER,
+      HistoryID INTEGER NOT NULL,
       PartNumber TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
       FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
@@ -240,9 +246,10 @@ db.serialize(() => {
   `);
 
   db.run(`
-    CREATE TABLE IF NOT EXISTS ManufactureTest (
+    CREATE TABLE IF NOT EXISTS ManufactureAssembly (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       PlanID INTEGER,
+      HistoryID INTEGER NOT NULL,
       PartNumber TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
       FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
@@ -253,9 +260,26 @@ db.serialize(() => {
     CREATE TABLE IF NOT EXISTS ManufactureOQC (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       PlanID INTEGER,
+      HistoryID INTEGER NOT NULL,
       PartNumber TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
       FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
+    )
+  `);
+
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS Summary (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      PlanID INTEGER NOT NULL,
+      Type TEXT NOT NULL,
+      PONumber TEXT NOT NULL,
+      Category TEXT,
+      Quantity_Plan INTEGER,
+      CycleTime_Plan INTEGER,
+      Time_Plan INTEGER,
+      Note TEXT,
+      Created_At TEXT 
     )
   `);
 

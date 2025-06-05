@@ -79,6 +79,7 @@ const StatusOption_5 = ref(false);
 const StatusOption_6 = ref(false);
 const StatusOption_7 = ref(false);
 const StatusOption_8 = ref(false);
+const StatusOption_9 = ref(false);
 const Date_Expired = ref("");
 const DialogLoading = ref(false);
 const DialogFailed = ref(false);
@@ -117,22 +118,28 @@ const FetchUser = async () => {
         StatusOption_6.value = true;
         StatusOption_7.value = true;
         StatusOption_8.value = true;
+        StatusOption_9.value = true;
       } else if (LevelUser.value == "Kinh doanh admin") {
         StatusOption_1.value = true;
         StatusOption_6.value = true;
         StatusOption_7.value = true;
         StatusOption_8.value = true;
+        StatusOption_9.value = true;
       } else if (LevelUser.value == "Thủ kho") {
         StatusOption_1.value = true;
         StatusOption_5.value = true;
         StatusOption_6.value = true;
+        StatusOption_7.value = true;
+        StatusOption_8.value = true;
       } else if (LevelUser.value == "Kế hoạch") {
         StatusOption_2.value = true;
         StatusOption_3.value = true;
         StatusOption_5.value = true;
         StatusOption_6.value = true;
+        StatusOption_7.value = true;
+        StatusOption_8.value = true;
       } else if (LevelUser.value == "Quản lý") {
-        StatusOption_6.value = true;
+        StatusOption_8.value = true;
       } else if (LevelUser.value == "Admin") {
         StatusOption_1.value = false;
         StatusOption_2.value = false;
@@ -141,6 +148,8 @@ const FetchUser = async () => {
         StatusOption_5.value = false;
         StatusOption_6.value = false;
         StatusOption_7.value = false;
+        StatusOption_8.value = false;
+        StatusOption_9.value = false;
       } else {
         StatusOption_1.value = true;
         StatusOption_2.value = true;
@@ -148,6 +157,8 @@ const FetchUser = async () => {
         StatusOption_4.value = true;
         StatusOption_6.value = true;
         StatusOption_7.value = true;
+        StatusOption_8.value = true;
+        StatusOption_9.value = true;
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
@@ -197,13 +208,6 @@ const menuItems = computed(() => [
     disabled: StatusOption_5.value
   },
   {
-    icon: 'mdi-wrench',
-    title: 'Bảo trì',
-    value: 'Maintenance',
-    to: '/Bao-tri',
-    disabled: StatusOption_6.value
-  },
-  {
     icon: 'mdi-calendar-check',
     title: 'Sản xuất',
     value: 'Manufacture',
@@ -211,11 +215,25 @@ const menuItems = computed(() => [
     disabled: StatusOption_7.value
   },
   {
+    icon: 'mdi-file-chart-check',
+    title: 'Báo cáo',
+    value: 'Summary',
+    to: '/Bao-cao-san-xuat',
+    disabled: StatusOption_8.value
+  },
+  {
+    icon: 'mdi-wrench',
+    title: 'Bảo trì',
+    value: 'Maintenance',
+    to: '/Bao-tri',
+    disabled: StatusOption_6.value
+  },
+  {
     icon: 'mdi-cog',
     title: 'Cài đặt',
     value: 'Setting',
     to: '/Cai-dat',
-    disabled: StatusOption_8.value
+    disabled: StatusOption_9.value
   }
 ]);
 </script>
