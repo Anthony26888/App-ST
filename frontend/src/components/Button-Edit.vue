@@ -1,7 +1,7 @@
 <template lang="">
   <v-btn
     icon="mdi-pencil"
-    size="xl"
+    size="xs"
     color="primary"
     variant="text"
     @click="emitEdit()"

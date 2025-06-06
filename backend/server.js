@@ -141,8 +141,9 @@ io.on("connection", (socket) => {
           a.id,
           a.CustomerName AS Customer, 
           CASE
-            WHEN IFNULL(b.total_qty, 0) = IFNULL(b.total_delivered, 0) THEN 'Hoàn thành'
-            ELSE 'Chưa xong'
+            WHEN IFNULL(b.total_qty, 0) = IFNULL(b.total_delivered, 0) AND IFNULL(b.total_qty, 0) > 0 THEN 'Hoàn thành'
+            WHEN IFNULL(c.po_count, 0) = 0 THEN 'Chưa có PO'
+            ELSE 'Đang sản xuất'
           END AS Status,
           IFNULL(c.po_count, 0) AS Quantity_PO,
           a.Years
@@ -159,7 +160,7 @@ io.on("connection", (socket) => {
           FROM PurchaseOrders
           GROUP BY CustomerID
         ) c ON a.id = c.CustomerID
-        ORDER BY Status ASC
+        ORDER BY Status DESC, Years DESC
         `;
         db.all(query, [], (err, rows) => {
           if (err) return socket.emit("ProjectError", err);
@@ -173,21 +174,22 @@ io.on("connection", (socket) => {
       try {
         const query = `
           SELECT DISTINCT
-            a.id,
+            a.id AS CustomerId,
+            b.id AS POId,
+            c.id AS ProductId,
             b.POID,
             a.CustomerName AS Customer, 
             c.PONumber,
             b.ProductDetail
           FROM Customers a
           LEFT JOIN (
-            SELECT CustomerID,  POID,  ProductDetail
+            SELECT id, CustomerID,  POID,  ProductDetail
             FROM ProductDetails
           ) b ON a.id = b.CustomerID
           LEFT JOIN (
-            SELECT CustomerID, PONumber
+            SELECT id, CustomerID, PONumber
             FROM PurchaseOrders
-          ) c ON a.id = c.CustomerID
-        `;
+          ) c ON a.id = c.CustomerID`;
         db.all(query, [], (err, rows) => {
           if (err) return socket.emit("ProjectError", err);
           socket.emit("ProjectFindData", rows);
@@ -203,8 +205,9 @@ io.on("connection", (socket) => {
             p.id, 
             p.PONumber AS PO, 
             CASE
-              WHEN SUM(o.QuantityProduct) =  SUM(o.QuantityDelivered) THEN 'Hoàn thành'
-              ELSE 'Chưa xong'
+              WHEN SUM(o.QuantityProduct) =  SUM(o.QuantityDelivered) AND SUM(o.QuantityProduct) > 0 THEN 'Hoàn thành'
+              WHEN COUNT(o.id) = 0 THEN 'Chưa có đơn hàng'
+              ELSE 'Đang sản xuất'
             END AS Status,
             COUNT(o.id) AS Total_Product, 
             p.DateCreated AS Date_Created, 
@@ -232,12 +235,12 @@ io.on("connection", (socket) => {
                         o.ProductDetail AS Product_Detail,
                         CASE
                           WHEN o.QuantityProduct = o.QuantityDelivered THEN 'Hoàn thành'
-                          ELSE 'Chưa xong'
+                          ELSE 'Đang sản xuất'
                         END AS Status,
                         o.QuantityProduct AS Quantity_Product, 
                         o.QuantityDelivered AS Quantity_Delivered, 
                         o.QuantityAmount AS Quantity_Amount,
-                        p.Note AS Note 
+                        o.Note AS Note 
                       FROM ProductDetails o 
                       LEFT JOIN PurchaseOrders p ON o.POID = p.id 
                       WHERE o.POID = ? 
@@ -327,6 +330,8 @@ io.on("connection", (socket) => {
       try {
         const query = `SELECT 
                           h.Total,
+                          h.DelaySMT,
+                          h.Quantity,
                           SUM(IFNULL(b.SMT, 0)) AS SMT,
                           SUM(IFNULL(c.AOI, 0)) AS AOI,
                           SUM(IFNULL(d.RW, 0)) AS RW,
@@ -1485,16 +1490,17 @@ app.put("/Project/Customer/Edit-Item/:id", async (req, res) => {
     Quantity_Product,
     Quantity_Delivered,
     Quantity_Amount,
+    Note
   } = req.body;
   const { id } = req.params;
   // Insert data into SQLite database
   const query = `
     UPDATE ProductDetails 
-    SET ProductDetail = ?, QuantityProduct = ?, QuantityDelivered = ?, QuantityAmount = ? 
+    SET ProductDetail = ?, QuantityProduct = ?, QuantityDelivered = ?, QuantityAmount = ?, Note = ? 
     WHERE id = ?`;
   db.run(
     query,
-    [Product_Detail, Quantity_Product, Quantity_Delivered, Quantity_Amount, id],
+    [Product_Detail, Quantity_Product, Quantity_Delivered, Quantity_Amount, Note, id],
     function (err) {
       if (err) {
         return res
@@ -1515,12 +1521,14 @@ app.post("/Project/Customer/Add-Item", async (req, res) => {
     Quantity_Product,
     Quantity_Delivered,
     Quantity_Amount,
+    Note,
     POID,
+    CustomerID
   } = req.body;
   // Insert data into SQLite database
   const query = `
-    INSERT INTO ProductDetails (ProductDetail, QuantityProduct, QuantityDelivered, QuantityAmount, POID)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO ProductDetails (ProductDetail, QuantityProduct, QuantityDelivered, QuantityAmount, Note, POID, CustomerID)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
   db.run(
     query,
@@ -1529,7 +1537,9 @@ app.post("/Project/Customer/Add-Item", async (req, res) => {
       Quantity_Product,
       Quantity_Delivered,
       Quantity_Amount,
+      Note,
       POID,
+      CustomerID
     ],
     function (err) {
       if (err) {
@@ -2146,6 +2156,32 @@ app.put("/PlanManufacture/Edit/:id", async (req, res) => {
   );
 });
 
+// Router update item in PlanManufacture table for setting SMT
+app.put("/PlanManufacture/Edit-SMT/:id", async (req, res) => {
+  const { id } = req.params;
+  const { DelaySMT, Quantity } =
+    req.body;
+  // Insert data into SQLite database
+  const query = `
+      UPDATE PlanManufacture 
+      SET DelaySMT = ?, Quantity = ?
+      WHERE id = ?
+    `;
+  db.run(
+    query,
+    [DelaySMT, Quantity, id],
+    function (err) {
+      if (err) {
+        return res
+          .status(500)
+          .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
+      }
+      io.emit("ManufactureUpdate");
+      res.json({ message: "Đã cập nhật dữ liệu dự án sản xuất thành công" });
+    }
+  );
+});
+
 // Router delete item in PlanManufacture table
 app.delete("/PlanManufacture/Delete/:id", async (req, res) => {
   const { id } = req.params;
@@ -2449,6 +2485,26 @@ app.put("/Summary/Edit-item/:id", (req, res) => {
       res.json({ message: "Summary received" });
     }
   );
+});
+
+// Router delete item in Summary table
+app.delete("/Summary/Delete-item/:id", async (req, res) => {
+  const { id } = req.params;
+  // Insert data into SQLite database
+  const query = `
+    DELETE FROM Summary WHERE id = ?
+  `;
+  db.run(query, [id], function (err) {
+    if (err) {
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
+    }
+    io.emit("UpdateSummary");
+    io.emit("UpdateHistory");
+    io.emit("updateManufactureDetails");
+    res.json({ message: "Đã xoá dữ liệu bảo trì định kỳ thành công" });
+  });
 });
 
 // Catch-all route cho frontend

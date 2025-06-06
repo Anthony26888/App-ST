@@ -1,11 +1,11 @@
 <template lang="">
   <v-btn
-    icon="mdi-delete"
-    size="xl"
+    prepend-icon="mdi-delete"
     color="red"
-    variant="text"
+    variant="tonal"
     @click="emitRemove()"
-  ></v-btn>
+    class="text-caption"
+  > Xoá</v-btn>
 </template>
 <script>
 export default {

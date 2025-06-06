@@ -13,7 +13,7 @@
             ( {{ detailProjectPO.length }} đơn hàng)
           </p>
           <ButtonAdd @add="DialogAdd = true" />
-          <ButtonDownload @download-file="DownloadOrder()" />
+          <!-- <ButtonDownload @download-file="DownloadOrder()" /> -->
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
         </v-card-title>
@@ -43,37 +43,70 @@
           </template>
 
           <template v-slot:item.id="{ item }">
-            <ButtonEdit @edit="GetItem(item)" v-if="LevelUser == 'Admin' || LevelUser == 'Kinh doanh admin'" />
+            <div class="d-flex">
+              <ButtonEdit
+                @edit="GetItem(item)"
+                v-if="LevelUser == 'Admin' || LevelUser == 'Kinh doanh admin'"
+              />
+              <v-btn
+                color="success"
+                icon="mdi-plus"
+                variant="text"
+                size="xs"
+                @click="GetItemManufacture(item)"
+              ></v-btn>
+            </div>
           </template>
 
-          <template v-slot:item.Status="{ item }">
-            <v-chip :color="item.Status === 'Hoàn thành' ? 'success' : 'error'" variant="tonal">
-              {{ item.Status }}
-            </v-chip>
+          <template v-slot:item.Status="{ value }">
+            <div class="text-start">
+              <v-chip
+                :color="
+                  value === 'Hoàn thành'
+                    ? 'success'
+                    : value === 'Đang sản xuất'
+                    ? 'warning'
+                    : 'error'
+                "
+                variant="tonal"
+                class="text-caption"
+              >
+                {{ value }}
+              </v-chip>
+            </div>
           </template>
         </v-data-table>
       </v-card>
     </v-card-text>
   </v-card>
-  <v-dialog v-model="DialogEdit" width="400">
-    <v-card max-width="400" prepend-icon="mdi-update" title="Cập nhật dữ liệu">
+  <v-dialog v-model="DialogEdit" width="500">
+    <v-card max-width="500" prepend-icon="mdi-update" title="Cập nhật dữ liệu">
       <v-card-text>
         <InputField label="Chi tiết đơn hàng" v-model="Product_Detail_Edit" />
-        <InputField
-          label="SL đơn hàng"
-          type="number"
-          v-model="Quantity_Product_Edit"
-        />
-        <InputField
-          label="SL đã giao"
-          type="number"
-          v-model="Quantity_Delivered_Edit"
-        />
-        <InputField
-          label="SL còn nợ"
-          type="number"
-          v-model="Quantity_Amount_Edit"
-        />
+        <v-row>
+          <v-col cols="4">
+            <InputField
+              label="SL đơn hàng"
+              type="number"
+              v-model="Quantity_Product_Edit"
+            />
+          </v-col>
+          <v-col cols="4">
+            <InputField
+              label="SL đã giao"
+              type="number"
+              v-model="Quantity_Delivered_Edit"
+            />
+          </v-col>
+          <v-col cols="4">
+            <InputField
+              label="SL còn nợ"
+              type="number"
+              v-model="Quantity_Amount_Edit"
+            />
+          </v-col>
+        </v-row>
+        <InputTextarea label="Ghi chú" v-model="Note_Edit" />
       </v-card-text>
       <v-card-actions>
         <ButtonDelete @delete="DialogRemove = true" />
@@ -84,25 +117,34 @@
     </v-card>
   </v-dialog>
 
-  <v-dialog v-model="DialogAdd" width="400">
-    <v-card max-width="400" prepend-icon="mdi-update" title="Thêm dữ liệu">
+  <v-dialog v-model="DialogAdd" width="500">
+    <v-card max-width="500" prepend-icon="mdi-update" title="Thêm dữ liệu">
       <v-card-text>
         <InputField label="Đơn hàng" v-model="Product_Detail_Add" />
-        <InputField
-          label="SL đơn hàng"
-          type="number"
-          v-model="Quantity_Product_Add"
-        />
-        <InputField
-          label="SL đã giao"
-          type="number"
-          v-model="Quantity_Delivered_Add"
-        />
-        <InputField
-          label="SL còn nợ"
-          type="number"
-          v-model="Quantity_Amount_Add"
-        />
+        <v-row>
+          <v-col cols="4">
+            <InputField
+              label="SL đơn hàng"
+              type="number"
+              v-model="Quantity_Product_Add"
+            />
+          </v-col>
+          <v-col cols="4">
+            <InputField
+              label="SL đã giao"
+              type="number"
+              v-model="Quantity_Delivered_Add"
+            />
+          </v-col>
+          <v-col cols="4">
+            <InputField
+              label="SL còn nợ"
+              type="number"
+              v-model="Quantity_Amount_Add"
+            />
+          </v-col>
+        </v-row>
+        <InputTextarea label="Ghi chú" v-model="Note_Add" />
       </v-card-text>
       <v-card-actions>
         <ButtonCancel @cancel="DialogAdd = false" />
@@ -119,6 +161,59 @@
       </template>
     </v-card>
   </v-dialog>
+  <!-- Dialog thêm mới dữ liệu -->
+  <v-dialog
+    :model-value="DialogAddManufacture"
+    @update:model-value="DialogAddManufacture = $event"
+    width="500"
+    scrollable
+  >
+    <v-card max-width="500" class="overflow-y-auto">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
+        Chuyển dữ liệu xuống sản xuất
+      </v-card-title>
+      <v-card-text>
+        <InputField
+          disabled=true
+          label="Tên dự án"
+          v-model="Name_Manufacture_Add"
+        />
+        <InputField
+          disabled=true
+          label="Tổng sản phẩm"
+          type="number"
+          :model-value="Total_Manufacture_Add"
+          @update:model-value="Total_Manufacture_Add = $event"
+        />
+        <InputSelect
+          label="Quy trình"
+          :items="[
+            'SMT - AOI - RW - IPQC - Assembly - OQC',
+            'SMT - AOI - RW - OQC',
+            'SMT - RW - OQC',
+          ]"
+          v-model="Level_Manufacture_Add"
+          @update:model-value="Level_Manufacture_Add"
+        />
+        <InputField
+          label="Ngày tạo"
+          type="date"
+          :model-value="Date_Manufacture_Add"
+          @update:model-value="Date_Manufacture_Add = $event"
+        />
+        <InputTextarea
+          label="Ghi chú"
+          :model-value="Note_Add_Manufacture"
+          @update:model-value="Note_Add_Manufacture = $event"
+        />
+      </v-card-text>
+      <v-card-actions>
+        <ButtonCancel @cancel="DialogAddManufacture = false" />
+        <ButtonSave @save="SaveAddManufacture()" />
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
@@ -128,11 +223,13 @@
 // Core dependencies
 import axios from "axios";
 import { useRoute } from "vue-router";
+import { useRouter } from "vue-router";
 import { ref, watch, onMounted } from "vue";
-
+import { jwtDecode } from "jwt-decode";
 // Components
 import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
+import InputTextarea from "@/components/Input-Textarea.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
@@ -160,13 +257,13 @@ const { detailProjectPO, detailProjectPOError } = useDetailProjectPO(id);
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
-const DialogEdit = ref(false);      // Edit dialog
-const DialogSuccess = ref(false);   // Success notification
-const DialogFailed = ref(false);    // Error notification
-const DialogRemove = ref(false);    // Remove confirmation dialog
-const DialogAdd = ref(false);       // Add new item dialog
-const DialogLoading = ref(false);   // Loading state
-
+const DialogEdit = ref(false); // Edit dialog
+const DialogSuccess = ref(false); // Success notification
+const DialogFailed = ref(false); // Error notification
+const DialogRemove = ref(false); // Remove confirmation dialog
+const DialogAdd = ref(false); // Add new item dialog
+const DialogLoading = ref(false); // Loading state
+const DialogAddManufacture = ref(false);
 // ===== MESSAGE DIALOG =====
 // Message for success and error notifications
 const MessageDialog = ref("");
@@ -177,19 +274,28 @@ const MessageErrorDialog = ref("");
 const GetID = ref("");
 
 // Edit form states
-const Product_Detail_Edit = ref("");      // Product details for editing
-const Quantity_Product_Edit = ref(0);    // Product quantity for editing
-const Quantity_Delivered_Edit = ref(0);  // Delivered quantity for editing
+const Product_Detail_Edit = ref(""); // Product details for editing
+const Quantity_Product_Edit = ref(0); // Product quantity for editing
+const Quantity_Delivered_Edit = ref(0); // Delivered quantity for editing
+const Note_Edit = ref(""); // Note for editing
 
 // Add form states
-const Product_Detail_Add = ref("");       // Product details for adding new
-const Quantity_Product_Add = ref(0);     // Product quantity for adding new
-const Quantity_Delivered_Add = ref(0);   // Delivered quantity for adding new
+const Product_Detail_Add = ref(""); // Product details for adding new
+const Quantity_Product_Add = ref(0); // Product quantity for adding new
+const Quantity_Delivered_Add = ref(0); // Delivered quantity for adding new
+const Note_Add = ref(""); // Note for adding new
+
+// Khởi tạo các biến ref cho form thêm mới
+const Name_Manufacture_Add = ref("");
+const Date_Manufacture_Add = ref("");
+const Note_Manufacture_Add = ref("");
+const Total_Manufacture_Add = ref(0);
+const Level_Manufacture_Add = ref("");
 
 // Customer and PO information
-const CustomerID = ref(null);            // Customer ID from localStorage
-const NamePO = ref(null);                // PO name from localStorage
-const NameCustomer = ref(null);          // Customer name from localStorage
+const CustomerID = ref(null); // Customer ID from localStorage
+const NamePO = ref(null); // PO name from localStorage
+const NameCustomer = ref(null); // Customer name from localStorage
 
 // Table states
 const Headers = ref([
@@ -207,13 +313,19 @@ const page = ref(1);
 
 // ===== USER INFORMATION =====
 const LevelUser = localStorage.getItem("LevelUser");
-
-
+const UserInfo = ref("");
+const Date_Expired = ref("");
 // ===== LIFECYCLE HOOKS =====
 /**
  * Initializes component data from localStorage
  * Retrieves customer ID, PO name, and customer name
  */
+function GetItemManufacture(item) {
+  DialogAddManufacture.value = true;
+  Name_Manufacture_Add.value = item.PO;
+  Total_Manufacture_Add.value = item.Quantity_Product
+}
+
 onMounted(() => {
   const storedData = localStorage.getItem("CustomersID");
   const storeData = localStorage.getItem("PO");
@@ -221,6 +333,16 @@ onMounted(() => {
   CustomerID.value = storedData;
   NamePO.value = storeData;
   NameCustomer.value = storedsData;
+  const token = localStorage.getItem("token");
+  if (token) {
+    const decoded = jwtDecode(token);
+    UserInfo.value = decoded.Username;
+    Date_Expired.value = new Date(decoded.exp * 1000);
+  } else {
+    console.log("Không tìm thấy token!");
+    DialogFailed.value = true;
+    route.push("/");
+  }
 });
 
 // ===== COMPUTED =====
@@ -244,6 +366,7 @@ function GetItem(item) {
   Quantity_Product_Edit.value = item.Quantity_Product;
   Quantity_Delivered_Edit.value = item.Quantity_Delivered;
   Quantity_Amount_Edit.value = item.Quantity_Amount;
+  Note_Edit.value = item.Note;
 }
 
 /**
@@ -257,6 +380,7 @@ const SaveEdit = async () => {
     Quantity_Product: Quantity_Product_Edit.value,
     Quantity_Delivered: Quantity_Delivered_Edit.value,
     Quantity_Amount: Quantity_Amount_Edit.value,
+    Note: Note_Edit.value,
   });
 
   try {
@@ -285,11 +409,16 @@ const SaveAdd = async () => {
     Quantity_Product: Quantity_Product_Add.value,
     Quantity_Delivered: Quantity_Delivered_Add.value,
     Quantity_Amount: Quantity_Amount_Add.value,
+    Note: Note_Add.value,
     POID: id,
+    CustomerID: CustomerID.value,
   });
 
   try {
-    const response = await axios.post(`${Url}/Project/Customer/Add-Item`, formData);
+    const response = await axios.post(
+      `${Url}/Project/Customer/Add-Item`,
+      formData
+    );
     console.log(response.data);
     MessageDialog.value = "Thêm dữ liệu thành công";
     Reset();
@@ -307,13 +436,41 @@ const SaveAdd = async () => {
 const RemoveItem = async () => {
   DialogLoading.value = true;
   try {
-    const response = await axios.delete(`${Url}/Project/Customer/Delete-Item/${GetID.value}`);
+    const response = await axios.delete(
+      `${Url}/Project/Customer/Delete-Item/${GetID.value}`
+    );
     console.log(response.data.message);
     MessageDialog.value = "Xoá dữ liệu thành công";
     Reset();
   } catch (error) {
     console.log(error);
     MessageErrorDialog.value = "Xoá dữ liệu thất bại";
+    Error();
+  }
+};
+
+// Hàm lưu thông tin thêm mới
+const SaveAddManufacture = async () => {
+  DialogLoading.value = true;
+  const formData = reactive({
+    Name: Name_Manufacture_Add.value,
+    Status: false,
+    Date: Date_Manufacture_Add,
+    Total: Total_Manufacture_Add.value,
+    Note: Note_Manufacture_Add.value,
+    Creater: UserInfo.value,
+    DelaySMT:50,
+    Quantity: 1,
+    Level: Level_Manufacture_Add.value,
+  });
+  try {
+    const response = await axios.post(`${Url}/PlanManufacture/Add`, formData);
+    console.log(response.data);
+    MessageDialog.value = response.data.message;
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = error.response.data.message;
     Error();
   }
 };
@@ -325,10 +482,12 @@ const RemoveItem = async () => {
  */
 const DownloadOrder = async () => {
   const NameExcel = `${NameCustomer.value}-${NamePO.value}`;
-  
+
   try {
     const response = await fetch(
-      `${Url}/Project/Customer/Orders/Download/${id}?filename=${encodeURIComponent(NameExcel)}`
+      `${Url}/Project/Customer/Orders/Download/${id}?filename=${encodeURIComponent(
+        NameExcel
+      )}`
     );
     if (!response.ok) throw new Error("Download failed");
 
@@ -362,6 +521,8 @@ function Reset() {
   DialogEdit.value = false;
   DialogAdd.value = false;
   DialogLoading.value = false;
+  DialogAddManufacture.value = false;
+  GetID.value = "";
   Product_Detail_Add.value = "";
   Quantity_Product_Add.value = "";
   Quantity_Delivered_Add.value = "";
@@ -391,15 +552,13 @@ export default {
     ButtonAgree,
     ButtonAdd,
     SnackbarFailed,
-    Loading
+    Loading,
+    InputTextarea,
   },
   data() {
-    return {
-    };
+    return {};
   },
-  methods: {
-    
-  },
+  methods: {},
 };
 </script>
 <style lang=""></style>

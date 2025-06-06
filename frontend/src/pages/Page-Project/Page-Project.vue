@@ -18,6 +18,21 @@
               </v-card>
             </v-col>
             <v-col cols="12" sm="6" md="3">
+              <v-card class="rounded-lg" color="info" variant="tonal">
+                <v-card-text>
+                  <div class="text-subtitle-1">Tổng số PO</div>
+                  <div class="text-h4 font-weight-bold">
+                    {{
+                      project?.reduce(
+                        (sum, p) => sum + (p.Quantity_PO || 0),
+                        0
+                      ) || 0
+                    }}
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-col cols="12" sm="6" md="3">
               <v-card class="rounded-lg" color="success" variant="tonal">
                 <v-card-text>
                   <div class="text-subtitle-1">Dự án hoàn thành</div>
@@ -33,26 +48,11 @@
             <v-col cols="12" sm="6" md="3">
               <v-card class="rounded-lg" color="warning" variant="tonal">
                 <v-card-text>
-                  <div class="text-subtitle-1">Dự án đang thực hiện</div>
+                  <div class="text-subtitle-1">Dự án đang sản xuất</div>
                   <div class="text-h4 font-weight-bold">
                     {{
-                      project?.filter((p) => p.Status === "Chưa xong").length ||
-                      0
-                    }}
-                  </div>
-                </v-card-text>
-              </v-card>
-            </v-col>
-            <v-col cols="12" sm="6" md="3">
-              <v-card class="rounded-lg" color="info" variant="tonal">
-                <v-card-text>
-                  <div class="text-subtitle-1">Tổng số PO</div>
-                  <div class="text-h4 font-weight-bold">
-                    {{
-                      project?.reduce(
-                        (sum, p) => sum + (p.Quantity_PO || 0),
-                        0
-                      ) || 0
+                      project?.filter((p) => p.Status === "Đang sản xuất")
+                        .length || 0
                     }}
                   </div>
                 </v-card-text>
@@ -100,15 +100,16 @@
             </template>
             Lọc nâng cao
           </v-btn>
-          <p class="ms-2 font-weight-thin text-subtitle-1">
-            ( {{ project.length }} dự án)
-          </p>
-          <v-spacer></v-spacer>
+
           <v-btn
-            icon="mdi-file-find-outline"
+            class="ms-2 text-caption"
+            variant="tonal"
+            color="pink"
             @click="DialogFind = true"
-            class="me-2 text-caption"
-          ></v-btn>
+          >
+            <v-icon>mdi-magnify</v-icon>Tìm nâng cao</v-btn
+          >
+          <v-spacer></v-spacer>
           <InputSearch v-model="search" />
         </v-card-title>
 
@@ -149,7 +150,13 @@
             <template v-slot:item.Status="{ value }">
               <div>
                 <v-chip
-                  :color="value === 'Hoàn thành' ? 'success' : 'error'"
+                  :color="
+                    value === 'Hoàn thành'
+                      ? 'success'
+                      : value === 'Đang sản xuất'
+                      ? 'warning'
+                      : 'error'
+                  "
                   variant="tonal"
                   class="text-caption"
                 >
@@ -198,7 +205,7 @@
       </v-card-title>
       <v-card-text>
         <InputField label="Khách hàng" v-model="Customer_Add" />
-        <InputField label="Năm tạo" v-model="Years_Add" />
+        <InputField type="date" v-model="Years_Add" />
       </v-card-text>
       <v-card-actions>
         <ButtonCancel @cancel="DialogAdd = false" />
@@ -271,6 +278,7 @@
       </v-card-text>
     </v-card>
   </v-dialog>
+
   <v-dialog v-model="DialogFind" width="700" scrollable>
     <v-card class="overflow-y-auto">
       <v-card-title class="d-flex align-center pa-4">
@@ -302,12 +310,26 @@
           :search="searchFind"
         >
           <template v-slot:default="{ items }">
-            <v-list-item v-for="(item, i) in items" :key="i">
-              <strong>{{ item.raw.Customer }}</strong> >
-              {{ item.raw.PONumber }} >
-              {{ item.raw.ProductDetail }}
-            </v-list-item>
+            <v-list line="two">
+              <v-list-item
+                v-for="(item, i) in items"
+                :key="i"
+                :value="item"
+                :subtitle="`${item.raw.PONumber} - ${item.raw.ProductDetail}`"
+                :title="item.raw.Customer"
+                @click="PushItemFind(item.raw.CustomerId, item.raw.POId, item.raw.ProductId, item.raw.Customer, item.raw.PONumber)"
+              >
+                <template v-slot:append>
+                  <v-btn
+                    color="grey-lighten-1"
+                    icon="mdi-information"
+                    variant="text"
+                  ></v-btn>
+                </template>
+              </v-list-item>
+            </v-list>
           </template>
+
           <template v-slot:footer="{ page, pageCount, prevPage, nextPage }">
             <div class="d-flex align-center justify-center pa-4">
               <v-btn
@@ -374,6 +396,7 @@ const router = useRouter();
 // Initialize composables
 const { project } = useProject();
 const { projectFind } = useProjectFind();
+console.log(projectFind);
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
@@ -428,7 +451,8 @@ const LevelUser = localStorage.getItem("LevelUser");
 // ===== FILTER STATES =====
 const itemsFilter = [
   { title: "Tất cả", value: "" },
-  { title: "Chưa xong", value: "Chưa xong" },
+  { title: "Chưa có đơn hàng", value: "Chưa có đơn hàng" },
+  { title: "Đang sản xuất", value: "Đang sản xuất" },
   { title: "Hoàn thành", value: "Hoàn thành" },
 ];
 
@@ -444,6 +468,17 @@ const filteredProject = computed(() => {
     return true;
   });
 });
+
+const formattedSelectedDate = computed(() => {
+  const date = new Date(Years_Add.value);
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "Asia/Bangkok",
+  });
+});
+
 // ===== CRUD OPERATIONS =====
 /**
  * Navigates to customer details page and stores customer information
@@ -454,6 +489,15 @@ function PushItem(value) {
   router.push(`/Du-an/Khach-hang/${value}`);
   localStorage.setItem("Customers", found.Customer);
   localStorage.setItem("CustomersID", value);
+}
+
+function PushItemFind(value1, value2, value3, value4, value5) {
+  localStorage.setItem("Customers", value4);
+  localStorage.setItem("CustomersID", value1);
+  localStorage.setItem("POID", value2);
+  localStorage.setItem("ProductID", value3);
+  localStorage.setItem("PO", value5);
+  router.push(`/Du-an/Don-hang/${value3}`);
 }
 
 /**
@@ -502,7 +546,7 @@ const SaveAdd = async () => {
   DialogLoading.value = true;
   const formData = reactive({
     CustomerName: Customer_Add.value,
-    Years: Years_Add.value,
+    Years: formattedSelectedDate.value,
   });
 
   try {

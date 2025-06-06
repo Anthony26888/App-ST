@@ -3,7 +3,7 @@
     icon="mdi-eye-outline"
     color="orange"
     variant="text"
-    size="small"
+    size="xs"
     @click="emitDetail()"
   ></v-btn>
 </template>

@@ -73,6 +73,9 @@
               <template v-slot:prepend>
                 <div class="text-h6 mb-2">SMT</div>
               </template>
+              <template v-slot:append>
+                <v-btn icon="mdi-cog" variant="text" color="primary" @click="DialogSettingSMT = true;"></v-btn>
+              </template>
               <v-card-text>
                 <div class="text-h4 font-weight-bold color-SMT">
                   {{ totalSMT }}
@@ -202,16 +205,20 @@
               </td>
             </tr>
           </template>
-          
+
           <template v-slot:item.id="{ item }">
             <div class="d-flex gap-2">
               <ButtonEye @click="PushItem(item)" />
               <ButtonEdit @click="GetItem(item)" />
             </div>
           </template>
- 
+
           <template v-slot:item.Percent="{ item }">
-            <v-progress-linear v-model="item.Percent" height="25" color="success">
+            <v-progress-linear
+              v-model="item.Percent"
+              height="25"
+              color="success"
+            >
               <strong>{{ Math.ceil(item.Percent) }}%</strong>
             </v-progress-linear>
           </template>
@@ -308,6 +315,8 @@
           <InputTextarea label="Ghi chú" v-model="Note_Edit" />
         </v-card-text>
         <v-card-actions>
+          <ButtonDelete @delete="DialogRemove = true" />
+          <v-spacer></v-spacer>
           <ButtonCancel @cancel="DialogEdit = false" />
           <ButtonSave @save="SaveEdit()" />
         </v-card-actions>
@@ -316,12 +325,34 @@
     <!-- Dialog xác nhận xóa -->
     <v-dialog v-model="DialogRemove" max-width="500px">
       <v-card>
-        <v-card-title>Xác nhận xóa</v-card-title>
+        <v-card-title class="d-flex align-center pa-4">
+          <v-icon icon="mdi-trash-can" color="error" class="me-2"></v-icon>
+          Xoá dữ liệu kế hoạch
+        </v-card-title>
         <v-card-text>Bạn có chắc chắn muốn xóa dự án này?</v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn color="primary" @click="RemoveItem">Xác nhận</v-btn>
-          <v-btn color="error" @click="DialogRemove = false">Hủy</v-btn>
+          <ButtonCancel @cancel="DialogRemove = false" />
+          <ButtonDelete @delete="RemoveItem()" />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+     <!-- Dialog cài đặt SMT-->
+     <v-dialog v-model="DialogSettingSMT" max-width="500px">
+      <v-card>
+        <v-card-title class="d-flex align-center pa-4">
+          <v-icon icon="mdi-cog" color="primary" class="me-2"></v-icon>
+          Cài đặt dây chuyền SMT
+        </v-card-title>
+        <v-card-text>
+          <InputField v-model="DelaySMT_Edit" label="Độ trễ SMT (ms)" type="number"/>
+          <InputField v-model="Quantity_Edit" label="Số lượng board" type="number"/>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <ButtonCancel @cancel="DialogSettingSMT = false" />
+          <ButtonSave @save="SaveEditSettingSMT()" />
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -346,6 +377,11 @@ import ButtonBack from "@/components/Button-Back.vue";
 import ButtonEye from "@/components/Button-Eye.vue";
 import ButtonAdd from "@/components/Button-Add.vue";
 import ButtonEdit from "@/components/Button-Edit.vue";
+import ButtonDelete from "@/components/Button-Delete.vue";
+import ButtonCancel from "@/components/Button-Cancel.vue";
+import ButtonSave from "@/components/Button-Save.vue";
+import InputSelect from "@/components/Input-Select.vue";
+import InputTextarea from "@/components/Input-Textarea.vue";
 import ButtonNextManufacture from "@/components/Button-Next-Manufacture.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
@@ -366,8 +402,6 @@ const { manufactureDetails, connectionStatus } = useManufactureDetails(id);
 const { manufacture, manufactureFound, manufactureError, isConnected } =
   useManufacture();
 const { history, historyError, refresh } = useHistory(id);
-
-console.log(manufactureDetails);
 // Dialog
 const DialogSuccess = ref(false);
 const DialogLoading = ref(false);
@@ -375,8 +409,10 @@ const DialogFailed = ref(false);
 const DialogAdd = ref(false);
 const DialogEdit = ref(false);
 const DialogRemove = ref(false);
+const DialogSettingSMT = ref(false);
 const MessageDialog = ref("");
 const MessageErrorDialog = ref("");
+
 // Production statistics
 const NameManufacture = localStorage.getItem("ProductName");
 const GetID = ref(null);
@@ -400,7 +436,6 @@ const Level_OQC = ref(0);
 
 // Data
 const DataManufacture = ref(null);
-console.log(DataManufacture); 
 // ===== FORM ADD =====
 const Type_Add = ref("");
 const PONumber_Add = ref(localStorage.getItem("ProductName"));
@@ -418,6 +453,10 @@ const Quantity_Plan_Edit = ref("");
 const CycleTime_Edit = ref("");
 const Time_Edit = ref("");
 const Note_Edit = ref("");
+
+// ===== FORM SETTING SMT =====
+const DelaySMT_Edit = ref(50);
+const Quantity_Edit = ref(1);
 
 // Table
 const search = ref("");
@@ -438,19 +477,54 @@ const HeadersHistory = [
 watch(
   manufactureDetails,
   (newValue) => {
-    console.log('manufactureDetails raw value:', newValue);
+    console.log("manufactureDetails raw value:", newValue);
     if (newValue) {
       const data = Array.isArray(newValue) ? newValue[0] : newValue;
-      
+
       if (data && data.Level) {
         DataManufacture.value = data.Level;
-        
+
         Level_SMT.value = DataManufacture.value.includes("SMT");
         Level_AOI.value = DataManufacture.value.includes("AOI");
         Level_RW.value = DataManufacture.value.includes("RW");
         Level_IPQC.value = DataManufacture.value.includes("IPQC");
         Level_Assembly.value = DataManufacture.value.includes("Assembly");
         Level_OQC.value = DataManufacture.value.includes("OQC");
+      }
+    }
+  },
+  { immediate: true, deep: true }
+);
+
+// Watch for manufactureDetails changes
+watch(
+  manufactureDetails,
+  (newValue) => {
+    console.log("Raw manufactureDetails:", newValue); // Debug raw data
+    if (newValue && typeof newValue === "object") {
+      // Check if newValue is an array and has items
+      if (Array.isArray(newValue) && newValue.length > 0) {
+        const data = newValue[0]; // Get first item if it's an array
+        totalInput.value = data.Total || 0;
+        totalSMT.value = data.SMT || 0;
+        totalAOI.value = data.AOI || 0;
+        totalRW.value = data.RW || 0;
+        totalIPQC.value = data.IPQC || 0;
+        totalAssembly.value = data.Assembly || 0;
+        totalOQC.value = data.OQC || 0;
+        Quantity_Edit.value = data.Quantity;
+        DelaySMT_Edit.value = data.DelaySMT;
+      } else {
+        // If it's a single object
+        totalInput.value = newValue.Total || 0;
+        totalSMT.value = newValue.SMT || 0;
+        totalAOI.value = newValue.AOI || 0;
+        totalRW.value = newValue.RW || 0;
+        totalIPQC.value = newValue.IPQC || 0;
+        totalAssembly.value = newValue.Assembly || 0;
+        totalOQC.value = newValue.OQC || 0;
+        Quantity_Edit.value = newValue.Quantity;
+        DelaySMT_Edit.value = newValue.DelaySMT;
       }
     }
   },
@@ -473,14 +547,6 @@ const percent = computed(() => {
   return Math.round((totalOQC.value / totalInput.value) * 100);
 });
 
-
-
-// Status last seen
-const now = Date.now();
-const timeout = 60000;
-
-let chart = null;
-
 // Initialize chart
 onMounted(() => {
   nextTick(() => {
@@ -495,7 +561,7 @@ const formattedSelectedDate = computed(() => {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-    timeZone: "Asia/Bangkok"
+    timeZone: "Asia/Bangkok",
   });
 });
 
@@ -529,6 +595,7 @@ const GetItem = (item) => {
   GetID.value = item.id;
 };
 
+
 const SaveEdit = async () => {
   DialogLoading.value = true;
   const formData = reactive({
@@ -554,6 +621,28 @@ const SaveEdit = async () => {
   } catch (error) {
     console.log(error);
     MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
+    Error();
+  }
+};
+
+// Hàm lưu thông tin chỉnh sửa
+const SaveEditSettingSMT = async () => {
+  DialogLoading.value = true;
+  const formData = reactive({
+    DelaySMT: DelaySMT_Edit.value,
+    Quantity: Quantity_Edit.value,
+  });
+  try {
+    const response = await axios.put(
+      `${Url}/PlanManufacture/Edit-SMT/${id}`,
+      formData
+    );
+    console.log(response.data.message);
+    MessageDialog.value = response.data.message;
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = error.response.data.message;
     Error();
   }
 };
@@ -589,12 +678,33 @@ const SaveAdd = async () => {
   }
 };
 
+// Hàm xóa item
+const RemoveItem = async () => {
+  DialogLoading.value = true;
+  try {
+    const response = await axios.delete(
+      `${Url}/Summary/Delete-item/${GetID.value}`
+    );
+    console.log(response.data.message);
+    MessageDialog.value = "Xoá dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Xoá dữ liệu thất bạị";
+    Error();
+  }
+};
+
 function Reset() {
   DialogRemove.value = false;
   DialogSuccess.value = true;
   DialogEdit.value = false;
   DialogAdd.value = false;
   DialogLoading.value = false;
+  DialogFailed.value = false;
+  DialogRemove.value = false;
+  DialogSettingSMT.value = false;
+
 }
 
 /**
@@ -604,44 +714,20 @@ function Reset() {
 function Error() {
   DialogFailed.value = true;
   DialogLoading.value = false;
+  DialogRemove.value = false;
+  DialogSuccess.value = false;
+  DialogEdit.value = false;
+  DialogAdd.value = false;
+  DialogSettingSMT.value = false;
 }
 
-// Watch for manufactureDetails changes
-watch(
-  manufactureDetails,
-  (newValue) => {
-    console.log('Raw manufactureDetails:', newValue); // Debug raw data
-    if (newValue && typeof newValue === 'object') {
-      // Check if newValue is an array and has items
-      if (Array.isArray(newValue) && newValue.length > 0) {
-        const data = newValue[0]; // Get first item if it's an array
-        totalInput.value = data.Total || 0;
-        totalSMT.value = data.SMT || 0;
-        totalAOI.value = data.AOI || 0;
-        totalRW.value = data.RW || 0;
-        totalIPQC.value = data.IPQC || 0;
-        totalAssembly.value = data.Assembly || 0;
-        totalOQC.value = data.OQC || 0;
-      } else {
-        // If it's a single object
-        totalInput.value = newValue.Total || 0;
-        totalSMT.value = newValue.SMT || 0;
-        totalAOI.value = newValue.AOI || 0;
-        totalRW.value = newValue.RW || 0;
-        totalIPQC.value = newValue.IPQC || 0;
-        totalAssembly.value = newValue.Assembly || 0;
-        totalOQC.value = newValue.OQC || 0;
-      }
-    }
-  },
-  { immediate: true, deep: true }
-);
+
 
 // Update fetchProductionData to use the watcher
 async function fetchProductionData() {
   try {
     DialogLoading.value = true;
-    console.log('Current manufactureDetails:', manufactureDetails.value); // Debug current value
+    console.log("Current manufactureDetails:", manufactureDetails.value); // Debug current value
   } catch (error) {
     console.error("Error fetching production data:", error);
     DialogFailed.value = true;

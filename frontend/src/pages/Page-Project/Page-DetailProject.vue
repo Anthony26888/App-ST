@@ -79,22 +79,35 @@
           <template v-slot:item.Status="{ value }">
             <div class="text-start">
               <v-chip
-                :color="value == 'Hoàn thành' ? 'green' : 'red'"
-                size="small"
-              >{{ value }}</v-chip>
+                :color="
+                  value === 'Hoàn thành'
+                    ? 'success'
+                    : value === 'Đang sản xuất'
+                    ? 'warning'
+                    : 'error'
+                "
+                variant="tonal"
+                class="text-caption"
+              >
+                {{ value }}
+              </v-chip>
             </div>
           </template>
           <template v-slot:item.id="{ item }">
             <div class="d-flex">
               <ButtonEye @detail="PushItem(item)" />
-              <ButtonEdit @edit="GetItem(item)" v-if="LevelUser == 'Admin' || LevelUser == 'Kinh doanh admin'" />
+              <ButtonEdit
+                @edit="GetItem(item)"
+                v-if="LevelUser == 'Admin' || LevelUser == 'Kinh doanh admin'"
+              />
+              
             </div>
           </template>
           <template v-slot:item.Date_Created="{ item }">
-            {{ item.Date_Created.split('-').reverse().join('/') }}
+            {{ item.Date_Created.split("-").reverse().join("/") }}
           </template>
           <template v-slot:item.Date_Delivery="{ item }">
-            {{ item.Date_Delivery.split('-').reverse().join('/') }}
+            {{ item.Date_Delivery.split("-").reverse().join("/") }}
           </template>
         </v-data-table>
       </v-card>
@@ -242,6 +255,13 @@ const Date_Created_Add = ref(""); // Creation date for adding new
 const Date_Delivery_Add = ref(""); // Delivery date for adding new
 const Note_Add = ref(""); // Note for adding new
 
+// Khởi tạo các biến ref cho form thêm mới
+const Name_Manufacture_Add = ref("");
+const Date_Manufacture_Add = ref("");
+const Note_Manufacture_Add = ref("");
+const Total_Manufacture_Add = ref(0);
+const Level_Manufacture_Add = ref("");
+
 // ===== TABLE STATES =====
 const Headers = ref([
   { key: "PO", title: "Đơn hàng" },
@@ -266,11 +286,10 @@ const LevelUser = localStorage.getItem("LevelUser");
 
 // ===== FILTER STATES =====
 const itemsFilter = [
-  { title: "Tất cả", value:"" },
+  { title: "Tất cả", value: "" },
   { title: "Chưa xong", value: "Chưa xong" },
   { title: "Hoàn thành", value: "Hoàn thành" },
 ];
-
 
 // ===== CRUD OPERATIONS =====
 /**
@@ -373,6 +392,31 @@ const RemoveItem = async (id) => {
   }
 };
 
+// Hàm lưu thông tin thêm mới
+const SaveAddManufacture = async () => {
+  DialogLoading.value = true;
+  const formData = reactive({
+    Name: Name_Manufacture_Add.value,
+    Status: false,
+    Date: Date_Manufacture_Add,
+    Total: Total_Manufacture_Add.value,
+    Note: Note_Manufacture_Add.value,
+    Creater: UserInfo.value,
+    DelaySMT: DelaySMT_Add.value,
+    Level: Level_Add.value,
+  });
+  try {
+    const response = await axios.post(`${Url}/PlanManufacture/Add`, formData);
+    console.log(response.data);
+    MessageDialog.value = response.data.message;
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = error.response.data.message;
+    Error();
+  }
+};
+
 // ===== FILE OPERATIONS =====
 /**
  * Downloads order data as an Excel file
@@ -418,6 +462,8 @@ function Reset() {
   PONumber_Add.value = "";
   Date_Created_Add.value = "";
   Date_Delivery_Add.value = "";
+  Note_Add.value = "";
+  
 }
 
 /**

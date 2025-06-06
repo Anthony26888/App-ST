@@ -129,24 +129,6 @@
             :model-value="Total_Edit"
             @update:model-value="Total_Edit = $event"
           />
-          <v-row>
-            <v-col cols="6">
-              <InputField
-                label="Độ trể SMT"
-                type="number"
-                :model-value="DelaySMT_Edit"
-                @update:model-value="DelaySMT_Edit = $event"
-              />
-            </v-col>
-            <v-col cols="6">
-              <InputField
-                label="Số lượng board"
-                type="number"
-                :model-value="Quantity_Edit"
-                @update:model-value="Quantity_Edit = $event"
-              />
-            </v-col>
-          </v-row>
           <InputSelect
             label="Quy trình"
             :items="[
@@ -154,7 +136,6 @@
               'SMT - AOI - RW - OQC',
               'SMT - RW - OQC'
             ]"
-            variant="solo-filled"
             v-model="Level_Edit"
           />
           <InputField
@@ -202,24 +183,6 @@
             :model-value="Total_Add"
             @update:model-value="Total_Add = $event"
           />
-          <v-row>
-            <v-col cols="6">
-              <InputField
-                label="Độ trể SMT"
-                type="number"
-                :model-value="DelaySMT_Add"
-                @update:model-value="DelaySMT_Add = $event"
-              />
-            </v-col>
-            <v-col cols="6">
-              <InputField
-                label="Số lượng board"
-                type="number"
-                :model-value="Quantity_Add"
-                @update:model-value="Quantity_Add = $event"
-              />
-            </v-col>
-          </v-row>
           <InputSelect
             label="Quy trình"
             :items="[
@@ -378,13 +341,22 @@ const Headers = [
   { title: "Tên dự án", key: "Name" },
   { title: "Trạng thái", key: "Status" },
   { title: "Tổng sản phẩm", key: "Total" },
-  { title: "Số lượng board", key: "Quantity" },
-  { title: "Độ trể SMT", key: "DelaySMT" },
+  { title: "Quy trình", key: "Level" },
   { title: "Ngày tạo", key: "Date" },
   { title: "Người tạo", key: "Creater" },
   { title: "Ghi chú", key: "Note" },
   { title: "Thao tác", key: "id", sortable: false },
 ];
+
+const formattedSelectedDate = computed(() => {
+  const date = new Date();
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "Asia/Bangkok"
+  });
+});
 
 // Hàm kiểm tra token và lấy thông tin người dùng khi component được mount
 onMounted(() => {
@@ -399,6 +371,7 @@ onMounted(() => {
     router.push("/");
   }
 });
+
 
 // Hàm chuyển hướng đến trang chi tiết sản phẩm
 function PushItem(value) {
@@ -431,13 +404,13 @@ const SaveEdit = async () => {
   DialogLoading.value = true;
   const formData = reactive({
     Name: Name_Edit.value,
-    Date: Date_Edit.value,
+    Date: formattedSelectedDate.value,
     Creater: UserInfo.value,
     Note: Note_Edit.value,
     Total: Total_Edit.value,
-    DelaySMT: DelaySMT_Edit.value,
+    DelaySMT: 50,
     Level: Level_Edit.value,
-    Quantity: Quantity_Edit.value,
+    Quantity: 1,
   });
   try {
     const response = await axios.put(
@@ -464,9 +437,9 @@ const SaveAdd = async () => {
     Total: Total_Add.value,
     Note: Note_Add.value,
     Creater: UserInfo.value,
-    DelaySMT: DelaySMT_Add.value,
+    DelaySMT: 50,
     Level: Level_Add.value,
-    Quantity: Quantity_Add.value,
+    Quantity: 1,
   });
   try {
     const response = await axios.post(`${Url}/PlanManufacture/Add`, formData);
@@ -496,6 +469,7 @@ const RemoveItem = async () => {
     Error();
   }
 };
+
 
 // Hàm reset các dialog và form
 function Reset() {
