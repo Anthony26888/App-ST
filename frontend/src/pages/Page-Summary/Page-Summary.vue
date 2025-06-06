@@ -62,9 +62,7 @@
             <v-card-text>
               <div class="text-subtitle-1">Dự án hoàn thành</div>
               <div class="text-h4 font-weight-bold">
-                {{
-                  project?.filter((p) => p.Status === "Hoàn thành").length || 0
-                }}
+                {{ summary?.filter(item => Number(item.Percent) >= 100).length || 0 }}
               </div>
             </v-card-text>
           </v-card>
@@ -74,9 +72,7 @@
             <v-card-text>
               <div class="text-subtitle-1">Dự án đang thực hiện</div>
               <div class="text-h4 font-weight-bold">
-                {{
-                  project?.filter((p) => p.Status === "Chưa xong").length || 0
-                }}
+                {{ summary?.filter(item => Number(item.Percent) < 100).length || 0 }}
               </div>
             </v-card-text>
           </v-card>
@@ -146,7 +142,7 @@
         </template>
         <template v-slot:item.Percent="{ item }">
           <v-progress-linear v-model="item.Percent" height="25" color="success">
-            <strong>{{ Math.ceil(item.Percent) }}%</strong>
+            <strong>{{ item.Percent }}%</strong>
           </v-progress-linear>
         </template>
         <template v-slot:bottom>
@@ -245,6 +241,7 @@ const formattedSelectedDate = computed(() => {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    timeZone: "Asia/Bangkok"
   });
 });
 
@@ -477,24 +474,40 @@ function initializePieChart() {
 
   // Group data by Type
   const groupedData = summary.value?.reduce((acc, item) => {
-    if (!acc[item.Type]) {
-      acc[item.Type] = 0;
+    const type = item.Type || 'Không phân loại';
+    if (!acc[type]) {
+      acc[type] = {
+        quantity: 0,
+        count: 0
+      };
     }
-    acc[item.Type] += Number(item.Quantity_Real) || 0;
+    acc[type].quantity += Number(item.Quantity_Real) || 0;
+    acc[type].count += 1;
     return acc;
   }, {}) || {};
 
-  // Calculate total for percentage
-  const total = Object.values(groupedData).reduce((sum, value) => sum + value, 0);
+  // Calculate total quantity
+  const totalQuantity = Object.values(groupedData).reduce((sum, item) => sum + item.quantity, 0);
+
+  // Sort types by quantity and calculate percentages
+  const sortedTypes = Object.entries(groupedData)
+    .sort(([, a], [, b]) => b.quantity - a.quantity)
+    .reduce((acc, [key, value]) => {
+      acc[key] = {
+        ...value,
+        percentage: ((value.quantity / totalQuantity) * 100).toFixed(1)
+      };
+      return acc;
+    }, {});
 
   // Create new chart
   pieChartInstance = new Chart(ctx, {
     type: "pie",
     data: {
-      labels: Object.keys(groupedData),
+      labels: Object.keys(sortedTypes),
       datasets: [
         {
-          data: Object.values(groupedData).map(value => ((value / total) * 100).toFixed(1)),
+          data: Object.values(sortedTypes).map(item => parseFloat(item.percentage)),
           backgroundColor: [
             "rgba(25, 118, 210, 0.8)",
             "rgba(76, 175, 80, 0.8)",
@@ -524,17 +537,54 @@ function initializePieChart() {
           labels: {
             usePointStyle: true,
             padding: 20,
+            font: {
+              size: 12
+            },
+            generateLabels: function(chart) {
+              const data = chart.data;
+              if (data.labels.length && data.datasets.length) {
+                return data.labels.map(function(label, i) {
+                  const value = data.datasets[0].data[i];
+                  return {
+                    text: `${label} (${value}%)`,
+                    fillStyle: data.datasets[0].backgroundColor[i],
+                    strokeStyle: data.datasets[0].borderColor[i],
+                    lineWidth: 1,
+                    hidden: isNaN(data.datasets[0].data[i]),
+                    index: i
+                  };
+                });
+              }
+              return [];
+            }
           },
         },
         tooltip: {
           callbacks: {
-            label: function (context) {
-              const label = context.label || "";
+            label: function(context) {
+              const label = context.label || '';
               const value = context.raw || 0;
-              return `${label}: ${value}%`;
-            },
-          },
+              const typeData = sortedTypes[label];
+              return [
+                `${label}: ${value}%`,
+                `Số lượng: ${new Intl.NumberFormat('vi-VN').format(typeData.quantity)}`,
+                `Số hạng mục: ${typeData.count}`
+              ];
+            }
+          }
         },
+        title: {
+          display: true,
+          text: 'Phân bố theo loại (%)',
+          font: {
+            size: 16,
+            weight: 'bold'
+          },
+          padding: {
+            top: 10,
+            bottom: 20
+          }
+        }
       },
     },
   });
@@ -579,24 +629,42 @@ watch(
       if (pieChartInstance) {
         // Update pie chart
         const groupedData = newData.reduce((acc, item) => {
-          if (!acc[item.Type]) {
-            acc[item.Type] = 0;
+          const type = item.Type || 'Không phân loại';
+          if (!acc[type]) {
+            acc[type] = {
+              quantity: 0,
+              count: 0
+            };
           }
-          acc[item.Type] += Number(item.Quantity_Real) || 0;
+          acc[type].quantity += Number(item.Quantity_Real) || 0;
+          acc[type].count += 1;
           return acc;
         }, {});
 
-        const total = Object.values(groupedData).reduce((sum, value) => sum + value, 0);
+        // Calculate total quantity
+        const totalQuantity = Object.values(groupedData).reduce((sum, item) => sum + item.quantity, 0);
 
-        pieChartInstance.data.labels = Object.keys(groupedData);
-        pieChartInstance.data.datasets[0].data = Object.values(groupedData).map(
-          value => ((value / total) * 100).toFixed(1)
-        );
-        pieChartInstance.update();
+        // Sort types by quantity and calculate percentages
+        const sortedTypes = Object.entries(groupedData)
+          .sort(([, a], [, b]) => b.quantity - a.quantity)
+          .reduce((acc, [key, value]) => {
+            acc[key] = {
+              ...value,
+              percentage: ((value.quantity / totalQuantity) * 100).toFixed(1)
+            };
+            return acc;
+          }, {});
+
+        // Update chart data
+        pieChartInstance.data.labels = Object.keys(sortedTypes);
+        pieChartInstance.data.datasets[0].data = Object.values(sortedTypes).map(item => parseFloat(item.percentage));
+        
+        // Force chart update with animation
+        pieChartInstance.update('active');
       }
     }
   },
-  { deep: true }
+  { deep: true, immediate: true }
 );
 
 // ===== UTILITY FUNCTIONS =====
@@ -643,3 +711,5 @@ export default {
 };
 </script>
 <style lang=""></style>
+
+

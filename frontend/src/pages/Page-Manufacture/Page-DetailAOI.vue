@@ -172,7 +172,7 @@ watch(
   (newData) => {
     console.log("History data:", newData);
     if (newData?.value && Array.isArray(newData.value)) {
-      const filteredHistory = newData.value.filter(item => item.Type === 'AOI-IPQC');
+      const filteredHistory = newData.value.filter(item => item.Type === 'AOI');
       console.log("Filtered AOI history:", filteredHistory);
       totalInput.value = filteredHistory.reduce((sum, item) => sum + (Number(item.Quantity_Plan) || 0), 0);
       console.log("Total input calculated:", totalInput.value);
@@ -217,7 +217,8 @@ const submitBarcode = async () => {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      hour12: false
+      hour12: false,
+      timeZone: 'Asia/Bangkok'  // GMT+7 timezone
     }).replace(/,/g, ''),
   });
 

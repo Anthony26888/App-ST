@@ -73,10 +73,6 @@
               <template v-slot:prepend>
                 <div class="text-h6 mb-2">SMT</div>
               </template>
-              <template v-slot:append>
-                <!-- <ButtonNextManufacture :to="`/San-xuat/SMT/${id}`" /> -->
-                <ButtonNextManufacture @click="DialogHistorySMT = true" />
-              </template>
               <v-card-text>
                 <div class="text-h4 font-weight-bold color-SMT">
                   {{ totalSMT }}
@@ -91,9 +87,6 @@
             <v-card class="mx-auto rounded-xl" elevation="2">
               <template v-slot:prepend>
                 <div class="text-h6 mb-2">AOI</div>
-              </template>
-              <template v-slot:append>
-                <ButtonNextManufacture :to="`/San-xuat/AOI/${id}`" />
               </template>
               <v-card-text>
                 <div class="text-h4 font-weight-bold color-AOI">
@@ -110,9 +103,6 @@
               <template v-slot:prepend>
                 <div class="text-h6 mb-2">RW</div>
               </template>
-              <template v-slot:append>
-                <ButtonNextManufacture :to="`/San-xuat/Han-tay/${id}`" />
-              </template>
               <v-card-text>
                 <div class="text-h4 font-weight-bold color-Hand">
                   {{ totalRW }}
@@ -127,9 +117,6 @@
             <v-card class="mx-auto rounded-xl" elevation="2">
               <template v-slot:prepend>
                 <div class="text-h6 mb-2">IPQC</div>
-              </template>
-              <template v-slot:append>
-                <ButtonNextManufacture :to="`/San-xuat/IPQC/${id}`" />
               </template>
               <v-card-text>
                 <div class="text-h4 font-weight-bold color-IPQC">
@@ -146,9 +133,6 @@
               <template v-slot:prepend>
                 <div class="text-h6 mb-2">Assembly</div>
               </template>
-              <template v-slot:append>
-                <ButtonNextManufacture :to="`/San-xuat/Test/${id}`" />
-              </template>
               <v-card-text>
                 <div class="text-h4 font-weight-bold color-Test">
                   {{ totalAssembly }}
@@ -164,9 +148,6 @@
               <template v-slot:prepend>
                 <div class="text-h6 mb-2">OQC</div>
               </template>
-              <template v-slot:append>
-                <ButtonNextManufacture :to="`/San-xuat/OQC/${id}`" />
-              </template>
               <v-card-text>
                 <div class="text-h4 font-weight-bold color-OQC">
                   {{ totalOQC }}
@@ -174,38 +155,6 @@
                 <div class="text-caption text-medium-emphasis">
                   Tổng số lượng OQC
                 </div>
-              </v-card-text>
-            </v-card>
-          </v-col>
-        </v-row>
-
-        <!-- Production Chart -->
-        <v-row>
-          <v-col cols="12" md="8">
-            <v-card class="mb-4 rounded-xl" elevation="2" height="400px">
-              <v-card-title class="d-flex align-center">
-                <span>Biểu đồ sản xuất</span>
-                <v-spacer></v-spacer>
-                <v-select
-                  v-model="chartTimeRange"
-                  :items="['Ngày']"
-                  density="compact"
-                  variant="outlined"
-                  style="max-width: 150px"
-                ></v-select>
-              </v-card-title>
-              <v-card-text>
-                <canvas ref="productionChart" height="300"></canvas>
-              </v-card-text>
-            </v-card>
-          </v-col>
-          <v-col cols="12" md="4">
-            <v-card class="mb-4 rounded-xl" elevation="2" height="400px">
-              <v-card-title class="d-flex align-center">
-                <span>Tỷ lệ sản xuất</span>
-              </v-card-title>
-              <v-card-text>
-                <canvas ref="doughnutChart" height="300"></canvas>
               </v-card-text>
             </v-card>
           </v-col>
@@ -218,8 +167,7 @@
           :items="history"
           :search="search"
           :group-by="[{ key: 'Type' }]"
-          class="mt-5"
-          :loading="!history.length"
+          class="mt-3"
         >
           <template v-slot:top>
             <v-toolbar flat dense>
@@ -261,15 +209,7 @@
               <ButtonEdit @click="GetItem(item)" />
             </div>
           </template>
-          
-
-          <template v-slot:no-data>
-            <v-alert type="info" text="Không có dữ liệu" class="ma-4"></v-alert>
-          </template>
-
-          <template v-slot:loading>
-            <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
-          </template>
+ 
           <template v-slot:item.Percent="{ item }">
             <v-progress-linear v-model="item.Percent" height="25" color="success">
               <strong>{{ Math.ceil(item.Percent) }}%</strong>
@@ -296,8 +236,7 @@
         <v-card-text>
           <InputSelect
             label="Công đoạn"
-            :items="['SMT', 'AOI', 'RW', 'ASSEMBLY', 'IPQC', 'OQC']"
-            variant="solo-filled"
+            :items="['SMT', 'AOI', 'RW', 'IPQC', 'Assembly', 'OQC']"
             v-model="Type_Add"
           />
           <InputField label="Số PO" v-model="PONumber_Add" />
@@ -341,8 +280,7 @@
         <v-card-text>
           <InputSelect
             label="Công đoạn"
-            :items="['SMT', 'AOI', 'RW', 'ASSEMBLY', 'IPQC', 'OQC']"
-            variant="solo-filled"
+            :items="['SMT', 'AOI', 'RW', 'IPQC', 'Assembly', 'OQC']"
             v-model="Type_Edit"
           />
           <InputField label="Số PO" v-model="PONumber_Edit" />
@@ -429,6 +367,7 @@ const { manufacture, manufactureFound, manufactureError, isConnected } =
   useManufacture();
 const { history, historyError, refresh } = useHistory(id);
 
+console.log(manufactureDetails);
 // Dialog
 const DialogSuccess = ref(false);
 const DialogLoading = ref(false);
@@ -461,6 +400,7 @@ const Level_OQC = ref(0);
 
 // Data
 const DataManufacture = ref(null);
+console.log(DataManufacture); 
 // ===== FORM ADD =====
 const Type_Add = ref("");
 const PONumber_Add = ref(localStorage.getItem("ProductName"));
@@ -496,22 +436,25 @@ const HeadersHistory = [
 
 // Watch for manufactureFound changes to update levels
 watch(
-  manufactureFound,
+  manufactureDetails,
   (newValue) => {
-    if (newValue && newValue.Level) {
-      DataManufacture.value = newValue.Level;
-      // Initialize levels based on DataManufacture
-      Level_SMT.value = DataManufacture.value?.includes("SMT") || false;
-      Level_AOI.value = DataManufacture.value?.includes("AOI") || false;
-      Level_RW.value = DataManufacture.value?.includes("RW") || false;
-      Level_IPQC.value = DataManufacture.value?.includes("IPQC") || false;
-      Level_Assembly.value = DataManufacture.value?.includes("Assembly") || false;
-      Level_OQC.value = DataManufacture.value?.includes("OQC") || false;
-    } else {
-      console.warn("No manufacture data found or Level is undefined");
+    console.log('manufactureDetails raw value:', newValue);
+    if (newValue) {
+      const data = Array.isArray(newValue) ? newValue[0] : newValue;
+      
+      if (data && data.Level) {
+        DataManufacture.value = data.Level;
+        
+        Level_SMT.value = DataManufacture.value.includes("SMT");
+        Level_AOI.value = DataManufacture.value.includes("AOI");
+        Level_RW.value = DataManufacture.value.includes("RW");
+        Level_IPQC.value = DataManufacture.value.includes("IPQC");
+        Level_Assembly.value = DataManufacture.value.includes("Assembly");
+        Level_OQC.value = DataManufacture.value.includes("OQC");
+      }
     }
   },
-  { immediate: true }
+  { immediate: true, deep: true }
 );
 
 // Watch for manufacture errors
@@ -530,35 +473,17 @@ const percent = computed(() => {
   return Math.round((totalOQC.value / totalInput.value) * 100);
 });
 
-// Add new ref for doughnut chart
-const doughnutChart = ref(null);
-let doughnutChartInstance = null;
 
-// Data for chart
-const Data = {
-  labels: manufactureDetails.value?.map((item) => `${item.Date}`) || [],
-  SMT: manufactureDetails.value?.map((item) => item.SMT) || [],
-  AOI: manufactureDetails.value?.map((item) => item.AOI) || [],
-  RW: manufactureDetails.value?.map((item) => item.RW) || [],
-  IPQC: manufactureDetails.value?.map((item) => item.IPQC) || [],
-  Assembly: manufactureDetails.value?.map((item) => item.Assembly) || [],
-  OQC: manufactureDetails.value?.map((item) => item.OQC) || [],
-};
 
 // Status last seen
 const now = Date.now();
 const timeout = 60000;
 
-// Add to script section
-const chartTimeRange = ref("Ngày");
-const productionChart = ref(null);
 let chart = null;
 
 // Initialize chart
 onMounted(() => {
   nextTick(() => {
-    initializeChart();
-    initializeDoughnutChart();
     fetchProductionData();
   });
 });
@@ -570,6 +495,7 @@ const formattedSelectedDate = computed(() => {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    timeZone: "Asia/Bangkok"
   });
 });
 
@@ -585,7 +511,7 @@ const PushItem = (item) => {
   } else if (item.Type === "Assembly") {
     router.push(`/san-xuat/Assembly/${item.id}`);
   } else if (item.Type === "IPQC") {
-    router.push(`/san-xuat/IPQC/${itemid}`);
+    router.push(`/san-xuat/IPQC/${item.id}`);
   } else if (item.Type === "OQC") {
     router.push(`/san-xuat/OQC/${item.id}`);
   }
@@ -680,260 +606,42 @@ function Error() {
   DialogLoading.value = false;
 }
 
-function initializeChart() {
-  if (!productionChart.value) return;
+// Watch for manufactureDetails changes
+watch(
+  manufactureDetails,
+  (newValue) => {
+    console.log('Raw manufactureDetails:', newValue); // Debug raw data
+    if (newValue && typeof newValue === 'object') {
+      // Check if newValue is an array and has items
+      if (Array.isArray(newValue) && newValue.length > 0) {
+        const data = newValue[0]; // Get first item if it's an array
+        totalInput.value = data.Total || 0;
+        totalSMT.value = data.SMT || 0;
+        totalAOI.value = data.AOI || 0;
+        totalRW.value = data.RW || 0;
+        totalIPQC.value = data.IPQC || 0;
+        totalAssembly.value = data.Assembly || 0;
+        totalOQC.value = data.OQC || 0;
+      } else {
+        // If it's a single object
+        totalInput.value = newValue.Total || 0;
+        totalSMT.value = newValue.SMT || 0;
+        totalAOI.value = newValue.AOI || 0;
+        totalRW.value = newValue.RW || 0;
+        totalIPQC.value = newValue.IPQC || 0;
+        totalAssembly.value = newValue.Assembly || 0;
+        totalOQC.value = newValue.OQC || 0;
+      }
+    }
+  },
+  { immediate: true, deep: true }
+);
 
-  const ctx = productionChart.value.getContext("2d");
-
-  // Destroy existing chart if it exists
-  if (chart) {
-    chart.destroy();
-  }
-
-  // Create new chart with initial data
-  chart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: Data.labels,
-      datasets: [
-        {
-          label: "SMT",
-          backgroundColor: "rgba(25, 118, 210, 0.8)",
-          borderColor: "#1976D2",
-          data: Data.SMT,
-          borderWidth: 1,
-          borderRadius: 4,
-          barPercentage: 0.8,
-          categoryPercentage: 0.9,
-        },
-        {
-          label: "AOI",
-          backgroundColor: "rgba(192,192,192, 0.8)",
-          borderColor: "#C0C0C0",
-          data: Data.AOI,
-          borderWidth: 1,
-          borderRadius: 4,
-          barPercentage: 0.8,
-          categoryPercentage: 0.9,
-        },
-        {
-          label: "RW",
-          backgroundColor: "rgba(255, 0, 0, 0.8)",
-          borderColor: "#FF0000",
-          data: Data.Hand,
-          borderWidth: 1,
-          borderRadius: 4,
-          barPercentage: 0.8,
-          categoryPercentage: 0.9,
-        },
-        {
-          label: "IPQC",
-          backgroundColor: "rgba(255, 0, 255, 0.8)",
-          borderColor: "#FF00FF",
-          data: Data.IPQC,
-          borderWidth: 1,
-          borderRadius: 4,
-          barPercentage: 0.8,
-          categoryPercentage: 0.9,
-        },
-        {
-          label: "Assembly",
-          backgroundColor: "rgba(255, 165, 0, 0.8)",
-          borderColor: "#FFA500",
-          data: Data.Test,
-          borderWidth: 1,
-          borderRadius: 4,
-          barPercentage: 0.8,
-          categoryPercentage: 0.9,
-        },
-        {
-          label: "OQC",
-          backgroundColor: "rgba(76, 175, 80, 0.8)",
-          borderColor: "#4CAF50",
-          data: Data.OQC,
-          borderWidth: 1,
-          borderRadius: 4,
-          barPercentage: 0.8,
-          categoryPercentage: 0.9,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: {
-        intersect: false,
-        mode: "index",
-      },
-      plugins: {
-        legend: {
-          position: "top",
-          labels: {
-            usePointStyle: true,
-            padding: 20,
-          },
-        },
-        title: {
-          display: true,
-          text: "Biểu đồ sản xuất theo ngày",
-          font: {
-            size: 16,
-            weight: "bold",
-          },
-          padding: {
-            top: 10,
-            bottom: 20,
-          },
-        },
-        tooltip: {
-          callbacks: {
-            label: function (context) {
-              let label = context.dataset.label || "";
-              if (label) {
-                label += ": ";
-              }
-              if (context.parsed.y !== null) {
-                label += new Intl.NumberFormat("vi-VN").format(
-                  context.parsed.y
-                );
-              }
-              return label;
-            },
-          },
-        },
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          stacked: false,
-          title: {
-            display: true,
-            text: "Số lượng",
-            font: {
-              weight: "bold",
-            },
-          },
-          ticks: {
-            callback: function (value) {
-              return new Intl.NumberFormat("vi-VN").format(value);
-            },
-          },
-          grid: {
-            color: "rgba(0, 0, 0, 0.1)",
-          },
-        },
-        x: {
-          stacked: false,
-          title: {
-            display: true,
-            text: "Ngày",
-            font: {
-              weight: "bold",
-            },
-          },
-          grid: {
-            display: false,
-          },
-        },
-      },
-    },
-  });
-}
-
-// Add doughnut chart initialization function
-function initializeDoughnutChart() {
-  if (!doughnutChart.value) return;
-
-  const ctx = doughnutChart.value.getContext("2d");
-
-  // Destroy existing chart if it exists
-  if (doughnutChartInstance) {
-    doughnutChartInstance.destroy();
-  }
-
-  // Calculate total for percentage
-  const total =
-    Data.SMT.reduce((a, b) => a + b, 0) +
-    Data.AOI.reduce((a, b) => a + b, 0) +
-    Data.RW.reduce((a, b) => a + b, 0) +
-    Data.IPQC.reduce((a, b) => a + b, 0) +
-    Data.Assembly.reduce((a, b) => a + b, 0) +
-    Data.OQC.reduce((a, b) => a + b, 0);
-
-  // Create new chart
-  doughnutChartInstance = new Chart(ctx, {
-    type: "doughnut",
-    data: {
-      labels: ["SMT", "AOI", "RW", "IPQC", "Assembly", "OQC"],
-      datasets: [
-        {
-          data: [
-            ((Data.SMT.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
-            ((Data.AOI.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
-            ((Data.RW.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
-            ((Data.IPQC.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
-            ((Data.Assembly.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
-            ((Data.OQC.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
-          ],
-          backgroundColor: [
-            "rgba(25, 118, 210, 0.8)",
-            "rgba(192,192,192, 0.8)",
-            "rgba(255, 0, 0, 0.8)",
-            "rgba(255, 0, 255, 0.8)",
-            "rgba(255, 165, 0, 0.8)",
-            "rgba(76, 175, 80, 0.8)",
-          ],
-          borderColor: [
-            "#1976D2",
-            "#C0C0C0",
-            "#FF0000",
-            "#FF00FF",
-            "#FFA500",
-            "#4CAF50",
-          ],
-          borderWidth: 1,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: "right",
-          labels: {
-            usePointStyle: true,
-            padding: 20,
-          },
-        },
-        tooltip: {
-          callbacks: {
-            label: function (context) {
-              const label = context.label || "";
-              const value = context.raw || 0;
-              return `${label}: ${value}%`;
-            },
-          },
-        },
-      },
-    },
-  });
-}
-
-// Update fetchProductionData to use real data
+// Update fetchProductionData to use the watcher
 async function fetchProductionData() {
   try {
     DialogLoading.value = true;
-
-    // Use real data from manufactureDetails
-    if (manufactureDetails.value && manufactureDetails.value.length > 0) {
-      totalSMT.value = Data.SMT.reduce((a, b) => a + b, 0);
-      totalAOI.value = Data.AOI.reduce((a, b) => a + b, 0);
-      totalRW.value = Data.RW.reduce((a, b) => a + b, 0);
-      totalIPQC.value = Data.IPQC.reduce((a, b) => a + b, 0);
-      totalAssembly.value = Data.Assembly.reduce((a, b) => a + b, 0);
-      totalOQC.value = Data.OQC.reduce((a, b) => a + b, 0);
-    }
+    console.log('Current manufactureDetails:', manufactureDetails.value); // Debug current value
   } catch (error) {
     console.error("Error fetching production data:", error);
     DialogFailed.value = true;
@@ -941,76 +649,6 @@ async function fetchProductionData() {
     DialogLoading.value = false;
   }
 }
-
-// Watch for time range changes
-watch(chartTimeRange, () => {
-  fetchProductionData();
-});
-
-// Watch for changes in manufactureDetails
-watch(
-  manufactureDetails,
-  (newData) => {
-    if (newData && newData.length > 0) {
-      // Update Data object
-      Data.labels = newData.map((item) => `${item.Date}`);
-      Data.SMT = newData.map((item) => item.SMT);
-      Data.AOI = newData.map((item) => item.AOI);
-      Data.RW = newData.map((item) => item.RW);
-      Data.IPQC = newData.map((item) => item.IPQC);
-      Data.Assembly = newData.map((item) => item.Assembly);
-      Data.OQC = newData.map((item) => item.OQC);
-
-      // Calculate total input
-      totalInput.value = newData.reduce(
-        (sum, item) => sum + (item.Total || 0),
-        0
-      );
-
-      // Update bar chart if it exis
-      if (chart) {
-        chart.data.labels = Data.labels;
-        chart.data.datasets[0].data = Data.SMT;
-        chart.data.datasets[1].data = Data.AOI;
-        chart.data.datasets[2].data = Data.RW;
-        chart.data.datasets[3].data = Data.IPQC;
-        chart.data.datasets[4].data = Data.Assembly;
-        chart.data.datasets[5].data = Data.OQC;
-        chart.update();
-      }
-
-      // Update doughnut chart if it exists
-      if (doughnutChartInstance) {
-        const total =
-          Data.SMT.reduce((a, b) => a + b, 0) +
-          Data.AOI.reduce((a, b) => a + b, 0) +
-          Data.RW.reduce((a, b) => a + b, 0) +
-          Data.IPQC.reduce((a, b) => a + b, 0) +
-          Data.Assembly.reduce((a, b) => a + b, 0) +
-          Data.OQC.reduce((a, b) => a + b, 0);
-
-        doughnutChartInstance.data.datasets[0].data = [
-          ((Data.SMT.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
-          ((Data.AOI.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
-          ((Data.RW.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
-          ((Data.IPQC.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
-          ((Data.Assembly.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
-          ((Data.OQC.reduce((a, b) => a + b, 0) / total) * 100).toFixed(1),
-        ];
-        doughnutChartInstance.update();
-      }
-
-      // Update statistics
-      totalSMT.value = Data.SMT.reduce((a, b) => a + b, 0);
-      totalAOI.value = Data.AOI.reduce((a, b) => a + b, 0);
-      totalRW.value = Data.RW.reduce((a, b) => a + b, 0);
-      totalIPQC.value = Data.IPQC.reduce((a, b) => a + b, 0);
-      totalAssembly.value = Data.Assembly.reduce((a, b) => a + b, 0);
-      totalOQC.value = Data.OQC.reduce((a, b) => a + b, 0);
-    }
-  },
-  { deep: true, immediate: true }
-);
 
 // Add watcher for history changes
 watch(

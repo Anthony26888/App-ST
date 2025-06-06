@@ -22,7 +22,9 @@ export function useManufactureDetails(id) {
     });
 
     socket.on("ManufactureDetailsData", (data) => {
-      console.log("Received manufacture details:", data);
+      if (Array.isArray(data)) {
+        console.log("First item:", data[0]);
+      }
       manufactureDetails.value = data;
     });
 

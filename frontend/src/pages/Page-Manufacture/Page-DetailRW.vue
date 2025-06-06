@@ -220,7 +220,8 @@ const submitBarcode = async () => {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      hour12: false
+      hour12: false,
+      timeZone: 'Asia/Bangkok'  // GMT+7 timezone
     }).replace(/,/g, ''),
   });
 

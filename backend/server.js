@@ -332,8 +332,10 @@ io.on("connection", (socket) => {
                           SUM(IFNULL(d.RW, 0)) AS RW,
                           SUM(IFNULL(e.IPQC, 0)) AS IPQC,
                           SUM(IFNULL(f.Assembly, 0)) AS Assembly,
-                          SUM(IFNULL(g.OQC, 0)) AS OQC
-                      FROM Summary a
+                          SUM(IFNULL(g.OQC, 0)) AS OQC,
+                          h.Level AS Level
+                      FROM PlanManufacture h
+                      LEFT JOIN Summary a ON a.PlanID = h.id
                       LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS SMT 
                           FROM ManufactureSMT 
@@ -364,13 +366,8 @@ io.on("connection", (socket) => {
                           FROM ManufactureOQC 
                           GROUP BY HistoryID
                       ) g ON a.id = g.HistoryID
-                      LEFT JOIN (
-                          SELECT id, Total 
-                          FROM PlanManufacture
-                      ) h ON a.PlanID = h.id
-                      WHERE a.PlanID = ?
-                      GROUP BY h.Total;
-                      `;
+                      WHERE h.id = ?
+                      GROUP BY h.Total;`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("ManufactureDetailsError", err);
           socket.emit("ManufactureDetailsData", rows);
@@ -480,10 +477,10 @@ io.on("connection", (socket) => {
                         a.Created_At,
                         CASE
                           WHEN a.Type = 'SMT' THEN IFNULL(b.SMT, 0)
-                          WHEN a.Type = 'AOI-IPQC' THEN IFNULL(c.AOI, 0)
+                          WHEN a.Type = 'AOI' THEN IFNULL(c.AOI, 0)
                           WHEN a.Type = 'RW' THEN IFNULL(d.RW, 0)
-                          WHEN a.Type = 'Assembly' THEN IFNULL(e.IPQC, 0)
-                          WHEN a.Type = 'IPQC' THEN IFNULL(f.Assembly, 0)
+                          WHEN a.Type = 'Assembly' THEN IFNULL(f.Assembly, 0)
+                          WHEN a.Type = 'IPQC' THEN IFNULL(e.IPQC, 0)
                           WHEN a.Type = 'OQC' THEN IFNULL(g.OQC, 0)
                           ELSE 0
                         END AS Quantity_Real,
@@ -491,10 +488,10 @@ io.on("connection", (socket) => {
                           WHEN a.Quantity_Plan > 0 THEN 
                             CASE
                               WHEN a.Type = 'SMT' THEN (IFNULL(b.SMT, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'AOI-IPQC' THEN (IFNULL(c.AOI, 0) * 100.0) / a.Quantity_Plan
+                              WHEN a.Type = 'AOI' THEN (IFNULL(c.AOI, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'RW' THEN (IFNULL(d.RW, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'Assembly' THEN (IFNULL(e.IPQC, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'IPQC' THEN (IFNULL(f.Assembly, 0) * 100.0) / a.Quantity_Plan
+                              WHEN a.Type = 'Assembly' THEN (IFNULL(f.Assembly, 0) * 100.0) / a.Quantity_Plan
+                              WHEN a.Type = 'IPQC' THEN (IFNULL(e.IPQC, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'OQC' THEN (IFNULL(g.OQC, 0) * 100.0) / a.Quantity_Plan
                               ELSE 0
                             END
@@ -554,10 +551,10 @@ io.on("connection", (socket) => {
                         a.Created_At,
                         CASE
                           WHEN a.Type = 'SMT' THEN IFNULL(b.SMT, 0)
-                          WHEN a.Type = 'AOI-IPQC' THEN IFNULL(c.AOI, 0)
+                          WHEN a.Type = 'AOI' THEN IFNULL(c.AOI, 0)
                           WHEN a.Type = 'RW' THEN IFNULL(d.RW, 0)
-                          WHEN a.Type = 'Assembly' THEN IFNULL(e.IPQC, 0)
-                          WHEN a.Type = 'IPQC' THEN IFNULL(f.Assembly, 0)
+                          WHEN a.Type = 'Assembly' THEN IFNULL(f.Assembly, 0)
+                          WHEN a.Type = 'IPQC' THEN IFNULL(e.IPQC, 0)
                           WHEN a.Type = 'OQC' THEN IFNULL(g.OQC, 0)
                           ELSE 0
                         END AS Quantity_Real,
@@ -565,10 +562,10 @@ io.on("connection", (socket) => {
                           WHEN a.Quantity_Plan > 0 THEN 
                             CASE
                               WHEN a.Type = 'SMT' THEN (IFNULL(b.SMT, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'AOI-IPQC' THEN (IFNULL(c.AOI, 0) * 100.0) / a.Quantity_Plan
+                              WHEN a.Type = 'AOI' THEN (IFNULL(c.AOI, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'RW' THEN (IFNULL(d.RW, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'Assembly' THEN (IFNULL(e.IPQC, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'IPQC' THEN (IFNULL(f.Assembly, 0) * 100.0) / a.Quantity_Plan
+                              WHEN a.Type = 'Assembly' THEN (IFNULL(f.Assembly, 0) * 100.0) / a.Quantity_Plan
+                              WHEN a.Type = 'IPQC' THEN (IFNULL(e.IPQC, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'OQC' THEN (IFNULL(g.OQC, 0) * 100.0) / a.Quantity_Plan
                               ELSE 0
                             END
@@ -2208,6 +2205,7 @@ app.post("/api/sensor", (req, res) => {
       minute: "2-digit",
       second: "2-digit",
       hour12: false,
+      timeZone: "Asia/Bangkok" // GMT+7 timezone
     })
     .replace(/,/g, "");
   if (!project_id || input_value === undefined) {
