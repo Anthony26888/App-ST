@@ -81,7 +81,7 @@
 
       <!-- Charts -->
       <v-row>
-        <v-col cols="12" md="8">
+        <v-col cols="12" md="7">
           <v-card class="mb-4 rounded-xl" elevation="2" height="400px">
             <v-card-title class="d-flex align-center">
               <span>Biểu đồ so sánh kế hoạch và thực tế theo hạng mục</span>
@@ -91,7 +91,7 @@
             </v-card-text>
           </v-card>
         </v-col>
-        <v-col cols="12" md="4">
+        <v-col cols="12" md="5">
           <v-card class="mb-4 rounded-xl" elevation="2" height="400px">
             <v-card-title class="d-flex align-center">
               <span>Phân bố theo loại</span>
@@ -104,12 +104,13 @@
       </v-row>
 
       <!-- Bảng dữ liệu -->
-      <v-data-table
+      <v-data-table-virtual
         :headers="Headers"
         :items="summary"
         :search="search"
         :group-by="[{ key: 'Type' }]"
-        class="mt-5"
+        class="mt-3"
+        fixed-header
       >
         <template v-slot:top>
           <v-toolbar flat dense>
@@ -142,18 +143,10 @@
         </template>
         <template v-slot:item.Percent="{ item }">
           <v-progress-linear v-model="item.Percent" height="25" color="success">
-            <strong>{{ item.Percent }}%</strong>
+            <strong>{{ item.Percent.toFixed(1) }}%</strong>
           </v-progress-linear>
         </template>
-        <template v-slot:bottom>
-          <div class="text-center pt-2">
-            <v-pagination
-              v-model="page"
-              :length="Math.ceil(summary.length / itemsPerPage)"
-            ></v-pagination>
-          </div>
-        </template>
-      </v-data-table>
+      </v-data-table-virtual>
     </v-card-text>
   </v-card>
 
@@ -183,7 +176,7 @@ import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 
 // Composables
-import { useSummary } from "@/composables/useSummary";
+import { useSummary } from "@/composables/Summary/useSummary";
 
 // ===== STATE MANAGEMENT =====
 // API Configuration

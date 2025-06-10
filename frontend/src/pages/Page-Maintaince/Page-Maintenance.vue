@@ -227,7 +227,7 @@ import axios from "axios";
 import { useRouter } from "vue-router";
 
 // Composables
-import { useMachine } from "@/composables/useMachine";
+import { useMachine } from "@/composables/Maintenance/useMachine";
 
 // Components
 import InputSearch from "@/components/Input-Search.vue";

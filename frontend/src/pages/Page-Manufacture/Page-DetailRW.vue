@@ -3,7 +3,7 @@
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <v-card-title class="text-h4 font-weight-light">
         <ButtonBack :to="`/San-xuat/Chi-tiet/${back}`" />
-        Theo dõi sản xuất hàn tay</v-card-title
+        Theo dõi sản xuất RW</v-card-title
       >
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
@@ -13,49 +13,81 @@
       <v-card-text>
 
         <!-- Production Statistics Cards -->
-
         <v-row class="mb-4">
-          <v-col cols="12" sm="6">
-            <v-card class="mx-auto" elevation="2">
+          <v-col cols="12" sm="4">
+            <v-card class="rounded-lg" color="primary" variant="tonal">
               <v-card-text>
-                <div class="text-h6 mb-2">Đầu vào</div>
-                <div class="text-h4 font-weight-bold text-error">
+                <div class="text-subtitle-1">Đầu vào</div>
+                <div class="text-h4 font-weight-bold">
                   {{ totalInput }}
                 </div>
-                <div class="text-caption text-medium-emphasis">
+                <div class="text-caption">
                   Tổng số lượng đầu vào
                 </div>
               </v-card-text>
             </v-card>
           </v-col>
-          <v-col cols="12" sm="6">
-            <v-card class="mx-auto" elevation="2">
+          <v-col cols="12" sm="4">
+            <v-card class="rounded-lg" color="info" variant="tonal">
               <v-card-text>
-                <div class="text-h6 mb-2">Đầu ra</div>
-                <div class="text-h4 font-weight-bold text-success">
+                <div class="text-subtitle-1">Đầu ra</div>
+                <div class="text-h4 font-weight-bold">
                   {{ manufactureHand.length }}
                 </div>
-                <div class="text-caption text-medium-emphasis">
+                <div class="text-caption">
                   Tổng số lượng đầu ra
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" sm="4">
+            <v-card class="rounded-lg" color="warning" variant="tonal">
+              <v-card-text>
+                <div class="text-subtitle-1">Lỗi</div>
+                <div class="text-h4 font-weight-bold">
+                  {{ totalErrors }}
+                </div>
+                <div class="text-caption">
+                  Tổng số lượng lỗi
                 </div>
               </v-card-text>
             </v-card>
           </v-col>
         </v-row>
 
-        <InputField
-          label="Nhập mã sản phẩm"
-          v-model="Input"
-          @keydown.enter="submitBarcode"
-          ref="barcodeInput"
-          autofocus
-          hide-details
-        />
+        <!-- Input Section -->
+        <v-card class="mb-4 rounded-lg" elevation="2">
+          <v-card-text>
+            <v-row>
+              <v-col cols="12" md="8">
+                <InputField
+                  label="Nhập mã sản phẩm"
+                  v-model="Input"
+                  @keydown.enter="submitBarcode"
+                  ref="barcodeInput"
+                  autofocus
+                  hide-details
+                  variant="outlined"
+                  density="comfortable"
+                />
+              </v-col>
+              <v-col cols="12" md="4">
+                <v-checkbox
+                  v-model="isError"
+                  label="Đánh dấu lỗi"
+                  color="warning"
+                  hide-details
+                  class="mt-2"
+                ></v-checkbox>
+              </v-col>
+            </v-row>
+          </v-card-text>
+        </v-card>
 
         <!-- Table -->
-        <v-card class="mt-4" variant="text">
+        <v-card class="mt-4 rounded-lg" variant="text">
           <v-card-title class="d-flex align-center">
-            <span>Bảng chi tiết sản xuất</span>
+            <span class="text-h6">Bảng chi tiết sản xuất</span>
             <v-spacer></v-spacer>
             <InputSearch v-model="search" />
           </v-card-title>
@@ -82,8 +114,17 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="calc(100vh - 200px)"
+            height="calc(100vh - 300px)"
           >
+            <template #[`item.Status`]="{ item }">
+              <v-chip
+                :color="item.Status === 'error' ? 'warning' : 'success'"
+                size="small"
+                variant="tonal"
+              >
+                {{ item.Status === 'error' ? 'Lỗi' : 'OK' }}
+              </v-chip>
+            </template>
             <template #[`bottom`]>
               <div class="text-center pt-2">
                 <v-pagination
@@ -111,8 +152,8 @@ import { useRoute } from "vue-router";
 import axios from "axios";
 
 // Composables
-import { useHistory } from "@/composables/useHistory";
-import { useManufactureHand } from "@/composables/useManufactureHand";
+import { useHistory } from "@/composables/Manufacture/useHistory";
+import { useManufactureHand } from "@/composables/Manufacture/useManufactureRW";
 
 // Components
 import Loading from "@/components/Loading.vue";
@@ -135,6 +176,7 @@ const Headers = [
   { title: "STT", key: "id" },
   { title: "Mã sản phẩm", key: "PartNumber" },
   { title: "Thời gian", key: "Timestamp" },
+  { title: "Trạng thái", key: "Status" },
 ];
 
 // ===== Composables & Data Management =====
@@ -152,11 +194,21 @@ const Input = ref("");
 const isSubmitting = ref(false);
 const totalInput = ref(0);
 const totalOutput = ref(0);
+const totalErrors = ref(0);
+const isError = ref(false);
 
 // Production Info
 const NameManufacture = localStorage.getItem("ProductName");
 
 // ===== Watchers =====
+// Watch for manufactureHand changes and log updates
+watch(manufactureHand, (newValue) => {
+  console.log("manufactureHand updated:", newValue);
+  if (newValue?.value && Array.isArray(newValue.value)) {
+    totalErrors.value = newValue.value.filter(item => item.Status === 'error').length;
+  }
+}, { deep: true });
+
 // Watch for manufactureAOI changes and log updates
 watch(manufactureHand, (newValue) => {
   console.log("manufactureAOI updated:", newValue);
@@ -201,7 +253,6 @@ watch(
  * Handles form submission, API call, and error handling
  */
 const submitBarcode = async () => {
-  // Prevent duplicate submissions and empty input
   if (isSubmitting.value || !Input.value.trim()) {
     return;
   }
@@ -209,7 +260,6 @@ const submitBarcode = async () => {
   isSubmitting.value = true;
   DialogLoading.value = true;
   
-  // Prepare form data with current timestamp
   const formData = reactive({
     HistoryID: id,
     PartNumber: Input.value.trim(),
@@ -221,14 +271,16 @@ const submitBarcode = async () => {
       minute: '2-digit',
       second: '2-digit',
       hour12: false,
-      timeZone: 'Asia/Bangkok'  // GMT+7 timezone
+      timeZone: 'Asia/Bangkok'
     }).replace(/,/g, ''),
+    Status: isError.value ? 'error' : 'ok'
   });
 
   try {
     const response = await axios.post(`${Url}/Manufacture/RW`, formData);
     console.log(response.data);
-    Input.value = ""; // Clear input after successful submission
+    Input.value = "";
+    isError.value = false;
   } catch (error) {
     console.error("Error submitting barcode:", error);
   } finally {

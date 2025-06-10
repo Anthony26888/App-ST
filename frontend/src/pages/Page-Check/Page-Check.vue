@@ -212,8 +212,8 @@ import { onMounted, ref, computed, watch } from "vue";
 import emailjs from "@emailjs/browser";
 
 // Composables
-import { useCheckBOM } from "@/composables/useCheckBom";
-import { useUsers } from "@/composables/useUsers";
+import { useCheckBOM } from "@/composables/CheckBOM/useCheckBom";
+import { useUsers } from "@/composables/Settings/useUsers";
 
 // Components
 import ButtonImportFile from "@/components/Button-ImportFile.vue";

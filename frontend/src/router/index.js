@@ -28,6 +28,12 @@ import PageDetailIPQC from "@/pages/Page-Manufacture/Page-DetailIPQC.vue";
 import PageDetailAssembly from "@/pages/Page-Manufacture/Page-DetailAssembly.vue";
 import PageDetailOQC from "@/pages/Page-Manufacture/Page-DetailOQC.vue";
 import PageSummary from "@/pages/Page-Summary/Page-Summary.vue"
+import PageDetailIPQCSMT from "@/pages/Page-Manufacture/Page-Detail-IPQC-SMT.vue";
+import PageDetailBoxBuild from "@/pages/Page-Manufacture/Page-Detail-BoxBuild.vue";
+import PageDetailWarehouse from "@/pages/Page-Manufacture/Page-Detail-Warehouse.vue";
+import PageDetailTest1 from "@/pages/Page-Manufacture/Page-Detail-Test1.vue";
+import PageDetailTest2 from "@/pages/Page-Manufacture/Page-Detail-Test2.vue";
+
 
 const routes = [
   {
@@ -177,6 +183,36 @@ const routes = [
         name: "DetailOQC",
         meta: { requiresAuth: true },
         component: PageDetailOQC,
+      },
+      {
+        path: "/San-xuat/IPQCSMT/:id",
+        name: "DetailIPQCSMT",
+        meta: { requiresAuth: true },
+        component: PageDetailIPQCSMT,
+      },
+      {
+        path: "/San-xuat/Test1/:id",
+        name: "DetailTest1",
+        meta: { requiresAuth: true },
+        component: PageDetailTest1,
+      },
+      {
+        path: "/San-xuat/Test2/:id",
+        name: "DetailTest2",
+        meta: { requiresAuth: true },
+        component: PageDetailTest2,
+      },
+      {
+        path: "/San-xuat/Nhap-kho/:id",
+        name: "DetailWarehouse",
+        meta: { requiresAuth: true },
+        component: PageDetailWarehouse,
+      },
+      {
+        path: "/San-xuat/BoxBuild/:id",
+        name: "DetailBoxBuild",
+        meta: { requiresAuth: true },
+        component: PageDetailBoxBuild,
       },
       {
         path: "/Bao-cao-san-xuat",

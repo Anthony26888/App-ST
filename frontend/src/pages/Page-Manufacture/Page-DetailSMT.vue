@@ -176,10 +176,10 @@ import { useRoute } from "vue-router";
 import axios from "axios";
 
 // Import các composables
-import { useHistory } from "@/composables/useHistory";
-import { useManufactureSMT } from "@/composables/useManufactureSMT";
-import { useManufacture } from "@/composables/useManufacture";
-import { useDeviceStatusSocket } from "@/composables/useStatusSensor";
+import { useHistory } from "@/composables/Manufacture/useHistory";
+import { useManufactureSMT } from "@/composables/Manufacture/useManufactureSMT";
+import { useManufacture } from "@/composables/Manufacture/useManufacture";
+import { useDeviceStatusSocket } from "@/composables/Manufacture/useStatusSensor";
 
 // Import các component
 import Loading from "@/components/Loading.vue";

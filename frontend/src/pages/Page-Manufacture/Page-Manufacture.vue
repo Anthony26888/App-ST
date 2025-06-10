@@ -119,11 +119,13 @@
         </v-card-title>
         <v-card-text>
           <InputField
+            :disabled="true"
             label="Tên dự án"
             :model-value="Name_Edit"
             @update:model-value="Name_Edit = $event"
           />
           <InputField
+            :disabled="true"
             label="Tổng sản phẩm"
             type="number"
             :model-value="Total_Edit"
@@ -132,11 +134,21 @@
           <InputSelect
             label="Quy trình"
             :items="[
-              'SMT - AOI - RW - IPQC - Assembly - OQC',
-              'SMT - AOI - RW - OQC',
-              'SMT - RW - OQC'
+              'SMT',
+              'AOI',
+              'IPQC (SMT)',
+              'Assembly',
+              'IPQC (Hàn tay)',
+              'Test 1',
+              'Test 2',
+              'Box Build',
+              'OQC',
             ]"
+            multiple
+            chips
+            hint="Lựa chọn quy trình phù hợp"
             v-model="Level_Edit"
+            @update:model-value="(val) => (Level_Edit = val)"
           />
           <InputField
             label="Ngày tạo"
@@ -186,11 +198,21 @@
           <InputSelect
             label="Quy trình"
             :items="[
-              'SMT - AOI - RW - IPQC - Assembly - OQC',
-              'SMT - AOI - RW - OQC',
-              'SMT - RW - OQC'
+              'SMT',
+              'AOI',
+              'IPQC (SMT)',
+              'Assembly',
+              'IPQC (Hàn tay)',
+              'Test 1',
+              'Test 2',
+              'Box Build',
+              'OQC'
             ]"
-            v-model="Level_Add"
+            multiple
+            chips
+            hint="Lựa chọn quy trình phù hợp"
+            v-model="Level_Manufacture_Add"
+            @update:model-value="(val) => (Level_Manufacture_Add = val)"
           />
           <InputField
             label="Ngày tạo"
@@ -285,7 +307,7 @@ import ButtonEye from "@/components/Button-Eye.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
-import { useManufacture } from "@/composables/useManufacture";
+import { useManufacture } from "@/composables/Manufacture/useManufacture";
 
 // Khởi tạo các composables và biến môi trường
 const { manufacture, manufactureError } = useManufacture();
@@ -318,11 +340,7 @@ const Name_Add = ref("");
 const Date_Add = ref("");
 const Note_Add = ref("");
 const Total_Add = ref(0);
-const DelaySMT_Add = ref(50);
 const Level_Add = ref("");
-const Quantity_Add = ref(1);
-
-
 
 // Khởi tạo các biến ref cho thông tin người dùng và tìm kiếm
 const UserInfo = ref("");
@@ -354,7 +372,7 @@ const formattedSelectedDate = computed(() => {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-    timeZone: "Asia/Bangkok"
+    timeZone: "Asia/Bangkok",
   });
 });
 
@@ -371,7 +389,6 @@ onMounted(() => {
     router.push("/");
   }
 });
-
 
 // Hàm chuyển hướng đến trang chi tiết sản phẩm
 function PushItem(value) {
@@ -391,12 +408,10 @@ function GetItem(value) {
   Name_Edit.value = found.Name;
   Total_Edit.value = found.Total;
   DelaySMT_Edit.value = found.DelaySMT;
-  Level_Edit.value = found.Level;
+  Level_Edit.value = (found.Level).split('-');
   Quantity_Edit.value = found.Quantity;
   Date_Edit.value = found.Date;
   Note_Edit.value = found.Note;
-
-
 }
 
 // Hàm lưu thông tin chỉnh sửa
@@ -469,7 +484,6 @@ const RemoveItem = async () => {
     Error();
   }
 };
-
 
 // Hàm reset các dialog và form
 function Reset() {

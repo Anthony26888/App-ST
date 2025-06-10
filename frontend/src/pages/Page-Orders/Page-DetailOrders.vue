@@ -173,11 +173,11 @@ import { Buffer } from "buffer";
 import emailjs from "@emailjs/browser";
 
 // Composables
-import { useDetailOrder } from "@/composables/useDetailOrder";
-import { useWareHouseFind } from "@/composables/useWareHouseFind";
-import { useWareHouse2Find } from "@/composables/useWareHouse2Find";
-import { useUsers } from "@/composables/useUsers";
-import { useOrders } from "@/composables/useOrders";
+import { useDetailOrder } from "@/composables/Orders/useDetailOrder";
+import { useWareHouseFind } from "@/composables/Warehouse/useWareHouseFind";
+import { useWareHouse2Find } from "@/composables/Warehouse/useWareHouse2Find";
+import { useUsers } from "@/composables/Settings/useUsers";
+import { useOrders } from "@/composables/Orders/useOrders";
 
 // Components
 import InputSearch from "@/components/Input-Search.vue";

@@ -1,61 +1,93 @@
 <template>
   <div>
     <v-card variant="text" class="overflow-y-auto" height="100vh">
-      <v-card-title class="text-h4 font-weight-light">
+      <v-card-title class="text-h4 font-weight-light d-flex align-center">
         <ButtonBack :to="`/San-xuat/Chi-tiet/${back}`" />
-        Theo dõi sản xuất AOI</v-card-title
-      >
+        <span class="ml-2">Theo dõi sản xuất AOI</span>
+      </v-card-title>
+
       <v-card-title class="d-flex align-center pe-2">
-        <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
-        {{ NameManufacture }}
+        <v-icon icon="mdi mdi-tools" color="primary" size="large"></v-icon>
+        <span class="ml-2 text-h5">{{ NameManufacture }}</span>
       </v-card-title>
 
       <v-card-text>
-
         <!-- Production Statistics Cards -->
-
         <v-row class="mb-4">
-          <v-col cols="12" sm="6">
-            <v-card class="mx-auto" elevation="2">
+          <v-col cols="12" sm="4">
+            <v-card class="rounded-lg" color="primary" variant="tonal">
               <v-card-text>
-                <div class="text-h6 mb-2">Đầu vào</div>
-                <div class="text-h4 font-weight-bold text-error">
+                <div class="text-subtitle-1">Đầu vào</div>
+                <div class="text-h4 font-weight-bold">
                   {{ totalInput }}
                 </div>
-                <div class="text-caption text-medium-emphasis">
+                <div class="text-caption">
                   Tổng số lượng đầu vào
                 </div>
               </v-card-text>
             </v-card>
           </v-col>
-          <v-col cols="12" sm="6">
-            <v-card class="mx-auto" elevation="2">
+          <v-col cols="12" sm="4">
+            <v-card class="rounded-lg" color="info" variant="tonal">
               <v-card-text>
-                <div class="text-h6 mb-2">Đầu ra</div>
-                <div class="text-h4 font-weight-bold text-success">
-                  {{ manufactureAOI.length }}
+                <div class="text-subtitle-1">Đầu ra</div>
+                <div class="text-h4 font-weight-bold">
+                  {{ manufactureAOI.map(item => item.Status === 'ok' ? 1 : 0).reduce((a, b) => a + b, 0) }}
                 </div>
-                <div class="text-caption text-medium-emphasis">
+                <div class="text-caption">
                   Tổng số lượng đầu ra
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" sm="4">
+            <v-card class="rounded-lg" color="warning" variant="tonal">
+              <v-card-text>
+                <div class="text-subtitle-1">Lỗi</div>
+                <div class="text-h4 font-weight-bold">
+                  {{ totalErrors }}
+                </div>
+                <div class="text-caption">
+                  Tổng số lượng lỗi
                 </div>
               </v-card-text>
             </v-card>
           </v-col>
         </v-row>
 
-        <InputField
-          label="Nhập mã sản phẩm"
-          v-model="Input"
-          @keydown.enter="submitBarcode"
-          ref="barcodeInput"
-          autofocus
-          hide-details
-        />
+        <!-- Input Section -->
+        <v-card class="mb-4 rounded-lg" elevation="2">
+          <v-card-text>
+            <v-row>
+              <v-col cols="12" md="8">
+                <InputField
+                  label="Nhập mã sản phẩm"
+                  v-model="Input"
+                  @keydown.enter="submitBarcode"
+                  ref="barcodeInput"
+                  autofocus
+                  hide-details
+                  variant="outlined"
+                  density="comfortable"
+                />
+              </v-col>
+              <v-col cols="12" md="4">
+                <v-checkbox
+                  v-model="isError"
+                  label="Đánh dấu lỗi"
+                  color="warning"
+                  hide-details
+                  class="mt-2"
+                ></v-checkbox>
+              </v-col>
+            </v-row>
+          </v-card-text>
+        </v-card>
 
         <!-- Table -->
-        <v-card class="mt-4" variant="text">
+        <v-card class="mt-4 rounded-lg" variant="text">
           <v-card-title class="d-flex align-center">
-            <span>Bảng chi tiết sản xuất</span>
+            <span class="text-h6">Bảng chi tiết sản xuất</span>
             <v-spacer></v-spacer>
             <InputSearch v-model="search" />
           </v-card-title>
@@ -82,8 +114,28 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="calc(100vh - 200px)"
+            height="calc(100vh - 300px)"
           >
+            <template #[`item.Status`]="{ item }">
+              <v-chip
+                :color="item.Status === 'error' ? 'warning' : 'success'"
+                size="small"
+                variant="tonal"
+              >
+                {{ item.Status === 'error' ? 'Lỗi' : 'OK' }}
+              </v-chip>
+              <v-btn
+                v-if="item.Status === 'error'"
+                size="small"
+                color="success"
+                variant="tonal"
+                class="ml-2 text-caption"
+                @click="GetItem(item)"
+              >
+                <v-icon size="small">mdi-check</v-icon>
+                Sửa lỗi
+              </v-btn>
+            </template>
             <template #[`bottom`]>
               <div class="text-center pt-2">
                 <v-pagination
@@ -96,9 +148,36 @@
         </v-card>
       </v-card-text>
     </v-card>
+     <!-- Dialog xác nhận xóa -->
+     <v-dialog
+      :model-value="DialogFixed"
+      @update:model-value="DialogFixed = $event"
+      width="500"
+    >
+      <v-card
+        max-width="500"
+        prepend-icon="mdi-hammer-screwdriver"
+        title="Xác nhận sửa sản phẩm"
+      >
+        <v-card-text> Sản phẩm đã được sửa lỗi hoàn tất ? </v-card-text>
+        <template #actions>
+          <ButtonCancel @cancel="DialogFixed = false" />
+          <ButtonAgree @agree="markAsFixed()" />
+        </template>
+      </v-card>
+    </v-dialog>
+    <SnackbarSuccess
+      :model-value="DialogSuccess"
+      @update:model-value="DialogSuccess = $event"
+      :message="MessageDialog"
+    />
+    <SnackbarFailed
+      :model-value="DialogFailed"
+      @update:model-value="DialogFailed = $event"
+      :message="MessageErrorDialog"
+    />
     <Loading v-model="DialogLoading" />
   </div>
-
 </template>
 
 <script setup>
@@ -111,8 +190,8 @@ import { useRoute } from "vue-router";
 import axios from "axios";
 
 // Composables
-import { useHistory } from "@/composables/useHistory";
-import { useManufactureAOI } from "@/composables/useManufactureAOI";
+import { useHistory } from "@/composables/Manufacture/useHistory";
+import { useManufactureAOI } from "@/composables/Manufacture/useManufactureAOI";
 
 // Components
 import Loading from "@/components/Loading.vue";
@@ -125,21 +204,31 @@ const Url = import.meta.env.VITE_API_URL;
 const route = useRoute();
 const id = route.params.id;
 const back = localStorage.getItem("ManufactureID");
+const GetID = ref("");
 
 // Table configuration
 const Headers = [
-  { title: "STT", key: "id" },
-  { title: "Mã sản phẩm", key: "PartNumber" },
-  { title: "Thời gian", key: "Timestamp" },
-];
+  { title: 'STT', key: 'id', sortable: true },
+  { title: 'Mã sản phẩm', key: 'PartNumber', sortable: true },
+  { title: 'Trạng thái', key: 'Status', sortable: true },
+  { title: 'Thời gian', key: 'Timestamp', sortable: true },
+]
 
 // ===== Composables & Data Management =====
 // Initialize composables for data fetching
 const { history, historyError } = useHistory(back);
 const { manufactureAOI, manufactureAOIError } = useManufactureAOI(id);
 // ===== Reactive State =====
-// UI State
+
+// Dialog
 const DialogLoading = ref(false);
+const DialogFixed = ref(false);
+const DialogSuccess = ref(false);
+const DialogFailed = ref(false);
+const MessageErrorDialog = ref("");
+const MessageDialog = ref("");
+
+// Table
 const search = ref("");
 const page = ref(1);
 const itemsPerPage = ref(10);
@@ -152,6 +241,10 @@ const totalOutput = ref(0);
 
 // Production Info
 const NameManufacture = localStorage.getItem("ProductName");
+
+// Add new reactive state
+const isError = ref(false);
+const totalErrors = ref(0);
 
 // ===== Watchers =====
 // Watch for manufactureAOI changes and log updates
@@ -192,13 +285,23 @@ watch(
   { immediate: true, deep: true }
 );
 
+// Add watcher for error count
+watch(
+  () => manufactureAOI,
+  (newData) => {
+    if (newData?.value && Array.isArray(newData.value)) {
+      totalErrors.value = newData.value.filter(item => item.Status === 'error').length;
+    }
+  },
+  { immediate: true, deep: true }
+);
+
 // ===== Methods =====
 /**
  * Submits a barcode to the AOI manufacturing system
  * Handles form submission, API call, and error handling
  */
 const submitBarcode = async () => {
-  // Prevent duplicate submissions and empty input
   if (isSubmitting.value || !Input.value.trim()) {
     return;
   }
@@ -206,7 +309,6 @@ const submitBarcode = async () => {
   isSubmitting.value = true;
   DialogLoading.value = true;
   
-  // Prepare form data with current timestamp
   const formData = reactive({
     HistoryID: id,
     PartNumber: Input.value.trim(),
@@ -218,19 +320,52 @@ const submitBarcode = async () => {
       minute: '2-digit',
       second: '2-digit',
       hour12: false,
-      timeZone: 'Asia/Bangkok'  // GMT+7 timezone
+      timeZone: 'Asia/Bangkok'
     }).replace(/,/g, ''),
+    Status: isError.value ? 'error' : 'ok'
   });
 
   try {
     const response = await axios.post(`${Url}/Manufacture/AOI`, formData);
     console.log(response.data);
-    Input.value = ""; // Clear input after successful submission
+    Input.value = "";
+    isError.value = false;
   } catch (error) {
     console.error("Error submitting barcode:", error);
   } finally {
     DialogLoading.value = false;
     isSubmitting.value = false;
+  }
+};
+
+const GetItem = (item) => {
+  DialogFixed.value = true;
+  GetID.value = item.id;
+};
+
+const markAsFixed = async () => {
+  DialogFixed.value = true;
+  try {
+    const response = await axios.put(
+      `${Url}/Manufacture/AOI/Edit-status/${GetID.value}`,
+      {
+        Status: "ok",
+      }
+    );
+    console.log("Item marked as fixed:", response.data);
+    // Refresh the data after successful update
+    DialogFixed.value = false;
+    DialogLoading.value = true;
+    DialogSuccess.value = true;
+    MessageDialog.value = "Sản phẩm đã được sửa lỗi hoàn tất";
+  } catch (error) {
+    console.error("Error marking item as fixed:", error);
+    DialogFixed.value = false;
+    DialogLoading.value = true;
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Sản phẩm đã được sửa lỗi hoàn tất";
+  } finally {
+    DialogLoading.value = false;
   }
 };
 </script>

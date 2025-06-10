@@ -383,8 +383,8 @@ import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 
 // Composables
-import { useProject } from "@/composables/useProject";
-import { useProjectFind } from "@/composables/useProjectFind";
+import { useProject } from "@/composables/Project/useProject";
+import { useProjectFind } from "@/composables/Project/useProjectFind";
 
 // ===== STATE MANAGEMENT =====
 // API Configuration

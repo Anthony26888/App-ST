@@ -223,7 +223,7 @@ import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 
 // Composables
-import { useSparePartUsage } from "@/composables/useSparePartUsage";
+import { useSparePartUsage } from "@/composables/Maintenance/useSparePartUsage";
 
 // ===== STATE MANAGEMENT =====
 // API Configuration

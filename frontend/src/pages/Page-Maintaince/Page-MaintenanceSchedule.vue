@@ -286,7 +286,7 @@ import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 
 // Composables
-import { useMaintenanceSchedule } from "@/composables/useMaintenanceSchedule";
+import { useMaintenanceSchedule } from "@/composables/Maintenance/useMaintenanceSchedule";
 
 // ===== STATE MANAGEMENT =====
 // API Configuration

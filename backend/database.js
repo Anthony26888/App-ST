@@ -217,6 +217,7 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       HistoryID INTEGER NOT NULL,
       PartNumber TEXT NOT NULL,
+      Status TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
@@ -226,6 +227,7 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       HistoryID INTEGER NOT NULL,
       PartNumber TEXT NOT NULL,
+      Status TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
@@ -236,6 +238,7 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       HistoryID INTEGER NOT NULL,
       PartNumber TEXT NOT NULL,
+      Status TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
@@ -246,6 +249,7 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       HistoryID INTEGER NOT NULL,
       PartNumber TEXT NOT NULL,
+      Status TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
@@ -256,11 +260,62 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       HistoryID INTEGER NOT NULL,
       PartNumber TEXT NOT NULL,
+      Status TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ManufactureIPQCSMT (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      HistoryID INTEGER NOT NULL,
+      PartNumber TEXT NOT NULL,
+      Status TEXT NOT NULL,
+      Timestamp TEXT NOT NULL,
+      FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
+    )
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ManufactureTest1 (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      HistoryID INTEGER NOT NULL,
+      PartNumber TEXT NOT NULL,
+      Status TEXT NOT NULL,
+      Timestamp TEXT NOT NULL,
+      FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
+    )
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ManufactureTest2 (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      HistoryID INTEGER NOT NULL,
+      PartNumber TEXT NOT NULL,
+      Status TEXT NOT NULL,
+      Timestamp TEXT NOT NULL,
+      FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
+    )
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ManufactureBoxBuild (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      HistoryID INTEGER NOT NULL,
+      PartNumber TEXT NOT NULL,
+      Status TEXT NOT NULL,
+      Timestamp TEXT NOT NULL,
+      FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
+    )
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ManufactureWarehouse (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      HistoryID INTEGER NOT NULL,
+      PartNumber TEXT NOT NULL,
+      Status TEXT NOT NULL,
+      Timestamp TEXT NOT NULL,
+      FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
+    )
+  `);
 
   db.run(`
     CREATE TABLE IF NOT EXISTS Summary (

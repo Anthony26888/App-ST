@@ -188,13 +188,12 @@
         />
         <InputSelect
           label="Quy trình"
-          :items="[
-            'SMT - AOI - RW - IPQC - Assembly - OQC',
-            'SMT - AOI - RW - OQC',
-            'SMT - RW - OQC',
-          ]"
+          :items="['SMT', 'AOI', 'IPQC (SMT)', 'Assembly', 'IPQC (Hàn tay)', 'Test 1', 'Test 2', 'Box Build', 'OQC', 'Nhập kho']"
+          multiple
+          chips
+          hint="Lựa chọn quy trình phù hợp"
           v-model="Level_Manufacture_Add"
-          @update:model-value="Level_Manufacture_Add"
+          @update:model-value="(val) => Level_Manufacture_Add = val"
         />
         <InputField
           label="Ngày tạo"
@@ -242,7 +241,7 @@ import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 
 // Composables
-import { useDetailProjectPO } from "@/composables/useDetailProjectPO";
+import { useDetailProjectPO } from "@/composables/Project/useDetailProjectPO";
 
 // ===== STATE MANAGEMENT =====
 // API Configuration
@@ -290,7 +289,7 @@ const Name_Manufacture_Add = ref("");
 const Date_Manufacture_Add = ref("");
 const Note_Manufacture_Add = ref("");
 const Total_Manufacture_Add = ref(0);
-const Level_Manufacture_Add = ref("");
+const Level_Manufacture_Add = ref(null);
 
 // Customer and PO information
 const CustomerID = ref(null); // Customer ID from localStorage

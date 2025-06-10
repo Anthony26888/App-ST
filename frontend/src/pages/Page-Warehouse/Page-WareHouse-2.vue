@@ -262,7 +262,7 @@ import { useRoute, useRouter } from "vue-router";
 import { Buffer } from "buffer";
 
 // Composables
-import { useWareHouse2 } from "@/composables/useWareHouse2";
+import { useWareHouse2 } from "@/composables/Warehouse/useWareHouse2";
 
 // Components
 import ButtonImportFile from "@/components/Button-ImportFile.vue";

@@ -341,7 +341,7 @@ import ButtonEye from "@/components/Button-Eye.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
-import { useMaintenance } from "@/composables/useMaintenance";
+import { useMaintenance } from "@/composables/Maintenance/useMaintenance";
 
 const Url = import.meta.env.VITE_API_URL;
 const router = useRouter();

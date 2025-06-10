@@ -211,7 +211,7 @@ import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 
 // Composables
-import { useDetailProject } from "@/composables/useDetailProject";
+import { useDetailProject } from "@/composables/Project/useDetailProject";
 
 // ===== STATE MANAGEMENT =====
 // API Configuration

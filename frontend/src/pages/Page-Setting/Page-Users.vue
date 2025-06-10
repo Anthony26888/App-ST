@@ -135,7 +135,7 @@ import axios from "axios";
 import { ref, watch, reactive } from "vue";
 
 // Composables
-import { useUsers } from "@/composables/useUsers";
+import { useUsers } from "@/composables/Settings/useUsers";
 
 // Components
 import InputSearch from "@/components/Input-Search.vue";

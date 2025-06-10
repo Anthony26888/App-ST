@@ -85,7 +85,7 @@
 <script setup>
 import axios from "axios";
 import { ref, watch } from "vue";
-import { useDetailBom } from "@/composables/useDetailBom";
+import { useDetailBom } from "@/composables/CheckBOM/useDetailBom";
 import ButtonBack from "@/components/Button-Back.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";

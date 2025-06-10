@@ -95,7 +95,7 @@ import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 // Composables
-import { useOrders } from "@/composables/useOrders";
+import { useOrders } from "@/composables/Orders/useOrders";
 
 // Components
 import InputSearch from "@/components/Input-Search.vue";
