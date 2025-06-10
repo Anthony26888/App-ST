@@ -9,10 +9,11 @@
         <v-card-title class="d-flex align-center pe-2">
           <v-icon icon="mdi mdi-cart-variant"></v-icon> &nbsp;
           {{ NamePO }}
+          
+          <ButtonAdd @add="DialogAdd = true" />
           <p class="ms-2 font-weight-thin text-subtitle-1">
             ( {{ detailProjectPO.length }} đơn hàng)
           </p>
-          <ButtonAdd @add="DialogAdd = true" />
           <!-- <ButtonDownload @download-file="DownloadOrder()" /> -->
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
@@ -181,6 +182,12 @@
         />
         <InputField
           disabled=true
+          label="Tên đơn hàng"
+          v-model="Name_Order_Manufacture"
+          @update:model-value="Name_Order_Manufacture = $event"
+        />
+        <InputField
+          disabled=true
           label="Tổng sản phẩm"
           type="number"
           :model-value="Total_Manufacture_Add"
@@ -188,7 +195,7 @@
         />
         <InputSelect
           label="Quy trình"
-          :items="['SMT', 'AOI', 'IPQC (SMT)', 'Assembly', 'IPQC (Hàn tay)', 'Test 1', 'Test 2', 'Box Build', 'OQC', 'Nhập kho']"
+          :items="['SMT', 'AOI', 'IPQC (SMT)', 'Assembly', 'IPQC (Hàn tay)', 'Test 1', 'Test 2', 'Box Build', 'OQC']"
           multiple
           chips
           hint="Lựa chọn quy trình phù hợp"
@@ -254,6 +261,7 @@ const id = route.params.id;
 // Initialize composables
 const { detailProjectPO, detailProjectPOError } = useDetailProjectPO(id);
 
+
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
 const DialogEdit = ref(false); // Edit dialog
@@ -271,6 +279,7 @@ const MessageErrorDialog = ref("");
 // ===== FORM STATES =====
 // Current item being processed
 const GetID = ref("");
+const GetIDManufacture = ref("");
 
 // Edit form states
 const Product_Detail_Edit = ref(""); // Product details for editing
@@ -286,6 +295,7 @@ const Note_Add = ref(""); // Note for adding new
 
 // Khởi tạo các biến ref cho form thêm mới
 const Name_Manufacture_Add = ref("");
+const Name_Order_Manufacture =ref("");
 const Date_Manufacture_Add = ref("");
 const Note_Manufacture_Add = ref("");
 const Total_Manufacture_Add = ref(0);
@@ -319,11 +329,7 @@ const Date_Expired = ref("");
  * Initializes component data from localStorage
  * Retrieves customer ID, PO name, and customer name
  */
-function GetItemManufacture(item) {
-  DialogAddManufacture.value = true;
-  Name_Manufacture_Add.value = item.PO;
-  Total_Manufacture_Add.value = item.Quantity_Product
-}
+
 
 onMounted(() => {
   const storedData = localStorage.getItem("CustomersID");
@@ -366,6 +372,14 @@ function GetItem(item) {
   Quantity_Delivered_Edit.value = item.Quantity_Delivered;
   Quantity_Amount_Edit.value = item.Quantity_Amount;
   Note_Edit.value = item.Note;
+}
+
+function GetItemManufacture(item) {
+  DialogAddManufacture.value = true;
+  Name_Manufacture_Add.value = item.PO;
+  Name_Order_Manufacture.value = item.Product_Detail;
+  Total_Manufacture_Add.value = item.Quantity_Product
+  GetIDManufacture.value = item.id
 }
 
 /**
@@ -453,7 +467,7 @@ const SaveAddManufacture = async () => {
   DialogLoading.value = true;
   const formData = reactive({
     Name: Name_Manufacture_Add.value,
-    Status: false,
+    Name_Order: Name_Order_Manufacture.value,
     Date: Date_Manufacture_Add,
     Total: Total_Manufacture_Add.value,
     Note: Note_Manufacture_Add.value,
@@ -461,6 +475,7 @@ const SaveAddManufacture = async () => {
     DelaySMT:50,
     Quantity: 1,
     Level: Level_Manufacture_Add.value,
+    ProjectID: GetIDManufacture.value
   });
   try {
     const response = await axios.post(`${Url}/PlanManufacture/Add`, formData);

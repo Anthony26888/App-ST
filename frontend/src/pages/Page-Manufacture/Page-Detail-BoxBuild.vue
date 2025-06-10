@@ -14,7 +14,7 @@
 
         <!-- Production Statistics Cards -->
         <v-row class="mb-4">
-          <v-col cols="12" sm="4">
+          <v-col cols="12" sm="6">
             <v-card class="rounded-lg" color="primary" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu vào</div>
@@ -27,7 +27,7 @@
               </v-card-text>
             </v-card>
           </v-col>
-          <v-col cols="12" sm="4">
+          <v-col cols="12" sm="6">
             <v-card class="rounded-lg" color="info" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra</div>
@@ -40,7 +40,7 @@
               </v-card-text>
             </v-card>
           </v-col>
-          <v-col cols="12" sm="4">
+          <!-- <v-col cols="12" sm="4">
             <v-card class="rounded-lg" color="warning" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Lỗi</div>
@@ -52,14 +52,14 @@
                 </div>
               </v-card-text>
             </v-card>
-          </v-col>
+          </v-col> -->
         </v-row>
 
         <!-- Input Section -->
         <v-card class="mb-4 rounded-lg" elevation="2">
           <v-card-text>
             <v-row>
-              <v-col cols="12" md="8">
+              <v-col cols="12" md="12">
                 <InputField
                   label="Nhập mã sản phẩm"
                   v-model="Input"
@@ -71,7 +71,7 @@
                   density="comfortable"
                 />
               </v-col>
-              <v-col cols="12" md="4">
+              <!-- <v-col cols="12" md="4">
                 <v-checkbox
                   v-model="isError"
                   label="Đánh dấu lỗi"
@@ -79,7 +79,7 @@
                   hide-details
                   class="mt-2"
                 ></v-checkbox>
-              </v-col>
+              </v-col> -->
             </v-row>
           </v-card-text>
         </v-card>

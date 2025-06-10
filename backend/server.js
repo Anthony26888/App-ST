@@ -238,12 +238,33 @@ io.on("connection", (socket) => {
                           ELSE 'Đang sản xuất'
                         END AS Status,
                         o.QuantityProduct AS Quantity_Product, 
-                        o.QuantityDelivered AS Quantity_Delivered, 
-                        o.QuantityAmount AS Quantity_Amount,
+                        IFNULL(c.Total_Output, 0) AS Quantity_Delivered, 
+                        IFNULL(o.QuantityProduct - c.Total_Output, 0) AS Quantity_Amount,
                         o.Note AS Note 
                       FROM ProductDetails o 
                       LEFT JOIN PurchaseOrders p ON o.POID = p.id 
-                      WHERE o.POID = ? 
+                      LEFT JOIN (
+                        SELECT DISTINCT 
+                        z.id,
+                        z.ProjectID,
+                        IFNULL(b.Total_Output, 0) AS Total_Output
+                        FROM PlanManufacture z
+                        LEFT JOIN (
+                        SELECT 
+                          a.id,
+                          a.Type,
+                          a.PlanID,
+                            SUM(o.Warehouse) AS Total_Output
+                          FROM Summary a
+                          LEFT JOIN (
+                            SELECT HistoryID, COUNT(*) AS Warehouse
+                          FROM ManufactureWarehouse
+                          WHERE Status = 'ok'
+                              GROUP BY HistoryID
+                          ) o ON a.id = o.HistoryID
+                        ) b ON z.id = b.PlanID
+                      ) c ON o.id = c.ProjectID
+                      WHERE o.POID = ?
                       ORDER BY Status ASC, Product_Detail ASC`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("DetailProjectPOError", err);
@@ -317,7 +338,36 @@ io.on("connection", (socket) => {
     }),
     socket.on("getManufacture", async () => {
       try {
-        const query = `SELECT DISTINCT *, id AS Status FROM PlanManufacture ORDER BY id DESC`;
+        const query = `SELECT DISTINCT 
+                        z.id,
+                        z.Name,
+                        z.Name_Order,
+                        z.Total,
+                        IFNULL(b.Total_Output, 0) AS Total_Output,
+                        CASE
+                          WHEN z.Total = b.Total_Output THEN 'Hoàn thành'
+                          ELSE 'Đang sản xuất'
+                        END AS Status_Output,
+                        z.Level,
+                        z.Date,
+                        z.Note,
+                        z.Creater
+                      FROM PlanManufacture z
+                      LEFT JOIN (
+                        SELECT 
+                          a.id,
+                          a.Type,
+                          a.PlanID,
+                              SUM(o.Warehouse) AS Total_Output
+                          FROM Summary a
+                            LEFT JOIN (
+                                SELECT HistoryID, COUNT(*) AS Warehouse
+                            FROM ManufactureWarehouse
+                            WHERE Status = 'ok'
+                                  GROUP BY HistoryID
+                            ) o ON a.id = o.HistoryID
+                      ) b ON z.id = b.PlanID
+                      ORDER BY Date DESC`;
         db.all(query, [], (err, rows) => {
           if (err) return socket.emit("ManufactureError", err);
           socket.emit("ManufactureData", rows);
@@ -332,6 +382,7 @@ io.on("connection", (socket) => {
                           h.Total,
                           h.DelaySMT,
                           h.Quantity,
+                          h.Name_Order,
                           SUM(IFNULL(b.SMT, 0)) AS SMT,
                           SUM(IFNULL(c.AOI, 0)) AS AOI,
                           SUM(IFNULL(d.RW, 0)) AS RW,
@@ -826,7 +877,7 @@ io.on("connection", (socket) => {
                           ELSE 0
                         END AS Percent
                       FROM Summary a
-                     LEFT JOIN (
+                      LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS SMT 
                           FROM ManufactureSMT 
                           GROUP BY HistoryID
@@ -2445,7 +2496,7 @@ app.delete("/SparePartUsage/Delete/:id", async (req, res) => {
 app.post("/PlanManufacture/Add", async (req, res) => {
   const {
     Name,
-    Status,
+    Name_Order,
     Date,
     Creater,
     Note,
@@ -2453,17 +2504,18 @@ app.post("/PlanManufacture/Add", async (req, res) => {
     DelaySMT,
     Level,
     Quantity,
+    ProjectID
   } = req.body; // Set default value for DelaySMT
   const LevelString = JSON.stringify(Level);
   const LevelCleaned = LevelString.replace(/[\[\]"]/g, '').replace(/,/g, '-');
   // Insert data into SQLite database
   const query = `
-    INSERT INTO PlanManufacture (Name, Status, Date, Creater, Note, Total, DelaySMT, Level, Quantity)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO PlanManufacture (Name, Date, Creater, Note, Total, DelaySMT, Level, Quantity, ProjectID, Name_Order)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   db.run(
     query,
-    [Name, Status, Date, Creater, Note, Total, DelaySMT, LevelCleaned, Quantity],
+    [Name, Date, Creater, Note, Total, DelaySMT, LevelCleaned, Quantity, ProjectID, Name_Order],
     function (err) {
       if (err) {
         return res

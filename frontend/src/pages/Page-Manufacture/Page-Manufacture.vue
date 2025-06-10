@@ -14,7 +14,7 @@
           <!-- Header của bảng với các nút chức năng -->
           <v-card-title class="d-flex align-center pe-2">
             <!-- Nút thêm mới -->
-            <v-btn
+            <!-- <v-btn
               prepend-icon="mdi mdi-plus"
               variant="tonal"
               color="primary"
@@ -22,7 +22,7 @@
               @click="DialogAdd = true"
             >
               Thêm
-            </v-btn>
+            </v-btn> -->
             <!-- Hiển thị tổng số kế hoạch -->
             <p class="ms-2 font-weight-thin text-subtitle-1">
               ( {{ manufacture.length }} kế hoạch)
@@ -84,15 +84,15 @@
               </template>
 
               <!-- Cột trạng thái -->
-              <template #[`item.Status`]="{ item }">
+              <template #[`item.Status_Output`]="{ item }">
                 <v-chip
-                  v-if="item.Status == isRunning"
+                  v-if="item.Status_Output == 'Hoàn thành'"
                   color="success"
                   variant="tonal"
                 >
-                  Đang chạy
+                  {{ item.Status_Output }}
                 </v-chip>
-                <v-chip v-else color="error" variant="tonal"> Đã dừng </v-chip>
+                <v-chip v-else color="warning" variant="tonal"> {{ item.Status_Output}} </v-chip>
               </template>
 
               <!-- Cột độ trễ SMT -->
@@ -311,6 +311,9 @@ import { useManufacture } from "@/composables/Manufacture/useManufacture";
 
 // Khởi tạo các composables và biến môi trường
 const { manufacture, manufactureError } = useManufacture();
+console.log(manufacture);
+
+// Khởi tạo các biến môi trường
 const Url = import.meta.env.VITE_API_URL;
 const router = useRouter();
 
@@ -356,9 +359,11 @@ const MessageErrorDialog = ref("");
 
 // Định nghĩa cấu trúc bảng
 const Headers = [
-  { title: "Tên dự án", key: "Name" },
-  { title: "Trạng thái", key: "Status" },
+  { title: "Dự án", key: "Name" },
+  { title: "Đơn hàng", key: "Name_Order" },
+  { title: "Trạng thái", key: "Status_Output", width: "150px" },
   { title: "Tổng sản phẩm", key: "Total" },
+  { title: "Tổng đầu ra", key: "Total_Output" },
   { title: "Quy trình", key: "Level" },
   { title: "Ngày tạo", key: "Date" },
   { title: "Người tạo", key: "Creater" },

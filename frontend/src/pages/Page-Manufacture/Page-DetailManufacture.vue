@@ -6,8 +6,12 @@
         Theo dõi sản xuất</v-card-title
       >
       <v-card-title class="d-flex align-center pe-2">
-        <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
-        {{ NameManufacture }}
+        <v-icon icon="mdi mdi-cart"></v-icon> &nbsp;
+        <v-breadcrumbs :items="[`${NameManufacture}`, `${NameOrder}`]">
+          <template v-slot:divider>
+            <v-icon icon="mdi-chevron-right"></v-icon>
+          </template>
+        </v-breadcrumbs>
       </v-card-title>
 
       <v-card-text class="pa-6">
@@ -16,39 +20,73 @@
           <v-col cols="12" md="3">
             <v-card class="h-100" rounded="lg">
               <v-card-text class="text-center">
-                <v-icon icon="mdi-arrow-down-bold" color="primary" size="large" class="mb-2" />
+                <v-icon
+                  icon="mdi-arrow-down-bold"
+                  color="primary"
+                  size="large"
+                  class="mb-2"
+                />
                 <div class="text-h6 text-primary mb-1">Đầu vào</div>
-                <div class="text-h3 font-weight-bold text-primary">{{ totalInput }}</div>
-                <div class="text-caption text-medium-emphasis">Tổng số lượng đầu vào</div>
+                <div class="text-h3 font-weight-bold text-primary">
+                  {{ totalInput }}
+                </div>
+                <div class="text-caption text-medium-emphasis">
+                  Tổng số lượng đầu vào
+                </div>
               </v-card-text>
             </v-card>
           </v-col>
           <v-col cols="12" md="3">
             <v-card class="h-100" rounded="lg">
               <v-card-text class="text-center">
-                <v-icon icon="mdi-arrow-up-bold" color="success" size="large" class="mb-2" />
+                <v-icon
+                  icon="mdi-arrow-up-bold"
+                  color="success"
+                  size="large"
+                  class="mb-2"
+                />
                 <div class="text-h6 text-success mb-1">Đầu ra</div>
-                <div class="text-h3 font-weight-bold text-success">{{ totalWarehouse }}</div>
-                <div class="text-caption text-medium-emphasis">Tổng số lượng đầu ra</div>
+                <div class="text-h3 font-weight-bold text-success">
+                  {{ totalWarehouse }}
+                </div>
+                <div class="text-caption text-medium-emphasis">
+                  Tổng số lượng đầu ra
+                </div>
               </v-card-text>
             </v-card>
           </v-col>
           <v-col cols="12" md="3">
             <v-card class="h-100" rounded="lg">
               <v-card-text class="text-center">
-                <v-icon icon="mdi-alert-circle" color="error" size="large" class="mb-2" />
+                <v-icon
+                  icon="mdi-alert-circle"
+                  color="error"
+                  size="large"
+                  class="mb-2"
+                />
                 <div class="text-h6 text-error mb-1">Hàng lỗi</div>
-                <div class="text-h3 font-weight-bold text-error">{{ totalError }}</div>
-                <div class="text-caption text-medium-emphasis">Tổng số lượng hàng lỗi</div>
+                <div class="text-h3 font-weight-bold text-error">
+                  {{ totalError }}
+                </div>
+                <div class="text-caption text-medium-emphasis">
+                  Tổng số lượng hàng lỗi
+                </div>
               </v-card-text>
             </v-card>
           </v-col>
           <v-col cols="12" md="3">
             <v-card class="h-100" rounded="lg">
               <v-card-text class="text-center">
-                <v-icon icon="mdi-chart-line" color="info" size="large" class="mb-2" />
+                <v-icon
+                  icon="mdi-chart-line"
+                  color="info"
+                  size="large"
+                  class="mb-2"
+                />
                 <div class="text-h6 text-info mb-1">Tỷ lệ hoàn thành</div>
-                <div class="text-h3 font-weight-bold text-info">{{ percent }}%</div>
+                <div class="text-h3 font-weight-bold text-info">
+                  {{ percent }}%
+                </div>
                 <v-progress-linear
                   :model-value="percent"
                   color="info"
@@ -65,7 +103,9 @@
         <v-row class="mb-6">
           <v-col cols="12" sm="6" md="4" v-if="Level_SMT">
             <v-card class="h-100" rounded="lg">
-              <v-card-title class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg">
+              <v-card-title
+                class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
+              >
                 SMT
                 <v-spacer></v-spacer>
                 <v-btn
@@ -78,7 +118,7 @@
               <v-card-text class="pa-4">
                 <div class="d-flex justify-space-between align-center mb-4">
                   <div class="text-h4 font-weight-bold">
-                    <span class="text-primary">{{ totalInput }}</span> / 
+                    <span class="text-primary">{{ totalInput }}</span> /
                     <span class="text-success">{{ totalSMT }}</span>
                   </div>
                   <v-progress-circular
@@ -98,14 +138,16 @@
 
           <v-col cols="12" sm="6" md="4" v-if="Level_AOI">
             <v-card class="h-100" rounded="lg">
-              <v-card-title class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg">
+              <v-card-title
+                class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
+              >
                 AOI
               </v-card-title>
               <v-card-text class="pa-4">
                 <div class="d-flex justify-space-between align-center mb-4">
                   <div class="text-h4 font-weight-bold">
-                    <span class="text-primary">{{ totalInput }}</span> / 
-                    <span class="text-success">{{ totalAOI }}</span> / 
+                    <span class="text-primary">{{ totalInput }}</span> /
+                    <span class="text-success">{{ totalAOI }}</span> /
                     <span class="text-error">{{ totalAOIError }}</span>
                   </div>
                   <v-progress-circular
@@ -125,14 +167,16 @@
 
           <v-col cols="12" sm="6" md="4" v-if="Level_IPQCSMT">
             <v-card class="h-100" rounded="lg">
-              <v-card-title class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg">
+              <v-card-title
+                class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
+              >
                 IPQC (SMT)
               </v-card-title>
               <v-card-text class="pa-4">
                 <div class="d-flex justify-space-between align-center mb-4">
                   <div class="text-h4 font-weight-bold">
-                    <span class="text-primary">{{ totalInput }}</span> / 
-                    <span class="text-success">{{ totalIPQCSMT }}</span> / 
+                    <span class="text-primary">{{ totalInput }}</span> /
+                    <span class="text-success">{{ totalIPQCSMT }}</span> /
                     <span class="text-error">{{ totalIPQCSMTError }}</span>
                   </div>
                   <v-progress-circular
@@ -152,14 +196,16 @@
 
           <v-col cols="12" sm="6" md="4" v-if="Level_Assembly">
             <v-card class="h-100" rounded="lg">
-              <v-card-title class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg">
+              <v-card-title
+                class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
+              >
                 Assembly
               </v-card-title>
               <v-card-text class="pa-4">
                 <div class="d-flex justify-space-between align-center mb-4">
                   <div class="text-h4 font-weight-bold">
-                    <span class="text-primary">{{ totalInput }}</span> / 
-                    <span class="text-success">{{ totalAssembly }}</span> 
+                    <span class="text-primary">{{ totalInput }}</span> /
+                    <span class="text-success">{{ totalAssembly }}</span>
                   </div>
                   <v-progress-circular
                     :model-value="(totalAssembly / totalInput) * 100"
@@ -178,14 +224,16 @@
 
           <v-col cols="12" sm="6" md="4" v-if="Level_IPQC">
             <v-card class="h-100" rounded="lg">
-              <v-card-title class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg">
+              <v-card-title
+                class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
+              >
                 IPQC (Hàn tay)
               </v-card-title>
               <v-card-text class="pa-4">
                 <div class="d-flex justify-space-between align-center mb-4">
                   <div class="text-h4 font-weight-bold">
-                    <span class="text-primary">{{ totalInput }}</span> / 
-                    <span class="text-success">{{ totalIPQC }}</span> / 
+                    <span class="text-primary">{{ totalInput }}</span> /
+                    <span class="text-success">{{ totalIPQC }}</span> /
                     <span class="text-error">{{ totalIPQCError }}</span>
                   </div>
                   <v-progress-circular
@@ -205,14 +253,16 @@
 
           <v-col cols="12" sm="6" md="4" v-if="Level_Test_1">
             <v-card class="h-100" rounded="lg">
-              <v-card-title class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg">
+              <v-card-title
+                class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
+              >
                 Test 1
               </v-card-title>
               <v-card-text class="pa-4">
                 <div class="d-flex justify-space-between align-center mb-4">
                   <div class="text-h4 font-weight-bold">
-                    <span class="text-primary">{{ totalInput }}</span> / 
-                    <span class="text-success">{{ totalTest1 }}</span> / 
+                    <span class="text-primary">{{ totalInput }}</span> /
+                    <span class="text-success">{{ totalTest1 }}</span> /
                     <span class="text-error">{{ totalTest1Error }}</span>
                   </div>
                   <v-progress-circular
@@ -232,13 +282,15 @@
 
           <v-col cols="12" sm="6" md="4" v-if="Level_BoxBuild">
             <v-card class="h-100" rounded="lg">
-              <v-card-title class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg">
+              <v-card-title
+                class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
+              >
                 Box Build
               </v-card-title>
               <v-card-text class="pa-4">
                 <div class="d-flex justify-space-between align-center mb-4">
                   <div class="text-h4 font-weight-bold">
-                    <span class="text-primary">{{ totalInput }}</span> / 
+                    <span class="text-primary">{{ totalInput }}</span> /
                     <span class="text-success">{{ totalBoxBuild }}</span>
                   </div>
                   <v-progress-circular
@@ -258,14 +310,16 @@
 
           <v-col cols="12" sm="6" md="4" v-if="Level_Test_2">
             <v-card class="h-100" rounded="lg">
-              <v-card-title class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg">
+              <v-card-title
+                class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
+              >
                 Test 2
               </v-card-title>
               <v-card-text class="pa-4">
                 <div class="d-flex justify-space-between align-center mb-4">
                   <div class="text-h4 font-weight-bold">
-                    <span class="text-primary">{{ totalInput }}</span> / 
-                    <span class="text-success">{{ totalTest2 }}</span> / 
+                    <span class="text-primary">{{ totalInput }}</span> /
+                    <span class="text-success">{{ totalTest2 }}</span> /
                     <span class="text-error">{{ totalTest2Error }}</span>
                   </div>
                   <v-progress-circular
@@ -285,14 +339,16 @@
 
           <v-col cols="12" sm="6" md="4" v-if="Level_OQC">
             <v-card class="h-100" rounded="lg">
-              <v-card-title class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg">
+              <v-card-title
+                class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
+              >
                 OQC
               </v-card-title>
               <v-card-text class="pa-4">
                 <div class="d-flex justify-space-between align-center mb-4">
                   <div class="text-h4 font-weight-bold">
-                    <span class="text-primary">{{ totalInput }}</span> / 
-                    <span class="text-success">{{ totalOQC }}</span> / 
+                    <span class="text-primary">{{ totalInput }}</span> /
+                    <span class="text-success">{{ totalOQC }}</span> /
                     <span class="text-error">{{ totalOQCError }}</span>
                   </div>
                   <v-progress-circular
@@ -312,14 +368,16 @@
 
           <v-col cols="12" sm="6" md="4">
             <v-card class="h-100" rounded="lg">
-              <v-card-title class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg">
+              <v-card-title
+                class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
+              >
                 RW
               </v-card-title>
               <v-card-text class="pa-4">
                 <div class="d-flex justify-space-between align-center mb-4">
                   <div class="text-h4 font-weight-bold">
-                    <span class="text-primary">{{ totalError }}</span> / 
-                    <span class="text-success">{{ totalRW }}</span> / 
+                    <span class="text-primary">{{ totalError }}</span> /
+                    <span class="text-success">{{ totalRW }}</span> /
                     <span class="text-error">{{ totalRWError }}</span>
                   </div>
                   <v-progress-circular
@@ -339,13 +397,15 @@
 
           <v-col cols="12" sm="6" md="4">
             <v-card class="h-100" rounded="lg">
-              <v-card-title class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg">
+              <v-card-title
+                class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
+              >
                 Nhập kho
               </v-card-title>
               <v-card-text class="pa-4">
                 <div class="d-flex justify-space-between align-center mb-4">
                   <div class="text-h4 font-weight-bold">
-                    <span class="text-primary">{{ totalInput }}</span> / 
+                    <span class="text-primary">{{ totalInput }}</span> /
                     <span class="text-success">{{ totalWarehouse }}</span>
                   </div>
                   <v-progress-circular
@@ -387,11 +447,17 @@
 
                 <v-spacer></v-spacer>
 
-                <ButtonAdd label="Thêm" class="mr-2" @click="DialogAdd = true" />
+                <ButtonAdd
+                  label="Thêm"
+                  class="mr-2"
+                  @click="DialogAdd = true"
+                />
               </v-toolbar>
             </template>
 
-            <template v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }">
+            <template
+              v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }"
+            >
               <tr>
                 <td :colspan="columns.length">
                   <v-btn
@@ -400,7 +466,9 @@
                     @click="toggleGroup(item)"
                     class="me-2"
                   ></v-btn>
-                  <span class="font-weight-bold text-primary">{{ item.value }}</span>
+                  <span class="font-weight-bold text-primary">{{
+                    item.value
+                  }}</span>
                 </td>
               </tr>
             </template>
@@ -413,11 +481,13 @@
             </template>
 
             <template #[`item.Created_At`]="{ item }">
-              {{ new Date(item.Created_At).toLocaleDateString('vi-VN', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric'
-              }) }}
+              {{
+                new Date(item.Created_At).toLocaleDateString("vi-VN", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                })
+              }}
             </template>
 
             <template #[`item.Percent`]="{ item }">
@@ -493,6 +563,7 @@
           Sửa dữ liệu kế hoạch
         </v-card-title>
         <v-card-text>
+          <InputField :disabled="true" label="Số PO" v-model="PONumber_Edit" />
           <InputSelect
             label="Quy trình"
             :items="LevelSelectAdd"
@@ -500,7 +571,6 @@
             v-model="Type_Edit"
             @update:model-value="(val) => (Type_Edit = val)"
           />
-          <InputField label="Số PO" v-model="PONumber_Edit" />
           <InputField label="Hạng mục" v-model="Category_Edit" />
 
           <v-row>
@@ -638,6 +708,7 @@ const MessageErrorDialog = ref("");
 
 // Production statistics
 const NameManufacture = localStorage.getItem("ProductName");
+const NameOrder = ref(null)
 const GetID = ref(null);
 
 // Production statistics
@@ -665,7 +736,6 @@ const totalTest1Error = ref(0);
 const totalTest2Error = ref(0);
 const totalBoxBuildError = ref(0);
 const totalWarehouseError = ref(0);
-
 
 // Level
 const Level_SMT = ref(false);
@@ -776,6 +846,7 @@ watch(
         Quantity_Edit.value = data.Quantity;
         DelaySMT_Edit.value = data.DelaySMT;
         LevelSelectAdd.value = data.Level.split("-");
+        NameOrder.value = data.Name_Order;
       
       } else {
         // If it's a single object
@@ -805,6 +876,7 @@ watch(
         Quantity_Edit.value = newValue.Quantity;
         DelaySMT_Edit.value = newValue.DelaySMT;
 
+        NameOrder.value = newValue.Name_Order;
       }
     }
   },
@@ -1145,4 +1217,3 @@ export default {
   background: #555;
 }
 </style>
-

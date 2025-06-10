@@ -100,11 +100,10 @@ db.serialize(() => {
       Date TEXT,
       Email TEXT
     )`);
-  db.run(`
-      CREATE TABLE IF NOT EXISTS Customers (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          CustomerName TEXT UNIQUE,
-          Years INTEGER
+  db.run(`CREATE TABLE IF NOT EXISTS Customers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      CustomerName TEXT UNIQUE,
+      Years INTEGER
       )
   `);
 
@@ -190,9 +189,10 @@ db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS PlanManufacture (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ProjectID INTEGER,
       Name TEXT,
+      Name_Order TEXT,
       Total INTEGER,
-      Status TEXT,
       DelaySMT INTEGER,
       Quantity INTEGER,
       Level INTEGER,
