@@ -7,49 +7,57 @@
       >
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
-        {{ NameManufacture }}
+        <v-breadcrumbs :items="[`${NameManufacture}`, `${Name_Order}`, `${Name_Category}`]">
+          <template v-slot:divider>
+            <v-icon icon="mdi-chevron-right"></v-icon>
+          </template>
+        </v-breadcrumbs>
       </v-card-title>
 
       <v-card-text>
-
         <!-- Production Statistics Cards -->
         <v-row class="mb-4">
-          <v-col cols="12" sm="4">
+          <v-col cols="12" sm="3">
             <v-card class="rounded-lg" color="primary" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu vào</div>
                 <div class="text-h4 font-weight-bold">
                   {{ totalInput }}
                 </div>
-                <div class="text-caption">
-                  Tổng số lượng đầu vào
-                </div>
+                <div class="text-caption">Tổng số lượng đầu vào</div>
               </v-card-text>
             </v-card>
           </v-col>
-          <v-col cols="12" sm="4">
-            <v-card class="rounded-lg" color="info" variant="tonal">
+          <v-col cols="12" sm="3">
+            <v-card class="rounded-lg" color="success" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra</div>
                 <div class="text-h4 font-weight-bold">
-                  {{ manufactureIPQCSMT.map(item => item.Status === 'ok' ? 1 : 0).reduce((a, b) => a + b, 0) }}
+                  {{ totalOutput }}
                 </div>
-                <div class="text-caption">
-                  Tổng số lượng đầu ra
-                </div>
+                <div class="text-caption">Tổng số lượng đầu ra</div>
               </v-card-text>
             </v-card>
           </v-col>
-          <v-col cols="12" sm="4">
+          <v-col cols="12" sm="3">
             <v-card class="rounded-lg" color="warning" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Lỗi</div>
                 <div class="text-h4 font-weight-bold">
                   {{ totalErrors }}
                 </div>
-                <div class="text-caption">
-                  Tổng số lượng lỗi
+                <div class="text-caption">Tổng số lượng lỗi</div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" sm="3">
+            <v-card class="rounded-lg" color="info" variant="tonal">
+              <v-card-text>
+                <div class="text-subtitle-1">Đã sửa</div>
+                <div class="text-h4 font-weight-bold">
+                  {{ totalFixed }}
                 </div>
+                <div class="text-caption">Tổng số lượng đã sửa</div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -80,7 +88,6 @@
                   class="mt-2"
                 ></v-checkbox>
               </v-col>
-              
             </v-row>
           </v-card-text>
         </v-card>
@@ -120,14 +127,26 @@
             <template #[`item.Status`]="{ item }">
               <div class="d-flex align-center">
                 <v-chip
-                  :color="item.Status === 'error' ? 'warning' : 'success'"
+                  :color="
+                    item.Status === 'error'
+                      ? 'warning'
+                      : item.Status === 'fixed'
+                      ? 'info'
+                      : 'success'
+                  "
                   size="small"
                   variant="tonal"
                 >
-                  {{ item.Status === 'error' ? 'Lỗi' : 'OK' }}
+                  {{
+                    item.Status === "error"
+                      ? "Lỗi"
+                      : item.Status === "fixed"
+                      ? "Đã sửa"
+                      : "OK"
+                  }}
                 </v-chip>
                 <v-btn
-                  v-if="item.Status === 'error'"
+                  v-if="item.Status === 'fixed'"
                   size="small"
                   color="success"
                   variant="tonal"
@@ -143,7 +162,9 @@
               <div class="text-center pt-2">
                 <v-pagination
                   v-model="page"
-                  :length="Math.ceil((manufactureIPQCSMT?.length || 0) / itemsPerPage)"
+                  :length="
+                    Math.ceil((manufactureIPQCSMT?.length || 0) / itemsPerPage)
+                  "
                 ></v-pagination>
               </div>
             </template>
@@ -157,10 +178,12 @@
       @update:model-value="DialogFixed = $event"
       width="500"
     >
-      <v-card max-width="500" prepend-icon="mdi-hammer-screwdriver" title="Xác nhận sửa sản phẩm">
-        <v-card-text>
-          Sản phẩm đã được sửa lỗi hoàn tất ?
-        </v-card-text>
+      <v-card
+        max-width="500"
+        prepend-icon="mdi-hammer-screwdriver"
+        title="Xác nhận sửa sản phẩm"
+      >
+        <v-card-text> Sản phẩm đã được sửa lỗi hoàn tất ? </v-card-text>
         <template #actions>
           <ButtonCancel @cancel="DialogFixed = false" />
           <ButtonAgree @agree="markAsFixed()" />
@@ -179,7 +202,6 @@
     />
     <Loading v-model="DialogLoading" />
   </div>
-
 </template>
 
 <script setup>
@@ -211,16 +233,17 @@ const GetID = ref("");
 
 // Table configuration
 const Headers = [
-  { title: 'STT', key: 'id', sortable: true },
-  { title: 'Mã sản phẩm', key: 'PartNumber', sortable: true },
-  { title: 'Trạng thái', key: 'Status', sortable: true },
-  { title: 'Thời gian', key: 'Timestamp', sortable: true },
-]
+  { title: "STT", key: "id", sortable: true },
+  { title: "Mã sản phẩm", key: "PartNumber", sortable: true },
+  { title: "Trạng thái", key: "Status", sortable: true },
+  { title: "Thời gian", key: "Timestamp", sortable: true },
+];
 
 // ===== Composables & Data Management =====
 // Initialize composables for data fetching
 const { history, historyError } = useHistory(back);
-const { manufactureIPQCSMT, manufactureIPQCSMTError } = useManufactureIPQCSMT(id);
+const { manufactureIPQCSMT, manufactureIPQCSMTError } =
+  useManufactureIPQCSMT(id);
 
 // ===== Reactive State =====
 // UI State
@@ -239,18 +262,32 @@ const itemsPerPage = ref(10);
 // Input/Output State
 const Input = ref("");
 const isError = ref(false);
+const submitting = ref(false);
 const totalInput = ref(0);
+const totalOutput = ref(0);
 const totalErrors = ref(0);
+const totalFixed = ref(0);
 
 // Production Info
-const NameManufacture = localStorage.getItem("ProductName");
+const NameManufacture = ref("");
+const Name_Order = ref("");
+const Name_Category = ref("");
+
 
 // ===== Watchers =====
 // Watch for manufactureIPQCSMT changes and log updates
-watch(manufactureIPQCSMT, (newValue) => {
-  console.log("manufactureIPQCSMT updated:", newValue);
-  totalErrors.value = newValue.filter(item => item.Status === 'error').length;
-}, { deep: true });
+watch(
+  manufactureIPQCSMT,
+  (newValue) => {
+    console.log("manufactureIPQCSMT updated:", newValue);
+    totalErrors.value = newValue.filter(
+      (item) => item.Status === "error"
+    ).length;
+    totalFixed.value = newValue.filter((item) => item.Status === "fixed").length;
+    totalOutput.value = newValue.filter((item) => item.Status === "ok").length;
+  },
+  { deep: true }
+);
 
 // Watch for manufactureIPQCSMT errors
 watch(manufactureIPQCSMTError, (error) => {
@@ -263,13 +300,37 @@ watch(manufactureIPQCSMTError, (error) => {
 watch(
   () => history,
   (newData) => {
-    console.log("History data:", newData);
-    if (newData?.value && Array.isArray(newData.value)) {
-      const filteredHistory = newData.value.filter(item => item.Type === 'IPQC (SMT)');
-      totalInput.value = filteredHistory.reduce((sum, item) => sum + (Number(item.Quantity_Plan) || 0), 0);
+    if (!newData?.value) {
+      console.log("No history data available");
+      return;
+    }
+
+    if (!Array.isArray(newData.value)) {
+      console.log("History data is not an array");
+      return;
+    }
+
+    // Convert id to number for comparison since it's coming from route params
+    const numericId = Number(id);
+    const foundHistory = newData.value.find(
+      (item) => Number(item.id) === numericId
+    );
+    console.log("Found history item:", foundHistory);
+
+    if (foundHistory) {
+      Name_Order.value = foundHistory.Name_Order ?? "";
+      NameManufacture.value = foundHistory.PONumber ?? "";
+      Name_Category.value = foundHistory.Category ?? "";
+      totalInput.value = foundHistory.Quantity_Plan ?? 0;
+    } else {
+      console.log("No matching history found for ID:", id);
+      // Set default values if no match found
+      Name_Order.value = "";
+      NameManufacture.value = "";
+      Name_Category.value = "";
     }
   },
-  { immediate: true, deep: true },
+  { immediate: true, deep: true }
 );
 
 // ===== Methods =====
@@ -278,34 +339,35 @@ watch(
  * Handles form submission, API call, and error handling
  */
 const submitBarcode = async () => {
-  if (!Input.value) return;
+  if (!Input.value || submitting.value) return;
+  submitting.value = true;
 
   DialogLoading.value = true;
   const formData = reactive({
     PartNumber: Input.value,
-    Status: isError.value ? 'error' : 'ok',
-    Timestamp: new Date().toLocaleString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
+    Status: isError.value ? "error" : "ok",
+    Timestamp: new Date().toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
     }),
-    HistoryID: id
+    HistoryID: id,
   });
   try {
     const response = await axios.post(`${Url}/Manufacture/IPQC-SMT`, formData);
     console.log(response.data);
     DialogLoading.value = false;
-    Input.value = '';
+    Input.value = "";
     isError.value = false;
   } catch (error) {
     console.log(error);
-  }
-    finally {
+  } finally {
     DialogLoading.value = false;
+    submitting.value = false;
   }
 };
 
@@ -313,29 +375,32 @@ const submitBarcode = async () => {
  * Marks an error item as fixed by updating its status to 'ok'
  * @param {Object} item - The item to be marked as fixed
  */
-const GetItem = (item) =>{
+const GetItem = (item) => {
   DialogFixed.value = true;
-  GetID.value = item.id; 
-}
+  GetID.value = item.id;
+};
 
 const markAsFixed = async () => {
   DialogFixed.value = true;
   try {
-    const response = await axios.put(`${Url}/Manufacture/IPQC-SMT/Edit-status/${GetID.value}`, {
-      Status: 'ok'
-    });
-    console.log('Item marked as fixed:', response.data);
+    const response = await axios.put(
+      `${Url}/Manufacture/IPQC-SMT/Edit-status/${GetID.value}`,
+      {
+        Status: "ok",
+      }
+    );
+    console.log("Item marked as fixed:", response.data);
     // Refresh the data after successful update
     DialogFixed.value = false;
     DialogLoading.value = true;
     DialogSuccess.value = true;
-    MessageDialog.value = "Sản phẩm đã được sửa lỗi hoàn tất"
+    MessageDialog.value = "Sản phẩm đã được sửa lỗi hoàn tất";
   } catch (error) {
-    console.error('Error marking item as fixed:', error);
+    console.error("Error marking item as fixed:", error);
     DialogFixed.value = false;
     DialogLoading.value = true;
     DialogFailed.value = true;
-    MessageErrorDialog.value = "Sản phẩm đã được sửa lỗi hoàn tất"
+    MessageErrorDialog.value = "Sản phẩm đã được sửa lỗi hoàn tất";
   } finally {
     DialogLoading.value = false;
   }

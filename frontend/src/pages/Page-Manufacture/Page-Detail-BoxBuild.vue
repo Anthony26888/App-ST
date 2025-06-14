@@ -7,7 +7,11 @@
       >
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
-        {{ NameManufacture }}
+        <v-breadcrumbs :items="[`${NameManufacture}`, `${Name_Order}`]">
+          <template v-slot:divider>
+            <v-icon icon="mdi-chevron-right"></v-icon>
+          </template>
+        </v-breadcrumbs>
       </v-card-title>
 
       <v-card-text>
@@ -28,11 +32,11 @@
             </v-card>
           </v-col>
           <v-col cols="12" sm="6">
-            <v-card class="rounded-lg" color="info" variant="tonal">
+            <v-card class="rounded-lg" color="success" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra</div>
                 <div class="text-h4 font-weight-bold">
-                  {{ manufactureBoxBuild.map(item => item.Status === 'ok' ? 1 : 0).reduce((a, b) => a + b, 0) }}
+                  {{ totalOutput }}
                 </div>
                 <div class="text-caption">
                   Tổng số lượng đầu ra
@@ -63,7 +67,7 @@
                 <InputField
                   label="Nhập mã sản phẩm"
                   v-model="Input"
-                  @keydown.enter="submitBarcode"
+                  @keydown.enter.prevent="submitBarcode()"
                   ref="barcodeInput"
                   autofocus
                   hide-details
@@ -183,6 +187,8 @@ const { manufactureBoxBuild, manufactureBoxBuildError } = useManufactureBoxBuild
 // ===== Reactive State =====
 // UI State
 const DialogLoading = ref(false);
+
+// Table
 const search = ref("");
 const page = ref(1);
 const itemsPerPage = ref(10);
@@ -190,17 +196,53 @@ const itemsPerPage = ref(10);
 // Input/Output State
 const Input = ref("");
 const isError = ref(false);
+const submitting = ref(false);
 const totalInput = ref(0);
+const totalOutput = ref(0);
 const totalErrors = ref(0);
 
 // Production Info
-const NameManufacture = localStorage.getItem("ProductName");
-
+const NameManufacture = ref("");
+const Name_Order = ref("");
 // ===== Watchers =====
 // Watch for manufactureBoxBuild changes and log updates
+// Watch for changes in manufacture details to calculate total input
+watch(
+  () => history,
+  (newData) => {
+    
+    if (!newData?.value) {
+      console.log('No history data available');
+      return;
+    }
+
+    if (!Array.isArray(newData.value)) {
+      console.log('History data is not an array');
+      return;
+    }
+
+    // Convert id to number for comparison since it's coming from route params
+    const numericId = Number(id);
+    const foundHistory = newData.value.find(item => Number(item.id) === numericId);
+    console.log('Found history item:', foundHistory);
+
+    if (foundHistory) {
+      Name_Order.value = foundHistory.Name_Order ?? '';
+      NameManufacture.value = foundHistory.PONumber ?? '';
+      totalInput.value = foundHistory.Quantity_Plan ?? 0;
+    } else {
+      console.log('No matching history found for ID:', id);
+      // Set default values if no match found
+      Name_Order.value = '';
+      NameManufacture.value = '';
+    }
+  },
+  { immediate: true, deep: true },
+);
 watch(manufactureBoxBuild, (newValue) => {
   console.log("manufactureBoxBuild updated:", newValue);
   totalErrors.value = newValue.filter(item => item.Status === 'error').length;
+  totalOutput.value = newValue.filter(item => item.Status === 'ok').length;
 }, { deep: true });
 
 // Watch for manufactureBoxBuild errors
@@ -210,18 +252,6 @@ watch(manufactureBoxBuildError, (error) => {
   }
 });
 
-// Watch for changes in manufacture details to calculate total input
-watch(
-  () => history,
-  (newData) => {
-    console.log("History data:", newData);
-    if (newData?.value && Array.isArray(newData.value)) {
-      const filteredHistory = newData.value.filter(item => item.Type === 'Box Build');
-      totalInput.value = filteredHistory.reduce((sum, item) => sum + (Number(item.Quantity_Plan) || 0), 0);
-    }
-  },
-  { immediate: true, deep: true },
-);
 
 // ===== Methods =====
 /**
@@ -229,7 +259,8 @@ watch(
  * Handles form submission, API call, and error handling
  */
 const submitBarcode = async () => {
-  if (!Input.value) return;
+  if (!Input.value || submitting.value) return;
+  submitting.value = true;
 
   DialogLoading.value = true;
   const formData = reactive({
@@ -257,6 +288,7 @@ const submitBarcode = async () => {
   }
     finally {
     DialogLoading.value = false;
+    submitting.value = false;
   }
 };
 </script>

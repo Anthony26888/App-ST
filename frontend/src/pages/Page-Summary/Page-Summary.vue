@@ -62,7 +62,10 @@
             <v-card-text>
               <div class="text-subtitle-1">Dự án hoàn thành</div>
               <div class="text-h4 font-weight-bold">
-                {{ summary?.filter(item => Number(item.Percent) >= 100).length || 0 }}
+                {{
+                  summary?.filter((item) => Number(item.Percent) >= 100)
+                    .length || 0
+                }}
               </div>
             </v-card-text>
           </v-card>
@@ -72,7 +75,10 @@
             <v-card-text>
               <div class="text-subtitle-1">Dự án đang thực hiện</div>
               <div class="text-h4 font-weight-bold">
-                {{ summary?.filter(item => Number(item.Percent) < 100).length || 0 }}
+                {{
+                  summary?.filter((item) => Number(item.Percent) < 100)
+                    .length || 0
+                }}
               </div>
             </v-card-text>
           </v-card>
@@ -116,7 +122,7 @@
           <v-toolbar flat dense>
             <v-toolbar-title>
               <v-icon
-                color="medium-primay"
+                color="primay"
                 icon="mdi-book-multiple"
                 size="x-small"
                 start
@@ -137,9 +143,19 @@
                 @click="toggleGroup(item)"
                 class="me-2"
               ></v-btn>
-              <span class="font-weight-bold">{{ item.value }}</span>
+              <span class="font-weight-bold text-primary">{{ item.value }}</span>
             </td>
           </tr>
+        </template>
+        <template #[`item.Quantity_Plan`]="{ item }">
+          <v-chip color="primary" variant="tonal">{{
+            item.Quantity_Plan
+          }}</v-chip>
+        </template>
+        <template #[`item.Quantity_Real`]="{ item }">
+          <v-chip color="success" variant="tonal">{{
+            item.Quantity_Real
+          }}</v-chip>
         </template>
         <template v-slot:item.Percent="{ item }">
           <v-progress-linear v-model="item.Percent" height="25" color="success">
@@ -182,6 +198,20 @@ import { useSummary } from "@/composables/Summary/useSummary";
 // API Configuration
 const Url = import.meta.env.VITE_API_URL;
 
+// Chart Colors
+const CHART_COLORS = {
+  primary: "rgb(25, 118, 210)",
+  success: "rgb(76, 175, 80)",
+  warning: "rgb(255, 152, 0)",
+  error: "rgb(233, 30, 99)",
+  purple: "rgb(156, 39, 176)",
+  teal: "rgb(0, 150, 136)",
+  amber: "rgb(255, 193, 7)",
+  brown: "rgb(121, 85, 72)",
+  blueGrey: "rgb(96, 125, 139)",
+  red: "rgb(244, 67, 54)"
+};
+
 // Router
 const router = useRouter();
 
@@ -202,7 +232,8 @@ const search = ref("");
 const itemsPerPage = ref(10);
 const page = ref(1);
 const Headers = ref([
-  { key: "PONumber", title: "Số PO", width: "150" },
+  { key: "PONumber", title: "Dự án", width: "150" },
+  { key: "Name_Order", title: "Đơn hàng", width: "150" },
   { key: "Category", title: "Hạng mục", width: "300" },
   {
     title: "Kế hoạch",
@@ -234,7 +265,7 @@ const formattedSelectedDate = computed(() => {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-    timeZone: "Asia/Bangkok"
+    timeZone: "Asia/Bangkok",
   });
 });
 
@@ -466,21 +497,25 @@ function initializePieChart() {
   }
 
   // Group data by Type
-  const groupedData = summary.value?.reduce((acc, item) => {
-    const type = item.Type || 'Không phân loại';
-    if (!acc[type]) {
-      acc[type] = {
-        quantity: 0,
-        count: 0
-      };
-    }
-    acc[type].quantity += Number(item.Quantity_Real) || 0;
-    acc[type].count += 1;
-    return acc;
-  }, {}) || {};
+  const groupedData =
+    summary.value?.reduce((acc, item) => {
+      const type = item.Type || "Không phân loại";
+      if (!acc[type]) {
+        acc[type] = {
+          quantity: 0,
+          count: 0,
+        };
+      }
+      acc[type].quantity += Number(item.Quantity_Real) || 0;
+      acc[type].count += 1;
+      return acc;
+    }, {}) || {};
 
   // Calculate total quantity
-  const totalQuantity = Object.values(groupedData).reduce((sum, item) => sum + item.quantity, 0);
+  const totalQuantity = Object.values(groupedData).reduce(
+    (sum, item) => sum + item.quantity,
+    0
+  );
 
   // Sort types by quantity and calculate percentages
   const sortedTypes = Object.entries(groupedData)
@@ -488,7 +523,7 @@ function initializePieChart() {
     .reduce((acc, [key, value]) => {
       acc[key] = {
         ...value,
-        percentage: ((value.quantity / totalQuantity) * 100).toFixed(1)
+        percentage: ((value.quantity / totalQuantity) * 100).toFixed(1),
       };
       return acc;
     }, {});
@@ -500,24 +535,12 @@ function initializePieChart() {
       labels: Object.keys(sortedTypes),
       datasets: [
         {
-          data: Object.values(sortedTypes).map(item => parseFloat(item.percentage)),
-          backgroundColor: [
-            "rgba(25, 118, 210, 0.8)",
-            "rgba(76, 175, 80, 0.8)",
-            "rgba(255, 152, 0, 0.8)",
-            "rgba(233, 30, 99, 0.8)",
-            "rgba(156, 39, 176, 0.8)",
-            "rgba(0, 150, 136, 0.8)",
-          ],
-          borderColor: [
-            "#1976D2",
-            "#4CAF50",
-            "#FF9800",
-            "#E91E63",
-            "#9C27B0",
-            "#009688",
-          ],
-          borderWidth: 1,
+          data: Object.values(sortedTypes).map((item) =>
+            parseFloat(item.percentage)
+          ),
+          backgroundColor: Object.values(CHART_COLORS),
+          borderColor: "#ffffff",
+          borderWidth: 2,
         },
       ],
     },
@@ -531,53 +554,55 @@ function initializePieChart() {
             usePointStyle: true,
             padding: 20,
             font: {
-              size: 12
+              size: 12,
             },
-            generateLabels: function(chart) {
+            generateLabels: function (chart) {
               const data = chart.data;
               if (data.labels.length && data.datasets.length) {
-                return data.labels.map(function(label, i) {
+                return data.labels.map(function (label, i) {
                   const value = data.datasets[0].data[i];
                   return {
                     text: `${label} (${value}%)`,
                     fillStyle: data.datasets[0].backgroundColor[i],
-                    strokeStyle: data.datasets[0].borderColor[i],
-                    lineWidth: 1,
+                    strokeStyle: data.datasets[0].borderColor,
+                    lineWidth: 2,
                     hidden: isNaN(data.datasets[0].data[i]),
-                    index: i
+                    index: i,
                   };
                 });
               }
               return [];
-            }
+            },
           },
         },
         tooltip: {
           callbacks: {
-            label: function(context) {
-              const label = context.label || '';
+            label: function (context) {
+              const label = context.label || "";
               const value = context.raw || 0;
               const typeData = sortedTypes[label];
               return [
                 `${label}: ${value}%`,
-                `Số lượng: ${new Intl.NumberFormat('vi-VN').format(typeData.quantity)}`,
-                `Số hạng mục: ${typeData.count}`
+                `Số lượng: ${new Intl.NumberFormat("vi-VN").format(
+                  typeData.quantity
+                )}`,
+                `Số hạng mục: ${typeData.count}`,
               ];
-            }
-          }
+            },
+          },
         },
         title: {
           display: true,
-          text: 'Phân bố theo loại (%)',
+          text: "Phân bố theo loại (%)",
           font: {
             size: 16,
-            weight: 'bold'
+            weight: "bold",
           },
           padding: {
             top: 10,
-            bottom: 20
-          }
-        }
+            bottom: 20,
+          },
+        },
       },
     },
   });
@@ -622,11 +647,11 @@ watch(
       if (pieChartInstance) {
         // Update pie chart
         const groupedData = newData.reduce((acc, item) => {
-          const type = item.Type || 'Không phân loại';
+          const type = item.Type || "Không phân loại";
           if (!acc[type]) {
             acc[type] = {
               quantity: 0,
-              count: 0
+              count: 0,
             };
           }
           acc[type].quantity += Number(item.Quantity_Real) || 0;
@@ -635,7 +660,10 @@ watch(
         }, {});
 
         // Calculate total quantity
-        const totalQuantity = Object.values(groupedData).reduce((sum, item) => sum + item.quantity, 0);
+        const totalQuantity = Object.values(groupedData).reduce(
+          (sum, item) => sum + item.quantity,
+          0
+        );
 
         // Sort types by quantity and calculate percentages
         const sortedTypes = Object.entries(groupedData)
@@ -643,17 +671,19 @@ watch(
           .reduce((acc, [key, value]) => {
             acc[key] = {
               ...value,
-              percentage: ((value.quantity / totalQuantity) * 100).toFixed(1)
+              percentage: ((value.quantity / totalQuantity) * 100).toFixed(1),
             };
             return acc;
           }, {});
 
         // Update chart data
         pieChartInstance.data.labels = Object.keys(sortedTypes);
-        pieChartInstance.data.datasets[0].data = Object.values(sortedTypes).map(item => parseFloat(item.percentage));
-        
+        pieChartInstance.data.datasets[0].data = Object.values(sortedTypes).map(
+          (item) => parseFloat(item.percentage)
+        );
+
         // Force chart update with animation
-        pieChartInstance.update('active');
+        pieChartInstance.update("active");
       }
     }
   },
@@ -704,5 +734,3 @@ export default {
 };
 </script>
 <style lang=""></style>
-
-

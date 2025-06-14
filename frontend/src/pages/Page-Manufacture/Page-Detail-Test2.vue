@@ -7,49 +7,57 @@
       >
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
-        {{ NameManufacture }}
+        <v-breadcrumbs :items="[`${NameManufacture}`, `${Name_Order}`]">
+          <template v-slot:divider>
+            <v-icon icon="mdi-chevron-right"></v-icon>
+          </template>
+        </v-breadcrumbs>
       </v-card-title>
 
       <v-card-text>
-
         <!-- Production Statistics Cards -->
         <v-row class="mb-4">
-          <v-col cols="12" sm="4">
+          <v-col cols="12" sm="3">
             <v-card class="rounded-lg" color="primary" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu vào</div>
                 <div class="text-h4 font-weight-bold">
                   {{ totalInput }}
                 </div>
-                <div class="text-caption">
-                  Tổng số lượng đầu vào
-                </div>
+                <div class="text-caption">Tổng số lượng đầu vào</div>
               </v-card-text>
             </v-card>
           </v-col>
-          <v-col cols="12" sm="4">
-            <v-card class="rounded-lg" color="info" variant="tonal">
+          <v-col cols="12" sm="3">
+            <v-card class="rounded-lg" color="success" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra</div>
                 <div class="text-h4 font-weight-bold">
-                  {{ manufactureTest2.map(item => item.Status === 'ok' ? 1 : 0).reduce((a, b) => a + b, 0) }}
+                  {{ totalOutput }}
                 </div>
-                <div class="text-caption">
-                  Tổng số lượng đầu ra
-                </div>
+                <div class="text-caption">Tổng số lượng đầu ra</div>
               </v-card-text>
             </v-card>
           </v-col>
-          <v-col cols="12" sm="4">
+          <v-col cols="12" sm="3">
             <v-card class="rounded-lg" color="warning" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Lỗi</div>
                 <div class="text-h4 font-weight-bold">
                   {{ totalErrors }}
                 </div>
-                <div class="text-caption">
-                  Tổng số lượng lỗi
+                <div class="text-caption">Tổng số lượng lỗi</div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" sm="3">
+            <v-card class="rounded-lg" color="info" variant="tonal">
+              <v-card-text>
+                <div class="text-subtitle-1">Đã sửa</div>
+                <div class="text-h4 font-weight-bold">
+                  {{ totalFixed }}
                 </div>
+                <div class="text-caption">Tổng số lượng đã sửa</div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -118,14 +126,14 @@
           >
             <template #[`item.Status`]="{ item }">
               <v-chip
-                :color="item.Status === 'error' ? 'warning' : 'success'"
+                :color="item.Status === 'error' ? 'warning' : item.Status === 'fixed' ? 'info' : 'success'"
                 size="small"
                 variant="tonal"
               >
-                {{ item.Status === 'error' ? 'Lỗi' : 'OK' }}
+                {{ item.Status === "error" ? "Lỗi" : item.Status === "fixed" ? "Đã sửa" : "OK" }}
               </v-chip>
               <v-btn
-                v-if="item.Status === 'error'"
+                v-if="item.Status === 'fixed'"
                 size="small"
                 color="success"
                 variant="tonal"
@@ -140,7 +148,9 @@
               <div class="text-center pt-2">
                 <v-pagination
                   v-model="page"
-                  :length="Math.ceil((manufactureTest2?.length || 0) / itemsPerPage)"
+                  :length="
+                    Math.ceil((manufactureTest2?.length || 0) / itemsPerPage)
+                  "
                 ></v-pagination>
               </div>
             </template>
@@ -154,10 +164,12 @@
       @update:model-value="DialogFixed = $event"
       width="500"
     >
-      <v-card max-width="500" prepend-icon="mdi-hammer-screwdriver" title="Xác nhận sửa sản phẩm">
-        <v-card-text>
-          Sản phẩm đã được sửa lỗi hoàn tất ?
-        </v-card-text>
+      <v-card
+        max-width="500"
+        prepend-icon="mdi-hammer-screwdriver"
+        title="Xác nhận sửa sản phẩm"
+      >
+        <v-card-text> Sản phẩm đã được sửa lỗi hoàn tất ? </v-card-text>
         <template #actions>
           <ButtonCancel @cancel="DialogFixed = false" />
           <ButtonAgree @agree="markAsFixed()" />
@@ -176,7 +188,6 @@
     />
     <Loading v-model="DialogLoading" />
   </div>
-
 </template>
 
 <script setup>
@@ -207,18 +218,17 @@ const GetID = ref("");
 
 // Table configuration
 const Headers = [
-  { title: 'STT', key: 'id', sortable: true },
-  { title: 'Mã sản phẩm', key: 'PartNumber', sortable: true },
-  { title: 'Trạng thái', key: 'Status', sortable: true },
-  { title: 'Thời gian', key: 'Timestamp', sortable: true },
-]
+  { title: "STT", key: "id", sortable: true },
+  { title: "Mã sản phẩm", key: "PartNumber", sortable: true },
+  { title: "Trạng thái", key: "Status", sortable: true },
+  { title: "Thời gian", key: "Timestamp", sortable: true },
+];
 
 // ===== Composables & Data Management =====
 // Initialize composables for data fetching
 const { history, historyError } = useHistory(back);
 const { manufactureTest2, manufactureTest2Error } = useManufactureTest2(id);
 // ===== Reactive State =====
-
 
 // Dialog
 const DialogLoading = ref(false);
@@ -236,20 +246,33 @@ const itemsPerPage = ref(10);
 // Input/Output State
 const Input = ref("");
 const isSubmitting = ref(false);
+const isError = ref(false);
+const submitting = ref(false);
+
 const totalInput = ref(0);
 const totalOutput = ref(0);
 const totalErrors = ref(0);
-const isError = ref(false);
-
+const totalFixed = ref(0);
 // Production Info
-const NameManufacture = localStorage.getItem("ProductName");
-
+const NameManufacture = ref("");
+const Name_Order = ref("");
+const Name_Category = ref("");
 // ===== Watchers =====
 // Watch for manufactureAOI changes and log updates
-watch(manufactureTest2, (newValue) => {
-  console.log("manufactureTest2 updated:", newValue);
-  totalErrors.value = newValue.filter(item => item.Status === 'error').length;
-}, { deep: true });
+watch(
+  manufactureTest2,
+  (newValue) => {
+    console.log("manufactureTest2 updated:", newValue);
+    totalErrors.value = newValue.filter(
+      (item) => item.Status === "error"
+    ).length;
+    totalFixed.value = newValue.filter(
+      (item) => item.Status === "fixed"
+    ).length;
+    totalOutput.value = newValue.filter((item) => item.Status === "ok").length;
+  },
+  { deep: true }
+);
 
 // Watch for manufactureAOI errors
 watch(manufactureTest2Error, (error) => {
@@ -262,21 +285,33 @@ watch(manufactureTest2Error, (error) => {
 watch(
   () => history,
   (newData) => {
-    console.log("History data:", newData);
-    if (newData?.value && Array.isArray(newData.value)) {
-      const filteredHistory = newData.value.filter(item => item.Type === 'Test 2');
-      totalInput.value = filteredHistory.reduce((sum, item) => sum + (Number(item.Quantity_Plan) || 0), 0);
+    if (!newData?.value) {
+      console.log("No history data available");
+      return;
     }
-  },
-  { immediate: true, deep: true },
-);
 
-// Watch for changes in manufactureAOI to calculate total output
-watch(
-  () => manufactureTest2,
-  (newData) => {
-    if (newData?.value && Array.isArray(newData.value)) {
-      totalOutput.value = newData.value.reduce((sum, item) => sum + (item.TotalOutput || 0), 0);
+    if (!Array.isArray(newData.value)) {
+      console.log("History data is not an array");
+      return;
+    }
+
+    // Convert id to number for comparison since it's coming from route params
+    const numericId = Number(id);
+    const foundHistory = newData.value.find(
+      (item) => Number(item.id) === numericId
+    );
+    console.log("Found history item:", foundHistory);
+
+    if (foundHistory) {
+      Name_Order.value = foundHistory.Name_Order ?? "";
+      NameManufacture.value = foundHistory.PONumber ?? "";
+      Name_Category.value = foundHistory.Category ?? "";
+      totalInput.value = foundHistory.Quantity_Plan ?? 0;
+    } else {
+      console.log("No matching history found for ID:", id);
+      // Set default values if no match found
+      Name_Order.value = "";
+      NameManufacture.value = "";
     }
   },
   { immediate: true, deep: true }
@@ -287,61 +322,65 @@ watch(
  * Submits a barcode to the AOI manufacturing system
  * Handles form submission, API call, and error handling
  */
- const submitBarcode = async () => {
-  if (!Input.value) return;
+const submitBarcode = async () => {
+  if (!Input.value || submitting.value) return;
+  submitting.value = true;
 
   DialogLoading.value = true;
   const formData = reactive({
     PartNumber: Input.value,
-    Status: isError.value ? 'error' : 'ok',
-    Timestamp: new Date().toLocaleString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
+    Status: isError.value ? "error" : "ok",
+    Timestamp: new Date().toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
     }),
-    HistoryID: id
+    HistoryID: id,
   });
   try {
     const response = await axios.post(`${Url}/Manufacture/Test2`, formData);
     console.log(response.data);
     DialogLoading.value = false;
-    Input.value = '';
+    Input.value = "";
     isError.value = false;
   } catch (error) {
     console.log(error);
-  }
-    finally {
+  } finally {
     DialogLoading.value = false;
+    submitting.value = false;
   }
 };
 
-const GetItem = (item) =>{
+const GetItem = (item) => {
   DialogFixed.value = true;
-  GetID.value = item.id; 
-}
+  GetID.value = item.id;
+};
 
 const markAsFixed = async () => {
   DialogFixed.value = true;
   try {
-    const response = await axios.put(`${Url}/Manufacture/Test2/Edit-status/${GetID.value}`, {
-      Status: 'ok'
-    });
-    console.log('Item marked as fixed:', response.data);
+    const response = await axios.put(
+      `${Url}/Manufacture/Test2/Edit-status/${GetID.value}`,
+      {
+        Status: "ok",
+      }
+    );
+    console.log("Item marked as fixed:", response.data);
     // Refresh the data after successful update
     DialogFixed.value = false;
     DialogLoading.value = true;
     DialogSuccess.value = true;
-    MessageDialog.value = "Sản phẩm đã được sửa lỗi hoàn tất"
+    MessageDialog.value = "Sản phẩm đã được sửa lỗi hoàn tất";
   } catch (error) {
-    console.error('Error marking item as fixed:', error);
+    console.error("Error marking item as fixed:", error);
     DialogFixed.value = false;
     DialogLoading.value = true;
     DialogFailed.value = true;
-    MessageErrorDialog.value = "Sản phẩm đã được sửa lỗi hoàn tất"
+    MessageErrorDialog.value = "Sản phẩm đã được sửa lỗi hoàn tất";
   } finally {
     DialogLoading.value = false;
   }

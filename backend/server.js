@@ -395,27 +395,40 @@ io.on("connection", (socket) => {
                           SUM(IFNULL(j.BoxBuild, 0)) AS BoxBuild,
                           SUM(IFNULL(o.Warehouse, 0)) AS Warehouse,
                           SUM(IFNULL(c1.AOIError, 0)) AS AOIError,
-                          SUM(IFNULL(d1.RWError, 0)) AS RWError,
                           SUM(IFNULL(e1.IPQCError, 0)) AS IPQCError,
-                          SUM(IFNULL(f1.AssemblyError, 0)) AS AssemblyError,
                           SUM(IFNULL(g1.OQCError, 0)) AS OQCError,
                           SUM(IFNULL(k1.IPQCSMTError, 0)) AS IPQCSMTError,
                           SUM(IFNULL(m1.Test1Error, 0)) AS Test1Error,
                           SUM(IFNULL(n1.Test2Error, 0)) AS Test2Error,
-                          SUM(IFNULL(j1.BoxBuildError, 0)) AS BoxBuildError,
-                          SUM(IFNULL(o1.WarehouseError, 0)) AS WarehouseError,
+                          SUM(IFNULL(c2.AOIFixed, 0)) AS AOIFixed,
+                          SUM(IFNULL(e2.IPQCFixed, 0)) AS IPQCFixed,
+                          SUM(IFNULL(g2.OQCFixed, 0)) AS OQCFixed,
+                          SUM(IFNULL(k2.IPQCSMTFixed, 0)) AS IPQCSMTFixed,
+                          SUM(IFNULL(m2.Test1Fixed, 0)) AS Test1Fixed,
+                          SUM(IFNULL(n2.Test2Fixed, 0)) AS Test2Fixed,
                           h.Level AS Level,
                           SUM(
                             IFNULL(c1.AOIError, 0) + 
                             IFNULL(e1.IPQCError, 0) + 
-                            IFNULL(f1.AssemblyError, 0) + 
                             IFNULL(g1.OQCError, 0) + 
                             IFNULL(k1.IPQCSMTError, 0) +
                             IFNULL(m1.Test1Error, 0) +
                             IFNULL(n1.Test2Error, 0) +
-                            IFNULL(j1.BoxBuildError, 0) +
-                            IFNULL(o1.WarehouseError, 0)
-                          ) AS Quantity_Error
+							              IFNULL(c2.AOIFixed, 0) + 
+                            IFNULL(e2.IPQCFixed, 0) + 
+                            IFNULL(g2.OQCFixed, 0) + 
+                            IFNULL(k2.IPQCSMTFixed, 0) +
+                            IFNULL(m2.Test1Fixed, 0) +
+                            IFNULL(n2.Test2Fixed, 0) 
+                          ) AS Quantity_Error,
+						              SUM(
+                            IFNULL(c2.AOIFixed, 0) + 
+                            IFNULL(e2.IPQCFixed, 0) + 
+                            IFNULL(g2.OQCFixed, 0) + 
+                            IFNULL(k2.IPQCSMTFixed, 0) +
+                            IFNULL(m2.Test1Fixed, 0) +
+                            IFNULL(n2.Test2Fixed, 0)
+                          ) AS Quantity_Fixed
                       FROM PlanManufacture h
                       LEFT JOIN Summary a ON a.PlanID = h.id
                       LEFT JOIN (
@@ -490,23 +503,11 @@ io.on("connection", (socket) => {
                           GROUP BY HistoryID
                       ) c1 ON a.id = c1.HistoryID
                       LEFT JOIN (
-                          SELECT HistoryID, COUNT(*) AS RWError 
-                          FROM ManufactureRW 
-						              WHERE Status = 'error'
-                          GROUP BY HistoryID
-                      ) d1 ON a.id = d1.HistoryID
-                      LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS IPQCError 
                           FROM ManufactureIPQC 
 						              WHERE Status = 'error'
                           GROUP BY HistoryID
                       ) e1 ON a.id = e1.HistoryID
-                      LEFT JOIN (
-                          SELECT HistoryID, COUNT(*) AS AssemblyError 
-                          FROM ManufactureAssembly 
-						              WHERE Status = 'error'
-                          GROUP BY HistoryID
-                      ) f1 ON a.id = f1.HistoryID
                       LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS OQCError 
                           FROM ManufactureOQC 
@@ -531,18 +532,42 @@ io.on("connection", (socket) => {
 						              WHERE Status = 'error'
                           GROUP BY HistoryID
                       ) n1 ON a.id = n1.HistoryID
-                       LEFT JOIN (
-                          SELECT HistoryID, COUNT(*) AS BoxBuildError 
-                          FROM ManufactureBoxBuild
-						              WHERE Status = 'error'
+					            LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS AOIFixed
+                          FROM ManufactureAOI 
+						              WHERE Status = 'fixed'
                           GROUP BY HistoryID
-                      ) j1 ON a.id = j1.HistoryID
-                       LEFT JOIN (
-                          SELECT HistoryID, COUNT(*) AS WarehouseError
-                          FROM ManufactureWarehouse
-						              WHERE Status = 'error'
+                      ) c2 ON a.id = c1.HistoryID
+                      LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS IPQCFixed
+                          FROM ManufactureIPQC 
+						              WHERE Status = 'fixed'
                           GROUP BY HistoryID
-                      ) o1 ON a.id = o1.HistoryID
+                      ) e2 ON a.id = e1.HistoryID
+                      LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS OQCFixed
+                          FROM ManufactureOQC 
+						              WHERE Status = 'fixed'
+                          GROUP BY HistoryID
+                      ) g2 ON a.id = g1.HistoryID
+                       LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS IPQCSMTFixed 
+                          FROM ManufactureIPQCSMT
+						              WHERE Status = 'fixed'
+                          GROUP BY HistoryID
+                      ) k2 ON a.id = k1.HistoryID
+                       LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS Test1Fixed
+                          FROM ManufactureTest1 
+						              WHERE Status = 'fixed'
+                          GROUP BY HistoryID
+                      ) m2 ON a.id = m1.HistoryID
+                       LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS Test2Fixed
+                          FROM ManufactureTest2
+						              WHERE Status = 'fixed'
+                          GROUP BY HistoryID
+                      ) n2 ON a.id = n1.HistoryID
                       WHERE h.id = ?
                       GROUP BY h.Total`;
         db.all(query, [id], (err, rows) => {
@@ -571,18 +596,29 @@ io.on("connection", (socket) => {
       socket.emit("ManufactureAOIError", error);
     }
   }),
-    socket.on("getManufactureHand", async (id) => {
+    socket.on("getManufactureRW", async (id) => {
       try {
-        const query = `SELECT *
-                      FROM ManufactureRW
-                      WHERE HistoryID = ?
-                      ORDER BY Timestamp DESC`;
+        const query = `SELECT a.id, b.Type, a.PartNumber, a.Status, b.Category, a.Timestamp, a.HistoryID FROM (
+                          SELECT id, PartNumber, Status, HistoryID, Timestamp FROM ManufactureAOI WHERE Status IN ('error', 'fixed')
+                          UNION ALL
+                          SELECT id, PartNumber, Status, HistoryID, Timestamp FROM ManufactureIPQCSMT WHERE Status IN ('error', 'fixed')
+                          UNION ALL
+                            SELECT id, PartNumber, Status, HistoryID, Timestamp FROM ManufactureIPQC WHERE Status IN ('error', 'fixed')
+                          UNION ALL
+                            SELECT id, PartNumber, Status, HistoryID, Timestamp FROM ManufactureTest1 WHERE Status IN ('error', 'fixed')
+                          UNION ALL
+                            SELECT id, PartNumber, Status, HistoryID, Timestamp FROM ManufactureTest2 WHERE Status IN ('error', 'fixed')
+                          UNION ALL
+                            SELECT id, PartNumber, Status, HistoryID, Timestamp FROM ManufactureOQC WHERE Status IN ('error', 'fixed')
+                        ) a LEFT JOIN Summary b ON a.HistoryID = b.id
+                        WHERE PlanID = ?
+                        ORDER BY a.Timestamp DESC`;
         db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("ManufactureHandError", err);
-          socket.emit("ManufactureHandData", rows);
+          if (err) return socket.emit("ManufactureRWError", err);
+          socket.emit("ManufactureRWData", rows);
         });
       } catch (error) {
-        socket.emit("ManufactureHandError", error);
+        socket.emit("ManufactureRWError", error);
       }
     }),
     socket.on("getManufactureIPQC", async (id) => {
@@ -717,6 +753,7 @@ io.on("connection", (socket) => {
                         a.id,
                         a.Type,
                         a.PONumber,
+                        z.Name_Order,
                         a.Category,
                         a.Quantity_Plan,
                         a.CycleTime_Plan,
@@ -733,7 +770,7 @@ io.on("connection", (socket) => {
                           WHEN a.Type = 'Test 1' THEN IFNULL(j.Test1, 0)
                           WHEN a.Type = 'Test 2' THEN IFNULL(k.Test2, 0)
                           WHEN a.Type = 'Box Build' THEN IFNULL(m.BoxBuild, 0)
-                          WHEN a.Type = 'Warehouse' THEN IFNULL(n.Warehouse, 0)
+                          WHEN a.Type = 'Nhập kho' THEN IFNULL(n.Warehouse, 0)
                           ELSE 0
                         END AS Quantity_Real,
                         CASE 
@@ -749,12 +786,15 @@ io.on("connection", (socket) => {
                               WHEN a.Type = 'Test 1' THEN (IFNULL(j.Test1, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'Test 2' THEN (IFNULL(k.Test2, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'Box Build' THEN (IFNULL(m.BoxBuild, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'Warehouse' THEN (IFNULL(n.Warehouse, 0) * 100.0) / a.Quantity_Plan
+                              WHEN a.Type = 'Nhập kho' THEN (IFNULL(n.Warehouse, 0) * 100.0) / a.Quantity_Plan
                               ELSE 0
                             END
                           ELSE 0
                         END AS Percent
                       FROM Summary a
+                      LEFT JOIN (
+                        SELECT id, Name_Order FROM PlanManufacture
+                      ) z ON a.PlanID = z.id
                       LEFT JOIN (
                         SELECT HistoryID, COUNT(id) AS SMT 
                         FROM ManufactureSMT 
@@ -763,51 +803,61 @@ io.on("connection", (socket) => {
                       LEFT JOIN (
                         SELECT HistoryID, COUNT(id) AS AOI 
                         FROM ManufactureAOI 
+                        WHERE Status = 'ok'
                         GROUP BY HistoryID
                       ) c ON a.id = c.HistoryID
                       LEFT JOIN (
                         SELECT HistoryID, COUNT(id) AS RW 
                         FROM ManufactureRW 
+                        WHERE Status = 'ok'
                         GROUP BY HistoryID
                       ) d ON a.id = d.HistoryID
                       LEFT JOIN (
                         SELECT HistoryID, COUNT(id) AS IPQC 
                         FROM ManufactureIPQC 
+                        WHERE Status = 'ok'
                         GROUP BY HistoryID
                       ) e ON a.id = e.HistoryID
                       LEFT JOIN (
                         SELECT HistoryID, COUNT(id) AS Assembly 
                         FROM ManufactureAssembly 
+                        WHERE Status = 'ok'
                         GROUP BY HistoryID
                       ) f ON a.id = f.HistoryID
                       LEFT JOIN (
                         SELECT HistoryID, COUNT(id) AS OQC 
                         FROM ManufactureOQC 
+                        WHERE Status = 'ok'
                         GROUP BY HistoryID
                       ) g ON a.id = g.HistoryID
                        LEFT JOIN (
                         SELECT HistoryID, COUNT(id) AS IPQCSMT 
                         FROM ManufactureIPQCSMT 
+                        WHERE Status = 'ok'
                         GROUP BY HistoryID
                       ) h ON a.id = h.HistoryID
                        LEFT JOIN (
                         SELECT HistoryID, COUNT(id) AS Test1
                         FROM ManufactureTest1
+                        WHERE Status = 'ok'
                         GROUP BY HistoryID
                       ) j ON a.id = j.HistoryID
                        LEFT JOIN (
                         SELECT HistoryID, COUNT(id) AS Test2
                         FROM ManufactureTest2
+                        WHERE Status = 'ok'
                         GROUP BY HistoryID
                       ) k ON a.id = k.HistoryID
                        LEFT JOIN (
                         SELECT HistoryID, COUNT(id) AS BoxBuild
                         FROM ManufactureBoxBuild
+                        WHERE Status = 'ok'
                         GROUP BY HistoryID
                       ) m ON a.id = m.HistoryID
                        LEFT JOIN (
                         SELECT HistoryID, COUNT(id) AS Warehouse 
                         FROM ManufactureWarehouse 
+                        WHERE Status = 'ok'
                         GROUP BY HistoryID
                       ) n ON a.id = n.HistoryID
                       WHERE a.Created_At = ?
@@ -826,6 +876,9 @@ io.on("connection", (socket) => {
                         a.id,
                         a.Type,
                         a.PONumber,
+                        z.Name_Order,
+                        z.DelaySMT,
+						            z.Quantity,
                         a.Category,
                         a.Quantity_Plan,
                         a.CycleTime_Plan,
@@ -842,168 +895,170 @@ io.on("connection", (socket) => {
                           WHEN a.Type = 'Test 1' THEN IFNULL(m.Test1, 0)
                           WHEN a.Type = 'Test 2' THEN IFNULL(n.Test2, 0)
                           WHEN a.Type = 'Box Build' THEN IFNULL(j.BoxBuild, 0)
-                          WHEN a.Type = 'Warehouse' THEN IFNULL(o.Warehouse, 0)
+                          WHEN a.Type = 'Nhập kho' THEN IFNULL(o.Warehouse, 0)
                           ELSE 0
                         END AS Quantity_Real,
                         CASE
                           WHEN a.Type = 'AOI' THEN IFNULL(c1.AOIError, 0)
-                          WHEN a.Type = 'RW' THEN IFNULL(d1.RWError, 0)
-                          WHEN a.Type = 'Assembly' THEN IFNULL(f1.AssemblyError, 0)
                           WHEN a.Type = 'IPQC (Hàn tay)' THEN IFNULL(e1.IPQCError, 0)
                           WHEN a.Type = 'OQC' THEN IFNULL(g1.OQCError, 0)
                           WHEN a.Type = 'IPQC (SMT)' THEN IFNULL(k1.IPQCSMTError, 0)
                           WHEN a.Type = 'Test 1' THEN IFNULL(m1.Test1Error, 0)
                           WHEN a.Type = 'Test 2' THEN IFNULL(n1.Test2Error, 0)
-                          WHEN a.Type = 'Box Build' THEN IFNULL(j1.BoxBuildError, 0)
-                          WHEN a.Type = 'Warehouse' THEN IFNULL(o1.WarehouseError, 0)
                           ELSE 0
 						            END AS Quantity_Error,
-                        CASE 
-                          WHEN a.Quantity_Plan > 0 THEN 
-                            CASE
-                              WHEN a.Type = 'SMT' THEN (IFNULL(b.SMT, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'AOI' THEN (IFNULL(c.AOI, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'RW' THEN (IFNULL(d.RW, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'Assembly' THEN (IFNULL(f.Assembly, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'IPQC (Hàn tay)' THEN (IFNULL(e.IPQC, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'OQC' THEN (IFNULL(g.OQC, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'IPQC (SMT)' THEN (IFNULL(k.IPQCSMT, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'Test 1' THEN (IFNULL(m.Test1, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'Test 2' THEN (IFNULL(n.Test2, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'Box Build' THEN (IFNULL(j.BoxBuild, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'Warehouse' THEN (IFNULL(o.Warehouse, 0) * 100.0) / a.Quantity_Plan
-                              ELSE 0
-                            END
-                          ELSE 0
-                        END AS Percent
-                      FROM Summary a
-                      LEFT JOIN (
+                        (
+                          IFNULL(c2.AOIFixed, 0) + 
+                          IFNULL(e2.IPQCFixed, 0) + 
+                          IFNULL(g2.OQCFixed, 0) + 
+                          IFNULL(k2.IPQCSMTFixed, 0) + 
+                          IFNULL(m2.Test1Fixed, 0) + 
+                          IFNULL(n2.Test2Fixed, 0)
+                        ) AS Total_Fixed
+                        FROM Summary a
+                        LEFT JOIN (
+                          SELECT id, Name_Order, Quantity, DelaySMT 
+                          FROM PlanManufacture
+                        ) z ON a.PlanID = z.id
+                        LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS SMT 
                           FROM ManufactureSMT 
                           GROUP BY HistoryID
-                      ) b ON a.id = b.HistoryID
-                      LEFT JOIN (
+                        ) b ON a.id = b.HistoryID
+                        LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS AOI 
                           FROM ManufactureAOI 
 						              WHERE Status = 'ok'
                           GROUP BY HistoryID
-                      ) c ON a.id = c.HistoryID
-                      LEFT JOIN (
+                        ) c ON a.id = c.HistoryID
+                        LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS RW 
                           FROM ManufactureRW 
 						              WHERE Status = 'ok'
                           GROUP BY HistoryID
-                      ) d ON a.id = d.HistoryID
-                      LEFT JOIN (
+                        ) d ON a.id = d.HistoryID
+                        LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS IPQC 
                           FROM ManufactureIPQC 
 						              WHERE Status = 'ok'
                           GROUP BY HistoryID
-                      ) e ON a.id = e.HistoryID
-                      LEFT JOIN (
+                        ) e ON a.id = e.HistoryID
+                        LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS Assembly 
                           FROM ManufactureAssembly 
 						              WHERE Status = 'ok'
                           GROUP BY HistoryID
-                      ) f ON a.id = f.HistoryID
-                      LEFT JOIN (
+                        ) f ON a.id = f.HistoryID
+                        LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS OQC 
                           FROM ManufactureOQC 
 						              WHERE Status = 'ok'
                           GROUP BY HistoryID
-                      ) g ON a.id = g.HistoryID
-                       LEFT JOIN (
+                        ) g ON a.id = g.HistoryID
+                        LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS IPQCSMT 
                           FROM ManufactureIPQCSMT
 						              WHERE Status = 'ok'
                           GROUP BY HistoryID
-                      ) k ON a.id = k.HistoryID
-                       LEFT JOIN (
+                        ) k ON a.id = k.HistoryID
+                        LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS Test1 
                           FROM ManufactureTest1 
 						              WHERE Status = 'ok'
                           GROUP BY HistoryID
-                      ) m ON a.id = m.HistoryID
-                       LEFT JOIN (
+                        ) m ON a.id = m.HistoryID
+                        LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS Test2 
                           FROM ManufactureTest2
 						              WHERE Status = 'ok'
                           GROUP BY HistoryID
-                      ) n ON a.id = n.HistoryID
-                       LEFT JOIN (
+                        ) n ON a.id = n.HistoryID
+                        LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS BoxBuild 
                           FROM ManufactureBoxBuild
 						              WHERE Status = 'ok'
                           GROUP BY HistoryID
-                      ) j ON a.id = j.HistoryID
-                       LEFT JOIN (
+                        ) j ON a.id = j.HistoryID
+                        LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS Warehouse
                           FROM ManufactureWarehouse
 						              WHERE Status = 'ok'
                           GROUP BY HistoryID
-                      ) o ON a.id = o.HistoryID
-					            LEFT JOIN (
+                        ) o ON a.id = o.HistoryID
+                        LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS AOIError
                           FROM ManufactureAOI 
 						              WHERE Status = 'error'
                           GROUP BY HistoryID
-                      ) c1 ON a.id = c1.HistoryID
-                      LEFT JOIN (
-                          SELECT HistoryID, COUNT(*) AS RWError 
-                          FROM ManufactureRW 
-						              WHERE Status = 'error'
-                          GROUP BY HistoryID
-                      ) d1 ON a.id = d1.HistoryID
-                      LEFT JOIN (
+                        ) c1 ON a.id = c1.HistoryID
+                        LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS IPQCError 
                           FROM ManufactureIPQC 
 						              WHERE Status = 'error'
                           GROUP BY HistoryID
-                      ) e1 ON a.id = e1.HistoryID
-                      LEFT JOIN (
-                          SELECT HistoryID, COUNT(*) AS AssemblyError 
-                          FROM ManufactureAssembly 
-						              WHERE Status = 'error'
-                          GROUP BY HistoryID
-                      ) f1 ON a.id = f1.HistoryID
-                      LEFT JOIN (
+                        ) e1 ON a.id = e1.HistoryID
+                        LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS OQCError 
                           FROM ManufactureOQC 
 						              WHERE Status = 'error'
                           GROUP BY HistoryID
-                      ) g1 ON a.id = g1.HistoryID
-                       LEFT JOIN (
+                        ) g1 ON a.id = g1.HistoryID
+                        LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS IPQCSMTError 
                           FROM ManufactureIPQCSMT
 						              WHERE Status = 'error'
                           GROUP BY HistoryID
-                      ) k1 ON a.id = k1.HistoryID
-                       LEFT JOIN (
+                        ) k1 ON a.id = k1.HistoryID
+                        LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS Test1Error 
                           FROM ManufactureTest1 
 						              WHERE Status = 'error'
                           GROUP BY HistoryID
-                      ) m1 ON a.id = m1.HistoryID
-                       LEFT JOIN (
+                        ) m1 ON a.id = m1.HistoryID
+                        LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS Test2Error 
                           FROM ManufactureTest2
 						              WHERE Status = 'error'
                           GROUP BY HistoryID
-                      ) n1 ON a.id = n1.HistoryID
-                       LEFT JOIN (
-                          SELECT HistoryID, COUNT(*) AS BoxBuildError 
-                          FROM ManufactureBoxBuild
-						              WHERE Status = 'error'
-                          GROUP BY HistoryID
-                      ) j1 ON a.id = j1.HistoryID
-                       LEFT JOIN (
-                          SELECT HistoryID, COUNT(*) AS WarehouseError
-                          FROM ManufactureWarehouse
-						              WHERE Status = 'error'
-                          GROUP BY HistoryID
-                      ) o1 ON a.id = o1.HistoryID
-                      WHERE a.PlanID = ?
-                      ORDER BY a.Created_At DESC`;
+                        ) n1 ON a.id = n1.HistoryID
+                         LEFT JOIN (
+                            SELECT HistoryID, COUNT(*) AS AOIFixed, RWID
+                            FROM ManufactureAOI
+                            WHERE Status = 'fixed'
+                            GROUP BY HistoryID
+                        ) c2 ON a.id = c2.RWID
+                        LEFT JOIN (
+                            SELECT HistoryID, COUNT(*) AS IPQCFixed, RWID
+                            FROM ManufactureIPQC
+                            WHERE Status = 'fixed'
+                            GROUP BY HistoryID
+                        ) e2 ON a.id = e2.RWID
+                        LEFT JOIN (
+                            SELECT HistoryID, COUNT(*) AS OQCFixed, RWID
+                            FROM ManufactureOQC
+                            WHERE Status = 'fixed'
+                            GROUP BY HistoryID
+                        ) g2 ON a.id = g2.RWID
+                        LEFT JOIN (
+                            SELECT HistoryID, COUNT(*) AS IPQCSMTFixed, RWID
+                            FROM ManufactureIPQCSMT
+                            WHERE Status = 'fixed'
+                            GROUP BY HistoryID
+                        ) k2 ON a.id = k2.RWID
+                        LEFT JOIN (
+                            SELECT HistoryID, COUNT(*) AS Test1Fixed, RWID
+                            FROM ManufactureTest1
+                            WHERE Status = 'fixed'
+                            GROUP BY HistoryID
+                        ) m2 ON a.id = m2.RWID
+                        LEFT JOIN (
+                            SELECT HistoryID, COUNT(*) AS Test2Fixed, RWID
+                            FROM ManufactureTest2
+                            WHERE Status = 'fixed'
+                            GROUP BY HistoryID
+                        ) n2 ON a.id = n2.RWID
+                        WHERE a.PlanID = ?
+                        ORDER BY a.Created_At DESC`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("HistoryError", err);
           socket.emit("HistoryData", rows);
@@ -1885,7 +1940,7 @@ app.put("/Project/Customer/Edit-Item/:id", async (req, res) => {
     Quantity_Product,
     Quantity_Delivered,
     Quantity_Amount,
-    Note
+    Note,
   } = req.body;
   const { id } = req.params;
   // Insert data into SQLite database
@@ -1895,7 +1950,14 @@ app.put("/Project/Customer/Edit-Item/:id", async (req, res) => {
     WHERE id = ?`;
   db.run(
     query,
-    [Product_Detail, Quantity_Product, Quantity_Delivered, Quantity_Amount, Note, id],
+    [
+      Product_Detail,
+      Quantity_Product,
+      Quantity_Delivered,
+      Quantity_Amount,
+      Note,
+      id,
+    ],
     function (err) {
       if (err) {
         return res
@@ -1918,7 +1980,7 @@ app.post("/Project/Customer/Add-Item", async (req, res) => {
     Quantity_Amount,
     Note,
     POID,
-    CustomerID
+    CustomerID,
   } = req.body;
   // Insert data into SQLite database
   const query = `
@@ -1934,7 +1996,7 @@ app.post("/Project/Customer/Add-Item", async (req, res) => {
       Quantity_Amount,
       Note,
       POID,
-      CustomerID
+      CustomerID,
     ],
     function (err) {
       if (err) {
@@ -2504,10 +2566,10 @@ app.post("/PlanManufacture/Add", async (req, res) => {
     DelaySMT,
     Level,
     Quantity,
-    ProjectID
+    ProjectID,
   } = req.body; // Set default value for DelaySMT
   const LevelString = JSON.stringify(Level);
-  const LevelCleaned = LevelString.replace(/[\[\]"]/g, '').replace(/,/g, '-');
+  const LevelCleaned = LevelString.replace(/[\[\]"]/g, "").replace(/,/g, "-");
   // Insert data into SQLite database
   const query = `
     INSERT INTO PlanManufacture (Name, Date, Creater, Note, Total, DelaySMT, Level, Quantity, ProjectID, Name_Order)
@@ -2515,7 +2577,18 @@ app.post("/PlanManufacture/Add", async (req, res) => {
   `;
   db.run(
     query,
-    [Name, Date, Creater, Note, Total, DelaySMT, LevelCleaned, Quantity, ProjectID, Name_Order],
+    [
+      Name,
+      Date,
+      Creater,
+      Note,
+      Total,
+      DelaySMT,
+      LevelCleaned,
+      Quantity,
+      ProjectID,
+      Name_Order,
+    ],
     function (err) {
       if (err) {
         return res
@@ -2534,7 +2607,7 @@ app.put("/PlanManufacture/Edit/:id", async (req, res) => {
   const { Name, Date, Creater, Note, Total, DelaySMT, Level, Quantity } =
     req.body;
   const LevelString = JSON.stringify(Level);
-  const LevelCleaned = LevelString.replace(/[\[\]"]/g, '').replace(/,/g, '-');
+  const LevelCleaned = LevelString.replace(/[\[\]"]/g, "").replace(/,/g, "-");
   // Insert data into SQLite database
   const query = `
       UPDATE PlanManufacture 
@@ -2559,27 +2632,22 @@ app.put("/PlanManufacture/Edit/:id", async (req, res) => {
 // Router update item in PlanManufacture table for setting SMT
 app.put("/PlanManufacture/Edit-SMT/:id", async (req, res) => {
   const { id } = req.params;
-  const { DelaySMT, Quantity } =
-    req.body;
+  const { DelaySMT, Quantity } = req.body;
   // Insert data into SQLite database
   const query = `
       UPDATE PlanManufacture 
       SET DelaySMT = ?, Quantity = ?
       WHERE id = ?
     `;
-  db.run(
-    query,
-    [DelaySMT, Quantity, id],
-    function (err) {
-      if (err) {
-        return res
-          .status(500)
-          .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
-      }
-      io.emit("ManufactureUpdate");
-      res.json({ message: "Đã cập nhật dữ liệu dự án sản xuất thành công" });
+  db.run(query, [DelaySMT, Quantity, id], function (err) {
+    if (err) {
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
     }
-  );
+    io.emit("ManufactureUpdate");
+    res.json({ message: "Đã cập nhật dữ liệu dự án sản xuất thành công" });
+  });
 });
 
 // Router delete item in PlanManufacture table
@@ -2621,12 +2689,10 @@ app.post("/api/esp-config", async (req, res) => {
       esp32Response: response.data,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        error: "Failed to send project_id to esp32",
-        detail: error.message,
-      });
+    res.status(500).json({
+      error: "Failed to send project_id to esp32",
+      detail: error.message,
+    });
   }
 });
 
@@ -2641,7 +2707,7 @@ app.post("/api/sensor", (req, res) => {
       minute: "2-digit",
       second: "2-digit",
       hour12: false,
-      timeZone: "Asia/Bangkok" // GMT+7 timezone
+      timeZone: "Asia/Bangkok", // GMT+7 timezone
     })
     .replace(/,/g, "");
   if (!project_id || input_value === undefined) {
@@ -2751,12 +2817,13 @@ app.post("/Manufacture/RW", (req, res) => {
     [HistoryID, PartNumber, Timestamp, Status],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
-      io.emit("UpdateManufactureHand");
+      io.emit("UpdateManufactureRW");
       io.emit("updateManufactureDetails");
-      res.json({ message: "ManufactureHand received" });
+      res.json({ message: "ManufactureRW received" });
     }
   );
 });
+
 
 // Post value in table ManufactureIPQC
 app.post("/Manufacture/IPQC", (req, res) => {
@@ -2893,155 +2960,305 @@ app.post("/Manufacture/Warehouse", (req, res) => {
 // Router update item in IPQC SMT table for Status
 app.put("/Manufacture/IPQC-SMT/Edit-status/:id", async (req, res) => {
   const { id } = req.params;
-  const { Status } = req.body
+  const { Status } = req.body;
   // Insert data into SQLite database
   const query = `
       UPDATE ManufactureIPQCSMT 
       SET Status = ?
       WHERE id = ?
     `;
-  db.run(
-    query,
-    [Status, id],
-    function (err) {
-      if (err) {
-        return res
-          .status(500)
-          .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
-      }
-      io.emit("UpdateManufactureIPQCSMT");
-      io.emit("updateManufactureDetails");
-      res.json({ message: "ManufactureIPQCSMT received" });
+  db.run(query, [Status, id], function (err) {
+    if (err) {
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
     }
-  );
+    io.emit("UpdateManufactureIPQCSMT");
+    io.emit("updateManufactureDetails");
+    res.json({ message: "ManufactureIPQCSMT received" });
+  });
 });
 
 // Router update item in IPQC table for Status
 app.put("/Manufacture/IPQC/Edit-status/:id", async (req, res) => {
   const { id } = req.params;
-  const { Status } = req.body
+  const { Status } = req.body;
   // Insert data into SQLite database
   const query = `
       UPDATE ManufactureIPQC
       SET Status = ?
       WHERE id = ?
     `;
-  db.run(
-    query,
-    [Status, id],
-    function (err) {
-      if (err) {
-        return res
-          .status(500)
-          .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
-      }
-      io.emit("UpdateManufactureIPQC");
-      io.emit("updateManufactureDetails");
-      res.json({ message: "ManufactureIPQC received" });
+  db.run(query, [Status, id], function (err) {
+    if (err) {
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
     }
-  );
+    io.emit("UpdateManufactureIPQC");
+    io.emit("updateManufactureDetails");
+    res.json({ message: "ManufactureIPQC received" });
+  });
 });
 
 // Router update item in Test 1 table for Status
 app.put("/Manufacture/Test1/Edit-status/:id", async (req, res) => {
   const { id } = req.params;
-  const { Status } = req.body
+  const { Status } = req.body;
   // Insert data into SQLite database
   const query = `
       UPDATE ManufactureTest1
       SET Status = ?
       WHERE id = ?
     `;
-  db.run(
-    query,
-    [Status, id],
-    function (err) {
-      if (err) {
-        return res
-          .status(500)
-          .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
-      }
-      io.emit("UpdateManufactureTest1");
-      io.emit("updateManufactureDetails");
-      res.json({ message: "ManufactureTest1 received" });
+  db.run(query, [Status, id], function (err) {
+    if (err) {
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
     }
-  );
+    io.emit("UpdateManufactureTest1");
+    io.emit("updateManufactureDetails");
+    res.json({ message: "ManufactureTest1 received" });
+  });
 });
 
 // Router update item in Test 2 table for Status
 app.put("/Manufacture/Test2/Edit-status/:id", async (req, res) => {
   const { id } = req.params;
-  const { Status } = req.body
+  const { Status } = req.body;
   // Insert data into SQLite database
   const query = `
       UPDATE ManufactureTest2
       SET Status = ?
       WHERE id = ?
     `;
-  db.run(
-    query,
-    [Status, id],
-    function (err) {
-      if (err) {
-        return res
-          .status(500)
-          .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
-      }
-      io.emit("UpdateManufactureTest2");
-      io.emit("updateManufactureDetails");
-      res.json({ message: "ManufactureTest2 received" });
+  db.run(query, [Status, id], function (err) {
+    if (err) {
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
     }
-  );
+    io.emit("UpdateManufactureTest2");
+    io.emit("updateManufactureDetails");
+    res.json({ message: "ManufactureTest2 received" });
+  });
 });
 
 // Router update item in OQC table for Status
 app.put("/Manufacture/OQC/Edit-status/:id", async (req, res) => {
   const { id } = req.params;
-  const { Status } = req.body
+  const { Status } = req.body;
   // Insert data into SQLite database
   const query = `
       UPDATE ManufactureOQC
       SET Status = ?
       WHERE id = ?
     `;
-  db.run(
-    query,
-    [Status, id],
-    function (err) {
-      if (err) {
-        return res
-          .status(500)
-          .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
-      }
-      io.emit("UpdateManufactureOQC");
-      io.emit("updateManufactureDetails");
-      res.json({ message: "ManufactureOQC received" });
+  db.run(query, [Status, id], function (err) {
+    if (err) {
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
     }
-  );
+    io.emit("UpdateManufactureOQC");
+    io.emit("updateManufactureDetails");
+    res.json({ message: "ManufactureOQC received" });
+  });
 });
 
 // Router update item in AOI table for Status
 app.put("/Manufacture/AOI/Edit-status/:id", async (req, res) => {
   const { id } = req.params;
-  const { Status } = req.body
+  const { Status } = req.body;
   // Insert data into SQLite database
   const query = `
       UPDATE ManufactureAOI
       SET Status = ?
       WHERE id = ?
     `;
+  db.run(query, [Status, id], function (err) {
+    if (err) {
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
+    }
+    io.emit("UpdateManufactureAOI");
+    io.emit("updateManufactureDetails");
+    res.json({ message: "ManufactureAOI received" });
+  });
+});
+
+// Update value in table AOI Status
+app.put("/Manufacture/AOI-Fixed/Edit-status/:id", (req, res) => {
+  const {
+    Status,
+    RWID,
+    TimestampRW
+  } = req.body;
+  const { id } = req.params;
   db.run(
-    query,
-    [Status, id],
-    function (err) {
-      if (err) {
-        return res
-          .status(500)
-          .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
-      }
+    `UPDATE ManufactureAOI
+      SET Status=?, RWID=?, TimestampRW=?
+      WHERE id=?`,
+    [
+      Status,
+      RWID,
+      TimestampRW,
+      id,
+    ],
+    (err) => {
+      if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureAOI");
+      io.emit("UpdateHistory");
+      io.emit("UpdateManufactureRW");
       io.emit("updateManufactureDetails");
-      res.json({ message: "ManufactureAOI received" });
+      res.json({ message: "Summary received" });
+    }
+  );
+});
+
+// Update value in table IPQC Status
+app.put("/Manufacture/IPQC-Fixed/Edit-status/:id", (req, res) => {
+  const {
+    Status,
+    RWID,
+    TimestampRW
+  } = req.body;
+  const { id } = req.params;
+  db.run(
+    `UPDATE ManufactureIPQC
+      SET Status=?, RWID=?, TimestampRW=?
+      WHERE id=?`,
+    [
+      Status,
+      RWID,
+      TimestampRW,
+      id,
+    ],
+    (err) => {
+      if (err) return res.status(500).json({ error: "Database error" });
+      io.emit("UpdateManufactureIPQC");
+      io.emit("UpdateManufactureRW");
+      io.emit("UpdateHistory");
+      io.emit("updateManufactureDetails");
+      res.json({ message: "Summary received" });
+    }
+  );
+});
+
+// Update value in table IPQC-SMT Status
+app.put("/Manufacture/IPQC-SMT-Fixed/Edit-status/:id", (req, res) => {
+  const {
+    Status,
+    RWID,
+    TimestampRW
+  } = req.body;
+  const { id } = req.params;
+  db.run(
+    `UPDATE ManufactureIPQCSMT
+      SET RWID=?, TimestampRW=?
+      WHERE id=?`,
+    [
+      Status,
+      RWID,
+      TimestampRW,
+      id,
+    ],
+    (err) => {
+      if (err) return res.status(500).json({ error: "Database error" });
+      io.emit("UpdateManufactureIPQCSMT");
+      io.emit("UpdateManufactureRW");
+      io.emit("UpdateHistory");
+      io.emit("updateManufactureDetails");
+      res.json({ message: "IPQCSMT received" });
+    }
+  );
+});
+
+// Update value in table Test1 Status
+app.put("/Manufacture/Test1-Fixed/Edit-status/:id", (req, res) => {
+  const {
+    Status,
+    RWID,
+    TimestampRW
+  } = req.body;
+  const { id } = req.params;
+  db.run(
+    `UPDATE ManufactureTest1
+      SET Status=?, RWID=?, TimestampRW=?
+      WHERE id=?`,
+    [
+      Status,
+      RWID,
+      TimestampRW,
+      id,
+    ],
+    (err) => {
+      if (err) return res.status(500).json({ error: "Database error" });
+      io.emit("UpdateManufactureTest1");
+      io.emit("UpdateManufactureRW");
+      io.emit("UpdateHistory");
+      io.emit("updateManufactureDetails");
+      res.json({ message: "Summary received" });
+    }
+  );
+});
+
+// Update value in table Test2 Status
+app.put("/Manufacture/Test2-Fixed/Edit-status/:id", (req, res) => {
+  const {
+    Status,
+    RWID,
+    TimestampRW
+  } = req.body;
+  const { id } = req.params;
+  db.run(
+    `UPDATE ManufactureAOI
+      SET Status=?, RWID=?, TimestampRW=?
+      WHERE id=?`,
+    [
+      Status,
+      RWID,
+      TimestampRW,
+      id,
+    ],
+    (err) => {
+      if (err) return res.status(500).json({ error: "Database error" });
+      io.emit("UpdateManufactureTest2");
+      io.emit("UpdateManufactureRW");
+      io.emit("UpdateHistory");
+      io.emit("updateManufactureDetails");
+      res.json({ message: "Summary received" });
+    }
+  );
+});
+
+// Update value in table OQC Status
+app.put("/Manufacture/OQC-Fixed/Edit-status/:id", (req, res) => {
+  const {
+    Status,
+    RWID,
+    TimestampRW
+  } = req.body;
+  const { id } = req.params;
+  db.run(
+    `UPDATE ManufactureOQC
+      SET Status=?, RWID=?, TimestampRW=?
+      WHERE id=?`,
+    [
+      Status,
+      RWID,
+      TimestampRW,
+      id,
+    ],
+    (err) => {
+      if (err) return res.status(500).json({ error: "Database error" });
+      io.emit("UpdateManufactureOQC");
+      io.emit("UpdateManufactureRW");
+      io.emit("UpdateHistory");
+      io.emit("updateManufactureDetails");
+      res.json({ message: "Summary received" });
     }
   );
 });

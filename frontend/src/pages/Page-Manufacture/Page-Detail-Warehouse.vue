@@ -7,7 +7,11 @@
       >
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
-        {{ NameManufacture }}
+        <v-breadcrumbs :items="[`${NameManufacture}`, `${Name_Order}`, `${Name_Category}`]">
+          <template v-slot:divider>
+            <v-icon icon="mdi-chevron-right"></v-icon>
+          </template>
+        </v-breadcrumbs>
       </v-card-title>
 
       <v-card-text>
@@ -28,11 +32,11 @@
             </v-card>
           </v-col>
           <v-col cols="12" sm="6">
-            <v-card class="rounded-lg" color="info" variant="tonal">
+            <v-card class="rounded-lg" color="success" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra</div>
                 <div class="text-h4 font-weight-bold">
-                  {{ manufactureWarehouse.map(item => item.Status === 'ok' ? 1 : 0).reduce((a, b) => a + b, 0) }}
+                  {{ totalOutput }}
                 </div>
                 <div class="text-caption">
                   Tổng số lượng đầu ra
@@ -168,18 +172,33 @@ const itemsPerPage = ref(10);
 // Input/Output State
 const Input = ref("");
 const isError = ref(false);
+const submitting = ref(false);
 const totalInput = ref(0);
+const totalOutput = ref(0);
 const totalErrors = ref(0);
+const totalFixed = ref(0);
+
 
 // Production Info
-const NameManufacture = localStorage.getItem("ProductName");
+const NameManufacture = ref("");
+const Name_Order = ref("");
+const Name_Category = ref("");
+
 
 // ===== Watchers =====
 // Watch for manufactureWarehouse changes and log updates
-watch(manufactureWarehouse, (newValue) => {
-  console.log("manufactureWarehouse updated:", newValue);
-  totalErrors.value = newValue.filter(item => item.Status === 'error').length;
-}, { deep: true });
+watch(
+  manufactureWarehouse,
+  (newValue) => {
+    console.log("manufactureWarehouse updated:", newValue);
+    totalErrors.value = newValue.filter(
+      (item) => item.Status === "error"
+    ).length;
+    totalFixed.value = newValue.filter((item) => item.Status === "fixed").length;
+    totalOutput.value = newValue.filter((item) => item.Status === "ok").length;
+  },
+  { deep: true }
+);
 
 // Watch for manufactureWarehouse errors
 watch(manufactureWarehouseError, (error) => {
@@ -192,13 +211,37 @@ watch(manufactureWarehouseError, (error) => {
 watch(
   () => history,
   (newData) => {
-    console.log("History data:", newData);
-    if (newData?.value && Array.isArray(newData.value)) {
-      const filteredHistory = newData.value.filter(item => item.Type === 'Nhập kho');
-      totalInput.value = filteredHistory.reduce((sum, item) => sum + (Number(item.Quantity_Plan) || 0), 0);
+    if (!newData?.value) {
+      console.log("No history data available");
+      return;
+    }
+
+    if (!Array.isArray(newData.value)) {
+      console.log("History data is not an array");
+      return;
+    }
+
+    // Convert id to number for comparison since it's coming from route params
+    const numericId = Number(id);
+    const foundHistory = newData.value.find(
+      (item) => Number(item.id) === numericId
+    );
+    console.log("Found history item:", foundHistory);
+
+    if (foundHistory) {
+      Name_Order.value = foundHistory.Name_Order ?? "";
+      NameManufacture.value = foundHistory.PONumber ?? "";
+      Name_Category.value = foundHistory.Category ?? "";
+      totalInput.value = foundHistory.Quantity_Plan ?? 0;
+    } else {
+      console.log("No matching history found for ID:", id);
+      // Set default values if no match found
+      Name_Order.value = "";
+      NameManufacture.value = "";
+      Name_Category.value = "";
     }
   },
-  { immediate: true, deep: true },
+  { immediate: true, deep: true }
 );
 
 // ===== Methods =====
@@ -207,7 +250,8 @@ watch(
  * Handles form submission, API call, and error handling
  */
  const submitBarcode = async () => {
-  if (!Input.value) return;
+  if (!Input.value || submitting.value) return;
+  submitting.value = true;
 
   DialogLoading.value = true;
   const formData = reactive({
@@ -235,6 +279,7 @@ watch(
   }
     finally {
     DialogLoading.value = false;
+    submitting.value = false;
   }
 };
 </script>

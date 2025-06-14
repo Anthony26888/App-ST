@@ -55,11 +55,7 @@ export function useHistory(id) {
     socket.on("HistoryData", (data) => {
       console.log("Received history data:", data);
       if (Array.isArray(data)) {
-        history.value = data.map(item => ({
-          ...item,
-          Created_At: new Date(item.Created_At).toLocaleDateString('vi-VN'),
-          Percent: parseFloat(item.Percent).toFixed(2)
-        }));
+        history.value = data;
       } else {
         console.warn("Received non-array history data:", data);
         history.value = [];

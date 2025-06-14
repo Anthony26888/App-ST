@@ -7,56 +7,40 @@
       >
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
-        {{ NameManufacture }}
+        <v-breadcrumbs :items="[`${NameManufacture}`, `${Name_Order}`]">
+          <template v-slot:divider>
+            <v-icon icon="mdi-chevron-right"></v-icon>
+          </template>
+        </v-breadcrumbs>
       </v-card-title>
 
       <v-card-text>
-
         <!-- Production Statistics Cards -->
         <v-row class="mb-4">
-          <v-col cols="12" sm="4">
-            <v-card class="rounded-lg" color="primary" variant="tonal">
+          <v-col cols="12" sm="6">
+            <v-card class="rounded-lg" color="warning" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu vào</div>
                 <div class="text-h4 font-weight-bold">
-                  {{ totalInput }}
+                  {{ manufactureRW.length || 0 }}
                 </div>
-                <div class="text-caption">
-                  Tổng số lượng đầu vào
-                </div>
+                <div class="text-caption">Tổng số lượng hàng lỗi</div>
               </v-card-text>
             </v-card>
           </v-col>
-          <v-col cols="12" sm="4">
+          <v-col cols="12" sm="6">
             <v-card class="rounded-lg" color="info" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra</div>
-                <div class="text-h4 font-weight-bold">
-                  {{ manufactureHand.length }}
-                </div>
-                <div class="text-caption">
-                  Tổng số lượng đầu ra
-                </div>
-              </v-card-text>
-            </v-card>
-          </v-col>
-          <v-col cols="12" sm="4">
-            <v-card class="rounded-lg" color="warning" variant="tonal">
-              <v-card-text>
-                <div class="text-subtitle-1">Lỗi</div>
-                <div class="text-h4 font-weight-bold">
-                  {{ totalErrors }}
-                </div>
-                <div class="text-caption">
-                  Tổng số lượng lỗi
-                </div>
+                <div class="text-h4 font-weight-bold">{{ totalFixed }}</div>
+                <div class="text-caption">Tổng số lượng đã sửa</div>
               </v-card-text>
             </v-card>
           </v-col>
         </v-row>
 
         <!-- Input Section -->
-        <v-card class="mb-4 rounded-lg" elevation="2">
+        <!-- <v-card class="mb-4 rounded-lg" elevation="2">
           <v-card-text>
             <v-row>
               <v-col cols="12" md="8">
@@ -82,7 +66,7 @@
               </v-col>
             </v-row>
           </v-card-text>
-        </v-card>
+        </v-card> -->
 
         <!-- Table -->
         <v-card class="mt-4 rounded-lg" variant="text">
@@ -93,7 +77,7 @@
           </v-card-title>
           <v-data-table
             :headers="Headers"
-            :items="manufactureHand"
+            :items="manufactureRW"
             :search="search"
             :items-per-page="itemsPerPage"
             v-model="page"
@@ -118,18 +102,30 @@
           >
             <template #[`item.Status`]="{ item }">
               <v-chip
-                :color="item.Status === 'error' ? 'warning' : 'success'"
+                :color="item.Status === 'error' ? 'warning' : item.Status === 'fixed' ? 'info' : 'success'"
                 size="small"
                 variant="tonal"
               >
-                {{ item.Status === 'error' ? 'Lỗi' : 'OK' }}
+                {{ item.Status === "error" ? "Lỗi" : item.Status === "fixed" ? "Đã sửa" : "OK" }}
               </v-chip>
+            </template>
+            <template #[`item.id`]="{ item }">
+              <v-btn
+                prepend-icon="mdi-tools"
+                variant="tonal"
+                color="success"
+                @click="GetItem(item)"
+                class="text-caption"
+                >Sửa lỗi</v-btn
+              >
             </template>
             <template #[`bottom`]>
               <div class="text-center pt-2">
                 <v-pagination
                   v-model="page"
-                  :length="Math.ceil((manufactureHand?.length || 0) / itemsPerPage)"
+                  :length="
+                    Math.ceil((manufactureRW?.length || 0) / itemsPerPage)
+                  "
                 ></v-pagination>
               </div>
             </template>
@@ -137,9 +133,25 @@
         </v-card>
       </v-card-text>
     </v-card>
+    <v-dialog
+      :model-value="DialogFix"
+      @update:model-value="DialogFix = $event"
+      width="400"
+    >
+      <v-card max-width="400" prepend-icon="mdi-update" title="Sửa lỗi sản phẩm">
+        <v-card-text>
+          Sản phẩm đã sửa chữa hoàn tất ?
+        </v-card-text>
+        <template #actions>
+          <ButtonCancel @cancel="DialogFix = false" />
+          <ButtonAgree @agree="FixedError()" />
+        </template>
+      </v-card>
+    </v-dialog>
+    <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
+    <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />"
     <Loading v-model="DialogLoading" />
   </div>
-
 </template>
 
 <script setup>
@@ -153,38 +165,66 @@ import axios from "axios";
 
 // Composables
 import { useHistory } from "@/composables/Manufacture/useHistory";
-import { useManufactureHand } from "@/composables/Manufacture/useManufactureRW";
+import { useManufactureRW } from "@/composables/Manufacture/useManufactureRW";
+
 
 // Components
 import Loading from "@/components/Loading.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import ButtonBack from "@/components/Button-Back.vue";
 import InputField from "@/components/Input-Field.vue";
+import InputFiles from "@/components/Input-Files.vue";
+import SnackbarSuccess from "@/components/Snackbar-Success.vue";
+import SnackbarFailed from "@/components/Snackbar-Failed.vue";
+import ButtonCancel from "@/components/Button-Cancel.vue";
+import ButtonSave from "@/components/Button-Save.vue";
+
 
 // ===== Constants & Configuration =====
 const Url = import.meta.env.VITE_API_URL;
 const route = useRoute();
 const id = route.params.id;
 const back = localStorage.getItem("ManufactureID");
+const GetID = ref("");
+
 
 // Initialize composables for data fetching
 const { history, historyError } = useHistory(back);
-const { manufactureHand, manufactureHandError } = useManufactureHand(id);
+const { manufactureRW, manufactureRWError } = useManufactureRW(back);
 
 // Table configuration
 const Headers = [
-  { title: "STT", key: "id" },
+  { title: "Vị trí", key: "Type" },
+  { title: "Danh mục", key: "Category" },
   { title: "Mã sản phẩm", key: "PartNumber" },
-  { title: "Thời gian", key: "Timestamp" },
   { title: "Trạng thái", key: "Status" },
+  { title: "Thời gian", key: "Timestamp" },
+  { title: "Thao tác", key: "id" },
 ];
 
 // ===== Composables & Data Management =====
 
-
 // ===== Reactive State =====
-// UI State
+// Dialog
 const DialogLoading = ref(false);
+const DialogFix = ref(false);
+const DialogSuccess = ref(false);
+const DialogFailed = ref(false);
+
+// Message
+const MessageDialog = ref("");
+const MessageErrorDialog = ref("");
+
+// Info Manufacture
+const Type = ref("");
+const Category = ref("");
+const PartNumber = ref("");
+const Timestamp = ref("");
+const Status = ref("");
+const ConditionType = ref("");
+
+
+// Table
 const search = ref("");
 const page = ref(1);
 const itemsPerPage = ref(10);
@@ -192,66 +232,117 @@ const itemsPerPage = ref(10);
 // Input/Output State
 const Input = ref("");
 const isSubmitting = ref(false);
-const totalInput = ref(0);
-const totalOutput = ref(0);
+const totalFixed = ref(0);
 const totalErrors = ref(0);
+const totalInput = ref(0);
 const isError = ref(false);
 
 // Production Info
-const NameManufacture = localStorage.getItem("ProductName");
+const NameManufacture = ref("");
+const Name_Order = ref("");
 
 // ===== Watchers =====
 // Watch for manufactureHand changes and log updates
-watch(manufactureHand, (newValue) => {
-  console.log("manufactureHand updated:", newValue);
-  if (newValue?.value && Array.isArray(newValue.value)) {
-    totalErrors.value = newValue.value.filter(item => item.Status === 'error').length;
-  }
-}, { deep: true });
-
-// Watch for manufactureAOI changes and log updates
-watch(manufactureHand, (newValue) => {
-  console.log("manufactureAOI updated:", newValue);
-}, { deep: true });
-
-// Watch for manufactureAOI errors
-watch(manufactureHandError, (error) => {
-  if (error) {
-    console.error("ManufactureAOI Error:", error);
-  }
-});
+watch(
+  manufactureRW,
+  (newValue) => {
+    if (newValue && Array.isArray(newValue)) {
+      totalErrors.value = newValue.filter(
+        (item) => item.Status === "error"
+      ).length;
+      totalFixed.value = newValue.filter(
+        (item) => item.Status === "fixed"
+      ).length;
+    }
+  },
+  { deep: true }
+);
 
 // Watch for changes in manufacture details to calculate total input
 watch(
   () => history,
   (newData) => {
-    console.log("History data:", newData);
     if (newData?.value && Array.isArray(newData.value)) {
-      const filteredHistory = newData.value.filter(item => item.Type === 'RW');
-      console.log("Filtered AOI history:", filteredHistory);
-      totalInput.value = filteredHistory.reduce((sum, item) => sum + (Number(item.Quantity_Plan) || 0), 0);
-      console.log("Total input calculated:", totalInput.value);
-    }
-  },
-  { immediate: true, deep: true },
-);
-
-// Watch for changes in manufactureAOI to calculate total output
-watch(
-  () => manufactureHand,
-  (newData) => {
-    if (newData?.value && Array.isArray(newData.value)) {
-      totalOutput.value = newData.value.reduce((sum, item) => sum + (item.TotalOutput || 0), 0);
+      const data = newData.value[0];
+      Name_Order.value = data?.Name_Order;
+      NameManufacture.value = data?.PONumber;
+      if (data?.value) {
+        const filteredHistory = data.value.filter(item => item.Type === 'AOI');
+        totalInput.value = filteredHistory?.length > 0 ? filteredHistory[0].Quantity_Plan : 0;
+      }
     }
   },
   { immediate: true, deep: true }
 );
+
+// ====== Computed =======
+const formattedSelectedDate = computed(() => {
+  const date = new Date();
+  return date.toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "Asia/Bangkok",
+  });
+});
+
+// Watch for changes in manufactureAOI to calculate total output
 
 // ===== Methods =====
 /**
  * Submits a barcode to the AOI manufacturing system
  * Handles form submission, API call, and error handling
  */
+
+const GetItem = (item) => {
+  DialogFix.value = true;
+  GetID.value = item.id;
+  PartNumber.value = item.PartNumber;
+  Type.value = item.Type;
+  Category.value = item.Category;
+  Timestamp.value = item.Timestamp;
+  Status.value = item.Status;
+  if (item.Type === 'AOI') {
+    ConditionType.value = 'AOI-Fixed'
+  } else if (item.Type === 'IPQC (SMT)') {
+    ConditionType.value = 'IPQC-SMT'
+  } else if (item.Type === 'IPQC-Fixed') {
+    ConditionType.value = 'IPQC-Fixed'
+  } else if (item.Type === 'Test 1'){
+    ConditionType.value = 'Test1-Fixed'
+  } else if (item.Type === 'Test 2') {
+    ConditionType.value = 'Test2-Fixed'
+  } else if (item.Type === 'OQC') {
+    ConditionType.value = 'OQC-Fixed'
+  } else {
+    ConditionType.value = ''
+  }
+  console.log(ConditionType.value);
+}
+
+const FixedError = async () => {
+  DialogLoading.value = true;
+  const formData = reactive({
+    Status: 'fixed',
+    RWID: id,
+    TimestampRW: formattedSelectedDate.value
+  });
+  try {
+    const response = await axios.put(
+      `${Url}/Manufacture/${ConditionType.value}/Edit-status/${GetID.value}`,
+      formData
+    );
+    console.log(response.data.message);
+    MessageDialog.value = response.data.message;
+    // Refresh data after successful update
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = error.response.data.message;
+    Error();
+  }
+}
+
 const submitBarcode = async () => {
   if (isSubmitting.value || !Input.value.trim()) {
     return;
@@ -259,21 +350,23 @@ const submitBarcode = async () => {
 
   isSubmitting.value = true;
   DialogLoading.value = true;
-  
+
   const formData = reactive({
     HistoryID: id,
     PartNumber: Input.value.trim(),
-    Timestamp: new Date().toLocaleString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-      timeZone: 'Asia/Bangkok'
-    }).replace(/,/g, ''),
-    Status: isError.value ? 'error' : 'ok'
+    Timestamp: new Date()
+      .toLocaleString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+        timeZone: "Asia/Bangkok",
+      })
+      .replace(/,/g, ""),
+    Status: isError.value ? "error" : "ok",
   });
 
   try {
@@ -288,4 +381,21 @@ const submitBarcode = async () => {
     isSubmitting.value = false;
   }
 };
+
+const Reset = () => {
+  DialogFix.value = false;
+  DialogSuccess.value = true;
+  DialogLoading.value = false;
+}
+
+const Error = () => {
+  DialogFailed.value = true;
+  DialogLoading.value = false;
+}
+
+</script>
+
+<script>
+export default {
+}
 </script>

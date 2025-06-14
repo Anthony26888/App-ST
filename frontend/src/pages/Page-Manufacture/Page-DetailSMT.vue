@@ -12,7 +12,11 @@
       <v-card-title class="d-flex align-center pe-2">
         <!-- Tên sản phẩm -->
         <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
-        {{ NameManufacture }}
+        <v-breadcrumbs :items="[`${NameManufacture}`, `${Name_Order}`]">
+          <template v-slot:divider>
+            <v-icon icon="mdi-chevron-right"></v-icon>
+          </template>
+        </v-breadcrumbs>
         <v-spacer></v-spacer>
 
         <!-- Hiển thị trạng thái kết nối -->
@@ -94,7 +98,7 @@
               <v-card-text>
                 <div class="text-h6 mb-2">Đầu ra board</div>
                 <div class="text-h4 font-weight-bold text-success">
-                  {{ QuantityBoard * manufactureSMT.length }}
+                  {{ QuantityBoard * manufactureSMT.length || 0 }}
                 </div>
                 <div class="text-caption text-medium-emphasis">
                   Tổng số lượng board (board/panel)
@@ -226,9 +230,10 @@ const itemsPerPage = ref(10);
 // Trạng thái sản xuất
 const totalInput = ref(0);
 const totalOutput = ref(0);
-const NameManufacture = localStorage.getItem("ProductName");
-const QuantityBoard = localStorage.getItem("QuantityBoard");
-const Delay = localStorage.getItem("DelaySMT");
+const NameManufacture = ref("");
+const Name_Order = ref("");
+const QuantityBoard =ref(0);
+const Delay = ref(0);
 
 
 // Trạng thái kết nối Arduino
@@ -267,9 +272,12 @@ watch(
     console.log("History data:", newData);
     if (newData?.value && Array.isArray(newData.value)) {
       const filteredHistory = newData.value.filter(item => item.Type === 'SMT');
-      console.log("Filtered SMT history:", filteredHistory);
       totalInput.value = filteredHistory.reduce((sum, item) => sum + (Number(item.Quantity_Plan) || 0), 0);
-      console.log("Total input calculated:", totalInput.value);
+      const data = newData.value[0];
+      Name_Order.value = data?.Name_Order;
+      NameManufacture.value = data?.PONumber;
+      Delay.value = data?.DelaySMT;
+      QuantityBoard.value = data?.QuantityBoard;
     }
   },
   { immediate: true, deep: true },

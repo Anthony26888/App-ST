@@ -18,82 +18,46 @@
         <!-- Main Stats Overview -->
         <v-row class="mb-6">
           <v-col cols="12" md="3">
-            <v-card class="h-100" rounded="lg">
-              <v-card-text class="text-center">
-                <v-icon
-                  icon="mdi-arrow-down-bold"
-                  color="primary"
-                  size="large"
-                  class="mb-2"
-                />
-                <div class="text-h6 text-primary mb-1">Đầu vào</div>
-                <div class="text-h3 font-weight-bold text-primary">
+            <v-card class="rounded-lg" color="primary" variant="tonal">
+              <v-card-text>
+                <div class="text-subtitle-1">Đầu vào</div>
+                <div class="text-h4 font-weight-bold">
                   {{ totalInput }}
                 </div>
-                <div class="text-caption text-medium-emphasis">
-                  Tổng số lượng đầu vào
-                </div>
+                <div class="text-caption">Tổng số lượng đầu vào</div>
               </v-card-text>
             </v-card>
           </v-col>
           <v-col cols="12" md="3">
-            <v-card class="h-100" rounded="lg">
-              <v-card-text class="text-center">
-                <v-icon
-                  icon="mdi-arrow-up-bold"
-                  color="success"
-                  size="large"
-                  class="mb-2"
-                />
-                <div class="text-h6 text-success mb-1">Đầu ra</div>
-                <div class="text-h3 font-weight-bold text-success">
+            <v-card class="rounded-lg" color="success" variant="tonal">
+              <v-card-text>
+                <div class="text-subtitle-1">Đầu vào</div>
+                <div class="text-h4 font-weight-bold">
                   {{ totalWarehouse }}
                 </div>
-                <div class="text-caption text-medium-emphasis">
-                  Tổng số lượng đầu ra
-                </div>
+                <div class="text-caption">Tổng số lượng đầu ra</div>
               </v-card-text>
             </v-card>
           </v-col>
           <v-col cols="12" md="3">
-            <v-card class="h-100" rounded="lg">
-              <v-card-text class="text-center">
-                <v-icon
-                  icon="mdi-alert-circle"
-                  color="error"
-                  size="large"
-                  class="mb-2"
-                />
-                <div class="text-h6 text-error mb-1">Hàng lỗi</div>
-                <div class="text-h3 font-weight-bold text-error">
+            <v-card class="rounded-lg" color="warning" variant="tonal">
+              <v-card-text>
+                <div class="text-subtitle-1">Đầu vào</div>
+                <div class="text-h4 font-weight-bold">
                   {{ totalError }}
                 </div>
-                <div class="text-caption text-medium-emphasis">
-                  Tổng số lượng hàng lỗi
-                </div>
+                <div class="text-caption">Tổng số lượng hàng lỗi</div>
               </v-card-text>
             </v-card>
           </v-col>
           <v-col cols="12" md="3">
-            <v-card class="h-100" rounded="lg">
-              <v-card-text class="text-center">
-                <v-icon
-                  icon="mdi-chart-line"
-                  color="info"
-                  size="large"
-                  class="mb-2"
-                />
-                <div class="text-h6 text-info mb-1">Tỷ lệ hoàn thành</div>
-                <div class="text-h3 font-weight-bold text-info">
+            <v-card class="rounded-lg" color="info" variant="tonal">
+              <v-card-text>
+                <div class="text-subtitle-1">Tỷ lệ</div>
+                <div class="text-h4 font-weight-bold">
                   {{ percent }}%
                 </div>
-                <v-progress-linear
-                  :model-value="percent"
-                  color="info"
-                  height="8"
-                  rounded
-                  class="mt-2"
-                ></v-progress-linear>
+                <div class="text-caption">Tỉ lệ hàng hoá</div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -376,16 +340,15 @@
               <v-card-text class="pa-4">
                 <div class="d-flex justify-space-between align-center mb-4">
                   <div class="text-h4 font-weight-bold">
-                    <span class="text-primary">{{ totalError }}</span> /
-                    <span class="text-success">{{ totalRW }}</span> /
-                    <span class="text-error">{{ totalRWError }}</span>
+                    <span class="text-warning">{{ totalError }}</span> /
+                    <span class="text-primary">{{ totalFixed }}</span>
                   </div>
                   <v-progress-circular
-                    :model-value="(totalRW / totalInput) * 100"
+                    :model-value="(totalFixed / totalError) * 100"
                     color="primary"
                     size="48"
                   >
-                    {{ Math.round((totalRW / totalInput) * 100) }}%
+                    {{ Math.round((totalFixed / totalError) * 100) }}%
                   </v-progress-circular>
                 </div>
                 <div class="text-caption text-medium-emphasis">
@@ -480,14 +443,16 @@
               </div>
             </template>
 
-            <template #[`item.Created_At`]="{ item }">
-              {{
-                new Date(item.Created_At).toLocaleDateString("vi-VN", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                })
-              }}
+            <template #[`item.Quantity_Plan`]="{ item }">
+              <v-chip color="primary" variant="tonal">{{ item.Quantity_Plan }}</v-chip>
+            </template>
+
+            <template #[`item.Quantity_Real`]="{ item }">
+              <v-chip color="success" variant="tonal">{{ item.Quantity_Real }}</v-chip>
+            </template>
+
+            <template #[`item.Quantity_Error`]="{ item }">
+              <v-chip color="warning" variant="tonal">{{ item.Quantity_Error }}</v-chip>
             </template>
 
             <template #[`item.Percent`]="{ item }">
@@ -514,7 +479,14 @@
           Thêm dữ liệu kế hoạch
         </v-card-title>
         <v-card-text>
-          <InputField label="Số PO" v-model="PONumber_Add" />
+          <v-row>
+            <v-col col="12" md="6">
+              <InputField disabled label="Số PO" v-model="PONumber_Add" />
+            </v-col>
+            <v-col col="12" md="6">
+              <InputField disabled label="Đơn hàng" v-model="Name_Order_Add" />
+            </v-col>
+          </v-row>
           <InputSelect
             label="Công đoạn"
             :items="LevelSelectAdd"
@@ -563,7 +535,14 @@
           Sửa dữ liệu kế hoạch
         </v-card-title>
         <v-card-text>
-          <InputField :disabled="true" label="Số PO" v-model="PONumber_Edit" />
+          <v-row>
+            <v-col col="12" md="6">
+              <InputField disabled label="Số PO" v-model="PONumber_Edit" />
+            </v-col>
+            <v-col col="12" md="6">
+              <InputField disabled label="Đơn hàng" v-model="Name_Order_Edit" />
+            </v-col>
+          </v-row>
           <InputSelect
             label="Quy trình"
             :items="LevelSelectAdd"
@@ -708,7 +687,7 @@ const MessageErrorDialog = ref("");
 
 // Production statistics
 const NameManufacture = localStorage.getItem("ProductName");
-const NameOrder = ref(null)
+const NameOrder = ref(null);
 const GetID = ref(null);
 
 // Production statistics
@@ -737,6 +716,8 @@ const totalTest2Error = ref(0);
 const totalBoxBuildError = ref(0);
 const totalWarehouseError = ref(0);
 
+const totalFixed = ref(0);
+
 // Level
 const Level_SMT = ref(false);
 const Level_AOI = ref(0);
@@ -754,6 +735,7 @@ const DataManufacture = ref(null);
 // ===== FORM ADD =====
 const Type_Add = ref("");
 const PONumber_Add = ref(localStorage.getItem("ProductName"));
+const Name_Order_Add = ref("");
 const Category_Add = ref("");
 const Quantity_Plan_Add = ref("");
 const CycleTime_Add = ref("");
@@ -762,6 +744,7 @@ const Note_Add = ref("");
 // ===== FORM EDIT =====
 const Type_Edit = ref("");
 const PONumber_Edit = ref("");
+const Name_Order_Edit = ref("");
 const Category_Edit = ref("");
 const Quantity_Plan_Edit = ref("");
 const CycleTime_Edit = ref("");
@@ -777,11 +760,11 @@ const page = ref(1);
 const itemsPerPage = ref(10);
 const HeadersHistory = [
   { title: "Ngày", key: "Created_At", sortable: true },
-  { title: "Tên đơn hàng", key: "PONumber", sortable: true },
   { title: "Tên danh mục", key: "Category", sortable: true },
   { title: "Đầu vào", key: "Quantity_Plan", sortable: true },
   { title: "Đầu ra", key: "Quantity_Real", sortable: true },
   { title: "Hàng lỗi", key: "Quantity_Error", sortable: true },
+  { title: "RW đã sửa", key: "Total_Fixed", sortable: true },
   { title: "Thao tác", key: "id", sortable: false },
 ];
 
@@ -789,7 +772,6 @@ const HeadersHistory = [
 watch(
   manufactureDetails,
   (newValue) => {
-    console.log("manufactureDetails raw value:", newValue);
     if (newValue) {
       const data = Array.isArray(newValue) ? newValue[0] : newValue;
 
@@ -815,13 +797,13 @@ watch(
 watch(
   manufactureDetails,
   (newValue) => {
-    console.log("Raw manufactureDetails:", newValue); // Debug raw data
     if (newValue && typeof newValue === "object") {
       // Check if newValue is an array and has items
       if (Array.isArray(newValue) && newValue.length > 0) {
         const data = newValue[0]; // Get first item if it's an array
         totalInput.value = data.Total || 0;
         totalError.value = data.Quantity_Error || 0;
+        totalFixed.value = data.Quantity_Fixed || 0;
         totalSMT.value = data.SMT || 0;
         totalAOI.value = data.AOI || 0;
         totalRW.value = data.RW || 0;
@@ -847,7 +829,8 @@ watch(
         DelaySMT_Edit.value = data.DelaySMT;
         LevelSelectAdd.value = data.Level.split("-");
         NameOrder.value = data.Name_Order;
-      
+        Name_Order_Add.value = data.Name_Order;
+        Name_Order_Edit.value = data.Name_Order;
       } else {
         // If it's a single object
         totalInput.value = newValue.Total || 0;
@@ -964,6 +947,7 @@ const GetItem = (item) => {
   DialogEdit.value = true;
   Type_Edit.value = item.Type;
   PONumber_Edit.value = item.PONumber;
+  Name_Order_Edit.value = item.Name_Order;
   Category_Edit.value = item.Category;
   Quantity_Plan_Edit.value = item.Quantity_Plan;
   CycleTime_Edit.value = item.CycleTime_Plan;
@@ -1039,7 +1023,7 @@ const SaveAdd = async () => {
     CycleTime_Plan: CycleTime_Add.value,
     Time_Plan: Time_Add.value,
     Note: Note_Add.value,
-    Created_At: formattedSelectedDate.value,
+    Created_At: formattedSelectedDate,
   });
 
   try {

@@ -219,6 +219,8 @@ db.serialize(() => {
       PartNumber TEXT NOT NULL,
       Status TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
+      RWID TEXT,
+      TimestampRW TEXT,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
@@ -240,6 +242,8 @@ db.serialize(() => {
       PartNumber TEXT NOT NULL,
       Status TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
+      RWID TEXT,
+      TimestampRW TEXT,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
@@ -262,6 +266,8 @@ db.serialize(() => {
       PartNumber TEXT NOT NULL,
       Status TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
+      RWID TEXT,
+      TimestampRW TEXT,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
@@ -273,6 +279,8 @@ db.serialize(() => {
       PartNumber TEXT NOT NULL,
       Status TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
+      RWID TEXT,
+      TimestampRW TEXT,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
@@ -283,6 +291,8 @@ db.serialize(() => {
       PartNumber TEXT NOT NULL,
       Status TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
+      RWID TEXT,
+      TimestampRW TEXT,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
@@ -293,6 +303,8 @@ db.serialize(() => {
       PartNumber TEXT NOT NULL,
       Status TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
+      RWID TEXT,
+      TimestampRW TEXT,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);

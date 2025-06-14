@@ -7,13 +7,17 @@
       >
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
-        {{ NameManufacture }}
+        <v-breadcrumbs :items="[`${NameManufacture}`, `${Name_Order}`, `${Name_Category}`]">
+          <template v-slot:divider>
+            <v-icon icon="mdi-chevron-right"></v-icon>
+          </template>
+        </v-breadcrumbs>
       </v-card-title>
 
       <v-card-text>
         <!-- Production Statistics Cards -->
         <v-row class="mb-4">
-          <v-col cols="12" sm="4">
+          <v-col cols="12" sm="3">
             <v-card class="rounded-lg" color="primary" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu vào</div>
@@ -24,22 +28,18 @@
               </v-card-text>
             </v-card>
           </v-col>
-          <v-col cols="12" sm="4">
-            <v-card class="rounded-lg" color="info" variant="tonal">
+          <v-col cols="12" sm="3">
+            <v-card class="rounded-lg" color="success" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra</div>
                 <div class="text-h4 font-weight-bold">
-                  {{
-                    manufactureTest1
-                      .map((item) => (item.Status === "ok" ? 1 : 0))
-                      .reduce((a, b) => a + b, 0)
-                  }}
+                  {{ totalOutput }}
                 </div>
                 <div class="text-caption">Tổng số lượng đầu ra</div>
               </v-card-text>
             </v-card>
           </v-col>
-          <v-col cols="12" sm="4">
+          <v-col cols="12" sm="3">
             <v-card class="rounded-lg" color="warning" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Lỗi</div>
@@ -47,6 +47,17 @@
                   {{ totalErrors }}
                 </div>
                 <div class="text-caption">Tổng số lượng lỗi</div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" sm="3">
+            <v-card class="rounded-lg" color="info" variant="tonal">
+              <v-card-text>
+                <div class="text-subtitle-1">Đã sửa</div>
+                <div class="text-h4 font-weight-bold">
+                  {{ totalFixed }}
+                </div>
+                <div class="text-caption">Tổng số lượng đã sửa</div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -115,14 +126,14 @@
           >
             <template #[`item.Status`]="{ item }">
               <v-chip
-                :color="item.Status === 'error' ? 'warning' : 'success'"
+                :color="item.Status === 'error' ? 'warning' : item.Status === 'fixed' ? 'info' : 'success'"
                 size="small"
                 variant="tonal"
               >
-                {{ item.Status === "error" ? "Lỗi" : "OK" }}
+                {{ item.Status === "error" ? "Lỗi" : item.Status === "fixed" ? "Đã sửa" : "OK" }}
               </v-chip>
               <v-btn
-                v-if="item.Status === 'error'"
+                v-if="item.Status === 'fixed'"
                 size="small"
                 color="success"
                 variant="tonal"
@@ -234,14 +245,16 @@ const MessageDialog = ref("");
 // Input/Output State=
 const Input = ref("");
 const isSubmitting = ref(false);
+const submitting = ref(false);
+const isError = ref(false);
 const totalInput = ref(0);
 const totalOutput = ref(0);
 const totalErrors = ref(0);
-const isError = ref(false);
-
+const totalFixed = ref(0);
 // Production Info
-const NameManufacture = localStorage.getItem("ProductName");
-
+const NameManufacture = ref("");
+const Name_Order = ref("");
+const Name_Category = ref("");
 // ===== Watchers =====
 // Watch for manufactureAOI changes and log updates
 watch(
@@ -263,32 +276,35 @@ watch(manufactureTest1Error, (error) => {
 watch(
   () => history,
   (newData) => {
-    console.log("History data:", newData);
-    if (newData?.value && Array.isArray(newData.value)) {
-      const filteredHistory = newData.value.filter(
-        (item) => item.Type === "Test 1"
-      );
-      totalInput.value = filteredHistory.reduce(
-        (sum, item) => sum + (Number(item.Quantity_Plan) || 0),
-        0
-      );
+    
+    if (!newData?.value) {
+      console.log('No history data available');
+      return;
     }
-  },
-  { immediate: true, deep: true }
-);
 
-// Watch for changes in manufactureAOI to calculate total output
-watch(
-  () => manufactureTest1,
-  (newData) => {
-    if (newData?.value && Array.isArray(newData.value)) {
-      totalOutput.value = newData.value.reduce(
-        (sum, item) => sum + (item.TotalOutput || 0),
-        0
-      );
+    if (!Array.isArray(newData.value)) {
+      console.log('History data is not an array');
+      return;
+    }
+
+    // Convert id to number for comparison since it's coming from route params
+    const numericId = Number(id);
+    const foundHistory = newData.value.find(item => Number(item.id) === numericId);
+    console.log('Found history item:', foundHistory);
+
+    if (foundHistory) {
+      Name_Order.value = foundHistory.Name_Order ?? '';
+      NameManufacture.value = foundHistory.PONumber ?? '';
+      Name_Category.value = foundHistory.Category ?? '';
+      totalInput.value = foundHistory.Quantity_Plan ?? 0;
+    } else {
+      console.log('No matching history found for ID:', id);
+      // Set default values if no match found
+      Name_Order.value = '';
+      NameManufacture.value = '';
     }
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
 
 // Watch for changes in manufactureTest1 to update error count
@@ -297,6 +313,12 @@ watch(
   (newValue) => {
     totalErrors.value = newValue.filter(
       (item) => item.Status === "error"
+    ).length;
+    totalOutput.value = newValue.filter(
+      (item) => item.Status === "ok"
+    ).length;
+    totalFixed.value = newValue.filter(
+      (item) => item.Status === "fixed"
     ).length;
   },
   { deep: true }
@@ -308,7 +330,8 @@ watch(
  * Handles form submission, API call, and error handling
  */
 const submitBarcode = async () => {
-  if (!Input.value) return;
+  if (!Input.value || submitting.value) return;
+  submitting.value = true;
 
   DialogLoading.value = true;
   const formData = reactive({
@@ -335,6 +358,7 @@ const submitBarcode = async () => {
     console.log(error);
   } finally {
     DialogLoading.value = false;
+    submitting.value = false;
   }
 };
 

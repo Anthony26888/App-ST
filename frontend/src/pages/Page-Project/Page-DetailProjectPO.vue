@@ -195,7 +195,7 @@
         />
         <InputSelect
           label="Quy trình"
-          :items="['SMT', 'AOI', 'IPQC (SMT)', 'Assembly', 'IPQC (Hàn tay)', 'Test 1', 'Test 2', 'Box Build', 'OQC']"
+          :items="['SMT', 'AOI', 'IPQC (SMT)', 'Assembly', 'IPQC (Hàn tay)', 'Test 1', 'Test 2', 'Box Build', 'OQC', 'RW', 'Nhập kho']"
           multiple
           chips
           hint="Lựa chọn quy trình phù hợp"
