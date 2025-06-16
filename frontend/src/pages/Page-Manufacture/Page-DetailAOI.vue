@@ -2,7 +2,8 @@
   <div>
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <v-card-title class="text-h4 font-weight-light d-flex align-center">
-        <ButtonBack :to="`/San-xuat/Chi-tiet/${back}`" />
+        <ButtonBack v-if="isGoBackListWork" :to="`/Danh-sach-cong-viec`" @click="removeGoBackListWork" />
+        <ButtonBack v-else :to="`/San-xuat/Chi-tiet/${back}`" />
         <span class="ml-2">Theo dõi sản xuất AOI</span>
       </v-card-title>
 
@@ -410,5 +411,13 @@ const markAsFixed = async () => {
   } finally {
     DialogLoading.value = false;
   }
+};
+
+const isGoBackListWork = computed(() => {
+  return localStorage.getItem('Go-Back-List-Work') === 'true';
+});
+
+const removeGoBackListWork = () => {
+  localStorage.removeItem('Go-Back-List-Work');
 };
 </script>

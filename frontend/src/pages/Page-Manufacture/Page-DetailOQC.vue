@@ -260,7 +260,9 @@ const itemsPerPage = ref(10);
 // Input/Output State
 const Input = ref("");
 const isSubmitting = ref(false);
+const submitting = ref(false);
 const isError = ref(false);
+
 const totalInput = ref(0);
 const totalOutput = ref(0);
 const totalErrors = ref(0);
@@ -332,7 +334,8 @@ watch(
  * Handles form submission, API call, and error handling
  */
 const submitBarcode = async () => {
-  if (!Input.value) return;
+  if (!Input.value || submitting.value) return;
+  submitting.value = true;
 
   DialogLoading.value = true;
   const formData = reactive({
@@ -359,6 +362,7 @@ const submitBarcode = async () => {
     console.log(error);
   } finally {
     DialogLoading.value = false;
+    submitting.value = false;
   }
 };
 

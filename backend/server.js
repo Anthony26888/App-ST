@@ -173,23 +173,24 @@ io.on("connection", (socket) => {
     socket.on("getProjectFind", async () => {
       try {
         const query = `
-          SELECT DISTINCT
-            a.id AS CustomerId,
-            b.id AS POId,
-            c.id AS ProductId,
-            b.POID,
-            a.CustomerName AS Customer, 
-            c.PONumber,
-            b.ProductDetail
+          SELECT 
+            a.id,
+            c.POID,
+            c.id AS ProductID,
+            c.ProductDetail,
+            a.CustomerName,
+            b.PONumber,
+            b.DateCreated AS Date_Created_PO,
+            b.DateDelivery AS Date_Delivery_PO,
+            c.ProductDetail,
+            CASE
+              WHEN c.QuantityAmount  =  0  THEN 'Hoàn thành'
+              WHEN c.QuantityAmount > 0 THEN 'Đang sản xuất'
+              ELSE 'Chưa có đơn hàng'
+            END AS Status
           FROM Customers a
-          LEFT JOIN (
-            SELECT id, CustomerID,  POID,  ProductDetail
-            FROM ProductDetails
-          ) b ON a.id = b.CustomerID
-          LEFT JOIN (
-            SELECT id, CustomerID, PONumber
-            FROM PurchaseOrders
-          ) c ON a.id = c.CustomerID`;
+          LEFT JOIN PurchaseOrders b ON a.id = b.CustomerID
+          LEFT JOIN ProductDetails c ON b.id = c.POID`;
         db.all(query, [], (err, rows) => {
           if (err) return socket.emit("ProjectError", err);
           socket.emit("ProjectFindData", rows);
@@ -414,12 +415,12 @@ io.on("connection", (socket) => {
                             IFNULL(k1.IPQCSMTError, 0) +
                             IFNULL(m1.Test1Error, 0) +
                             IFNULL(n1.Test2Error, 0) +
-							              IFNULL(c2.AOIFixed, 0) + 
+                            IFNULL(c2.AOIFixed, 0) + 
                             IFNULL(e2.IPQCFixed, 0) + 
                             IFNULL(g2.OQCFixed, 0) + 
                             IFNULL(k2.IPQCSMTFixed, 0) +
                             IFNULL(m2.Test1Fixed, 0) +
-                            IFNULL(n2.Test2Fixed, 0) 
+                            IFNULL(n2.Test2Fixed, 0)
                           ) AS Quantity_Error,
 						              SUM(
                             IFNULL(c2.AOIFixed, 0) + 
@@ -537,37 +538,37 @@ io.on("connection", (socket) => {
                           FROM ManufactureAOI 
 						              WHERE Status = 'fixed'
                           GROUP BY HistoryID
-                      ) c2 ON a.id = c1.HistoryID
+                      ) c2 ON a.id = c2.HistoryID
                       LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS IPQCFixed
                           FROM ManufactureIPQC 
 						              WHERE Status = 'fixed'
                           GROUP BY HistoryID
-                      ) e2 ON a.id = e1.HistoryID
+                      ) e2 ON a.id = e2.HistoryID
                       LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS OQCFixed
                           FROM ManufactureOQC 
 						              WHERE Status = 'fixed'
                           GROUP BY HistoryID
-                      ) g2 ON a.id = g1.HistoryID
+                      ) g2 ON a.id = g2.HistoryID
                        LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS IPQCSMTFixed 
                           FROM ManufactureIPQCSMT
 						              WHERE Status = 'fixed'
                           GROUP BY HistoryID
-                      ) k2 ON a.id = k1.HistoryID
+                      ) k2 ON a.id = k2.HistoryID
                        LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS Test1Fixed
                           FROM ManufactureTest1 
 						              WHERE Status = 'fixed'
                           GROUP BY HistoryID
-                      ) m2 ON a.id = m1.HistoryID
+                      ) m2 ON a.id = m2.HistoryID
                        LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS Test2Fixed
                           FROM ManufactureTest2
 						              WHERE Status = 'fixed'
                           GROUP BY HistoryID
-                      ) n2 ON a.id = n1.HistoryID
+                      ) n2 ON a.id = n2.HistoryID
                       WHERE h.id = ?
                       GROUP BY h.Total`;
         db.all(query, [id], (err, rows) => {
@@ -598,18 +599,18 @@ io.on("connection", (socket) => {
   }),
     socket.on("getManufactureRW", async (id) => {
       try {
-        const query = `SELECT a.id, b.Type, a.PartNumber, a.Status, b.Category, a.Timestamp, a.HistoryID FROM (
-                          SELECT id, PartNumber, Status, HistoryID, Timestamp FROM ManufactureAOI WHERE Status IN ('error', 'fixed')
+        const query = `SELECT a.id, b.Type, a.PartNumber, a.Status, b.Category, a.Timestamp, a.HistoryID, a.TimestampRW FROM (
+                          SELECT id, PartNumber, Status, HistoryID, Timestamp, TimestampRW FROM ManufactureAOI WHERE Status IN ('error', 'fixed')
                           UNION ALL
-                          SELECT id, PartNumber, Status, HistoryID, Timestamp FROM ManufactureIPQCSMT WHERE Status IN ('error', 'fixed')
+                          SELECT id, PartNumber, Status, HistoryID, Timestamp, TimestampRW FROM ManufactureIPQCSMT WHERE Status IN ('error', 'fixed')
                           UNION ALL
-                            SELECT id, PartNumber, Status, HistoryID, Timestamp FROM ManufactureIPQC WHERE Status IN ('error', 'fixed')
+                            SELECT id, PartNumber, Status, HistoryID, Timestamp, TimestampRW FROM ManufactureIPQC WHERE Status IN ('error', 'fixed')
                           UNION ALL
-                            SELECT id, PartNumber, Status, HistoryID, Timestamp FROM ManufactureTest1 WHERE Status IN ('error', 'fixed')
+                            SELECT id, PartNumber, Status, HistoryID, Timestamp, TimestampRW FROM ManufactureTest1 WHERE Status IN ('error', 'fixed')
                           UNION ALL
-                            SELECT id, PartNumber, Status, HistoryID, Timestamp FROM ManufactureTest2 WHERE Status IN ('error', 'fixed')
+                            SELECT id, PartNumber, Status, HistoryID, Timestamp, TimestampRW FROM ManufactureTest2 WHERE Status IN ('error', 'fixed')
                           UNION ALL
-                            SELECT id, PartNumber, Status, HistoryID, Timestamp FROM ManufactureOQC WHERE Status IN ('error', 'fixed')
+                            SELECT id, PartNumber, Status, HistoryID, Timestamp, TimestampRW FROM ManufactureOQC WHERE Status IN ('error', 'fixed')
                         ) a LEFT JOIN Summary b ON a.HistoryID = b.id
                         WHERE PlanID = ?
                         ORDER BY a.Timestamp DESC`;
@@ -751,6 +752,7 @@ io.on("connection", (socket) => {
       try {
         const query = `SELECT 
                         a.id,
+                        z.id AS PlanID,
                         a.Type,
                         a.PONumber,
                         z.Name_Order,
@@ -3214,7 +3216,7 @@ app.put("/Manufacture/Test2-Fixed/Edit-status/:id", (req, res) => {
   } = req.body;
   const { id } = req.params;
   db.run(
-    `UPDATE ManufactureAOI
+    `UPDATE ManufactureTest2
       SET Status=?, RWID=?, TimestampRW=?
       WHERE id=?`,
     [

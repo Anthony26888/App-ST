@@ -87,19 +87,6 @@
               </v-list-item>
             </v-list>
           </v-menu>
-          <v-btn
-            variant="tonal"
-            class="ms-2 text-caption"
-            @click="DialogFilterDate = true"
-          >
-            <template v-slot:prepend>
-              <v-icon v-if="!startDate && !endDate">mdi-filter</v-icon>
-              <v-badge floating color="success" dot v-if="startDate && endDate">
-                <v-icon>mdi-filter</v-icon>
-              </v-badge>
-            </template>
-            Lọc nâng cao
-          </v-btn>
 
           <v-btn
             class="ms-2 text-caption"
@@ -116,7 +103,7 @@
         <v-card-text class="overflow-auto">
           <v-data-table
             :headers="Headers"
-            :items="filteredProject"
+            :items="project"
             :search="search"
             :items-per-page="itemsPerPage"
             v-model:page="page"
@@ -233,53 +220,8 @@
       </template>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogFilterDate" width="500" scrollable>
-    <v-card max-width="500">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-filter" color="primary" class="me-2"></v-icon>
-        Lọc dữ liệu nâng cao
-        <v-spacer></v-spacer>
-        <v-btn
-          color="error"
-          class="text-caption"
-          @click="
-            (startDate = ''),
-              (endDate = ''),
-              (search = ''),
-              (DialogFilterDate = false)
-          "
-          >Xoá bộ lọc</v-btn
-        >
-        <v-btn
-          icon="mdi-close"
-          variant="text"
-          @click="DialogFilterDate = false"
-        ></v-btn>
-      </v-card-title>
-      <v-card-text class="overflow-auto">
-        <v-row class="ms-2">
-          <v-col cols="12" md="6">
-            <v-text-field
-              variant="outlined"
-              v-model="startDate"
-              label="Từ ngày"
-              type="date"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field
-              variant="outlined"
-              v-model="endDate"
-              label="Đến ngày"
-              type="date"
-            />
-          </v-col>
-        </v-row>
-      </v-card-text>
-    </v-card>
-  </v-dialog>
 
-  <v-dialog v-model="DialogFind" width="700" scrollable>
+  <v-dialog v-model="DialogFind" width="1200" scrollable>
     <v-card class="overflow-y-auto">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-filter" color="primary" class="me-2"></v-icon>
@@ -293,69 +235,117 @@
       </v-card-title>
 
       <v-card-title>
-        <v-text-field
-          v-model="searchFind"
-          density="comfortable"
-          placeholder="Tìm kiếm"
-          prepend-inner-icon="mdi-magnify"
-          variant="solo-filled"
-          clearable
-          hide-details
-        ></v-text-field>
+        <v-row class="ms-2">
+          <v-col cols="2" md="2">
+            <v-text-field
+              variant="outlined"
+              v-model="startDate"
+              label="Từ ngày tạo PO"
+              type="date"
+            />
+          </v-col>
+          <v-col cols="2" md="2">
+            <v-text-field
+              variant="outlined"
+              v-model="endDate"
+              label="Đến ngày tạo PO"
+              type="date"
+            />
+          </v-col>
+          <v-col cols="2" md="2">
+            <v-text-field
+              variant="outlined"
+              v-model="startDateDelivery"
+              label="Từ ngày giao PO"
+              type="date"
+            />
+          </v-col>
+          <v-col cols="2" md="2">
+            <v-text-field
+              variant="outlined"
+              v-model="endDateDelivery"
+              label="Đến ngày giao PO"
+              type="date"
+            />
+          </v-col>
+          <v-col cols="1" md="1">
+            <v-btn
+              color="error"
+              class="text-caption mt-2"
+              variant="tonal"
+              @click="
+                (startDate = ''),
+                  (endDate = ''),
+                  (search = ''),
+                  (startDateDelivery = ''),
+                  (endDateDelivery = ''),
+                  (DialogFilterDate = false)
+              "
+              >Xoá lọc</v-btn
+            >
+          </v-col>
+          <v-col cols="3">
+            <InputSearch variant="solo-filled" density="comfortable" v-model="searchFind" />
+          </v-col>
+        </v-row>
       </v-card-title>
-      <v-card-text>
-        <v-data-iterator
-          :items="projectFind"
-          :items-per-page="7"
+      <v-card-text class="overflow-auto">
+        <v-data-table
+          :headers="HeadersFind"
+          :items="filteredProjectFind"
           :search="searchFind"
+          :items-per-page="itemsPerPage"
+          v-model:page="page"
+          class="elevation-1"
+          :footer-props="{
+            'items-per-page-options': [10, 20, 50, 100],
+            'items-per-page-text': 'Số hàng mỗi trang',
+          }"
+          :header-props="{
+            sortByText: 'Sắp xếp theo',
+            sortDescText: 'Giảm dần',
+            sortAscText: 'Tăng dần',
+          }"
+          :loading="DialogLoading"
+          loading-text="Đang tải dữ liệu..."
+          no-data-text="Không có dữ liệu"
+          no-results-text="Không tìm thấy kết quả"
+          :hover="true"
+          :dense="false"
+          :fixed-header="true"
+          height="calc(100vh - 320px)"
         >
-          <template v-slot:default="{ items }">
-            <v-list line="two">
-              <v-list-item
-                v-for="(item, i) in items"
-                :key="i"
-                :value="item"
-                :subtitle="`${item.raw.PONumber} - ${item.raw.ProductDetail}`"
-                :title="item.raw.Customer"
-                @click="PushItemFind(item.raw.CustomerId, item.raw.POId, item.raw.ProductId, item.raw.Customer, item.raw.PONumber)"
-              >
-                <template v-slot:append>
-                  <v-btn
-                    color="grey-lighten-1"
-                    icon="mdi-information"
-                    variant="text"
-                  ></v-btn>
-                </template>
-              </v-list-item>
-            </v-list>
-          </template>
-
-          <template v-slot:footer="{ page, pageCount, prevPage, nextPage }">
-            <div class="d-flex align-center justify-center pa-4">
-              <v-btn
-                :disabled="page === 1"
-                density="comfortable"
-                icon="mdi-arrow-left"
-                variant="tonal"
-                rounded
-                @click="prevPage"
-              ></v-btn>
-
-              <div class="mx-2 text-caption">
-                Page {{ page }} of {{ pageCount }}
-              </div>
-
-              <v-btn
-                :disabled="page >= pageCount"
-                density="comfortable"
-                icon="mdi-arrow-right"
-                variant="tonal"
-                rounded
-                @click="nextPage"
-              ></v-btn>
+          <template v-slot:bottom>
+            <div class="text-center pt-2">
+              <v-pagination
+                v-model="page"
+                :length="Math.ceil(filteredProjectFind.length / itemsPerPage)"
+              ></v-pagination>
             </div>
           </template>
-        </v-data-iterator>
+          <template v-slot:item.Status="{ value }">
+            <div>
+              <v-chip
+                :color="
+                  value === 'Hoàn thành'
+                    ? 'success'
+                    : value === 'Đang sản xuất'
+                    ? 'warning'
+                    : 'error'
+                "
+                variant="tonal"
+                class="text-caption"
+              >
+                {{ value }}
+              </v-chip>
+            </div>
+          </template>
+          <template v-slot:item.id="{ item }">
+            <div class="d-flex align-center">
+              <ButtonEye @detail="PushItemFind(item.id, item.POID, item.ProductID, item.CustomerName, item.PONumber)" />
+            </div>
+          </template>
+        </v-data-table>
       </v-card-text>
     </v-card>
   </v-dialog>
@@ -435,8 +425,29 @@ const Headers = ref([
   { key: "id", sortable: false, title: "Thao tác" },
 ]);
 
-const startDate = ref(null);
-const endDate = ref(null);
+const HeadersFind = ref([
+  { key: "CustomerName", title: "Khách hàng", width: "200" },
+  { key: "PONumber", title: "Tên dự án" },
+  { key: "Date_Created_PO", title: "Ngày tạo PO" },
+  { key: "Date_Delivery_PO", title: "Ngày giao PO", sortable: true },
+  { key: "ProductDetail", title: "Tên đơn hàng", sortable: true },
+  { key: "Status", title: "Trạng thái đơn hàng", sortable: true },
+  { key: "id", sortable: false, title: "Thao tác" },
+]);
+
+// ===== FILTER STATES =====
+const itemsFilter = [
+  { title: "Tất cả", value: "" },
+  { title: "Chưa có đơn hàng", value: "Chưa có đơn hàng" },
+  { title: "Đang sản xuất", value: "Đang sản xuất" },
+  { title: "Hoàn thành", value: "Hoàn thành" },
+];
+
+const startDate = ref("");
+const endDate = ref("");
+
+const startDateDelivery = ref("");
+const endDateDelivery = ref("");
 
 const search = ref("");
 const searchFind = ref("");
@@ -448,23 +459,20 @@ const page = ref(1);
 const UserInfo = ref(null);
 const LevelUser = localStorage.getItem("LevelUser");
 
-// ===== FILTER STATES =====
-const itemsFilter = [
-  { title: "Tất cả", value: "" },
-  { title: "Chưa có đơn hàng", value: "Chưa có đơn hàng" },
-  { title: "Đang sản xuất", value: "Đang sản xuất" },
-  { title: "Hoàn thành", value: "Hoàn thành" },
-];
-
 // ===== COMPUTED =======
-const filteredProject = computed(() => {
-  return project.value.filter((item) => {
-    const projectDate = new Date(item.Years);
+const filteredProjectFind = computed(() => {
+  return projectFind.value.filter((item) => {
+    const projectDate = new Date(item.Date_Created_PO);
+    const deliveryDate = new Date(item.Date_Delivery_PO);
     const start = startDate.value ? new Date(startDate.value) : null;
     const end = endDate.value ? new Date(endDate.value) : null;
+    const startDelivery = startDateDelivery.value ? new Date(startDateDelivery.value) : null;
+    const endDelivery = endDateDelivery.value ? new Date(endDateDelivery.value) : null;
 
     if (start && projectDate < start) return false;
     if (end && projectDate > end) return false;
+    if (startDelivery && deliveryDate < startDelivery) return false;
+    if (endDelivery && deliveryDate > endDelivery) return false;
     return true;
   });
 });
@@ -497,7 +505,7 @@ function PushItemFind(value1, value2, value3, value4, value5) {
   localStorage.setItem("POID", value2);
   localStorage.setItem("ProductID", value3);
   localStorage.setItem("PO", value5);
-  router.push(`/Du-an/Don-hang/${value3}`);
+  router.push(`/Du-an/Don-hang/${value2}`);
 }
 
 /**

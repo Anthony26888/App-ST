@@ -361,12 +361,12 @@ const MessageErrorDialog = ref("");
 
 // Định nghĩa cấu trúc bảng
 const Headers = [
-  { title: "Số PO", key: "Name", width: "150px" },
-  { title: "Đơn hàng", key: "Name_Order", width: "150px" },
+  { title: "Số PO", key: "Name" },
+  { title: "Đơn hàng", key: "Name_Order" },
   { title: "Trạng thái", key: "Status_Output", width: "150px" },
   { title: "Tổng sản phẩm", key: "Total" },
   { title: "Tổng đầu ra", key: "Total_Output" },
-  { title: "Quy trình", key: "Level", width: "150px" },
+  { title: "Quy trình", key: "Level", width: "200px" },
   { title: "Ngày tạo", key: "Date" },
   { title: "Người tạo", key: "Creater" },
   { title: "Ghi chú", key: "Note" },

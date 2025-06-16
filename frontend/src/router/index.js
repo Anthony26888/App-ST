@@ -33,6 +33,7 @@ import PageDetailBoxBuild from "@/pages/Page-Manufacture/Page-Detail-BoxBuild.vu
 import PageDetailWarehouse from "@/pages/Page-Manufacture/Page-Detail-Warehouse.vue";
 import PageDetailTest1 from "@/pages/Page-Manufacture/Page-Detail-Test1.vue";
 import PageDetailTest2 from "@/pages/Page-Manufacture/Page-Detail-Test2.vue";
+import PageListWork from "@/pages/Page-Manufacture/Page-ListWork.vue";
 
 
 const routes = [
@@ -219,6 +220,12 @@ const routes = [
         name: "Summary",
         meta: { requiresAuth: true },
         component: PageSummary,
+      },
+      {
+        path: "/Danh-sach-cong-viec",
+        name: "ListWork",
+        meta: { requiresAuth: true },
+        component: PageListWork,
       },
     ],
   },

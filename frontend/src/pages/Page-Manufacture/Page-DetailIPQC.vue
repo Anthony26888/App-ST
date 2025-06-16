@@ -328,20 +328,6 @@ watch(
   { immediate: true, deep: true }
 );
 
-// Watch for changes in manufactureAOI to calculate total output
-watch(
-  () => manufactureIPQC,
-  (newData) => {
-    if (newData?.value && Array.isArray(newData.value)) {
-      totalOutput.value = newData.value.reduce(
-        (sum, item) => sum + (item.TotalOutput || 0),
-        0
-      );
-    }
-  },
-  { immediate: true, deep: true }
-);
-
 // ===== Methods =====
 /**
  * Submits a barcode to the AOI manufacturing system

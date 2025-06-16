@@ -122,7 +122,7 @@
           <v-toolbar flat dense>
             <v-toolbar-title>
               <v-icon
-                color="primay"
+                color="medium-primay"
                 icon="mdi-book-multiple"
                 size="x-small"
                 start
@@ -198,20 +198,6 @@ import { useSummary } from "@/composables/Summary/useSummary";
 // API Configuration
 const Url = import.meta.env.VITE_API_URL;
 
-// Chart Colors
-const CHART_COLORS = {
-  primary: "rgb(25, 118, 210)",
-  success: "rgb(76, 175, 80)",
-  warning: "rgb(255, 152, 0)",
-  error: "rgb(233, 30, 99)",
-  purple: "rgb(156, 39, 176)",
-  teal: "rgb(0, 150, 136)",
-  amber: "rgb(255, 193, 7)",
-  brown: "rgb(121, 85, 72)",
-  blueGrey: "rgb(96, 125, 139)",
-  red: "rgb(244, 67, 54)"
-};
-
 // Router
 const router = useRouter();
 
@@ -257,7 +243,7 @@ const Headers = ref([
 
 // ===== COMPUTED =======
 const dateMenu = ref(false);
-const selectedDate = ref(new Date().toISOString().substr(0, 10));
+const selectedDate = ref(new Date().toLocaleDateString('sv')); // Returns YYYY-MM-DD in local time
 
 const formattedSelectedDate = computed(() => {
   const date = new Date(selectedDate.value);
@@ -265,24 +251,18 @@ const formattedSelectedDate = computed(() => {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-    timeZone: "Asia/Bangkok",
+    timeZone: "Asia/Bangkok"
   });
 });
 
-// Pass the computed ref to useSummary
-const { summary, summaryError } = useSummary(formattedSelectedDate);
-
 const formattedWeekDate = computed(() => {
-  // Create a new date object from selectedDate to avoid mutation
   const selectedDateObj = new Date(selectedDate.value);
   const day = selectedDateObj.getDay();
   const diff = selectedDateObj.getDate() - day + (day === 0 ? -6 : 1);
 
-  // Create a new date for Monday
   const monday = new Date(selectedDateObj);
   monday.setDate(diff);
 
-  // Calculate week number
   const getWeekNumber = (d) => {
     const firstDayOfYear = new Date(d.getFullYear(), 0, 1);
     const pastDaysOfYear = (d - firstDayOfYear) / 86400000;
@@ -290,14 +270,17 @@ const formattedWeekDate = computed(() => {
   };
 
   const weekNumber = getWeekNumber(monday);
-
-  // Get weekday from the selected date
   const weekday = selectedDateObj.toLocaleDateString("vi-VN", {
     weekday: "long",
+    timeZone: "Asia/Bangkok"
   });
 
   return `Tuần ${weekNumber} - ${weekday}`;
 });
+
+// Pass the computed ref to useSummary
+const { summary, summaryError } = useSummary(formattedSelectedDate);
+
 
 // Watch for errors
 watch(summaryError, (error) => {
@@ -364,7 +347,7 @@ function initializeChart() {
 
   // Prepare data for chart
   const chartData = {
-    labels: Object.keys(sortedCategories),
+    labels: Object.keys(sortedCategories).map(() => ''),
     datasets: [
       {
         label: "Kế hoạch",
@@ -422,19 +405,20 @@ function initializeChart() {
         },
         tooltip: {
           callbacks: {
-            label: function (context) {
-              let label = context.dataset.label || "";
-              if (label) {
-                label += ": ";
-              }
-              if (context.parsed.y !== null) {
-                label += new Intl.NumberFormat("vi-VN").format(
-                  context.parsed.y
-                );
-              }
-              return label;
-            },
-          },
+            title: function (tooltipItems) {
+              const category = tooltipItems[0].label;
+              const planValue = tooltipItems[0].dataset.data[tooltipItems[0].dataIndex];
+              const realValue = tooltipItems[1].dataset.data[tooltipItems[0].dataIndex];
+              const percentage = ((realValue / planValue) * 100).toFixed(1);
+              
+              return [
+                `Hạng mục: ${category}`,
+                `Kế hoạch: ${new Intl.NumberFormat("vi-VN").format(planValue)} pcs`,
+                `Thực tế: ${new Intl.NumberFormat("vi-VN").format(realValue)} pcs`,
+                `Tỷ lệ hoàn thành: ${percentage}%`
+              ];
+            }
+          }
         },
       },
       scales: {
@@ -470,6 +454,7 @@ function initializeChart() {
             display: false,
           },
           ticks: {
+            display: false,
             maxRotation: 0,
             minRotation: 0,
             autoSkip: true,
@@ -538,9 +523,23 @@ function initializePieChart() {
           data: Object.values(sortedTypes).map((item) =>
             parseFloat(item.percentage)
           ),
-          backgroundColor: Object.values(CHART_COLORS),
-          borderColor: "#ffffff",
-          borderWidth: 2,
+          backgroundColor: [
+            "rgba(25, 118, 210, 0.8)",
+            "rgba(76, 175, 80, 0.8)",
+            "rgba(255, 152, 0, 0.8)",
+            "rgba(233, 30, 99, 0.8)",
+            "rgba(156, 39, 176, 0.8)",
+            "rgba(0, 150, 136, 0.8)",
+          ],
+          borderColor: [
+            "#1976D2",
+            "#4CAF50",
+            "#FF9800",
+            "#E91E63",
+            "#9C27B0",
+            "#009688",
+          ],
+          borderWidth: 1,
         },
       ],
     },
@@ -564,8 +563,8 @@ function initializePieChart() {
                   return {
                     text: `${label} (${value}%)`,
                     fillStyle: data.datasets[0].backgroundColor[i],
-                    strokeStyle: data.datasets[0].borderColor,
-                    lineWidth: 2,
+                    strokeStyle: data.datasets[0].borderColor[i],
+                    lineWidth: 1,
                     hidden: isNaN(data.datasets[0].data[i]),
                     index: i,
                   };
@@ -634,7 +633,7 @@ watch(
             return acc;
           }, {});
 
-        chart.data.labels = Object.keys(sortedCategories);
+        chart.data.labels = Object.keys(sortedCategories).map(() => '');
         chart.data.datasets[0].data = Object.values(sortedCategories).map(
           (item) => item.plan
         );

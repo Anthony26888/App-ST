@@ -31,7 +31,7 @@
           <v-col cols="12" md="3">
             <v-card class="rounded-lg" color="success" variant="tonal">
               <v-card-text>
-                <div class="text-subtitle-1">Đầu vào</div>
+                <div class="text-subtitle-1">Đầu ra</div>
                 <div class="text-h4 font-weight-bold">
                   {{ totalWarehouse }}
                 </div>
@@ -42,7 +42,7 @@
           <v-col cols="12" md="3">
             <v-card class="rounded-lg" color="warning" variant="tonal">
               <v-card-text>
-                <div class="text-subtitle-1">Đầu vào</div>
+                <div class="text-subtitle-1">Hàng lỗi</div>
                 <div class="text-h4 font-weight-bold">
                   {{ totalError }}
                 </div>
@@ -54,9 +54,7 @@
             <v-card class="rounded-lg" color="info" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Tỷ lệ</div>
-                <div class="text-h4 font-weight-bold">
-                  {{ percent }}%
-                </div>
+                <div class="text-h4 font-weight-bold">{{ percent }}%</div>
                 <div class="text-caption">Tỉ lệ hàng hoá</div>
               </v-card-text>
             </v-card>
@@ -344,11 +342,11 @@
                     <span class="text-primary">{{ totalFixed }}</span>
                   </div>
                   <v-progress-circular
-                    :model-value="(totalFixed / totalError) * 100"
+                    :model-value="(totalFixed / totalError) * 100 || 0"
                     color="primary"
                     size="48"
                   >
-                    {{ Math.round((totalFixed / totalError) * 100) }}%
+                    {{ Math.round((totalFixed / totalError) * 100) || 0}}%
                   </v-progress-circular>
                 </div>
                 <div class="text-caption text-medium-emphasis">
@@ -444,15 +442,21 @@
             </template>
 
             <template #[`item.Quantity_Plan`]="{ item }">
-              <v-chip color="primary" variant="tonal">{{ item.Quantity_Plan }}</v-chip>
+              <v-chip color="primary" variant="tonal">{{
+                item.Quantity_Plan
+              }}</v-chip>
             </template>
 
             <template #[`item.Quantity_Real`]="{ item }">
-              <v-chip color="success" variant="tonal">{{ item.Quantity_Real }}</v-chip>
+              <v-chip color="success" variant="tonal">{{
+                item.Quantity_Real
+              }}</v-chip>
             </template>
 
             <template #[`item.Quantity_Error`]="{ item }">
-              <v-chip color="warning" variant="tonal">{{ item.Quantity_Error }}</v-chip>
+              <v-chip color="warning" variant="tonal">{{
+                item.Quantity_Error
+              }}</v-chip>
             </template>
 
             <template #[`item.Percent`]="{ item }">

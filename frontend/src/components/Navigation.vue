@@ -222,6 +222,13 @@ const menuItems = computed(() => [
     disabled: StatusOption_8.value
   },
   {
+    icon: 'mdi-account-hard-hat',
+    title: 'Danh sách công việc',
+    value: 'ListWork',
+    to: '/Danh-sach-cong-viec',
+    disabled: StatusOption_8.value
+  },
+  {
     icon: 'mdi-wrench',
     title: 'Bảo trì',
     value: 'Maintenance',

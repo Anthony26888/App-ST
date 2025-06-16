@@ -7,7 +7,9 @@
       >
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
-        <v-breadcrumbs :items="[`${NameManufacture}`, `${Name_Order}`]">
+        <v-breadcrumbs
+          :items="[`${NameManufacture}`, `${Name_Order}`, `${Name_Category}`]"
+        >
           <template v-slot:divider>
             <v-icon icon="mdi-chevron-right"></v-icon>
           </template>
@@ -102,11 +104,23 @@
           >
             <template #[`item.Status`]="{ item }">
               <v-chip
-                :color="item.Status === 'error' ? 'warning' : item.Status === 'fixed' ? 'info' : 'success'"
+                :color="
+                  item.Status === 'error'
+                    ? 'warning'
+                    : item.Status === 'fixed'
+                    ? 'info'
+                    : 'success'
+                "
                 size="small"
                 variant="tonal"
               >
-                {{ item.Status === "error" ? "Lỗi" : item.Status === "fixed" ? "Đã sửa" : "OK" }}
+                {{
+                  item.Status === "error"
+                    ? "Lỗi"
+                    : item.Status === "fixed"
+                    ? "Đã sửa"
+                    : "OK"
+                }}
               </v-chip>
             </template>
             <template #[`item.id`]="{ item }">
@@ -118,6 +132,12 @@
                 class="text-caption"
                 >Sửa lỗi</v-btn
               >
+            </template>
+            <template #[`item.TimestampRW`]="{ item }">
+              <p class="text-primary" v-if="item.TimestampRW !== null">
+                {{ item.TimestampRW }}
+              </p>
+              <p v-else>-</p>
             </template>
             <template #[`bottom`]>
               <div class="text-center pt-2">
@@ -138,10 +158,12 @@
       @update:model-value="DialogFix = $event"
       width="400"
     >
-      <v-card max-width="400" prepend-icon="mdi-update" title="Sửa lỗi sản phẩm">
-        <v-card-text>
-          Sản phẩm đã sửa chữa hoàn tất ?
-        </v-card-text>
+      <v-card
+        max-width="400"
+        prepend-icon="mdi-update"
+        title="Sửa lỗi sản phẩm"
+      >
+        <v-card-text> Sản phẩm đã sửa chữa hoàn tất ? </v-card-text>
         <template #actions>
           <ButtonCancel @cancel="DialogFix = false" />
           <ButtonAgree @agree="FixedError()" />
@@ -167,7 +189,6 @@ import axios from "axios";
 import { useHistory } from "@/composables/Manufacture/useHistory";
 import { useManufactureRW } from "@/composables/Manufacture/useManufactureRW";
 
-
 // Components
 import Loading from "@/components/Loading.vue";
 import InputSearch from "@/components/Input-Search.vue";
@@ -179,14 +200,12 @@ import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 
-
 // ===== Constants & Configuration =====
 const Url = import.meta.env.VITE_API_URL;
 const route = useRoute();
 const id = route.params.id;
 const back = localStorage.getItem("ManufactureID");
 const GetID = ref("");
-
 
 // Initialize composables for data fetching
 const { history, historyError } = useHistory(back);
@@ -199,6 +218,7 @@ const Headers = [
   { title: "Mã sản phẩm", key: "PartNumber" },
   { title: "Trạng thái", key: "Status" },
   { title: "Thời gian", key: "Timestamp" },
+  { title: "Thời gian RW", key: "TimestampRW" },
   { title: "Thao tác", key: "id" },
 ];
 
@@ -223,7 +243,6 @@ const Timestamp = ref("");
 const Status = ref("");
 const ConditionType = ref("");
 
-
 // Table
 const search = ref("");
 const page = ref(1);
@@ -240,6 +259,7 @@ const isError = ref(false);
 // Production Info
 const NameManufacture = ref("");
 const Name_Order = ref("");
+const Name_Category = ref("");
 
 // ===== Watchers =====
 // Watch for manufactureHand changes and log updates
@@ -262,14 +282,34 @@ watch(
 watch(
   () => history,
   (newData) => {
-    if (newData?.value && Array.isArray(newData.value)) {
-      const data = newData.value[0];
-      Name_Order.value = data?.Name_Order;
-      NameManufacture.value = data?.PONumber;
-      if (data?.value) {
-        const filteredHistory = data.value.filter(item => item.Type === 'AOI');
-        totalInput.value = filteredHistory?.length > 0 ? filteredHistory[0].Quantity_Plan : 0;
-      }
+    if (!newData?.value) {
+      console.log("No history data available");
+      return;
+    }
+
+    if (!Array.isArray(newData.value)) {
+      console.log("History data is not an array");
+      return;
+    }
+
+    // Convert id to number for comparison since it's coming from route params
+    const numericId = Number(id);
+    const foundHistory = newData.value.find(
+      (item) => Number(item.id) === numericId
+    );
+    console.log("Found history item:", foundHistory);
+
+    if (foundHistory) {
+      Name_Order.value = foundHistory.Name_Order ?? "";
+      NameManufacture.value = foundHistory.PONumber ?? "";
+      Name_Category.value = foundHistory.Category ?? "";
+      totalInput.value = foundHistory.Quantity_Plan ?? 0;
+    } else {
+      console.log("No matching history found for ID:", id);
+      // Set default values if no match found
+      Name_Order.value = "";
+      NameManufacture.value = "";
+      Name_Category.value = "";
     }
   },
   { immediate: true, deep: true }
@@ -302,30 +342,39 @@ const GetItem = (item) => {
   Category.value = item.Category;
   Timestamp.value = item.Timestamp;
   Status.value = item.Status;
-  if (item.Type === 'AOI') {
-    ConditionType.value = 'AOI-Fixed'
-  } else if (item.Type === 'IPQC (SMT)') {
-    ConditionType.value = 'IPQC-SMT'
-  } else if (item.Type === 'IPQC-Fixed') {
-    ConditionType.value = 'IPQC-Fixed'
-  } else if (item.Type === 'Test 1'){
-    ConditionType.value = 'Test1-Fixed'
-  } else if (item.Type === 'Test 2') {
-    ConditionType.value = 'Test2-Fixed'
-  } else if (item.Type === 'OQC') {
-    ConditionType.value = 'OQC-Fixed'
+  if (item.Type === "AOI") {
+    ConditionType.value = "AOI-Fixed";
+  } else if (item.Type === "IPQC (SMT)") {
+    ConditionType.value = "IPQC-SMT";
+  } else if (item.Type === "IPQC-Fixed") {
+    ConditionType.value = "IPQC-Fixed";
+  } else if (item.Type === "Test 1") {
+    ConditionType.value = "Test1-Fixed";
+  } else if (item.Type === "Test 2") {
+    ConditionType.value = "Test2-Fixed";
+  } else if (item.Type === "OQC") {
+    ConditionType.value = "OQC-Fixed";
   } else {
-    ConditionType.value = ''
+    ConditionType.value = "";
   }
   console.log(ConditionType.value);
-}
+};
 
 const FixedError = async () => {
   DialogLoading.value = true;
   const formData = reactive({
-    Status: 'fixed',
+    Status: "fixed",
     RWID: id,
-    TimestampRW: formattedSelectedDate.value
+    TimestampRW: new Date().toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Bangkok",
+    }),
   });
   try {
     const response = await axios.put(
@@ -341,7 +390,7 @@ const FixedError = async () => {
     MessageErrorDialog.value = error.response.data.message;
     Error();
   }
-}
+};
 
 const submitBarcode = async () => {
   if (isSubmitting.value || !Input.value.trim()) {
@@ -386,16 +435,14 @@ const Reset = () => {
   DialogFix.value = false;
   DialogSuccess.value = true;
   DialogLoading.value = false;
-}
+};
 
 const Error = () => {
   DialogFailed.value = true;
   DialogLoading.value = false;
-}
-
+};
 </script>
 
 <script>
-export default {
-}
+export default {};
 </script>
