@@ -240,7 +240,7 @@ io.on("connection", (socket) => {
                         END AS Status,
                         o.QuantityProduct AS Quantity_Product, 
                         o.QuantityDelivered AS Quantity_Delivered,  
-                        IFNULL(o.QuantityProduct - c.Total_Output, 0) AS Quantity_Amount,
+                        IFNULL(o.QuantityProduct - o.QuantityDelivered, 0) AS Quantity_Amount,
                         o.Note AS Note 
                       FROM ProductDetails o 
                       LEFT JOIN PurchaseOrders p ON o.POID = p.id 
