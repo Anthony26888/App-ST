@@ -2,7 +2,7 @@
   <div>
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <v-card-title class="text-h4 font-weight-light d-flex align-center">
-        <ButtonBack v-if="isGoBackListWork" :to="`/Danh-sach-cong-viec`" @click="removeGoBackListWork" />
+        <ButtonBack v-if="LevelUser === 'Nhân viên'" :to="`/Danh-sach-cong-viec`" @click="removeGoBackListWork" />
         <ButtonBack v-else :to="`/San-xuat/Chi-tiet/${back}`" />
         <span class="ml-2">Theo dõi sản xuất AOI</span>
       </v-card-title>
@@ -263,6 +263,8 @@ const NameManufacture = ref("");
 const Name_Order = ref("");
 const Name_Category = ref("");
 
+// ===== User Information =====
+const LevelUser = localStorage.getItem("LevelUser");
 
 // Add new reactive state
 const isError = ref(false);

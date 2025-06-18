@@ -59,7 +59,7 @@
             </div>
           </template>
 
-          <template v-slot:item.Status="{ value }">
+          <template #item.Status="{ value }">
             <div class="text-start">
               <v-chip
                 :color="
@@ -75,6 +75,9 @@
                 {{ value }}
               </v-chip>
             </div>
+          </template>
+          <template #item.Note="{ item }">
+            <div style="white-space: pre-line">{{ item.Note }}</div>
           </template>
         </v-data-table>
       </v-card>
@@ -195,7 +198,7 @@
         />
         <InputSelect
           label="Quy trình"
-          :items="['SMT', 'AOI', 'IPQC (SMT)', 'Assembly', 'IPQC (Hàn tay)', 'Test 1', 'Test 2', 'Box Build', 'OQC', 'RW', 'Nhập kho']"
+          :items="['SMT', 'AOI', 'IPQC (SMT)', 'Assembly', 'IPQC (Hàn tay)', 'Test 1', 'Test 2', 'Box Build', 'Tẩm phủ', 'OQC', 'RW', 'Nhập kho']"
           multiple
           chips
           hint="Lựa chọn quy trình phù hợp"

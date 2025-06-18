@@ -128,6 +128,9 @@ const FetchUser = async () => {
     } else if(LevelUser == "Kinh doanh" || LevelUser == "Thủ kho" || LevelUser == "Kinh doanh admin") {
       DialogLoading.value = false;
       router.push(`/Ton-kho`);
+    } else if (LevelUser == 'Nhân viên'){
+      DialogLoading.value = false;
+      router.push(`/Danh-sach-cong-viec`);
     } else{
       router.push(`/`);
       DialogLoading.value = false;

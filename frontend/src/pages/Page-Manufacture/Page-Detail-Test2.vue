@@ -2,7 +2,8 @@
   <div>
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <v-card-title class="text-h4 font-weight-light">
-        <ButtonBack :to="`/San-xuat/Chi-tiet/${back}`" />
+        <ButtonBack v-if="LevelUser === 'Nhân viên'" :to="`/Danh-sach-cong-viec`" @click="removeGoBackListWork" />
+        <ButtonBack v-else :to="`/San-xuat/Chi-tiet/${back}`" />
         Theo dõi sản xuất Test 2</v-card-title
       >
       <v-card-title class="d-flex align-center pe-2">
@@ -257,6 +258,9 @@ const totalFixed = ref(0);
 const NameManufacture = ref("");
 const Name_Order = ref("");
 const Name_Category = ref("");
+
+// ===== User Information =====
+const LevelUser = localStorage.getItem("LevelUser");
 // ===== Watchers =====
 // Watch for manufactureAOI changes and log updates
 watch(

@@ -82,7 +82,7 @@
               ></v-chip>
             </div>
           </template>
-          <template v-slot:item.MaBaoTri="{ item }">
+          <template #item.MaBaoTri="{ item }">
             <div class="d-flex">
               <ButtonEye @detail="PushItem(item)" />
               <ButtonEdit @edit="GetItem(item)" />

@@ -2,12 +2,13 @@
   <div>
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <v-card-title class="text-h4 font-weight-light">
-        <ButtonBack :to="`/San-xuat/Chi-tiet/${back}`" />
+        <ButtonBack v-if="isGoBackListWork" :to="`/Danh-sach-cong-viec`" @click="removeGoBackListWork" />
+        <ButtonBack v-else :to="`/San-xuat/Chi-tiet/${back}`" />
         Theo dõi sản xuất Box Build</v-card-title
       >
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
-        <v-breadcrumbs :items="[`${NameManufacture}`, `${Name_Order}`]">
+        <v-breadcrumbs :items="[`${NameManufacture}`, `${Name_Order}`, `${Name_Category}`]">
           <template v-slot:divider>
             <v-icon icon="mdi-chevron-right"></v-icon>
           </template>
@@ -204,6 +205,7 @@ const totalErrors = ref(0);
 // Production Info
 const NameManufacture = ref("");
 const Name_Order = ref("");
+const Name_Category = ref("");s
 // ===== Watchers =====
 // Watch for manufactureBoxBuild changes and log updates
 // Watch for changes in manufacture details to calculate total input
@@ -229,12 +231,14 @@ watch(
     if (foundHistory) {
       Name_Order.value = foundHistory.Name_Order ?? '';
       NameManufacture.value = foundHistory.PONumber ?? '';
+      Name_Category.value = foundHistory.Category ?? '';
       totalInput.value = foundHistory.Quantity_Plan ?? 0;
     } else {
       console.log('No matching history found for ID:', id);
       // Set default values if no match found
       Name_Order.value = '';
       NameManufacture.value = '';
+      Name_Category.value = '';
     }
   },
   { immediate: true, deep: true },
@@ -290,5 +294,12 @@ const submitBarcode = async () => {
     DialogLoading.value = false;
     submitting.value = false;
   }
+};
+const isGoBackListWork = computed(() => {
+  return localStorage.getItem('Go-Back-List-Work') === 'true';
+});
+
+const removeGoBackListWork = () => {
+  localStorage.removeItem('Go-Back-List-Work');
 };
 </script>

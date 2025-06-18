@@ -76,7 +76,7 @@
             </div>
           </template>
 
-          <template v-slot:item.Status="{ value }">
+          <template #item.Status="{ value }">
             <div class="text-start">
               <v-chip
                 :color="
@@ -93,15 +93,17 @@
               </v-chip>
             </div>
           </template>
-          <template v-slot:item.id="{ item }">
+          <template #item.id="{ item }">
             <div class="d-flex">
               <ButtonEye @detail="PushItem(item)" />
               <ButtonEdit
                 @edit="GetItem(item)"
                 v-if="LevelUser == 'Admin' || LevelUser == 'Kinh doanh admin'"
               />
-              
             </div>
+          </template>
+          <template #item.Note="{ item }">
+            <div style="white-space: pre-line">{{ item.Note }}</div>
           </template>
           <template v-slot:item.Date_Created="{ item }">
             {{ item.Date_Created.split("-").reverse().join("/") }}
@@ -463,7 +465,6 @@ function Reset() {
   Date_Created_Add.value = "";
   Date_Delivery_Add.value = "";
   Note_Add.value = "";
-  
 }
 
 /**

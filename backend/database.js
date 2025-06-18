@@ -31,7 +31,9 @@ db.serialize(() => {
       Hao_Phi_Thuc_Te INTEGER,
       Bom TEXT,
       SL_Board TEXT,
-      PO TEXT
+      PO TEXT,
+      Creater Text,
+      TimeStamp TEXT
     )`);
 
 
@@ -114,6 +116,7 @@ db.serialize(() => {
           CustomerID INTEGER,
           DateCreated TEXT,
           DateDelivery TEXT,
+          Note TEXT,
           FOREIGN KEY (CustomerID) REFERENCES Customers(id) ON DELETE CASCADE
       )
   `);
@@ -127,6 +130,7 @@ db.serialize(() => {
           QuantityDelivered INTEGER,
           QuantityAmount INTEGER,
           CustomerID INTEGER,
+          Note,
           FOREIGN KEY (POID) REFERENCES PurchaseOrders(id) ON DELETE CASCADE
           FOREIGN KEY (CustomerID) REFERENCES Customers(id) ON DELETE CASCADE
       )
@@ -224,16 +228,6 @@ db.serialize(() => {
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
-  db.run(`
-    CREATE TABLE IF NOT EXISTS ManufactureRW (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      HistoryID INTEGER NOT NULL,
-      PartNumber TEXT NOT NULL,
-      Status TEXT NOT NULL,
-      Timestamp TEXT NOT NULL,
-      FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
-    )
-  `);
 
   db.run(`
     CREATE TABLE IF NOT EXISTS ManufactureIPQC (
@@ -310,6 +304,16 @@ db.serialize(() => {
   `);
   db.run(`
     CREATE TABLE IF NOT EXISTS ManufactureBoxBuild (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      HistoryID INTEGER NOT NULL,
+      PartNumber TEXT NOT NULL,
+      Status TEXT NOT NULL,
+      Timestamp TEXT NOT NULL,
+      FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
+    )
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ManufactureConformalCoating (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       HistoryID INTEGER NOT NULL,
       PartNumber TEXT NOT NULL,

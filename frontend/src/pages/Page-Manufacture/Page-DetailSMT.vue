@@ -4,7 +4,8 @@
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <!-- Phần tiêu đề và nút quay lại -->
       <v-card-title class="text-h4 font-weight-light">
-        <ButtonBack :to="`/San-xuat/Chi-tiet/${back}`" />
+        <ButtonBack v-if="LevelUser === 'Nhân viên'" :to="`/Danh-sach-cong-viec`" @click="removeGoBackListWork" />
+        <ButtonBack v-else :to="`/San-xuat/Chi-tiet/${back}`" />
         Theo dõi sản xuất SMT
       </v-card-title>
 
@@ -199,6 +200,9 @@ const Url = import.meta.env.VITE_API_URL;
 const route = useRoute();
 const id = route.params.id;
 const back = localStorage.getItem("ManufactureID");
+
+// ===== User Information =====
+const LevelUser = localStorage.getItem("LevelUser");
 
 // Cấu hình cột cho bảng dữ liệu
 const Headers = [

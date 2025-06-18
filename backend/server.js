@@ -706,6 +706,20 @@ io.on("connection", (socket) => {
         socket.emit("ManufactureBoxBuildError", error);
       }
     }),
+    socket.on("getManufactureConformalCoating", async (id) => {
+      try {
+        const query = `SELECT *
+                      FROM ManufactureConformalCoating
+                      WHERE HistoryID = ?
+                      ORDER BY Timestamp DESC`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("ManufactureBoxBuildError", err);
+          socket.emit("ManufactureBoxBuildData", rows);
+        });
+      } catch (error) {
+        socket.emit("ManufactureBoxBuildError", error);
+      }
+    }),
     socket.on("getManufactureTest1", async (id) => {
       try {
         const query = `SELECT *
@@ -764,7 +778,6 @@ io.on("connection", (socket) => {
                         CASE
                           WHEN a.Type = 'SMT' THEN IFNULL(b.SMT, 0)
                           WHEN a.Type = 'AOI' THEN IFNULL(c.AOI, 0)
-                          WHEN a.Type = 'RW' THEN IFNULL(d.RW, 0)
                           WHEN a.Type = 'Assembly' THEN IFNULL(f.Assembly, 0)
                           WHEN a.Type = 'IPQC (Hàn tay)' THEN IFNULL(e.IPQC, 0)
                           WHEN a.Type = 'OQC' THEN IFNULL(g.OQC, 0)
@@ -780,7 +793,6 @@ io.on("connection", (socket) => {
                             CASE
                               WHEN a.Type = 'SMT' THEN (IFNULL(b.SMT, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'AOI' THEN (IFNULL(c.AOI, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'RW' THEN (IFNULL(d.RW, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'Assembly' THEN (IFNULL(f.Assembly, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'IPQC (Hàn tay)' THEN (IFNULL(e.IPQC, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'OQC' THEN (IFNULL(g.OQC, 0) * 100.0) / a.Quantity_Plan
@@ -808,12 +820,6 @@ io.on("connection", (socket) => {
                         WHERE Status = 'ok'
                         GROUP BY HistoryID
                       ) c ON a.id = c.HistoryID
-                      LEFT JOIN (
-                        SELECT HistoryID, COUNT(id) AS RW 
-                        FROM ManufactureRW 
-                        WHERE Status = 'ok'
-                        GROUP BY HistoryID
-                      ) d ON a.id = d.HistoryID
                       LEFT JOIN (
                         SELECT HistoryID, COUNT(id) AS IPQC 
                         FROM ManufactureIPQC 
@@ -2907,6 +2913,22 @@ app.post("/Manufacture/BoxBuild", (req, res) => {
       io.emit("UpdateManufactureBoxBuild");
       io.emit("updateManufactureDetails");
       res.json({ message: "ManufactureBoxBuild received" });
+    }
+  );
+});
+// Post value in table ManufactureBoxBuild
+app.post("/Manufacture/Conformal-Coating", (req, res) => {
+  const { PartNumber, HistoryID, Timestamp, Status } = req.body;
+
+  db.run(
+    `INSERT INTO ManufactureConformalCoating (HistoryID, PartNumber, Timestamp, Status)
+     VALUES (?, ?, ?, ?)`,
+    [HistoryID, PartNumber, Timestamp, Status],
+    (err) => {
+      if (err) return res.status(500).json({ error: "Database error" });
+      io.emit("UpdateManufactureConformalCoating");
+      io.emit("updateManufactureDetails");
+      res.json({ message: "ManufactureConformalCoating received" });
     }
   );
 });

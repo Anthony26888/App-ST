@@ -2,7 +2,8 @@
   <div>
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <v-card-title class="text-h4 font-weight-light">
-        <ButtonBack :to="`/San-xuat/Chi-tiet/${back}`" />
+        <ButtonBack v-if="LevelUser === 'Nhân viên'" :to="`/Danh-sach-cong-viec`" @click="removeGoBackListWork" />
+        <ButtonBack v-else :to="`/San-xuat/Chi-tiet/${back}`" />
         Theo dõi sản xuất Test 1</v-card-title
       >
       <v-card-title class="d-flex align-center pe-2">
@@ -214,6 +215,9 @@ const id = route.params.id;
 const back = localStorage.getItem("ManufactureID");
 const GetID = ref("");
 
+// ===== User Information =====
+const LevelUser = localStorage.getItem("LevelUser");
+
 // Table configuration
 const Headers = [
   { title: "STT", key: "id", sortable: true },
@@ -302,6 +306,7 @@ watch(
       // Set default values if no match found
       Name_Order.value = '';
       NameManufacture.value = '';
+      Name_Category.value = '';
     }
   },
   { immediate: true, deep: true },

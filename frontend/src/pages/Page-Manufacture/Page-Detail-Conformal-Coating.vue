@@ -2,9 +2,9 @@
   <div>
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <v-card-title class="text-h4 font-weight-light">
-        <ButtonBack v-if="LevelUser === 'Nhân viên'" :to="`/Danh-sach-cong-viec`" @click="removeGoBackListWork" />
+        <ButtonBack v-if="isGoBackListWork" :to="`/Danh-sach-cong-viec`" @click="removeGoBackListWork" />
         <ButtonBack v-else :to="`/San-xuat/Chi-tiet/${back}`" />
-        Theo dõi sản xuất nhập kho</v-card-title
+        Theo dõi sản xuất tẩm phủ</v-card-title
       >
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
@@ -45,6 +45,19 @@
               </v-card-text>
             </v-card>
           </v-col>
+          <!-- <v-col cols="12" sm="4">
+            <v-card class="rounded-lg" color="warning" variant="tonal">
+              <v-card-text>
+                <div class="text-subtitle-1">Lỗi</div>
+                <div class="text-h4 font-weight-bold">
+                  {{ totalErrors }}
+                </div>
+                <div class="text-caption">
+                  Tổng số lượng lỗi
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col> -->
         </v-row>
 
         <!-- Input Section -->
@@ -55,7 +68,7 @@
                 <InputField
                   label="Nhập mã sản phẩm"
                   v-model="Input"
-                  @keydown.enter="submitBarcode"
+                  @keydown.enter.prevent="submitBarcode()"
                   ref="barcodeInput"
                   autofocus
                   hide-details
@@ -63,6 +76,15 @@
                   density="comfortable"
                 />
               </v-col>
+              <!-- <v-col cols="12" md="4">
+                <v-checkbox
+                  v-model="isError"
+                  label="Đánh dấu lỗi"
+                  color="warning"
+                  hide-details
+                  class="mt-2"
+                ></v-checkbox>
+              </v-col> -->
             </v-row>
           </v-card-text>
         </v-card>
@@ -76,7 +98,7 @@
           </v-card-title>
           <v-data-table
             :headers="Headers"
-            :items="manufactureWarehouse"
+            :items="manufactureBoxBuild"
             :search="search"
             :items-per-page="itemsPerPage"
             v-model="page"
@@ -112,7 +134,7 @@
               <div class="text-center pt-2">
                 <v-pagination
                   v-model="page"
-                  :length="Math.ceil((manufactureWarehouse?.length || 0) / itemsPerPage)"
+                  :length="Math.ceil((manufactureBoxBuild?.length || 0) / itemsPerPage)"
                 ></v-pagination>
               </div>
             </template>
@@ -136,7 +158,7 @@ import axios from "axios";
 
 // Composables
 import { useHistory } from "@/composables/Manufacture/useHistory";
-import { useManufactureWarehouse } from "@/composables/Manufacture/useManufactureWarehouse";
+import { useManufactureCC } from "@/composables/Manufacture/useManufactureCC";
 
 // Components
 import Loading from "@/components/Loading.vue";
@@ -161,11 +183,13 @@ const Headers = [
 // ===== Composables & Data Management =====
 // Initialize composables for data fetching
 const { history, historyError } = useHistory(back);
-const { manufactureWarehouse, manufactureWarehouseError } = useManufactureWarehouse(id);
+const { manufactureCC, manufactureCCError } = useManufactureCC(id);
 
 // ===== Reactive State =====
 // UI State
 const DialogLoading = ref(false);
+
+// Table
 const search = ref("");
 const page = ref(1);
 const itemsPerPage = ref(10);
@@ -177,81 +201,68 @@ const submitting = ref(false);
 const totalInput = ref(0);
 const totalOutput = ref(0);
 const totalErrors = ref(0);
-const totalFixed = ref(0);
-
 
 // Production Info
 const NameManufacture = ref("");
 const Name_Order = ref("");
 const Name_Category = ref("");
-
-// ===== User Information =====
-const LevelUser = localStorage.getItem("LevelUser");
 // ===== Watchers =====
-// Watch for manufactureWarehouse changes and log updates
-watch(
-  manufactureWarehouse,
-  (newValue) => {
-    console.log("manufactureWarehouse updated:", newValue);
-    totalErrors.value = newValue.filter(
-      (item) => item.Status === "error"
-    ).length;
-    totalFixed.value = newValue.filter((item) => item.Status === "fixed").length;
-    totalOutput.value = newValue.filter((item) => item.Status === "ok").length;
-  },
-  { deep: true }
-);
-
-// Watch for manufactureWarehouse errors
-watch(manufactureWarehouseError, (error) => {
-  if (error) {
-    console.error("ManufactureWarehouse Error:", error);
-  }
-});
-
+// Watch for manufactureBoxBuild changes and log updates
 // Watch for changes in manufacture details to calculate total input
 watch(
   () => history,
   (newData) => {
+    
     if (!newData?.value) {
-      console.log("No history data available");
+      console.log('No history data available');
       return;
     }
 
     if (!Array.isArray(newData.value)) {
-      console.log("History data is not an array");
+      console.log('History data is not an array');
       return;
     }
 
     // Convert id to number for comparison since it's coming from route params
     const numericId = Number(id);
-    const foundHistory = newData.value.find(
-      (item) => Number(item.id) === numericId
-    );
-    console.log("Found history item:", foundHistory);
+    const foundHistory = newData.value.find(item => Number(item.id) === numericId);
+    console.log('Found history item:', foundHistory);
 
     if (foundHistory) {
-      Name_Order.value = foundHistory.Name_Order ?? "";
-      NameManufacture.value = foundHistory.PONumber ?? "";
-      Name_Category.value = foundHistory.Category ?? "";
+      Name_Order.value = foundHistory.Name_Order ?? '';
+      NameManufacture.value = foundHistory.PONumber ?? '';
+      Name_Category.value = foundHistory.Category ?? '';
       totalInput.value = foundHistory.Quantity_Plan ?? 0;
     } else {
-      console.log("No matching history found for ID:", id);
+      console.log('No matching history found for ID:', id);
       // Set default values if no match found
-      Name_Order.value = "";
-      NameManufacture.value = "";
-      Name_Category.value = "";
+      Name_Order.value = '';
+      NameManufacture.value = '';
+      Name_Category.value = '';
     }
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
+watch(manufactureCC, (newValue) => {
+  console.log("manufactureCC updated:", newValue);
+  totalErrors.value = newValue.filter(item => item.Status === 'error').length;
+  totalOutput.value = newValue.filter(item => item.Status === 'ok').length;
+}, { deep: true });
+
+// Watch for manufactureBoxBuild errors
+watch(manufactureCCError, (error) => {
+  if (error) {
+    console.error("ManufactureCC Error:", error);
+  }
+});
+
 
 // ===== Methods =====
 /**
- * Submits a barcode to the Warehouse manufacturing system
+ * Submits a barcode to the IPQC-SMT manufacturing system
  * Handles form submission, API call, and error handling
  */
- const submitBarcode = async () => {
+const submitBarcode = async () => {
   if (!Input.value || submitting.value) return;
   submitting.value = true;
 
@@ -271,7 +282,7 @@ watch(
     HistoryID: id
   });
   try {
-    const response = await axios.post(`${Url}/Manufacture/Warehouse`, formData);
+    const response = await axios.post(`${Url}/Manufacture/Conformal-Coating`, formData);
     console.log(response.data);
     DialogLoading.value = false;
     Input.value = '';

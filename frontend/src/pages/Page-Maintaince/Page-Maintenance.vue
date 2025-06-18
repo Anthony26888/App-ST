@@ -31,12 +31,12 @@
             class="elevation-1"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
-              'items-per-page-text': 'Số hàng mỗi trang'
+              'items-per-page-text': 'Số hàng mỗi trang',
             }"
             :header-props="{
               sortByText: 'Sắp xếp theo',
               sortDescText: 'Giảm dần',
-              sortAscText: 'Tăng dần'
+              sortAscText: 'Tăng dần',
             }"
             :loading="DialogLoading"
             loading-text="Đang tải dữ liệu..."
@@ -72,10 +72,13 @@
               </div>
             </template>
             <template v-slot:item.MaThietBi="{ value }">
-              <div class="d-flex ">
+              <div class="d-flex">
                 <ButtonEye @detail="PushItem(value)" />
                 <ButtonEdit @edit="GetItem(value)" />
               </div>
+            </template>
+            <template #item.MoTa="{ item }">
+              <div style="white-space: pre-line">{{ item.MoTa }}</div>
             </template>
           </v-data-table>
         </v-card-text>
@@ -92,41 +95,22 @@
       <v-card-text class="pa-4">
         <v-row>
           <v-col cols="12" md="6">
-            <InputField 
-              label="Tên thiết bị" 
-              v-model="TenThietBi_Edit"
-            />
+            <InputField label="Tên thiết bị" v-model="TenThietBi_Edit" />
           </v-col>
           <v-col cols="12" md="6">
-            <InputField 
-              label="Loại thiết bị" 
-              v-model="LoaiThietBi_Edit"
-            />
+            <InputField label="Loại thiết bị" v-model="LoaiThietBi_Edit" />
           </v-col>
           <v-col cols="12" md="6">
-            <InputField 
-              label="Nhà sản xuất" 
-              v-model="NhaSanXuat_Edit"
-            />
+            <InputField label="Nhà sản xuất" v-model="NhaSanXuat_Edit" />
           </v-col>
           <v-col cols="12" md="6">
-            <InputField 
-              label="Ngày mua" 
-              v-model="NgayMua_Edit" 
-              type="date"
-            />
+            <InputField label="Ngày mua" v-model="NgayMua_Edit" type="date" />
           </v-col>
           <v-col cols="12">
-            <InputField 
-              label="Vị trí" 
-              v-model="ViTri_Edit"
-            />
+            <InputField label="Vị trí" v-model="ViTri_Edit" />
           </v-col>
           <v-col cols="12">
-            <InputTextarea
-              label="Mô tả" 
-              v-model="MoTa_Edit"
-            />
+            <InputTextarea label="Mô tả" v-model="MoTa_Edit" />
           </v-col>
         </v-row>
       </v-card-text>
@@ -150,41 +134,22 @@
       <v-card-text class="pa-4">
         <v-row>
           <v-col cols="12" md="6">
-            <InputField 
-              label="Tên thiết bị" 
-              v-model="TenThietBi_Add"
-            />
+            <InputField label="Tên thiết bị" v-model="TenThietBi_Add" />
           </v-col>
           <v-col cols="12" md="6">
-            <InputField 
-              label="Loại thiết bị" 
-              v-model="LoaiThietBi_Add"
-            />
+            <InputField label="Loại thiết bị" v-model="LoaiThietBi_Add" />
           </v-col>
           <v-col cols="12" md="6">
-            <InputField 
-              label="Nhà sản xuất" 
-              v-model="NhaSanXuat_Add"
-            />
+            <InputField label="Nhà sản xuất" v-model="NhaSanXuat_Add" />
           </v-col>
           <v-col cols="12" md="6">
-            <InputField 
-              label="Ngày mua" 
-              v-model="NgayMua_Add" 
-              type="date"
-            />
+            <InputField label="Ngày mua" v-model="NgayMua_Add" type="date" />
           </v-col>
           <v-col cols="12">
-            <InputField 
-              label="Vị trí" 
-              v-model="ViTri_Add"
-            />
+            <InputField label="Vị trí" v-model="ViTri_Add" />
           </v-col>
           <v-col cols="12">
-            <Input-Textarea
-              label="Mô tả" 
-              v-model="MoTa_Add"
-            />
+            <Input-Textarea label="Mô tả" v-model="MoTa_Add" />
           </v-col>
         </v-row>
       </v-card-text>
@@ -253,13 +218,13 @@ const { machine } = useMachine();
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
-const Dialog = ref(false);          // Main dialog
-const DialogEdit = ref(false);      // Edit dialog
-const DialogSuccess = ref(false);   // Success notification
-const DialogFailed = ref(false);    // Error notification
-const DialogRemove = ref(false);    // Remove confirmation dialog
-const DialogAdd = ref(false);       // Add new item dialog
-const DialogLoading = ref(false);   // Loading state
+const Dialog = ref(false); // Main dialog
+const DialogEdit = ref(false); // Edit dialog
+const DialogSuccess = ref(false); // Success notification
+const DialogFailed = ref(false); // Error notification
+const DialogRemove = ref(false); // Remove confirmation dialog
+const DialogAdd = ref(false); // Add new item dialog
+const DialogLoading = ref(false); // Loading state
 
 // ===== MESSAGE DIALOG =====
 // Message for success and error notifications
@@ -274,20 +239,20 @@ const File = ref(null);
 const GetID = ref("");
 
 // Edit form states
-const TenThietBi_Edit = ref("");    // Device name for editing
-const LoaiThietBi_Edit = ref("");   // Device type for editing
-const NhaSanXuat_Edit = ref("");    // Manufacturer for editing
-const NgayMua_Edit = ref("");       // Purchase date for editing
-const ViTri_Edit = ref("");         // Location for editing
-const MoTa_Edit = ref("");          // Description for editing
+const TenThietBi_Edit = ref(""); // Device name for editing
+const LoaiThietBi_Edit = ref(""); // Device type for editing
+const NhaSanXuat_Edit = ref(""); // Manufacturer for editing
+const NgayMua_Edit = ref(""); // Purchase date for editing
+const ViTri_Edit = ref(""); // Location for editing
+const MoTa_Edit = ref(""); // Description for editing
 
 // Add form states
-const TenThietBi_Add = ref("");     // Device name for adding new
-const LoaiThietBi_Add = ref("");    // Device type for adding new
-const NhaSanXuat_Add = ref("");     // Manufacturer for adding new
-const NgayMua_Add = ref("");        // Purchase date for adding new
-const ViTri_Add = ref("");          // Location for adding new
-const MoTa_Add = ref("");           // Description for adding new
+const TenThietBi_Add = ref(""); // Device name for adding new
+const LoaiThietBi_Add = ref(""); // Device type for adding new
+const NhaSanXuat_Add = ref(""); // Manufacturer for adding new
+const NgayMua_Add = ref(""); // Purchase date for adding new
+const ViTri_Add = ref(""); // Location for adding new
+const MoTa_Add = ref(""); // Description for adding new
 
 // ===== TABLE CONFIGURATION =====
 // Search and pagination states
@@ -472,7 +437,7 @@ export default {
     ButtonEye,
     SnackbarSuccess,
     SnackbarFailed,
-    Loading
+    Loading,
   },
   data() {
     return {

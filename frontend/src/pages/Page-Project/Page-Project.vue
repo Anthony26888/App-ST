@@ -60,7 +60,7 @@
             </v-col>
           </v-row>
         </v-card-title>
-        <v-card-title class="d-flex align-center pe-2">
+        <v-card-title class="d-flex align-center">
           <!-- <ButtonImportFile @import-file="Dialog = true" /> -->
           <ButtonAdd @add="DialogAdd = true" />
           <v-menu :location="location">

@@ -1,22 +1,33 @@
 <template lang="">
-  <v-navigation-drawer 
-    theme="light" 
-    permanent 
+  <v-navigation-drawer
+    theme="light"
+    permanent
     color="#1E293B"
     class="custom-nav"
     elevation="2"
+    :rail="rail"
+    :rail-width="70"
+    @click="rail = false"
   >
     <template v-slot:prepend>
       <v-list-item
         lines="two"
-        class="user-info-section"
         prepend-avatar="https://sieuthuat.vn/wp-content/uploads/2019/06/logo-ST-_-original-02-1.png"
       >
         <template v-slot:title>
-          <p class="text-h6 font-weight-medium ms-3 text-white">{{ UserInfo }}</p>
+          <p class="text-h6 font-weight-medium ms-3 text-white">
+            {{ UserInfo }}
+          </p>
         </template>
         <template v-slot:subtitle>
           <p class="ms-3 text-grey-lighten-1">{{ LevelUser }}</p>
+        </template>
+        <template v-slot:append>
+          <v-btn
+            icon="mdi-chevron-left"
+            variant="text"
+            @click.stop="rail = !rail"
+          ></v-btn>
         </template>
       </v-list-item>
     </template>
@@ -30,28 +41,33 @@
         :value="item.value"
         :to="item.to"
         :disabled="item.disabled"
-        class="menu-item mb-2"
+
         :class="{ 'menu-item-disabled': item.disabled }"
       >
         <template v-slot:prepend>
-          <v-icon :color="item.disabled ? 'grey' : 'white'" class="me-3">{{ item.icon }}</v-icon>
+          <v-icon :color="item.disabled ? 'grey' : 'white'" class="me-3">{{
+            item.icon
+          }}</v-icon>
         </template>
         <template v-slot:title>
-          <span :class="item.disabled ? 'text-grey' : 'text-white'">{{ item.title }}</span>
+          <span :class="item.disabled ? 'text-grey' : 'text-white'">{{
+            item.title
+          }}</span>
         </template>
       </v-list-item>
     </v-list>
     <template v-slot:append>
       <div class="pa-4">
-        <v-btn 
-          block 
-          @click="LogOut()" 
+        <v-btn
+          block
+          @click="LogOut()"
           class="logout-btn text-caption"
           variant="tonal"
           elevation="2"
+          prepend-icon="mdi-logout"
+          :class="{ 'rail-mode': rail }"
         >
-          <v-icon start class="me-2">mdi-logout</v-icon>
-          Đăng xuất
+          <span v-if="!rail">Đăng xuất</span>
         </v-btn>
       </div>
     </template>
@@ -67,10 +83,14 @@ import { useRouter } from "vue-router";
 import axios from "axios";
 import Loading from "@/components/Loading.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
+
+//
 const Url = import.meta.env.VITE_API_URL;
 const router = useRouter();
 const UserInfo = ref(null);
 const LevelUser = ref("");
+
+// Status
 const StatusOption_1 = ref(false);
 const StatusOption_2 = ref(false);
 const StatusOption_3 = ref(false);
@@ -80,9 +100,16 @@ const StatusOption_6 = ref(false);
 const StatusOption_7 = ref(false);
 const StatusOption_8 = ref(false);
 const StatusOption_9 = ref(false);
+const StatusOption_10 = ref(false);
 const Date_Expired = ref("");
+
+// Dialog
 const DialogLoading = ref(false);
 const DialogFailed = ref(false);
+
+//
+const drawer = ref(true);
+const rail = ref(false);
 
 onMounted(() => {
   const token = localStorage.getItem("token");
@@ -150,6 +177,16 @@ const FetchUser = async () => {
         StatusOption_7.value = false;
         StatusOption_8.value = false;
         StatusOption_9.value = false;
+      } else if (LevelUser.value == "Nhân viên") {
+        StatusOption_1.value = true;
+        StatusOption_2.value = true;
+        StatusOption_3.value = true;
+        StatusOption_4.value = true;
+        StatusOption_5.value = true;
+        StatusOption_6.value = true;
+        StatusOption_7.value = true;
+        StatusOption_8.value = true;
+        StatusOption_9.value = true;
       } else {
         StatusOption_1.value = true;
         StatusOption_2.value = true;
@@ -173,75 +210,75 @@ const FetchUser = async () => {
 
 const menuItems = computed(() => [
   {
-    icon: 'mdi-cart-arrow-down',
-    title: 'Kiểm tra số liệu',
-    value: 'Check',
-    to: '/Kiem-tra-so-lieu',
-    disabled: StatusOption_1.value
+    icon: "mdi-cart-arrow-down",
+    title: "Kiểm tra số liệu",
+    value: "Check",
+    to: "/Kiem-tra-so-lieu",
+    disabled: StatusOption_1.value,
   },
   {
-    icon: 'mdi-warehouse',
-    title: 'Tồn Kho',
-    value: 'WareHouse',
-    to: '/Ton-kho',
-    disabled: StatusOption_2.value
+    icon: "mdi-warehouse",
+    title: "Tồn Kho",
+    value: "WareHouse",
+    to: "/Ton-kho",
+    disabled: StatusOption_2.value,
   },
   {
-    icon: 'mdi-warehouse',
-    title: 'Tồn Kho Misa',
-    value: 'WareHouse2',
-    to: '/Ton-kho-2',
-    disabled: StatusOption_3.value
+    icon: "mdi-warehouse",
+    title: "Tồn Kho Misa",
+    value: "WareHouse2",
+    to: "/Ton-kho-2",
+    disabled: StatusOption_3.value,
   },
   {
-    icon: 'mdi-order-bool-descending-variant',
-    title: 'Tình trạng đơn hàng',
-    value: 'Orders',
-    to: '/Don-hang',
-    disabled: StatusOption_4.value
+    icon: "mdi-order-bool-descending-variant",
+    title: "Tình trạng đơn hàng",
+    value: "Orders",
+    to: "/Don-hang",
+    disabled: StatusOption_4.value,
   },
   {
-    icon: 'mdi-notebook-multiple',
-    title: 'Dự án',
-    value: 'Project',
-    to: '/Du-an',
-    disabled: StatusOption_5.value
+    icon: "mdi-notebook-multiple",
+    title: "Dự án",
+    value: "Project",
+    to: "/Du-an",
+    disabled: StatusOption_5.value,
   },
   {
-    icon: 'mdi-calendar-check',
-    title: 'Sản xuất',
-    value: 'Manufacture',
-    to: '/San-xuat',
-    disabled: StatusOption_7.value
+    icon: "mdi-calendar-check",
+    title: "Sản xuất",
+    value: "Manufacture",
+    to: "/San-xuat",
+    disabled: StatusOption_7.value,
   },
   {
-    icon: 'mdi-file-chart-check',
-    title: 'Báo cáo',
-    value: 'Summary',
-    to: '/Bao-cao-san-xuat',
-    disabled: StatusOption_8.value
+    icon: "mdi-file-chart-check",
+    title: "Báo cáo",
+    value: "Summary",
+    to: "/Bao-cao-san-xuat",
+    disabled: StatusOption_8.value,
   },
   {
-    icon: 'mdi-account-hard-hat',
-    title: 'Danh sách công việc',
-    value: 'ListWork',
-    to: '/Danh-sach-cong-viec',
-    disabled: StatusOption_8.value
+    icon: "mdi-account-hard-hat",
+    title: "Danh sách công việc",
+    value: "ListWork",
+    to: "/Danh-sach-cong-viec",
+    disabled: StatusOption_10.value,
   },
   {
-    icon: 'mdi-wrench',
-    title: 'Bảo trì',
-    value: 'Maintenance',
-    to: '/Bao-tri',
-    disabled: StatusOption_6.value
+    icon: "mdi-wrench",
+    title: "Bảo trì",
+    value: "Maintenance",
+    to: "/Bao-tri",
+    disabled: StatusOption_6.value,
   },
   {
-    icon: 'mdi-cog',
-    title: 'Cài đặt',
-    value: 'Setting',
-    to: '/Cai-dat',
-    disabled: StatusOption_9.value
-  }
+    icon: "mdi-cog",
+    title: "Cài đặt",
+    value: "Setting",
+    to: "/Cai-dat",
+    disabled: StatusOption_9.value,
+  },
 ]);
 </script>
 
@@ -291,15 +328,23 @@ export default {
     padding: 12px 24px;
     font-weight: 500;
     letter-spacing: 0.5px;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1)) !important;
+    background: linear-gradient(
+      135deg,
+      rgba(99, 102, 241, 0.1),
+      rgba(168, 85, 247, 0.1)
+    ) !important;
     border: 1px solid rgba(99, 102, 241, 0.2) !important;
     backdrop-filter: blur(8px);
     color: #fff !important;
-    
+
     &:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
-      background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2)) !important;
+      background: linear-gradient(
+        135deg,
+        rgba(99, 102, 241, 0.2),
+        rgba(168, 85, 247, 0.2)
+      ) !important;
       border-color: rgba(99, 102, 241, 0.3) !important;
     }
 
@@ -365,6 +410,120 @@ export default {
 
     .v-table__wrapper > table > tbody > tr:last-child > td:last-child {
       border-bottom-right-radius: 12px;
+    }
+  }
+
+  .v-list {
+    .v-list-item {
+      margin: 4px 8px;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+
+      &:not(.menu-item-disabled) {
+        &:hover {
+          background: rgba(255, 255, 255, 0.1);
+          transform: translateX(8px);
+          
+          .v-icon {
+            transform: scale(1.1);
+            color: #4CAF50 !important;
+          }
+
+          &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: #4CAF50;
+            animation: slideIn 0.3s ease;
+          }
+        }
+
+        &:active {
+          transform: translateX(4px);
+        }
+      }
+
+      &.menu-item-disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .v-icon {
+        transition: all 0.3s ease;
+      }
+    }
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  .v-navigation-drawer {
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+
+    .v-list {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .v-list-item {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .v-btn {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    &.v-navigation-drawer--rail {
+      width: 56px !important;
+      
+      .v-list-item {
+        min-height: 48px;
+        padding: 0;
+        justify-content: center;
+        
+        .v-icon {
+          margin: 0 !important;
+          font-size: 24px;
+        }
+      }
+
+      .v-list-item__prepend {
+        margin: 0 !important;
+      }
+
+      .pa-4 {
+        padding: 8px !important;
+      }
+
+      .logout-btn {
+        &.rail-mode {
+          width: 48px !important;
+          height: 48px !important;
+          min-width: 48px !important;
+          padding: 0 !important;
+          margin: 0 auto !important;
+          border-radius: 8px !important;
+
+          .v-btn__content {
+            padding: 0 !important;
+            justify-content: center !important;
+          }
+
+          .v-icon {
+            margin: 0 !important;
+          }
+        }
+      }
     }
   }
 }

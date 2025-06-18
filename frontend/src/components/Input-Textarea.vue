@@ -5,6 +5,9 @@
     :model-value="modelValue"
     @update:modelValue="$emit('update:modelValue', $event)"
     :rules="[required]"
+    auto-grow
+    rows="3"
+    :auto-grow="true"
   >
   </v-textarea>
 </template>
