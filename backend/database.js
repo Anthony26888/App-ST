@@ -84,6 +84,14 @@ db.serialize(() => {
       Note TEXT,
       Note_Output TEXT
     )`);
+  db.run(`CREATE TABLE IF NOT EXISTS Temporary_WareHouse (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      Description TEXT,
+      PartNumber_1 TEXT,
+      Input INTEGER,
+      Customer TEXT,
+      Location TEXT
+    )`);
   db.run(`CREATE TABLE IF NOT EXISTS Orders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       Name_PO TEXT,

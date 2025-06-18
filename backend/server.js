@@ -239,8 +239,8 @@ io.on("connection", (socket) => {
                           ELSE 'Đang sản xuất'
                         END AS Status,
                         o.QuantityProduct AS Quantity_Product, 
-                        o.QuantityDelivered AS Quantity_Delivered,  
-                        IFNULL(o.QuantityProduct - o.QuantityDelivered, 0) AS Quantity_Amount,
+                        IFNULL(c.Total_Output, 0) AS Quantity_Delivered, 
+                        IFNULL(o.QuantityProduct - c.Total_Output, 0) AS Quantity_Amount,
                         o.Note AS Note 
                       FROM ProductDetails o 
                       LEFT JOIN PurchaseOrders p ON o.POID = p.id 
@@ -895,7 +895,6 @@ io.on("connection", (socket) => {
                         CASE
                           WHEN a.Type = 'SMT' THEN IFNULL(b.SMT, 0)
                           WHEN a.Type = 'AOI' THEN IFNULL(c.AOI, 0)
-                          WHEN a.Type = 'RW' THEN IFNULL(d.RW, 0)
                           WHEN a.Type = 'Assembly' THEN IFNULL(f.Assembly, 0)
                           WHEN a.Type = 'IPQC (Hàn tay)' THEN IFNULL(e.IPQC, 0)
                           WHEN a.Type = 'OQC' THEN IFNULL(g.OQC, 0)
@@ -939,12 +938,6 @@ io.on("connection", (socket) => {
 						              WHERE Status = 'ok'
                           GROUP BY HistoryID
                         ) c ON a.id = c.HistoryID
-                        LEFT JOIN (
-                          SELECT HistoryID, COUNT(*) AS RW 
-                          FROM ManufactureRW 
-						              WHERE Status = 'ok'
-                          GROUP BY HistoryID
-                        ) d ON a.id = d.HistoryID
                         LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS IPQC 
                           FROM ManufactureIPQC 

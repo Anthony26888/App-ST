@@ -63,6 +63,36 @@ app.post("/upload", upload.single("file"), (req, res) => {
 });
 
 
+app.post("/Temporary_WareHouse/Upload", upload.single("file"), (req, res) => {
+  if (!req.file) return res.status(400).send("No file uploaded.");
+  // Read Excel file
+  const filePath = path.join(__dirname, req.file.path);
+  const workbook = xlsx.readFile(filePath);
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  // Convert sheet data to JSON
+  const data = xlsx.utils.sheet_to_json(sheet);
+
+  // Insert data into SQLite database
+  const stmt = db.prepare(
+    `INSERT INTO Temporary_WareHouse (Description, PartNumber_1, Input, Customer, Location) VALUES (?, ?, ?, ?, ?)`
+  );
+  data.forEach((row) => {
+    stmt.run(
+      row.Description,
+      row.PartNumber_1,
+      row.Input,
+      row.Customer,
+      row.Location
+    );
+  });
+
+  stmt.finalize();
+
+  res.send("File processed successfully.");
+});
+
+
 
 
 

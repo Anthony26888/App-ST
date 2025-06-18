@@ -7,6 +7,7 @@
       <v-card variant="text">
         <v-card-title class="d-flex align-center pe-2">
           <ButtonImportFile @import-file="Dialog = true" />
+          <ButtonImportFile color="warning" class="ms-2" @import-file="DialogOutput = true" />
           <ButtonAdd @click="DialogAdd = true" />
           <ButtonDownload @download-file="DownloadWareHouse()" />
           <p class="ms-2 font-weight-thin text-subtitle-1">
@@ -72,6 +73,19 @@
       </template>
     </v-card>
   </v-dialog>
+
+  <v-dialog v-model="DialogOutput" width="400">
+    <v-card max-width="400" prepend-icon="mdi-update" title="Thêm dữ liệu trừ linh kiện">
+      <v-card-text>
+        <InputFiles abel="Thêm File Excel trừ linh kiện" v-model="File" />
+      </v-card-text>
+      <template v-slot:actions>
+        <ButtonCancel @cancel="DialogOutput = false" />
+        <ButtonSave @save="ImportFile_Output()" />
+      </template>
+    </v-card>
+  </v-dialog>
+
   <v-dialog v-model="DialogAdd" scrollable>
     <v-card
       width="600"
@@ -287,6 +301,7 @@ const clientSecret = import.meta.env.VITE_DIGIKEY_CLIENT_SECRET;
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
 const Dialog = ref(false);           // Import file dialog
+const DialogOutput = ref(false);     // Import file dialog
 const DialogEdit = ref(false);       // Edit item dialog
 const DialogRemove = ref(false);     // Remove item confirmation dialog
 const DialogSuccess = ref(false);    // Success notification
@@ -487,6 +502,22 @@ const ImportFile = async () => {
   formData.append("file", File.value);
   try {
     const response = await axios.post(`${Url}/WareHouse/Upload`, formData);
+    console.log(response);
+    MessageDialog.value = "Thêm dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Thêm dữ liệu thất bại";
+    Error();
+  }
+};
+
+const ImportFile_Output = async () => {
+  DialogLoading.value = true;
+  const formData = new FormData();
+  formData.append("file", File.value);
+  try {
+    const response = await axios.post(`${Url}/Temporary_WareHouse/Upload`, formData);
     console.log(response);
     MessageDialog.value = "Thêm dữ liệu thành công";
     Reset();
