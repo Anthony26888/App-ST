@@ -163,9 +163,11 @@ const RemoveWareHouse = async () => {
   try {
     const response = await axios.delete(`${Url}/WareHouse/delete-all`);
     console.log(response);
+    MessageDialog.value = "Đã xoá dữ liệu thành công"
     Reset();
   } catch (error) {
     console.error("Error deleting warehouse data:", error);
+    MessageErrorDialog.value ="Xảy ra lỗi khi xoá"
     Error();
   }
 };

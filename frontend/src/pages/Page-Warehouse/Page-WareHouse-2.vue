@@ -480,6 +480,35 @@ const RemoveItem = async () => {
   }
 };
 
+
+// Delete item in Temporary_WareHouse when do not match value in WareHouse
+const RemoveItemFile = async () => {
+  DialogLoading.value = true
+  try {
+    const response = await axios.delete(`${Url}/Temporary-WareHouse_2/delete-item/${GetIDRemove.value}`);
+    console.log(response);
+    MessageDialog.value = "Xoá dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Xoá dữ liệu thất bại";
+    Error();
+  }
+};
+
+// Delete all item in Temporary_WareHouse table when already update WareHouse table
+const RemoveAllFile = async () => {
+  DialogLoading.value = true
+  try {
+    const response = await axios.delete(`${Url}/Temporary-WareHouse_2/delete-all`);
+    console.log(response);
+    Reset()
+  } catch (error) {
+    console.log(error);
+    Error()
+  }
+}
+
 // ===== FILE OPERATIONS =====
 /**
  * Imports warehouse data from an Excel file
@@ -496,6 +525,38 @@ const ImportFile = async () => {
   } catch (error) {
     console.log(error);
     MessageErrorDialog.value = "Thêm dữ liệu thất bại";
+    Error();
+  }
+};
+
+// Import File excel include item wanna export in WareHouse table
+const ImportFile_Output = async () => {
+  DialogLoading.value = true;
+  const formData = new FormData();
+  formData.append("file", FileOutput.value);
+  try {
+    const response = await axios.post(`${Url}/Temporary_WareHouse_2/Upload`, formData);
+    console.log(response);
+    MessageDialog.value = "Thêm dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Thêm dữ liệu thất bại";
+    Error();
+  }
+};
+
+// Update value in WareHouse with Output and Note_Output
+const UpdateFile_Output = async () => {
+  DialogLoading.value = true;
+  try {
+    const response = await axios.put(`${Url}/Temporary_WareHouse_2/Update-File`);
+    console.log(response);
+    MessageDialog.value = "Đã trừ dữ liệu thành công";
+    RemoveAllFile()
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Trừ dữ liệu thất bại";
     Error();
   }
 };

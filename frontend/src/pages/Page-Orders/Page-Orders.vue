@@ -39,12 +39,12 @@
             <ButtonRemove @remove="GetItem(value)" />
           </div>
         </template>
-        <template v-slot:item.Status="{ item }">
+        <template v-slot:item.Status="{ value }">
           <div class="text-start">
             <v-chip
-              :color="Boolean(item.Status) ? 'green' : 'red'"
+              :color="value == 1 ? 'green' : 'red'"
               :text="
-                Boolean(item.Status) ? 'Kho đã xác nhận' : 'Chờ kho xác nhận'
+                value == 1 ? 'Kho đã xác nhận' : 'Chờ kho xác nhận'
               "
               size="small"
               label

@@ -74,15 +74,96 @@
     </v-card>
   </v-dialog>
 
-  <v-dialog v-model="DialogOutput" width="400">
-    <v-card max-width="400" prepend-icon="mdi-update" title="Thêm dữ liệu trừ linh kiện">
+  <v-dialog v-model="DialogOutput" width="500">
+    <v-card max-width="500" prepend-icon="mdi-update" title="Thêm dữ liệu trừ linh kiện">
       <v-card-text>
-        <InputFiles abel="Thêm File Excel trừ linh kiện" v-model="File" />
+        <div class="d-flex">
+          <InputFiles abel="Thêm File Excel trừ linh kiện" v-model="FileOutput" />
+          <v-btn class="text-caption ms-2 mt-3" variant="tonal" color="primary" prepend-icon="mdi-send" @click="ImportFile_Output()">
+            Gửi File
+          </v-btn>
+        </div>
+        
       </v-card-text>
       <template v-slot:actions>
         <ButtonCancel @cancel="DialogOutput = false" />
-        <ButtonSave @save="ImportFile_Output()" />
+        <v-btn class="text-caption" variant="tonal" color="success" prepend-icon="mdi-map-search-outline" @click="DialogPreview = true">Xem trước</v-btn>
       </template>
+    </v-card>
+  </v-dialog>
+
+  <v-dialog v-model="DialogPreview" width="1200">
+    <v-card max-width="1200">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
+        Kiểm tra dữ liệu sẽ trừ
+        <v-spacer></v-spacer>
+        <v-btn
+          prepend-icon="mdi-check"
+          color="success"
+          class="text-caption me-2"
+          @click="DialogAgree = true"
+        >
+          Xác nhận
+        </v-btn>
+        <v-btn
+          icon="mdi-close"
+          variant="text"
+          @click="DialogPreview = false"
+        ></v-btn>
+      </v-card-title>
+      <v-card-text class="overflow-auto">
+        <v-data-table
+          :headers="HeadersFile"
+          :items="temporaryWarehouse"
+          :search="searchFile"
+          :items-per-page="itemsPerPage"
+          v-model:page="page"
+          class="elevation-1"
+          :footer-props="{
+            'items-per-page-options': [10, 20, 50, 100],
+            'items-per-page-text': 'Số hàng mỗi trang',
+          }"
+          :header-props="{
+            sortByText: 'Sắp xếp theo',
+            sortDescText: 'Giảm dần',
+            sortAscText: 'Tăng dần',
+          }"
+          :loading="DialogLoading"
+          loading-text="Đang tải dữ liệu..."
+          no-data-text="Không có dữ liệu"
+          no-results-text="Không tìm thấy kết quả"
+          :hover="true"
+          :dense="false"
+          :fixed-header="true"
+          height="calc(100vh - 320px)"
+        >
+          <template v-slot:bottom>
+            <div class="text-center pt-2">
+              <v-pagination
+                v-model="page"
+                :length="Math.ceil(temporaryWarehouse.length / itemsPerPage)"
+              ></v-pagination>
+            </div>
+          </template>
+          <template v-slot:item.Status="{ value }">
+            <div>
+              <v-chip
+                :color="value === 'Đã xác minh' ? 'green' : 'warning'"
+                variant="tonal"
+                class="text-caption"
+              >
+                {{ value }}
+              </v-chip>
+            </div>
+          </template>
+          <template v-slot:item.id="{ item }">
+            <div class="d-flex align-center">
+              <ButtonRemove @remove="GetRemove(item)" />
+            </div>
+          </template>
+        </v-data-table>
+      </v-card-text>
     </v-card>
   </v-dialog>
 
@@ -107,7 +188,7 @@
             <InputField label="Xuất kho" type="number" v-model="Output_Add" />
           </v-col>
           <v-col>
-            <InputField label="Tồn kho" type="number" v-model="inventory_Add" />
+            <InputField label="Tồn kho" type="number" disabled v-model="inventory_Add" />
           </v-col>
         </v-row>
         <InputField label="Vị trí" v-model="Location_Add" />
@@ -154,6 +235,7 @@
           </v-col>
           <v-col>
             <InputField
+              disabled
               label="Tồn kho"
               type="number"
               v-model="inventory_Edit"
@@ -191,6 +273,46 @@
         <v-spacer></v-spacer>
         <ButtonCancel @cancel="DialogRemove = false" />
         <ButtonDelete @delete="RemoveItem()" class="ms-2" />
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+  <v-dialog v-model="DialogRemoveFile" width="400" scrollable>
+    <v-card class="overflow-y-auto">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
+        Xóa linh kiện cần trừ
+      </v-card-title>
+
+      <v-card-text class="pa-4">
+        <div class="text-body-1">
+          Bạn có chắc chắn muốn xóa linh kiện này?
+        </div>
+      </v-card-text>
+
+      <v-card-actions class="pa-4">
+        <v-spacer></v-spacer>
+        <ButtonCancel @cancel="DialogRemoveFile = false" />
+        <ButtonDelete @delete="RemoveItemFile()" class="ms-2" />
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+  <v-dialog v-model="DialogAgree" width="400" scrollable>
+    <v-card class="overflow-y-auto">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-check" color="success" class="me-2"></v-icon>
+        Xác nhận trừ linh kiện
+      </v-card-title>
+
+      <v-card-text class="pa-4">
+        <div class="text-body-1">
+          Bạn có chắc chắn muốn trừ tồn kho những linh kiện này?
+        </div>
+      </v-card-text>
+
+      <v-card-actions class="pa-4">
+        <v-spacer></v-spacer>
+        <ButtonCancel @cancel="DialogAgree = false" />
+        <ButtonAgree @agree="UpdateFile_Output()" class="ms-2" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -270,6 +392,7 @@ import { Buffer } from "buffer";
 
 // Composables
 import { useWareHouse } from "@/composables/Warehouse/useWareHouse";
+import { useTemporaryWareHouse } from "@/composables/Warehouse/useTemporaryWareHouse";
 
 // Components
 import ButtonImportFile from "@/components/Button-ImportFile.vue";
@@ -277,6 +400,7 @@ import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
+import ButtonRemove from "@/components/Button-Remove.vue"
 import ButtonAdd from "@/components/Button-Add.vue";
 import ButtonSearch from "@/components/Button-Search.vue";
 import InputSearch from "@/components/Input-Search.vue";
@@ -291,6 +415,7 @@ import Loading from "@/components/Loading.vue";
 // ===== STATE MANAGEMENT =====
 // Initialize composables and router
 const { warehouse } = useWareHouse();
+const { temporaryWarehouse } = useTemporaryWareHouse()
 const router = useRouter();
 
 // API Configuration
@@ -302,8 +427,11 @@ const clientSecret = import.meta.env.VITE_DIGIKEY_CLIENT_SECRET;
 // Control visibility of various dialogs
 const Dialog = ref(false);           // Import file dialog
 const DialogOutput = ref(false);     // Import file dialog
+const DialogPreview = ref(false)     // Preview table 
+const DialogAgree = ref(false);      // Agree file 
 const DialogEdit = ref(false);       // Edit item dialog
 const DialogRemove = ref(false);     // Remove item confirmation dialog
+const DialogRemoveFile = ref(false)   // Remove item from Temporary warehouse
 const DialogSuccess = ref(false);    // Success notification
 const DialogFailed = ref(false);     // Error notification
 const DialogAdd = ref(false);        // Add new item dialog
@@ -338,9 +466,29 @@ const Headers = ref([
   { key: "id", title: "Thao tác", width: "100px", noWrap: true },
 ]);
 
+const HeadersFile = ref([
+  {
+    key: "Description",
+    sortable: false,
+    title: "Mô tả",
+    width: "200px",
+    noWrap: true
+  },
+  { key: "PartNumber_1", title: "Mã hàng", width: "150px", noWrap: true },
+  { key: "Location_1", title: "Vị trí file", width: "100px", noWrap: true },
+  { key: "Location_2", title: "Vị trí kho", width: "100px", noWrap: true },
+  { key: "Status", title: "Trạng thái", width: "100px", noWrap: true },
+  { key: "Input", title: "SL Nhập", noWrap: true },
+  { key: "Inventory", title: "SL Tồn kho", noWrap: true },
+  { key: "Quantity_Amount", title: "SL sau trừ", noWrap: true },
+  { key: "Note", title: "Ghi chú", width: "150px", noWrap: true },
+  { key: "id", title: "Thao tác", noWrap: true },
+]);
+
 // ===== FORM STATES =====
 // File upload state
 const File = ref(null);
+const FileOutput = ref(null);
 
 // Edit form states
 const PartNumber1_Edit = ref("");
@@ -358,9 +506,8 @@ const Note_Output_Edit = ref("");
 const PartNumber1_Add = ref("");
 const PartNumber2_Add = ref("");
 const Description_Add = ref("");
-const Input_Add = ref("");
-const Output_Add = ref("");
-const inventory_Add = ref("");
+const Input_Add = ref(0);
+const Output_Add = ref(0);
 const Location_Add = ref("");
 const Customer_Add = ref("");
 const Note_Add = ref("");
@@ -371,6 +518,7 @@ const Note_Output_Add = ref("");
 // ===== DIGIKEY API STATES =====
 // States for DigiKey API integration
 const GetID = ref("");
+const GetIDRemove = ref("");
 const GetDigikey = ref("");
 const accessToken = ref(null);
 const tokenType = ref(null);
@@ -385,7 +533,7 @@ const LevelUser = localStorage.getItem("LevelUser");
  * Fetches and populates item data for editing
  * @param {string} value - The ID of the item to edit
  */
-function GetItem(value) {
+const GetItem = (value) => {
   DialogEdit.value = true;
   GetID.value = value;
   const found = warehouse.value.find((v) => v.id === value);
@@ -400,6 +548,17 @@ function GetItem(value) {
   Note_Edit.value = found.Note;
   Note_Output_Edit.value = found.Note_Output_Edit;
 }
+
+const GetRemove = (item) => {
+  DialogRemoveFile.value = true
+  GetIDRemove.value = item.id
+}
+
+
+// ==== COMPUTED ======
+const inventory_Add = computed(() =>{
+  return Input_Add.value - Output_Add.value
+})
 
 /**
  * Updates inventory count based on input and output values
@@ -492,6 +651,34 @@ const RemoveItem = async () => {
   }
 };
 
+// Delete item in Temporary_WareHouse when do not match value in WareHouse
+const RemoveItemFile = async () => {
+  DialogLoading.value = true
+  try {
+    const response = await axios.delete(`${Url}/Temporary-WareHouse/delete-item/${GetIDRemove.value}`);
+    console.log(response);
+    MessageDialog.value = "Xoá dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Xoá dữ liệu thất bại";
+    Error();
+  }
+};
+
+// Delete all item in Temporary_WareHouse table when already update WareHouse table
+const RemoveAllFile = async () => {
+  DialogLoading.value = true
+  try {
+    const response = await axios.delete(`${Url}/Temporary-WareHouse/delete-all`);
+    console.log(response);
+    Reset()
+  } catch (error) {
+    console.log(error);
+    Error()
+  }
+}
+
 // ===== FILE OPERATIONS =====
 /**
  * Imports warehouse data from an Excel file
@@ -512,10 +699,11 @@ const ImportFile = async () => {
   }
 };
 
+// Import File excel include item wanna export in WareHouse table
 const ImportFile_Output = async () => {
   DialogLoading.value = true;
   const formData = new FormData();
-  formData.append("file", File.value);
+  formData.append("file", FileOutput.value);
   try {
     const response = await axios.post(`${Url}/Temporary_WareHouse/Upload`, formData);
     console.log(response);
@@ -524,6 +712,21 @@ const ImportFile_Output = async () => {
   } catch (error) {
     console.log(error);
     MessageErrorDialog.value = "Thêm dữ liệu thất bại";
+    Error();
+  }
+};
+
+// Update value in WareHouse with Output and Note_Output
+const UpdateFile_Output = async () => {
+  DialogLoading.value = true;
+  try {
+    const response = await axios.put(`${Url}/Temporary_WareHouse/Update-File`);
+    console.log(response);
+    MessageDialog.value = "Đã trừ dữ liệu thành công";
+    RemoveAllFile()
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Trừ dữ liệu thất bại";
     Error();
   }
 };
@@ -645,7 +848,11 @@ function Reset() {
   DialogRemove.value = false;
   DialogAdd.value = false;
   Dialog.value = false;
+  DialogOutput.value = false;
+  DialogRemoveFile.value = false;
+  DialogAgree.value = false;
   DialogLoading.value = false;
+  
   PartNumber1_Add.value = ref("");
   PartNumber2_Add.value = ref("");
   Description_Add.value = ref("");
@@ -657,6 +864,7 @@ function Reset() {
   Note_Add.value = ref("");
   Note_Output_Add.value = ref("");
   File.value = null;
+  FileOutput.value = null;
 }
 
 /**
@@ -667,7 +875,12 @@ function Error() {
   DialogLoading.value = false;
   DialogCaution.value = true;
   DialogSuccess.value = false;
+  DialogOutput.value = false;
+  DialogRemoveFile.value = false;
+  DialogAgree.value = false;
+  Dialog.value=false;
   File.value = null;
+  FileOutput.value = null;
 }
 </script>
 <script>

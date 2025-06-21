@@ -54,8 +54,18 @@
           <template v-slot:item.Sửa="{ value }">
             <div class="d-flex">
               <ButtonEdit @edit="GetItem(value)" />
-              <ButtonSearch @search="getAccessToken(value)" />
             </div>
+          </template>
+          <template v-slot:item.SL_Tổng="{ value }">
+            {{ value }}
+          </template>
+
+          <template v-slot:item.Số_Lượng_Cần_Mua="{ value }">
+            {{ value }}
+          </template>
+
+          <template v-slot:item.Số_Lượng_Cần_Mua_Misa="{ value }">
+            {{ value }}
           </template>
 
         </v-data-table>

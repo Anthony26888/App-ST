@@ -75,15 +75,15 @@ app.post("/Temporary_WareHouse/Upload", upload.single("file"), (req, res) => {
 
   // Insert data into SQLite database
   const stmt = db.prepare(
-    `INSERT INTO Temporary_WareHouse (Description, PartNumber_1, Input, Customer, Location) VALUES (?, ?, ?, ?, ?)`
+    `INSERT INTO Temporary_WareHouse (Description, PartNumber_1, Input, Location, Note) VALUES (?, ?, ?, ?, ?)`
   );
   data.forEach((row) => {
     stmt.run(
       row.Description,
       row.PartNumber_1,
       row.Input,
-      row.Customer,
-      row.Location
+      row.Location,
+      row.Note
     );
   });
 

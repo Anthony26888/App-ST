@@ -11,8 +11,10 @@
     "lint": "eslint . --fix"
   },
   "dependencies": {
+    "@emailjs/browser": "^4.4.1",
     "@mdi/font": "^7.4.47",
     "axios": "^1.8.2",
+    "chart.js": "^4.5.0",
     "express": "^4.21.2",
     "jwt-decode": "^4.0.0",
     "multer": "^1.4.5-lts.2",
