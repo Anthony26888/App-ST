@@ -16,6 +16,9 @@ const { send } = require("process");
 const { SerialPort } = require("serialport");
 const { ReadlineParser } = require("@serialport/parser-readline");
 
+// Add processing flags at the top of the file
+const processingRequests = new Set();
+
 // Khởi tạo Express và Socket.IO
 const PORT = 3000;
 app.use(cors());
@@ -48,7 +51,7 @@ io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
   socket.on("getCompare", async (id) => {
     try {
-      const query = await getPivotQuery(id);
+      const query = await getCompareWareHouse(id);
       db.all(query, [id], (err, rows) => {
         if (err) return socket.emit("compareError", err);
         socket.emit("compareData", rows);
@@ -129,7 +132,13 @@ io.on("connection", (socket) => {
     }),
     socket.on("getWareHouseFind", async (id) => {
       try {
-        const query = `SELECT DISTINCT Customer FROM WareHouse WHERE PartNumber_1 = ? ORDER BY id ASC`;
+        const query = `SELECT DISTINCT 
+                        Customer,
+                        CASE
+                          WHEN (Input - Output) > 0 THEN IFNULL((Input - Output), 0)
+                          ELSE 0 
+                        END AS SL_Ton_Kho
+                      FROM WareHouse WHERE PartNumber_1 = ? ORDER BY id ASC`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("WareHouseFindError", err);
           socket.emit("WareHouseFindData", rows);
@@ -140,7 +149,13 @@ io.on("connection", (socket) => {
     }),
     socket.on("getWareHouse2Find", async (id) => {
       try {
-        const query = `SELECT DISTINCT Customer FROM WareHouse2 WHERE PartNumber_1 = ? ORDER BY id ASC`;
+        const query = `SELECT DISTINCT 
+                        Customer,
+                        CASE
+                          WHEN (Input - Output) > 0 THEN IFNULL((Input - Output), 0)
+                          ELSE 0 
+                        END AS SL_Ton_Kho_Misa
+                      FROM WareHouse2 WHERE PartNumber_1 = ? ORDER BY id ASC`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("WareHouse2FindError", err);
           socket.emit("WareHouse2FindData", rows);
@@ -190,33 +205,73 @@ io.on("connection", (socket) => {
         socket.emit("TemporaryWareHouseError", error);
       }
     }),
+
+    socket.on("getTemporaryWareHouse2", async () => {
+      try {
+        const query = `SELECT 
+                        a.id,
+                        a.PartNumber_1,
+                        a.Description,
+                        a.Location AS Location_1,
+                        b.Location AS Location_2,
+                        (b.Input - b.Output) AS Inventory,
+                        CASE
+                          WHEN b.PartNumber_1 IS NULL OR b.Description IS NULL OR b.Location IS NULL THEN 'Chưa xác minh'
+                          ELSE 'Đã xác minh'
+                        END AS Status,
+                        a.Input,
+                        (b.Input - (b.Output + a.Input)) AS Quantity_Amount,
+                        a.Note
+                      FROM Temporary_WareHouse_2 a
+                      LEFT JOIN (
+                        SELECT 
+                          PartNumber_1,
+                          Description,
+                          Location,
+                          Inventory,
+                          Input,
+                          Output,
+                          Note
+                        FROM WareHouse2 
+                      ) AS b 
+                      ON a.PartNumber_1 = b.PartNumber_1 
+                        AND a.Description = b.Description 
+                        AND a.Location = b.Location;`;
+        db.all(query, [], (err, rows) => {
+          if (err) return socket.emit("TemporaryWareHouse2Error", err);
+          socket.emit("TemporaryWareHouse2Data", rows);
+        });
+      } catch (error) {
+        socket.emit("TemporaryWareHouse2Error", error);
+      }
+    }),
     socket.on("getProject", async () => {
       try {
         const query = `
-        SELECT DISTINCT
-          a.id,
-          a.CustomerName AS Customer, 
-          CASE
-            WHEN IFNULL(b.total_qty, 0) = IFNULL(b.total_delivered, 0) AND IFNULL(b.total_qty, 0) > 0 THEN 'Hoàn thành'
-            WHEN IFNULL(c.po_count, 0) = 0 THEN 'Chưa có PO'
-            ELSE 'Đang sản xuất'
-          END AS Status,
-          IFNULL(c.po_count, 0) AS Quantity_PO,
-          a.Years
-        FROM Customers a
-        LEFT JOIN (
-          SELECT CustomerID, 
-                SUM(QuantityProduct) AS total_qty, 
-                SUM(QuantityDelivered) AS total_delivered
-          FROM ProductDetails
-          GROUP BY CustomerID
-        ) b ON a.id = b.CustomerID
-        LEFT JOIN (
-          SELECT CustomerID, COUNT(PONumber) AS po_count
-          FROM PurchaseOrders
-          GROUP BY CustomerID
-        ) c ON a.id = c.CustomerID
-        ORDER BY Status DESC, Years DESC
+              SELECT DISTINCT
+                a.id,
+                a.CustomerName AS Customer, 
+                CASE
+                  WHEN IFNULL(b.total_qty, 0) = IFNULL(b.total_delivered, 0) AND IFNULL(b.total_qty, 0) > 0 THEN 'Hoàn thành'
+                  WHEN IFNULL(c.po_count, 0) = 0 THEN 'Chưa có PO'
+                  ELSE 'Đang sản xuất'
+                END AS Status,
+                IFNULL(c.po_count, 0) AS Quantity_PO,
+                a.Years
+              FROM Customers a
+              LEFT JOIN (
+                SELECT CustomerID, 
+                      SUM(QuantityProduct) AS total_qty, 
+                      SUM(QuantityDelivered) AS total_delivered
+                FROM ProductDetails
+                GROUP BY CustomerID
+              ) b ON a.id = b.CustomerID
+              LEFT JOIN (
+                SELECT CustomerID, COUNT(PONumber) AS po_count
+                FROM PurchaseOrders
+                GROUP BY CustomerID
+              ) c ON a.id = c.CustomerID
+              ORDER BY Status DESC, Years DESC
         `;
         db.all(query, [], (err, rows) => {
           if (err) return socket.emit("ProjectError", err);
@@ -1139,9 +1194,14 @@ const getPivotQuery = async (id) => {
 
         // Create dynamic column aggregation
         const columns = Boms.map(
-          (Boms) =>
-            `ROUND(SUM(CASE WHEN Bom = '${Boms.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE 0 END), 2) AS [${Boms.Bom}]`
+          (bom) =>
+            `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE NULL END) AS [${bom.Bom}]`
         ).join(", ");
+
+        // Tạo biểu thức tổng từ các cột động
+        const sumColumns = Boms.map(
+          (bom) => `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE 0 END)`
+        ).join(" + ");
 
         // Full SQL query
         const query = `
@@ -1154,9 +1214,9 @@ const getPivotQuery = async (id) => {
             a.Manufacturer_3,
             a.PartNumber_3,  
             ${columns},
-            ROUND(IFNULL(SUM(a.So_Luong * a.SL_Board), 0), 2) AS SL_Tổng,
+            ROUND((${sumColumns}), 2) AS SL_Tổng,
             CASE
-              WHEN (c.Input - c.Output) > 0 THEN IFNULL((c.Input - c.Output), 0)
+              WHEN (b.Input - b.Output) > 0 THEN IFNULL((b.Input - b.Output), 0)
               ELSE 0 
             END AS SL_Tồn_Kho,
             b.Customer AS Mã_Kho,
@@ -1167,6 +1227,10 @@ const getPivotQuery = async (id) => {
             c.Customer AS Mã_Kho_Misa,
             IFNULL(a.Du_Toan_Hao_Phi, 0) AS Dự_Toán_Hao_Phí,
             IFNULL(a.Hao_Phi_Thuc_Te, 0) AS Hao_Phi_Thuc_Te,
+            a.So_Luong,
+            a.SL_Board,
+            a.Bom,
+            a.PO,
             a.id AS Sửa
           FROM CheckBOM a
           LEFT JOIN WareHouse b ON a.PartNumber_1 = b.PartNumber_1
@@ -1179,137 +1243,149 @@ const getPivotQuery = async (id) => {
     );
   });
 };
-// const getCompareInventory = async (id) => {
-//   return new Promise((resolve, reject) => {
-//     db.all(
-//       `SELECT DISTINCT Bom FROM CheckBOM WHERE PO = ?`,
-//       [id],
-//       (err, Boms) => {
-//         if (err) return reject(err);
 
-//         // Create dynamic column aggregation
-//         const columns = Boms.map(
-//           (Boms) =>
-//             `ROUND(SUM(CASE WHEN Bom = '${Boms.Bom}' THEN (So_Luong * SL_Board) ELSE 0 END), 2) AS [${Boms.Bom}]`
-//         ).join(", ");
-//         // Full SQL query
-//         const query = `
-//           SELECT 
-//             c.Description, 
-//             c.Manufacturer_1,
-//             c.PartNumber_1,
-//             c.Manufacturer_2,
-//             c.PartNumber_2,
-//             c.Manufacturer_3,
-//             c.PartNumber_3,  
-//             ${columns},
-//             c.So_Luong,
-//             SUM(c.So_Luong * c.SL_Board) AS SL_Tổng,
-//             IFNULL(c.SL_Board, 0) AS SL_Board,
-//             IFNULL(c.Du_Toan_Hao_Phi, 0) AS Du_Toan_Hao_Phi,
-//             IFNULL(c.Hao_Phi_Thuc_Te, 0) AS Hao_Phi_Thuc_Te,
-//             i.Customer AS Ma_Kho,
-//             w2.Customer AS Ma_Kho_Misa,
-//             c.Bom,
-//             c.PO,
-//             c.id AS Sửa
-//           FROM CheckBOM c
-//           LEFT JOIN WareHouse i 
-//             ON c.PartNumber_1 = i.PartNumber_1 
-//           LEFT JOIN WareHouse2 w2
-//             ON c.PartNumber_1 = w2.PartNumber_1
-//           WHERE c.PO = ?
-//           GROUP BY c.PartNumber_1;
-//         `;
-//         resolve(query);
-//       }
-//     );
-//   });
-// };
+const getDetailPO = async (id) => {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `SELECT DISTINCT Bom FROM CheckBOM WHERE PO= ?`,
+      [id],
+      (err, Boms) => {
+        if (err) return reject(err);
 
-// const getCompareWareHouse = async (id) => {
-//   return new Promise((resolve, reject) => {
-//     db.all(
-//       `SELECT DISTINCT Bom FROM DetailOrders WHERE PO = ?`,
-//       [id],
-//       (err, Boms) => {
-//         if (err) return reject(err);
+        // Create dynamic column aggregation
 
-//         // Create dynamic column aggregation
-//         const columns = Boms.map(
-//           (Boms) =>
-//             `ROUND(SUM(CASE WHEN Bom = '${Boms.Bom}' THEN (So_Luong * SL_Board) ELSE 0 END), 2) AS [${Boms.Bom}]`
-//         ).join(", ");
-//         const Buy = `
-//           CASE 
-//             WHEN (SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Hao_Phi_Thuc_Te, 0)) > (IFNULL(i.Input, 0) - IFNULL(i.Output, 0))
-//             THEN SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Hao_Phi_Thuc_Te, 0) - (IFNULL(i.Input, 0) - IFNULL(i.Output, 0))
-//             ELSE 0 
-//           END AS Số_Lượng_Cần_Mua
-//         `;
-//         const BuyMisa = `
-//           CASE 
-//             WHEN (SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Hao_Phi_Thuc_Te, 0)) > (IFNULL(w2.Input, 0) - IFNULL(w2.Output, 0))
-//             THEN SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Hao_Phi_Thuc_Te, 0) - (IFNULL(w2.Input, 0) - IFNULL(w2.Output, 0))
-//             ELSE 0 
-//           END AS Số_Lượng_Cần_Mua_Misa
-//         `;
-//         // Full SQL query
-//         const query = `
-//           SELECT 
-//             c.Description Mô_Tả, 
-//             c.Manufacturer_1,
-//             c.PartNumber_1,
-//             c.Manufacturer_2,
-//             c.PartNumber_2,
-//             c.Manufacturer_3,
-//             c.PartNumber_3,  
-//             ${columns},
-//             c.So_Luong AS Số_Lượng,
-//             SUM(c.So_Luong * c.SL_Board) AS SL_Tổng,
-//             IFNULL(c.SL_Board, 0) AS SL_Board,
-//             IFNULL(c.Du_Toan_Hao_Phi, 0) AS Dự_Toán_Hao_Phí,
-//             IFNULL(c.Hao_Phi_Thuc_Te, 0) AS Hao_Phi_Thực_Tế,
-//             (IFNULL(i.Input, 0) - IFNULL(i.Output, 0)) AS SL_Tồn_Kho,
-//             c.Ma_Kho AS Mã_Kho,
-//             IFNULL(w2.Input, 0) - IFNULL(w2.Output, 0) AS SL_Tồn_Kho_Misa,
-//             c.Ma_Kho_Misa AS Mã_Kho_Misa,
-//             ${Buy},
-//             ${BuyMisa},
-//             c.id AS Sửa
-//           FROM DetailOrders c
-//           LEFT JOIN (
-//             SELECT id, 
-//               PartNumber_1,
-//               Description,
-//               Input,
-//               Output,
-//               Customer,
-//               Location
-//             FROM WareHouse) i 
-//           ON c.PartNumber_1 = i.PartNumber_1
-//           LEFT JOIN (
-//             SELECT id, 
-//               PartNumber_1,
-//               Description,
-//               Input,
-//               Output,
-//               Customer,
-//               Location
-//             FROM WareHouse)  w2
-//           ON c.PartNumber_1 = w2.PartNumber_1
-//           WHERE c.PO = ?
-//           GROUP BY c.PartNumber_1, c.Ma_Kho, c.Ma_Kho_Misa;
-//         `;
-//         resolve(query);
-//       }
-//     );
-//   });
-// };
+        // Full SQL query
+        const query = `
+          SELECT DISTINCT
+            a.Description, 
+            a.Manufacturer_1,
+            a.PartNumber_1,
+            a.Manufacturer_2,
+            a.PartNumber_2,
+            a.Manufacturer_3,
+            a.PartNumber_3,  
+            CASE
+                WHEN (b.Input - b.Output) > 0 THEN IFNULL((b.Input - b.Output), 0)
+                ELSE 0 
+            END AS SL_Tồn_Kho,
+            b.Customer AS Mã_Kho,
+            CASE
+                WHEN (c.Input - c.Output) > 0 THEN IFNULL((c.Input - c.Output), 0)
+                ELSE 0 
+            END AS SL_Tồn_Kho_Misa,
+            c.Customer AS Mã_Kho_Misa,
+            IFNULL(a.Du_Toan_Hao_Phi, 0) AS Dự_Toán_Hao_Phí,
+            IFNULL(a.Hao_Phi_Thuc_Te, 0) AS Hao_Phí_Thực_Tế,
+            a.So_Luong,
+            a.SL_Board,
+            a.Bom,
+            a.PO,
+            a.id AS Sửa
+        FROM CheckBOM a
+        LEFT JOIN (
+            SELECT PartNumber_1, Customer, Input, Output
+            FROM WareHouse
+            GROUP BY PartNumber_1
+        ) b ON a.PartNumber_1 = b.PartNumber_1
+        LEFT JOIN (
+            SELECT PartNumber_1, Customer, Input, Output
+            FROM WareHouse2
+            GROUP BY PartNumber_1
+        ) c ON a.PartNumber_1 = c.PartNumber_1
+        WHERE a.PO = ?
+
+        `;
+        resolve(query);
+      }
+    );
+  });
+};
+
+const getCompareWareHouse = async (id) => {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `SELECT DISTINCT Bom FROM DetailOrders WHERE PO = ?`,
+      [id],
+      (err, Boms) => {
+        if (err) return reject(err);
+
+        // Create dynamic column aggregation
+        // Create dynamic column aggregation
+        const columns = Boms.map(
+          (bom) =>
+            `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE NULL END) AS [${bom.Bom}]`
+        ).join(", ");
+
+        // Tạo biểu thức tổng từ các cột động
+        const sumColumns = Boms.map(
+          (bom) => `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE 0 END)`
+        ).join(" + ");
+
+        const Buy = `
+          CASE 
+            WHEN (SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Hao_Phi_Thuc_Te, 0)) > (IFNULL(i.Input, 0) - IFNULL(i.Output, 0))
+            THEN SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Hao_Phi_Thuc_Te, 0) - (IFNULL(i.Input, 0) - IFNULL(i.Output, 0))
+            ELSE 0 
+          END AS Số_Lượng_Cần_Mua
+        `;
+        const BuyMisa = `
+          CASE 
+            WHEN (SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Hao_Phi_Thuc_Te, 0)) > (IFNULL(w2.Input, 0) - IFNULL(w2.Output, 0))
+            THEN SUM(c.So_Luong * c.SL_Board) + IFNULL(c.Hao_Phi_Thuc_Te, 0) - (IFNULL(w2.Input, 0) - IFNULL(w2.Output, 0))
+            ELSE 0 
+          END AS Số_Lượng_Cần_Mua_Misa
+        `;
+        // Full SQL query
+        const query = `
+          SELECT 
+            a.Description, 
+            a.Manufacturer_1,
+            a.PartNumber_1,
+            ${columns},
+            ROUND((${sumColumns}), 2) AS SL_Tổng,
+            CASE
+              WHEN (b.Input - b.Output) > 0 THEN (b.Input - b.Output)
+              ELSE 0
+            END AS SL_Tồn_Kho,
+            a.Ma_Kho AS Mã_Kho,
+            CASE
+              WHEN (c.Input - c.Output) > 0 THEN (c.Input - c.Output)
+              ELSE 0
+            END AS SL_Tồn_Kho_Misa,
+            a.Ma_Kho_Misa AS Mã_Kho_Misa,
+            a.id AS Sửa
+          FROM DetailOrders a
+          LEFT JOIN (
+            SELECT PartNumber_1, Customer, Input, Output
+            FROM WareHouse
+          ) b ON a.PartNumber_1 = b.PartNumber_1 AND a.Ma_Kho = b.Customer
+          LEFT JOIN (
+              SELECT PartNumber_1, Customer, Input, Output
+              FROM WareHouse2
+          ) c ON a.PartNumber_1 = c.PartNumber_1 AND a.Ma_Kho_Misa = c.Customer
+          WHERE a.PO = ?
+          GROUP BY a.PartNumber_1;
+        `;
+        resolve(query);
+      }
+    );
+  });
+};
 
 app.post("/insert-compare-inventory/:id", async (req, res) => {
   const id = req.params.id;
   console.log("Processing insert-compare-inventory for PO:", id);
+
+  // Check if this PO is already being processed
+  if (processingRequests.has(id)) {
+    console.log(`Request for PO ${id} is already being processed, skipping...`);
+    return res.status(409).json({ 
+      error: "Yêu cầu này đang được xử lý. Vui lòng đợi." 
+    });
+  }
+
+  // Add to processing set
+  processingRequests.add(id);
 
   try {
     // First get the Order_Id from Orders table
@@ -1328,8 +1404,19 @@ app.post("/insert-compare-inventory/:id", async (req, res) => {
       });
     });
 
+    // Delete existing records for this order to prevent duplicates
+    await new Promise((resolve, reject) => {
+      db.run("DELETE FROM DetailOrders WHERE Order_Id = ?", [orderId], function (err) {
+        if (err) {
+          return reject(err);
+        }
+        console.log(`Deleted ${this.changes} old rows for order ${orderId}`);
+        resolve();
+      });
+    });
+
     // Get the compare inventory data
-    const query = await getCompareInventory(id);
+    const query = await getDetailPO(id);
     console.log("Generated query:", query);
 
     const rows = await new Promise((resolve, reject) => {
@@ -1352,8 +1439,8 @@ app.post("/insert-compare-inventory/:id", async (req, res) => {
       INSERT INTO DetailOrders (
         Description, Manufacturer_1, PartNumber_1, Manufacturer_2, PartNumber_2, 
         Manufacturer_3, PartNumber_3, So_Luong, SL_Board, Du_Toan_Hao_Phi, 
-        Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, Bom, PO, Order_Id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        Hao_Phi_Thuc_Te, SL_Tồn_Kho, SL_Tồn_Kho_Misa, Ma_Kho, Ma_Kho_Misa, Bom, PO, Order_Id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     let successCount = 0;
@@ -1372,10 +1459,12 @@ app.post("/insert-compare-inventory/:id", async (req, res) => {
             row.PartNumber_3,
             row.So_Luong,
             row.SL_Board,
-            row.Du_Toan_Hao_Phi,
+            row.Dự_Toán_Hao_Phí,
             row.Hao_Phi_Thuc_Te,
-            row.Ma_Kho,
-            row.Ma_Kho_Misa,
+            row.SL_Tồn_Kho,
+            row.SL_Tồn_Kho_Misa,
+            row.Mã_Kho,
+            row.Mã_Kho_Misa,
             row.Bom,
             row.PO,
             orderId,
@@ -1414,6 +1503,9 @@ app.post("/insert-compare-inventory/:id", async (req, res) => {
     res
       .status(500)
       .json({ error: "Không thể tạo truy vấn.", details: err.message });
+  } finally {
+    // Remove from processing set
+    processingRequests.delete(id);
   }
 });
 
@@ -1975,6 +2067,68 @@ app.delete("/Temporary-WareHouse/delete-all", async (req, res) => {
   });
 });
 
+// Router upload file xlsx to WareHouse table
+app.put("/Temporary_WareHouse_2/Update-File", async (req, res) => {
+  try {
+    // Lấy tất cả dữ liệu từ Temporary_WareHouse
+    db.all("SELECT PartNumber_1, Input, Note, Description, Location FROM Temporary_WareHouse_2", [], async (err, rows) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      if (!rows || rows.length === 0) {
+        return res.json({ message: "Không có dữ liệu trong Temporary_WareHouse" });
+      }
+      // Cập nhật từng dòng vào WareHouse
+      for (const row of rows) {
+        await new Promise((resolve, reject) => {
+          db.run(
+            `UPDATE WareHouse2 SET Output = Output + ?, Note_Output = ? WHERE PartNumber_1 = ? AND Description = ? AND Location = ?`,
+            [row.Input || 0, row.Note || '', row.PartNumber_1, row.Description || '', row.Location || ''],
+            function (err) {
+              if (err) reject(err);
+              else resolve();
+            }
+          );
+        });
+      }
+      io.emit("WareHouse2Update");
+      res.json({ message: "Đã cập nhật dữ liệu từ Temporary_WareHouse vào WareHouse thành công" });
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Router delete item in Temporary WareHouse table
+app.delete("/Temporary-WareHouse_2/delete-item/:id", async (req, res) => {
+  const { id } = req.params;
+  // Delete data into SQLite database
+  const query = `DELETE FROM Temporary_WareHouse_2 WHERE id = ?`;
+  db.run(query, [id], function (err) {
+    if (err) {
+      return console.error(err.message);
+    }
+    io.emit("TemporaryWareHouse2Update");
+    // Broadcast the new message to all clients
+    res.json({ message: "Item inserted successfully" });
+  });
+});
+
+// Router delete all in Temporary WareHouse table when already update WareHouse table
+app.delete("/Temporary-WareHouse_2/delete-all", async (req, res) => {
+  const { id } = req.params;
+  // Delete data into SQLite database
+  const query = `DELETE FROM Temporary_WareHouse_2`;
+  db.run(query, [], function (err) {
+    if (err) {
+      return console.error(err.message);
+    }
+    io.emit("TemporaryWareHouseUpdate2");
+    // Broadcast the new message to all clients
+    res.json({ message: "Item inserted successfully" });
+  });
+});
+
 // Router delete item in Orders
 app.delete("/Orders/delete-item/:id", async (req, res) => {
   const { id } = req.params;
@@ -2042,13 +2196,13 @@ app.put("/CheckBom/Update-Hao-Phi", async (req, res) => {
 
 // Router update Hao_Phi_Thuc_Te in CheckBom table
 app.put("/DetailOrders/Update", async (req, res) => {
-  const { Input_Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, PartNumber_1, PO } =
+  const { Input_Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, SL_Ton_Kho, SL_Ton_Kho_Misa, PartNumber_1, PO } =
     req.body;
   // Insert data into SQLite database
-  const query = `UPDATE DetailOrders SET Hao_Phi_Thuc_Te = ?, Ma_Kho = ?, Ma_Kho_Misa = ? WHERE PartNumber_1 = ?`;
+  const query = `UPDATE DetailOrders SET Hao_Phi_Thuc_Te = ?, Ma_Kho = ?, Ma_Kho_Misa = ?, SL_Tồn_Kho = ?, SL_Tồn_Kho_Misa = ? WHERE PartNumber_1 = ? AND PO = ?`;
   db.run(
     query,
-    [Input_Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, PartNumber_1],
+    [Input_Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, SL_Ton_Kho, SL_Ton_Kho_Misa, PartNumber_1, PO],
     function (err) {
       if (err) {
         return console.error(err.message);

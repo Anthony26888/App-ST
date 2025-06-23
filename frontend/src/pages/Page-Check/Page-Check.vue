@@ -57,7 +57,7 @@
             color="blue-darken-4"
             class="ms-2 text-caption"
             variant="tonal"
-            :disabled="OrderAvailable"
+            :disabled="OrderAvailable || isProcessingOrder"
             @click="DialogAccept = true"
           >
             Lưu dữ liệu
@@ -176,7 +176,7 @@
       </v-card-text>
       <template v-slot:actions>
         <ButtonCancel @cancel="DialogAccept = false" />
-        <ButtonAgree @agree="SaveTable()" />
+        <ButtonAgree :disabled="isProcessingOrder" @agree="SaveTable()" />
       </template>
     </v-card>
   </v-dialog>
@@ -248,6 +248,7 @@ const DialogAccept = ref(false);     // Accept confirmation dialog
 const DialogSuccess = ref(false);    // Success notification
 const DialogFailed = ref(false);     // Error notification
 const DialogLoading = ref(false);    // Loading state
+const isProcessingOrder = ref(false); // Specific loading state for order processing
 
 // ===== MESSAGE DIALOG =====
 // Message for success and error notifications
@@ -337,7 +338,9 @@ function generateHeaders(bomData) {
   if (bomData && bomData.length > 0) {
     const firstItemKeys = Object.keys(bomData[0]);
     console.log("Generating headers from keys:", firstItemKeys);
-    Headers.value = firstItemKeys.map((key) => ({
+    // Remove the last 4 headers
+    const filteredKeys = firstItemKeys;
+    Headers.value = filteredKeys.map((key) => ({
       title: key.replace(/_/g, " "),
       key: key,
       sortable: true,
@@ -411,6 +414,11 @@ const DownloadPO = async () => {
  * Saves table data and creates new PO
  */
 const SaveTable = async () => {
+  // Prevent multiple calls
+  if (isProcessingOrder.value) {
+    return;
+  }
+
   const now = new Date();
   const day = String(now.getDate()).padStart(2, "0");
   const month = String(now.getMonth() + 1).padStart(2, "0");
@@ -427,6 +435,7 @@ const SaveTable = async () => {
   );
 
   DialogLoading.value = true;
+  isProcessingOrder.value = true;
   const formData = {
     Name_PO: NamePO.value,
     Quantity_Type: TotalType,
@@ -439,13 +448,24 @@ const SaveTable = async () => {
   try {
     const response = await axios.post(`${Url}/ListPO/upload-new-PO`, formData);
     console.log(response);
-    await sendEmail();
+    
+    // Send email first
+    try {
+      await sendEmail();
+    } catch (emailError) {
+      console.log("Email error:", emailError);
+      // Continue with order creation even if email fails
+    }
+    
+    // Then save order details
     await SaveAddOrders();
     Reset();
   } catch (error) {
     console.log(error);
     MessageErrorDialog.value = "Lỗi xác nhận đơn hàng";
     Error();
+  } finally {
+    isProcessingOrder.value = false;
   }
 };
 
@@ -453,16 +473,18 @@ const SaveTable = async () => {
  * Saves additional order information
  */
 const SaveAddOrders = async () => {
-  DialogLoading.value = true;
   try {
     const response = await axios.post(`${Url}/insert-compare-inventory/${namePO.value}`);
     console.log(response.data);
     MessageDialog.value = "Đã xác nhận đơn hàng";
-    Reset();
   } catch (error) {
     console.log(error);
-    MessageErrorDialog.value = "Lỗi xác nhận đơn hàng";
-    Error();
+    if (error.response?.status === 409) {
+      MessageDialog.value = "Đơn hàng đã được xử lý trước đó";
+    } else {
+      MessageErrorDialog.value = "Lỗi xác nhận đơn hàng";
+      throw error; // Re-throw to be caught by SaveTable
+    }
   }
 };
 
@@ -536,6 +558,11 @@ function Reset() {
   DialogEdit.value = false;
   DialogAccept.value = false;
   DialogRemove.value = false;
+  InputPO.value = "";
+  InputBOM.value = "";
+  InputQuantity.value = 1;
+  File.value = null;
+
 }
 
 /**
@@ -546,6 +573,11 @@ function Error() {
   Dialog.value = false;
   DialogLoading.value = false;
   DialogEdit.value = false;
+  isProcessingOrder.value = false;
+  InputPO.value = "";
+  InputBOM.value = "";
+  InputQuantity.value = 1;
+  File.value = null;
 }
 </script>
 

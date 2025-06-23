@@ -74,8 +74,18 @@
     </v-card>
   </v-dialog>
 
-  <v-dialog v-model="DialogOutput" width="500">
-    <v-card max-width="500" prepend-icon="mdi-update" title="Thêm dữ liệu trừ linh kiện">
+  <v-dialog v-model="DialogOutput" width="600">
+    <v-card max-width="600">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-magnify" color="primary" class="me-2"></v-icon>
+        Thêm dữ liệu trừ linh kiện
+        <v-spacer></v-spacer>
+        <v-btn
+          icon="mdi-close"
+          variant="text"
+          @click="DialogOutput = false"
+        ></v-btn>
+      </v-card-title>
       <v-card-text>
         <div class="d-flex">
           <InputFiles abel="Thêm File Excel trừ linh kiện" v-model="FileOutput" />
@@ -95,7 +105,7 @@
   <v-dialog v-model="DialogPreview" width="1200">
     <v-card max-width="1200">
       <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
+        <v-icon icon="mdi-magnify" color="primary" class="me-2"></v-icon>
         Kiểm tra dữ liệu sẽ trừ
         <v-spacer></v-spacer>
         <v-btn

@@ -57,7 +57,21 @@
             </div>
           </template>
           <template v-slot:item.SL_Tổng="{ value }">
-            {{ value }}
+            <v-chip variant="tonal" color="success" label >
+              {{ value }}
+            </v-chip>
+          </template>
+
+          <template v-slot:item.SL_Tồn_Kho="{ value }">
+            <v-chip variant="tonal" color="primary" v-if="value !== null" label>
+              {{ value }}
+            </v-chip>
+          </template>
+
+          <template v-slot:item.SL_Tồn_Kho_Misa="{ value }">
+            <v-chip variant="tonal" color="warning" v-if="value !== null" label>
+              {{ value }}
+            </v-chip>
           </template>
 
           <template v-slot:item.Số_Lượng_Cần_Mua="{ value }">
@@ -79,8 +93,25 @@
         Cập nhật dữ liệu
       </v-card-title>
       <v-card-text>
-        <InputSelect label="Mã Kho" v-model="Ma_Kho" :items="Customer" />
-        <InputSelect label="Mã Kho Misa" v-model="Ma_Kho_Misa" :items="Customer_Misa" />
+        <v-row>
+          <v-col>
+            <InputSelect label="Mã Kho" v-model="Ma_Kho" :items="Customer" />
+          </v-col>
+          <v-col>
+            <InputField disabled v-model="SL_Ton_Kho"/>
+          </v-col>
+        </v-row>
+
+        <v-row>
+          <v-col>
+            <InputSelect label="Mã Kho Misa" v-model="Ma_Kho_Misa" :items="Customer_Misa" />
+          </v-col>
+          <v-col>
+            <InputField disabled v-model="SL_Ton_Kho_Misa"/>
+          </v-col>
+        </v-row>
+        
+        
         <InputField label="Hao phí thực tế" v-model="ActualCost" />
       </v-card-text>
       <v-card-actions>
@@ -92,7 +123,7 @@
   <v-dialog v-model="DialogAccept" width="400" scrollable>
     <v-card class="overflow-y-auto">
       <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
+        <v-icon icon="mdi-check" color="success" class="me-2"></v-icon>
         Kho xác nhận dữ liệu
       </v-card-title>
       <v-card-text> Bạn có chắc chắn muốn xác nhận dữ liệu? </v-card-text>
@@ -215,6 +246,7 @@ const { users } = useUsers();
 const { compare, compareError, headers } = useDetailOrder(id);
 const { WareHouseFind, WareHouseFindError } = useWareHouseFind(PartNumber_1);
 const { WareHouse2Find, WareHouse2FindError } = useWareHouse2Find(PartNumber_1);
+console.log(compare)
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
@@ -235,6 +267,9 @@ const Ma_Kho = ref("");
 const Ma_Kho_Misa = ref("");
 const Customer = ref([]);
 const Customer_Misa = ref([]);
+const SL_Ton_Kho = ref(0);
+const SL_Ton_Kho_Misa = ref(0);
+
 const UserInfo = ref("");
 const ActualCost = ref("");
 const GetDigikey = ref("");
@@ -311,8 +346,21 @@ watch(
 watch(WareHouseFind, (newData) => {
   if (newData && newData.length > 0) {
     Customer.value = newData.map(item => item.Customer);
+    // Find the stock quantity for the selected warehouse
+    const selectedWarehouse = newData.find((item) => item.Customer === Ma_Kho.value);
+    SL_Ton_Kho.value = selectedWarehouse ? selectedWarehouse.SL_Ton_Kho || 0 : 0;
   }
 }, { immediate: true });
+
+/**
+ * Watch for changes in Ma_Kho to update SL_Ton_Kho
+ */
+watch(Ma_Kho, (newValue) => {
+  if (WareHouseFind.value && WareHouseFind.value.length > 0) {
+    const selectedWarehouse = WareHouseFind.value.find((item) => item.Customer === newValue);
+    SL_Ton_Kho.value = selectedWarehouse ? selectedWarehouse.SL_Ton_Kho || 0 : 0;
+  }
+});
 
 /**
  * Watch for changes in WareHouse2Find data to update Customer_Misa options
@@ -320,8 +368,19 @@ watch(WareHouseFind, (newData) => {
 watch(WareHouse2Find, (newData) => {
   if (newData && newData.length > 0) {
     Customer_Misa.value = newData.map(item => item.Customer);
+    // Find the stock quantity for the selected warehouse
+    const selectedWarehouse2 = newData.find((item) => item.Customer === Ma_Kho_Misa.value);
+    SL_Ton_Kho_Misa.value = selectedWarehouse2 ? selectedWarehouse2.SL_Ton_Kho_Misa || 0 : 0;
   }
 }, { immediate: true });
+
+watch(Ma_Kho_Misa, (newValue) => {
+  if (WareHouse2Find.value && WareHouse2Find.value.length > 0) {
+    const selectedWarehouse2 = WareHouse2Find.value.find((item) => item.Customer === newValue);
+    SL_Ton_Kho_Misa.value = selectedWarehouse2 ? selectedWarehouse2.SL_Ton_Kho_Misa || 0 : 0;
+  }
+});
+
 
 // ===== TABLE OPERATIONS =====
 /**
@@ -331,8 +390,9 @@ watch(WareHouse2Find, (newData) => {
 function generateHeaders(bomData) {
   if (bomData && bomData.length > 0) {
     const firstItemKeys = Object.keys(bomData[0]);
-    console.log("Generating headers from keys:", firstItemKeys);
-    Headers.value = firstItemKeys.map((key) => ({
+        // Remove the last 4 headers
+    const filteredKeys = firstItemKeys;
+    Headers.value = filteredKeys.map((key) => ({
       title: key.replace(/_/g, " "),
       key: key,
       sortable: true,
@@ -353,12 +413,14 @@ function GetItem(value) {
   DialogEdit.value = true;
   GetID.value = value;
   const found = compare.value.find((v) => v.Sửa === value);
+  console.log(value)
   if (found) {
     PartNumber_1.value = found.PartNumber_1;
     ActualCost.value = found.Hao_Phi_Thực_Tế;
     Ma_Kho.value = found.Mã_Kho;
     Ma_Kho_Misa.value = found.Mã_Kho_Misa;
     console.log(found);
+
   }
 }
 
@@ -369,10 +431,12 @@ const SaveEdit = async () => {
   DialogLoading.value = true;
   const formData = {
     Input_Hao_Phi_Thuc_Te: ActualCost.value,
+    SL_Ton_Kho: SL_Ton_Kho.value,
+    SL_Ton_Kho_Misa: SL_Ton_Kho_Misa.value,
     Ma_Kho: Ma_Kho.value,
     Ma_Kho_Misa: Ma_Kho_Misa.value,
     PartNumber_1: PartNumber_1.value,
-    PO: NamePO.value,
+    PO: id,
   };
 
   try {

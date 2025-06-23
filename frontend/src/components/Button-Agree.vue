@@ -1,11 +1,25 @@
 <template lang="">
-  <v-btn class="bg-green text-caption" @click="emitAgree()">Xác nhận</v-btn>
+  <v-btn 
+    class="bg-green text-caption" 
+    :disabled="disabled"
+    @click="emitAgree()"
+  >
+    Xác nhận
+  </v-btn>
 </template>
 <script>
 export default {
+  props: {
+    disabled: {
+      type: Boolean,
+      default: false
+    }
+  },
   methods: {
     emitAgree() {
-      this.$emit("agree"); // Phát sự kiện lên page
+      if (!this.disabled) {
+        this.$emit("agree"); // Phát sự kiện lên page
+      }
     },
   },
 };

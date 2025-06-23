@@ -50,6 +50,8 @@ db.serialize(() => {
       SL_Board TEXT,
       Du_Toan_Hao_Phi INTEGER,
       Hao_Phi_Thuc_Te INTEGER,
+      SL_Tồn_Kho,
+      SL_Tồn_Kho_Misa,
       Ma_Kho TEXT,
       Ma_Kho_Misa TEXT,
       Bom TEXT,

@@ -7,14 +7,8 @@
       <v-card variant="text">
         <v-card-title class="d-flex align-center pe-2">
           <ButtonImportFile @import-file="Dialog = true" />
-          <v-btn
-            prepend-icon="mdi mdi-plus"
-            variant="tonal"
-            color="primary"
-            class="text-caption ms-2"
-            @click="DialogAdd = true"
-            >Thêm</v-btn
-          >
+          <ButtonImportFile color="warning" class="ms-2" @import-file="DialogOutput = true" />
+          <ButtonAdd @click="DialogAdd = true" />
           <ButtonDownload @download-file="DownloadWareHouse()" />
           <p class="ms-2 font-weight-thin text-subtitle-1">
             ( {{ warehouse2.length }} linh kiện)
@@ -57,6 +51,109 @@
       </v-card>
     </v-card-text>
   </v-card>
+
+  <v-dialog v-model="DialogOutput" width="500">
+    <v-card max-width="500">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-magnify" color="primary" class="me-2"></v-icon>
+        Thêm dữ liệu trừ linh kiện
+        <v-spacer></v-spacer>
+        <v-btn
+          icon="mdi-close"
+          variant="text"
+          @click="DialogOutput = false"
+        ></v-btn>
+      </v-card-title>
+      <v-card-text>
+        <div class="d-flex">
+          <InputFiles abel="Thêm File Excel trừ linh kiện" v-model="FileOutput" />
+          <v-btn class="text-caption ms-2 mt-3" variant="tonal" color="primary" prepend-icon="mdi-send" @click="ImportFile_Output()">
+            Gửi File
+          </v-btn>
+        </div>
+        
+      </v-card-text>
+      <template v-slot:actions>
+        <ButtonCancel @cancel="DialogOutput = false" />
+        <v-btn class="text-caption" variant="tonal" color="success" prepend-icon="mdi-map-search-outline" @click="DialogPreview = true">Xem trước</v-btn>
+      </template>
+    </v-card>
+  </v-dialog>
+
+  <v-dialog v-model="DialogPreview" width="1200">
+    <v-card max-width="1200">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
+        Kiểm tra dữ liệu sẽ trừ
+        <v-spacer></v-spacer>
+        <v-btn
+          prepend-icon="mdi-check"
+          color="success"
+          class="text-caption me-2"
+          @click="DialogAgree = true"
+        >
+          Xác nhận
+        </v-btn>
+        <v-btn
+          icon="mdi-close"
+          variant="text"
+          @click="DialogPreview = false"
+        ></v-btn>
+      </v-card-title>
+      <v-card-text class="overflow-auto">
+        <v-data-table
+          :headers="HeadersFile"
+          :items="temporaryWarehouse2"
+          :search="searchFile"
+          :items-per-page="itemsPerPage"
+          v-model:page="page"
+          class="elevation-1"
+          :footer-props="{
+            'items-per-page-options': [10, 20, 50, 100],
+            'items-per-page-text': 'Số hàng mỗi trang',
+          }"
+          :header-props="{
+            sortByText: 'Sắp xếp theo',
+            sortDescText: 'Giảm dần',
+            sortAscText: 'Tăng dần',
+          }"
+          :loading="DialogLoading"
+          loading-text="Đang tải dữ liệu..."
+          no-data-text="Không có dữ liệu"
+          no-results-text="Không tìm thấy kết quả"
+          :hover="true"
+          :dense="false"
+          :fixed-header="true"
+          height="calc(100vh - 320px)"
+        >
+          <template v-slot:bottom>
+            <div class="text-center pt-2">
+              <v-pagination
+                v-model="page"
+                :length="Math.ceil(temporaryWarehouse2.length / itemsPerPage)"
+              ></v-pagination>
+            </div>
+          </template>
+          <template v-slot:item.Status="{ value }">
+            <div>
+              <v-chip
+                :color="value === 'Đã xác minh' ? 'green' : 'warning'"
+                variant="tonal"
+                class="text-caption"
+              >
+                {{ value }}
+              </v-chip>
+            </div>
+          </template>
+          <template v-slot:item.id="{ item }">
+            <div class="d-flex align-center">
+              <ButtonRemove @remove="GetRemove(item)" />
+            </div>
+          </template>
+        </v-data-table>
+      </v-card-text>
+    </v-card>
+  </v-dialog>
 
   <v-dialog v-model="Dialog" width="400">
     <v-card max-width="400" prepend-icon="mdi-update" title="Thêm dữ liệu">
@@ -187,6 +284,48 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
+
+  <v-dialog v-model="DialogRemoveFile" width="400" scrollable>
+    <v-card class="overflow-y-auto">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
+        Xóa linh kiện cần trừ
+      </v-card-title>
+
+      <v-card-text class="pa-4">
+        <div class="text-body-1">
+          Bạn có chắc chắn muốn xóa linh kiện này?
+        </div>
+      </v-card-text>
+
+      <v-card-actions class="pa-4">
+        <v-spacer></v-spacer>
+        <ButtonCancel @cancel="DialogRemoveFile = false" />
+        <ButtonDelete @delete="RemoveItemFile()" class="ms-2" />
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <v-dialog v-model="DialogAgree" width="400" scrollable>
+    <v-card class="overflow-y-auto">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-check" color="success" class="me-2"></v-icon>
+        Xác nhận trừ linh kiện
+      </v-card-title>
+
+      <v-card-text class="pa-4">
+        <div class="text-body-1">
+          Bạn có chắc chắn muốn trừ tồn kho những linh kiện này?
+        </div>
+      </v-card-text>
+
+      <v-card-actions class="pa-4">
+        <v-spacer></v-spacer>
+        <ButtonCancel @cancel="DialogAgree = false" />
+        <ButtonAgree @agree="UpdateFile_Output()" class="ms-2" />
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
   <v-dialog v-model="DialogInfo" width="800">
     <v-card>
       <v-card-title class="d-flex align-center pa-4">
@@ -263,7 +402,7 @@ import { Buffer } from "buffer";
 
 // Composables
 import { useWareHouse2 } from "@/composables/Warehouse/useWareHouse2";
-
+import { useTemporaryWareHouse2 } from "@/composables/Warehouse/useTemporaryWareHouse2";
 // Components
 import ButtonImportFile from "@/components/Button-ImportFile.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
@@ -283,6 +422,7 @@ import Loading from "@/components/Loading.vue";
 // ===== STATE MANAGEMENT =====
 // Initialize composables and router
 const { warehouse2 } = useWareHouse2();
+const { temporaryWarehouse2 } = useTemporaryWareHouse2();
 const router = useRouter();
 
 // API Configuration
@@ -294,6 +434,9 @@ const clientSecret = import.meta.env.VITE_DIGIKEY_CLIENT_SECRET;
 // Control visibility of various dialogs
 const Dialog = ref(false);           // Import file dialog
 const DialogEdit = ref(false);       // Edit item dialog
+const DialogPreview = ref(false)     // Preview table 
+const DialogAgree = ref(false);      // Agree file 
+const DialogOutput = ref(false);     // Import file dialog
 const DialogRemove = ref(false);     // Remove item confirmation dialog
 const DialogSuccess = ref(false);    // Success notification
 const DialogFailed = ref(false);     // Error notification
@@ -328,9 +471,29 @@ const Headers = ref([
   { key: "id", title: "Thao tác" },
 ]);
 
+const HeadersFile = ref([
+  {
+    key: "Description",
+    sortable: false,
+    title: "Mô tả",
+    width: "200px",
+    noWrap: true
+  },
+  { key: "PartNumber_1", title: "Mã hàng", width: "150px", noWrap: true },
+  { key: "Location_1", title: "Vị trí file", width: "100px", noWrap: true },
+  { key: "Location_2", title: "Vị trí kho", width: "100px", noWrap: true },
+  { key: "Status", title: "Trạng thái", width: "100px", noWrap: true },
+  { key: "Input", title: "SL Nhập", noWrap: true },
+  { key: "Inventory", title: "SL Tồn kho", noWrap: true },
+  { key: "Quantity_Amount", title: "SL sau trừ", noWrap: true },
+  { key: "Note", title: "Ghi chú", width: "150px", noWrap: true },
+  { key: "id", title: "Thao tác", noWrap: true },
+]);
+
 // ===== FORM STATES =====
 // File upload state
 const File = ref(null);
+const FileOutput = ref(null);
 
 // Edit form states
 const PartNumber1_Edit = ref("");

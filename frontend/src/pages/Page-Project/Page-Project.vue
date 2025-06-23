@@ -96,6 +96,7 @@
           >
             <v-icon>mdi-magnify</v-icon>Tìm nâng cao</v-btn
           >
+          <ButtonDownload @click="DownloadProject()" />
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
         </v-card-title>
@@ -155,9 +156,11 @@
               <div class="d-flex align-center">
                 <ButtonEye @detail="PushItem(value)" />
                 <ButtonEdit
+                class="ms-2"
                   @edit="GetItem(value)"
                   v-if="LevelUser == 'Admin' || LevelUser == 'Kinh doanh admin'"
                 />
+                <Button-Download-Icon @click="DownloadProjectDetail(value)"></Button-Download-Icon>
               </div>
             </template>
           </v-data-table>
@@ -367,6 +370,7 @@ import InputField from "@/components/Input-Field.vue";
 import InputSelect from "@/components/Input-Select.vue";
 import ButtonImportFile from "@/components/Button-ImportFile.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
+import ButtonDownloadIcon from "@/components/Button-Download-Icon.vue"
 import ButtonEye from "@/components/Button-Eye.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
@@ -386,7 +390,8 @@ const router = useRouter();
 // Initialize composables
 const { project } = useProject();
 const { projectFind } = useProjectFind();
-console.log(projectFind);
+
+console.log(projectFind)
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
@@ -421,7 +426,7 @@ const Headers = ref([
   { key: "Customer", title: "Khách hàng", width: "300" },
   { key: "Status", title: "Trạng thái" },
   { key: "Quantity_PO", title: "Số lượng PO" },
-  { key: "Years", title: "Năm tạo", sortable: true },
+  { key: "Years", title: "Thời gian tạo", sortable: true },
   { key: "id", sortable: false, title: "Thao tác" },
 ]);
 
@@ -610,6 +615,57 @@ const ImportFile = async () => {
   } catch (error) {
     console.log(error);
     MessageErrorDialog.value = "Tải file thất bại";
+    Error();
+  }
+};
+
+/**
+ * Downloads warehouse data as an Excel file
+ */
+ const DownloadProject = async () => {
+  try {
+    const response = await fetch(`${Url}/Project/download`);
+    if (!response.ok) throw new Error("Download failed");
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Dự_án.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error downloading file:", error);
+    MessageErrorDialog.value = "Lỗi tải file";
+    Error();
+  }
+};
+/**
+* /Downloads warehouse data as an Excel file
+ */
+ const DownloadProjectDetail = async (value) => {
+  try {
+    const response = await fetch(`${Url}/Project-Detail/download/${value}`);
+    if (!response.ok) throw new Error("Download failed");
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Chi_tiết_dự_án.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error downloading file:", error);
+    MessageErrorDialog.value = "Lỗi tải file";
     Error();
   }
 };
