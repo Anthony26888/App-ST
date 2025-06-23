@@ -3,8 +3,49 @@
     <v-card-title class="text-h4 font-weight-light"
       >Danh sách đơn hàng
     </v-card-title>
+    <v-card-title>
+      <v-row>
+        <v-col cols="12" sm="4" md="4">
+          <v-card class="rounded-lg" color="primary" variant="tonal">
+            <v-card-text>
+              <div class="text-subtitle-1">Tổng số đơn hàng</div>
+              <div class="text-h4 font-weight-bold">
+                {{ orders?.length || 0 }}
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+        <v-col cols="12" sm="4" md="4">
+          <v-card class="rounded-lg" color="success" variant="tonal">
+            <v-card-text>
+              <div class="text-subtitle-1">Đơn hoàn thành</div>
+              <div class="text-h4 font-weight-bold">
+                {{
+                  orders?.filter((p) => p.Status === '1').length || 0
+                }}
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+        <v-col cols="12" sm="4" md="4">
+          <v-card class="rounded-lg" color="warning" variant="tonal">
+            <v-card-text>
+              <div class="text-subtitle-1">Đơn chưa hoàn thành</div>
+              <div class="text-h4 font-weight-bold">
+                {{
+                  orders?.filter((p) => p.Status === '0').length ||
+                  0
+                }}
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
+    </v-card-title>
     <v-card-title class="d-flex align-center pe-2">
-      <p class="text-subtitle-1 font-weight-thin text-subtitle-1">{{ orders.length }} đơn hàng</p>
+      <p class="text-subtitle-1 font-weight-thin text-subtitle-1">
+        {{ orders.length }} đơn hàng
+      </p>
       <v-spacer></v-spacer>
       <InputSearch v-model="search" />
     </v-card-title>
@@ -17,12 +58,12 @@
         class="elevation-1"
         :footer-props="{
           'items-per-page-options': [10, 20, 50, 100],
-          'items-per-page-text': 'Số hàng mỗi trang'
+          'items-per-page-text': 'Số hàng mỗi trang',
         }"
         :header-props="{
           sortByText: 'Sắp xếp theo',
           sortDescText: 'Giảm dần',
-          sortAscText: 'Tăng dần'
+          sortAscText: 'Tăng dần',
         }"
         :loading="DialogLoading"
         loading-text="Đang tải dữ liệu..."
@@ -31,7 +72,7 @@
         :hover="true"
         :dense="false"
         :fixed-header="true"
-        height="calc(100vh - 200px)"
+        height="calc(100vh - 330px)"
       >
         <template v-slot:item.id="{ value }">
           <div class="d-flex">
@@ -43,9 +84,7 @@
           <div class="text-start">
             <v-chip
               :color="value == 1 ? 'green' : 'red'"
-              :text="
-                value == 1 ? 'Kho đã xác nhận' : 'Chờ kho xác nhận'
-              "
+              :text="value == 1 ? 'Kho đã xác nhận' : 'Chờ kho xác nhận'"
               size="small"
               label
             ></v-chip>
@@ -115,9 +154,9 @@ const router = useRouter();
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
-const DialogRemove = ref(null);    // Remove item confirmation dialog
-const DialogSuccess = ref(null);   // Success notification
-const DialogFailed = ref(null);    // Error notification
+const DialogRemove = ref(null); // Remove item confirmation dialog
+const DialogSuccess = ref(null); // Success notification
+const DialogFailed = ref(null); // Error notification
 
 // ===== MESSAGE DIALOG =====
 // Message for success and error notifications
@@ -154,7 +193,9 @@ function GetItem(value) {
  */
 const RemoveItem = async () => {
   try {
-    const response = await axios.delete(`${Url}/Orders/delete-item/${GetID.value}`);
+    const response = await axios.delete(
+      `${Url}/Orders/delete-item/${GetID.value}`
+    );
     console.log(response);
     MessageDialog.value = "Xoá dữ liệu thành công";
     Reset();
@@ -200,23 +241,31 @@ export default {
           key: "Name_PO",
           title: "Tên dự án",
           width: "200px",
-          noWrap: true
+          noWrap: true,
         },
-        { key: "Quantity_Type", title: "Tổng loại linh kiện", width: "150px", noWrap: true },
-        { key: "Quantity_Items", title: "Tổng linh kiện sử dụng", width: "150px", noWrap: true },
+        {
+          key: "Quantity_Type",
+          title: "Tổng loại linh kiện",
+          width: "150px",
+          noWrap: true,
+        },
+        {
+          key: "Quantity_Items",
+          title: "Tổng linh kiện sử dụng",
+          width: "150px",
+          noWrap: true,
+        },
         { key: "Status", title: "Tình trạng", width: "150px", noWrap: true },
         { key: "Creater", title: "Người tạo", width: "150px", noWrap: true },
         { key: "Date", title: "Ngày tạo", width: "150px", noWrap: true },
-        { title: "", key: "id", sortable: false, width: "100px", noWrap: true }
+        { title: "", key: "id", sortable: false, width: "100px", noWrap: true },
       ],
       search: "",
       itemsPerPage: 10,
       page: 1,
     };
   },
-  methods: {
-    
-  },
+  methods: {},
 };
 </script>
 <style>

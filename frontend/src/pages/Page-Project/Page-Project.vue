@@ -125,7 +125,7 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="calc(100vh - 200px)"
+            height="calc(100vh - 330px)"
           >
             <template v-slot:bottom>
               <div class="text-center pt-2">

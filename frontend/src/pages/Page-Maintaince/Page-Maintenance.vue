@@ -3,6 +3,45 @@
     <v-card-title class="text-h4 font-weight-light"
       >Danh sách bảo trì</v-card-title
     >
+    <v-card-title>
+      <v-row>
+        <v-col cols="12" sm="4" md="4">
+          <v-card class="rounded-lg" color="primary" variant="tonal">
+            <v-card-text>
+              <div class="text-subtitle-1">Tổng số thiết bị</div>
+              <div class="text-h4 font-weight-bold">
+                {{ machine?.length || 0 }}
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+        <v-col cols="12" sm="4" md="4">
+          <v-card class="rounded-lg" color="success" variant="tonal">
+            <v-card-text>
+              <div class="text-subtitle-1">Thiết bị đã bảo trì</div>
+              <div class="text-h4 font-weight-bold">
+                {{
+                  project?.filter((p) => p.Status === "Hoàn thành").length || 0
+                }}
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+        <v-col cols="12" sm="4" md="4">
+          <v-card class="rounded-lg" color="warning" variant="tonal">
+            <v-card-text>
+              <div class="text-subtitle-1">Thiết bị chưa bảo trì</div>
+              <div class="text-h4 font-weight-bold">
+                {{
+                  project?.filter((p) => p.Status === "Đang sản xuất").length ||
+                  0
+                }}
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
+    </v-card-title>
     <v-card-text>
       <v-card variant="text">
         <v-card-title class="d-flex align-center pe-2">
@@ -45,7 +84,7 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="calc(100vh - 200px)"
+            height="calc(100vh - 330px)"
           >
             <template v-slot:bottom>
               <div class="text-center pt-2">
