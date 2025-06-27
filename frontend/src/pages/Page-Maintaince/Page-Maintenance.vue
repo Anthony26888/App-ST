@@ -21,7 +21,7 @@
               <div class="text-subtitle-1">Thiết bị đã bảo trì</div>
               <div class="text-h4 font-weight-bold">
                 {{
-                  project?.filter((p) => p.Status === "Hoàn thành").length || 0
+                  machine?.filter((p) => p.Status === "Chưa tới hạn").length || 0
                 }}
               </div>
             </v-card-text>
@@ -33,7 +33,7 @@
               <div class="text-subtitle-1">Thiết bị chưa bảo trì</div>
               <div class="text-h4 font-weight-bold">
                 {{
-                  project?.filter((p) => p.Status === "Đang sản xuất").length ||
+                  machine?.filter((p) => p.Status === "Cần bảo trì").length ||
                   0
                 }}
               </div>
@@ -94,10 +94,10 @@
                 ></v-pagination>
               </div>
             </template>
-            <template v-slot:item.SoNgayConLai="{ value }">
+            <template v-slot:item.Status="{ value }">
               <div>
                 <v-chip
-                  v-if="value > 15"
+                  v-if="value == 'Chưa tới hạn'"
                   color="green"
                   text="Chưa đến hạn"
                   size="small"
@@ -254,6 +254,7 @@ const router = useRouter();
 
 // Initialize composables
 const { machine } = useMachine();
+console.log(machine)
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
@@ -307,7 +308,7 @@ const Headers = [
   { title: "Ngày mua", key: "NgayMua" },
   { title: "Vị trí", key: "ViTri" },
   { title: "Mô tả", key: "MoTa" },
-  { title: "Bảo trì định kỳ", key: "SoNgayConLai" },
+  { title: "Trạng thái", key: "Status" },
   { title: "Thao tác", key: "MaThietBi", sortable: false },
 ];
 

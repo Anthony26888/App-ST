@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const multer = require("multer");
 const xlsx = require("xlsx");
+const pdfParse = require("pdf-parse");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const path = require("path");
@@ -27,6 +28,7 @@ const upload = multer({ storage: storage });
 app.post("/upload", upload.single("file"), (req, res) => {
   if (!req.file) return res.status(400).send("No file uploaded.");
   const { PO, BOM, SL_Board, Creater, TimeStamp } = req.body;
+  console.log(req.file)
   // Read Excel file
   const filePath = path.join(__dirname, req.file.path);
   const workbook = xlsx.readFile(filePath);
@@ -239,92 +241,12 @@ app.post("/Project/upload", upload.single("file"), async (req, res) => {
   }
 });
 
-// const getPivotQuery = async (id) => {
-//   return new Promise((resolve, reject) => {
-//     db.all(
-//       `SELECT DISTINCT Bom FROM CheckBOM WHERE PO= ?`,
-//       [id],
-//       (err, Boms) => {
-//         if (err) return reject(err);
 
-//         // Create dynamic column aggregation
-//         const columns = Boms.map(
-//           (Boms) =>
-//             `SUM(CASE WHEN Bom = '${Boms.Bom}' THEN (So_Luong * SL_Board) ELSE 0 END) AS [${Boms.Bom}]`
-//         ).join(", ");
 
-//         // Full SQL query
-//         const query = `
-//           SELECT 
-//             Description, 
-//             Manufacturer_1,
-//             PartNumber_1,
-//             Manufacturer_2,
-//             PartNumber_2,
-//             Manufacturer_3,
-//             PartNumber_3,  
-//             ${columns},
-//             IFNULL(SUM(So_Luong * SL_Board), 0) AS SL_Tổng,
-//             IFNULL(SUM(SL_Board), 0) AS SL_Board
-//           FROM CheckBOM
-//           WHERE PO = ?
-//           GROUP BY PartNumber_1;
-//         `;
-//         resolve(query);
-//       }
-//     );
-//   });
-// };
+// Upload file và đặt câu hỏi
 
-// const getCompareInventory = async (id) => {
-//   return new Promise((resolve, reject) => {
-//     db.all(
-//       `SELECT DISTINCT Bom FROM CheckBOM WHERE PO = ?`,
-//       [id],
-//       (err, Boms) => {
-//         if (err) return reject(err);
 
-//         // Create dynamic column aggregation
-//         const columns = Boms.map(
-//           (Boms) =>
-//             `SUM(CASE WHEN c.Bom = '${Boms.Bom}' THEN (c.So_Luong * c.SL_Board) ELSE 0 END) AS [${Boms.Bom}]`
-//         ).join(", ");
-//         const Buy = `
-//           CASE 
-//             WHEN (SUM(c.So_Luong * c.SL_Board) + SUM(IFNULL(c.Du_Toan_Hao_Phi, 0))) > IFNULL(i.Inventory, 0) 
-//             THEN (SUM(c.So_Luong * c.SL_Board) + SUM(IFNULL(c.Du_Toan_Hao_Phi, 0)) - IFNULL(i.Inventory, 0)) 
-//             ELSE 0 
-//           END AS SL_Cần_Mua
-//         `;
-//         // Full SQL query
-//         const query = `
-//           SELECT 
-//             c.Description, 
-//             c.Manufacturer_1,
-//             c.PartNumber_1,
-//             c.Manufacturer_2,
-//             c.PartNumber_2,
-//             c.Manufacturer_3,
-//             c.PartNumber_3,  
-//             ${columns},
-//             SUM(c.So_Luong * c.SL_Board) AS SL_Tổng,
-//             IFNULL(c.SL_Board, 0) AS SL_Board,
-//             IFNULL(c.Du_Toan_Hao_Phi, 0) AS Dự_Toán_Hao_Phí,
-//             IFNULL(c.Hao_Phi_Thuc_Te, 0) AS Hao_Phí_Thực_Tế,
-//             IFNULL(i.Inventory, 0) AS SL_Tồn_Kho,
-//             ${Buy},
-//             c.id AS id
-//           FROM CheckBOM c
-//           LEFT JOIN WareHouse i 
-//             ON c.PartNumber_1 = i.PartNumber_1 
-//           WHERE c.PO = ?
-//           GROUP BY c.PartNumber_1;
-//         `;
-//         resolve(query);
-//       }
-//     );
-//   });
-// };
+
 
 // Route to fetch all check boms
 app.get("/CheckBom/:id", async (req, res) => {
@@ -547,37 +469,77 @@ app.get("/Download-Order/:id", async (req, res) => {
 // 📥 API to Download Project as XLSX
 app.get("/Project/download", async (req, res) => {
   try {
-    const query = `SELECT 
-                    a.CustomerName AS Tên_khách_hàng,
-                    b.PONumber,
-                    b.DateCreated AS Ngày_tạo_PO,
-                    b.DateDelivery AS Ngày_chuyển_PO,
-                    c.ProductDetail AS Tên_đơn_hàng,
-                    CASE
-                      WHEN c.QuantityAmount  =  0  THEN 'Hoàn thành'
-                      WHEN c.QuantityAmount > 0 THEN 'Đang sản xuất'
-                      ELSE 'Chưa có đơn hàng'
-                    END AS Trạng_thái
-                  FROM Customers a
-                  LEFT JOIN PurchaseOrders b ON a.id = b.CustomerID
-                  LEFT JOIN ProductDetails c ON b.id = c.POID`;
-    db.all(query, [], (err, rows) => {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-      // Convert data to worksheet
-      const ws = xlsx.utils.json_to_sheet(rows);
-      const wb = xlsx.utils.book_new();
-      xlsx.utils.book_append_sheet(wb, ws, `Dự_án`);
+    const query = `
+      SELECT 
+        a.CustomerName AS Tên_khách_hàng,
+        b.PONumber,
+        b.DateCreated AS Ngày_tạo_PO,
+        b.DateDelivery AS Ngày_chuyển_PO,
+        c.ProductDetail AS Tên_đơn_hàng,
+        c.QuantityProduct AS SL_Tổng,
+        c.QuantityDelivered AS SL_Chuyển,
+        c.QuantityAmount AS SL_Nợ,
+        CASE
+          WHEN c.QuantityAmount = 0 THEN 'Hoàn thành'
+          WHEN c.QuantityAmount > 0 THEN 'Đang sản xuất'
+          ELSE 'Chưa có đơn hàng'
+        END AS Trạng_thái
+      FROM Customers a
+      LEFT JOIN PurchaseOrders b ON a.id = b.CustomerID
+      LEFT JOIN ProductDetails c ON b.id = c.POID
+      ORDER BY a.CustomerName, b.PONumber`;
 
-      // Save the file temporarily
-      const filePath = path.join(__dirname, `Dự_án.xlsx`);
+    db.all(query, [], (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+
+      const wb = xlsx.utils.book_new();
+      const sheetData = [];
+
+      // ➕ Tiêu đề
+      sheetData.push(["DANH SÁCH DỰ ÁN THEO KHÁCH HÀNG"]);
+      sheetData.push([]);
+
+      let currentCustomer = "";
+      let currentPO = "";
+
+      rows.forEach((row) => {
+        const customer = row["Tên_khách_hàng"];
+        const po = row.PONumber;
+
+        if (customer !== currentCustomer) {
+          currentCustomer = customer;
+          currentPO = "";
+
+          sheetData.push([`Tên khách hàng: ${customer}`]);
+        }
+
+        if (po !== currentPO) {
+          currentPO = po;
+          sheetData.push([
+            `  PONumber: ${row.PONumber}`,
+            `Ngày tạo: ${row["Ngày_tạo_PO"]}`,
+            `Ngày chuyển: ${row["Ngày_chuyển_PO"]}`
+          ]);
+        }
+
+        sheetData.push([
+          `    - ${row["Tên_đơn_hàng"]}`,
+          `SL Tổng: ${row["SL_Tổng"]}`,
+          `SL Chuyển: ${row["SL_Chuyển"]}`,
+          `SL Nợ: ${row["SL_Nợ"]}`,
+          `Trạng thái: ${row["Trạng_thái"]}`
+        ]);
+      });
+
+      const ws = xlsx.utils.aoa_to_sheet(sheetData);
+      xlsx.utils.book_append_sheet(wb, ws, "Dự_án");
+
+      const filePath = path.join(__dirname, "Du_an_theo_customer.xlsx");
       xlsx.writeFile(wb, filePath);
 
-      // Send the file to the client
-      res.download(filePath, `Dự_án.xlsx`, (err) => {
-        if (err) console.error("Error sending file:", err);
-        fs.unlinkSync(filePath); // Delete after sending
+      res.download(filePath, "Du_an_theo_customer.xlsx", (err) => {
+        if (err) console.error("Lỗi gửi file:", err);
+        fs.unlinkSync(filePath);
       });
     });
   } catch (error) {
@@ -585,45 +547,78 @@ app.get("/Project/download", async (req, res) => {
   }
 });
 
+
 // 📥 API to Download Project detail as XLSX
 app.get("/Project-Detail/download/:id", async (req, res) => {
   const { id } = req.params;
   try {
-    const query = `SELECT 
-                      a.CustomerName AS Tên_khách_hàng,
-                      b.PONumber AS Số_PO,
-                      b.DateCreated AS Ngày_tạo_PO,
-                      b.DateDelivery AS Ngày_chuyển_PO,
-                      c.ProductDetail AS Tên_đơn_hàng,
-                      c.QuantityProduct AS SL_Tổng,
-                      c.QuantityDelivered AS SL_Chuyển,
-                      c.QuantityAmount AS SL_Nợ,
-                      CASE
-                        WHEN c.QuantityAmount  =  0  THEN 'Hoàn thành'
-                        WHEN c.QuantityAmount > 0 THEN 'Đang sản xuất'
-                        ELSE 'Chưa có đơn hàng'
-                      END AS Trạng_thái
-                    FROM Customers a
-                    LEFT JOIN PurchaseOrders b ON a.id = b.CustomerID
-                    LEFT JOIN ProductDetails c ON a.id = c.CustomerID
-                    WHERE a.id = ?`;
-    db.all(query, [id], (err, rows) => {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-      // Convert data to worksheet
-      const ws = xlsx.utils.json_to_sheet(rows);
-      const wb = xlsx.utils.book_new();
-      xlsx.utils.book_append_sheet(wb, ws, `Chi_tiết_dự_án`);
+    const query = `
+      SELECT 
+        a.CustomerName AS Tên_khách_hàng,
+        b.PONumber AS Số_PO,
+        b.DateCreated AS Ngày_tạo_PO,
+        b.DateDelivery AS Ngày_chuyển_PO,
+        c.ProductDetail AS Tên_đơn_hàng,
+        c.QuantityProduct AS SL_Tổng,
+        c.QuantityDelivered AS SL_Chuyển,
+        c.QuantityAmount AS SL_Nợ,
+        CASE
+          WHEN c.QuantityAmount = 0 THEN 'Hoàn thành'
+          WHEN c.QuantityAmount > 0 THEN 'Đang sản xuất'
+          ELSE 'Chưa có đơn hàng'
+        END AS Trạng_thái
+      FROM Customers a
+      LEFT JOIN PurchaseOrders b ON a.id = b.CustomerID
+      LEFT JOIN ProductDetails c ON b.id = c.POID
+      WHERE a.id = ?
+      ORDER BY b.PONumber`;
 
-      // Save the file temporarily
-      const filePath = path.join(__dirname, `Chi_tiết_dự_án.xlsx`);
+    db.all(query, [id], (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+
+      const sheetData = [];
+
+      if (rows.length === 0) {
+        sheetData.push(["Không có dữ liệu cho khách hàng này."]);
+      } else {
+        const customerName = rows[0]["Tên_khách_hàng"];
+        sheetData.push(["", "", `CHI TIẾT DỰ ÁN CỦA KHÁCH HÀNG: ${customerName.toUpperCase()}`]);
+        sheetData.push([]);
+
+        let currentPO = "";
+
+        rows.forEach((row, index) => {
+          const po = row["Số_PO"];
+
+          if (po !== currentPO) {
+            currentPO = po;
+            sheetData.push([
+              `Số PO: ${row["Số_PO"]}`,
+              `Ngày tạo: ${row["Ngày_tạo_PO"]}`,
+              `Ngày chuyển: ${row["Ngày_chuyển_PO"]}`
+            ]);
+          }
+
+          sheetData.push([
+            `  - ${row["Tên_đơn_hàng"]}`,
+            `SL Tổng: ${row["SL_Tổng"]}`,
+            `SL Chuyển: ${row["SL_Chuyển"]}`,
+            `SL Nợ: ${row["SL_Nợ"]}`,
+            `Trạng thái: ${row["Trạng_thái"]}`
+          ]);
+        });
+      }
+
+      const wb = xlsx.utils.book_new();
+      const ws = xlsx.utils.aoa_to_sheet(sheetData);
+      xlsx.utils.book_append_sheet(wb, ws, "Chi_tiết_dự_án");
+
+      const filePath = path.join(__dirname, "Chi_tiet_du_an.xlsx");
       xlsx.writeFile(wb, filePath);
 
-      // Send the file to the client
-      res.download(filePath, `Chi_tiết_dự_án.xlsx`, (err) => {
-        if (err) console.error("Error sending file:", err);
-        fs.unlinkSync(filePath); // Delete after sending
+      res.download(filePath, "Chi_tiet_du_an.xlsx", (err) => {
+        if (err) console.error("Lỗi gửi file:", err);
+        fs.unlinkSync(filePath);
       });
     });
   } catch (error) {

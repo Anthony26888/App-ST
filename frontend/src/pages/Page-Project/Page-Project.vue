@@ -156,11 +156,13 @@
               <div class="d-flex align-center">
                 <ButtonEye @detail="PushItem(value)" />
                 <ButtonEdit
-                class="ms-2"
+                  class="ms-2"
                   @edit="GetItem(value)"
                   v-if="LevelUser == 'Admin' || LevelUser == 'Kinh doanh admin'"
                 />
-                <Button-Download-Icon @click="DownloadProjectDetail(value)"></Button-Download-Icon>
+                <Button-Download-Icon
+                  @click="DownloadProjectDetail(value)"
+                ></Button-Download-Icon>
               </div>
             </template>
           </v-data-table>
@@ -288,7 +290,11 @@
             >
           </v-col>
           <v-col cols="3">
-            <InputSearch variant="solo-filled" density="comfortable" v-model="searchFind" />
+            <InputSearch
+              variant="solo-filled"
+              density="comfortable"
+              v-model="searchFind"
+            />
           </v-col>
         </v-row>
       </v-card-title>
@@ -345,13 +351,24 @@
           </template>
           <template v-slot:item.id="{ item }">
             <div class="d-flex align-center">
-              <ButtonEye @detail="PushItemFind(item.id, item.POID, item.ProductID, item.CustomerName, item.PONumber)" />
+              <ButtonEye
+                @detail="
+                  PushItemFind(
+                    item.id,
+                    item.POID,
+                    item.ProductID,
+                    item.CustomerName,
+                    item.PONumber
+                  )
+                "
+              />
             </div>
           </template>
         </v-data-table>
       </v-card-text>
     </v-card>
   </v-dialog>
+  <ButtonAI :tableNames="['Customers', 'PurchaseOrders', 'ProductDetails']"></ButtonAI>
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
@@ -370,8 +387,9 @@ import InputField from "@/components/Input-Field.vue";
 import InputSelect from "@/components/Input-Select.vue";
 import ButtonImportFile from "@/components/Button-ImportFile.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
-import ButtonDownloadIcon from "@/components/Button-Download-Icon.vue"
+import ButtonDownloadIcon from "@/components/Button-Download-Icon.vue";
 import ButtonEye from "@/components/Button-Eye.vue";
+import ButtonAI from "@/components/Button-AI.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
@@ -391,7 +409,7 @@ const router = useRouter();
 const { project } = useProject();
 const { projectFind } = useProjectFind();
 
-console.log(projectFind)
+console.log(projectFind);
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
@@ -471,8 +489,12 @@ const filteredProjectFind = computed(() => {
     const deliveryDate = new Date(item.Date_Delivery_PO);
     const start = startDate.value ? new Date(startDate.value) : null;
     const end = endDate.value ? new Date(endDate.value) : null;
-    const startDelivery = startDateDelivery.value ? new Date(startDateDelivery.value) : null;
-    const endDelivery = endDateDelivery.value ? new Date(endDateDelivery.value) : null;
+    const startDelivery = startDateDelivery.value
+      ? new Date(startDateDelivery.value)
+      : null;
+    const endDelivery = endDateDelivery.value
+      ? new Date(endDateDelivery.value)
+      : null;
 
     if (start && projectDate < start) return false;
     if (end && projectDate > end) return false;
@@ -622,7 +644,7 @@ const ImportFile = async () => {
 /**
  * Downloads warehouse data as an Excel file
  */
- const DownloadProject = async () => {
+const DownloadProject = async () => {
   try {
     const response = await fetch(`${Url}/Project/download`);
     if (!response.ok) throw new Error("Download failed");
@@ -645,9 +667,9 @@ const ImportFile = async () => {
   }
 };
 /**
-* /Downloads warehouse data as an Excel file
+ * /Downloads warehouse data as an Excel file
  */
- const DownloadProjectDetail = async (value) => {
+const DownloadProjectDetail = async (value) => {
   try {
     const response = await fetch(`${Url}/Project-Detail/download/${value}`);
     if (!response.ok) throw new Error("Download failed");
@@ -717,4 +739,5 @@ export default {
   methods: {},
 };
 </script>
-<style lang=""></style>
+<style scoped>
+</style>

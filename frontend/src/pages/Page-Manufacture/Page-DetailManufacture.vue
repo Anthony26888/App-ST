@@ -678,6 +678,7 @@ const { manufactureDetails, connectionStatus } = useManufactureDetails(id);
 const { manufacture, manufactureFound, manufactureError, isConnected } =
   useManufacture();
 const { history, historyError, refresh } = useHistory(id);
+console.log(manufactureDetails)
 // Dialog
 const DialogSuccess = ref(false);
 const DialogLoading = ref(false);

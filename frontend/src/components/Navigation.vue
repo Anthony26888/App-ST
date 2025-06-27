@@ -273,6 +273,13 @@ const menuItems = computed(() => [
     disabled: StatusOption_6.value,
   },
   {
+    icon: "mdi-robot-confused-outline",
+    title: "Trợ lí AI",
+    value: "AI",
+    to: "/AI-Chatbox",
+    disabled: StatusOption_9.value,
+  },
+  {
     icon: "mdi-cog",
     title: "Cài đặt",
     value: "Setting",

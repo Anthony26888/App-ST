@@ -15,10 +15,17 @@ const { Server } = require("socket.io");
 const { send } = require("process");
 const { SerialPort } = require("serialport");
 const { ReadlineParser } = require("@serialport/parser-readline");
+const pdfParse = require("pdf-parse");
+const fs = require("fs");
+const sqlite3 = require("sqlite3");
+const sqlite = require("sqlite");
+const { createParser } = require("eventsource-parser");
 
 // Add processing flags at the top of the file
 const processingRequests = new Set();
 
+const GROQ_API_KEY = "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";
+const sessions = {}; // lưu theo socket.id
 // Khởi tạo Express và Socket.IO
 const PORT = 3000;
 app.use(cors());
@@ -49,6 +56,7 @@ const userProjects = new Map();
 // Khi client kết nối
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
+  if (!sessions[socket.id]) sessions[socket.id] = [];
   socket.on("getCompare", async (id) => {
     try {
       const query = await getCompareWareHouse(id);
@@ -205,7 +213,6 @@ io.on("connection", (socket) => {
         socket.emit("TemporaryWareHouseError", error);
       }
     }),
-
     socket.on("getTemporaryWareHouse2", async () => {
       try {
         const query = `SELECT 
@@ -351,7 +358,7 @@ io.on("connection", (socket) => {
                         END AS Status,
                         o.QuantityProduct AS Quantity_Product, 
                         IFNULL(c.Total_Output, 0) AS Quantity_Delivered, 
-                        IFNULL(o.QuantityProduct - c.Total_Output, 0) AS Quantity_Amount,
+                        IFNULL(o.QuantityProduct - o.QuantityDelivered, 0) AS Quantity_Amount,
                         o.Note AS Note 
                       FROM ProductDetails o 
                       LEFT JOIN PurchaseOrders p ON o.POID = p.id 
@@ -399,12 +406,23 @@ io.on("connection", (socket) => {
     }),
     socket.on("getMachine", async () => {
       try {
-        const query = `SELECT a.MaThietBi, a.TenThietBi, a.LoaiThietBi, a.NhaSanXuat, a.NgayMua, a.ViTri, a.MoTa, CAST((julianday(b.NgayBaoTriTiepTheo) - julianday('now')) AS INTEGER) AS SoNgayConLai
+        const query = `SELECT 
+                        a.MaThietBi, 
+                        a.TenThietBi, 
+                        a.LoaiThietBi, 
+                        a.NhaSanXuat, 
+                        a.NgayMua, 
+                        a.ViTri, 
+                        a.MoTa, 
+                        CASE
+                          WHEN CAST((julianday(b.NgayBaoTriTiepTheo) - julianday('now')) AS INTEGER) > 15 THEN 'Chưa tới hạn'
+                          ELSE 'Cần bảo trì'
+                        END AS Status
                       FROM Machine a 
                       LEFT JOIN MaintenanceSchedule b 
                       ON a.MaThietBi = b.MaThietBi
                       GROUP BY TenThietBi 
-                      ORDER BY SoNgayConLai ASC`;
+                      ORDER BY Status ASC`;
         db.all(query, [], (err, rows) => {
           if (err) return socket.emit("MachineError", err);
           socket.emit("MachineData", rows);
@@ -497,7 +515,6 @@ io.on("connection", (socket) => {
                           h.Name_Order,
                           SUM(IFNULL(b.SMT, 0)) AS SMT,
                           SUM(IFNULL(c.AOI, 0)) AS AOI,
-                          SUM(IFNULL(d.RW, 0)) AS RW,
                           SUM(IFNULL(e.IPQC, 0)) AS IPQC,
                           SUM(IFNULL(f.Assembly, 0)) AS Assembly,
                           SUM(IFNULL(g.OQC, 0)) AS OQC,
@@ -554,12 +571,6 @@ io.on("connection", (socket) => {
 						              WHERE Status = 'ok'
                           GROUP BY HistoryID
                       ) c ON a.id = c.HistoryID
-                      LEFT JOIN (
-                          SELECT HistoryID, COUNT(*) AS RW 
-                          FROM ManufactureRW 
-						              WHERE Status = 'ok'
-                          GROUP BY HistoryID
-                      ) d ON a.id = d.HistoryID
                       LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS IPQC 
                           FROM ManufactureIPQC 
@@ -1179,11 +1190,644 @@ io.on("connection", (socket) => {
         socket.emit("HistoryError", error);
       }
     }),
-    socket.on("disconnect", () => {
-      console.log("Client disconnected:", socket.id);
-    });
-});
+    socket.on("user_message", async (msg) => {
+      const history = sessions[socket.id];
 
+      // ✅ Ưu tiên nếu prompt chứa từ khóa tóm tắt → chạy SQL đặc biệt
+      if (
+        history.length === 0 &&
+        /summary|Tóm tắt tình hình sản xuất hôm nay|thống kê tình hình sản xuất hôm nay|báo cáo|Báo cáo sản xuất/i.test(
+          msg
+        )
+      ) {
+        const db = await sqlite.open({
+          filename: "database.db",
+          driver: sqlite3.Database,
+        });
+
+        const summarySQL = `
+          SELECT 
+            a.id,
+            z.id AS PlanID,
+            a.Type,
+            a.PONumber,
+            z.Name_Order,
+            a.Category,
+            a.Quantity_Plan,
+            a.CycleTime_Plan,
+            a.Time_Plan,
+            a.Created_At,
+            CASE
+              WHEN a.Type = 'SMT' THEN IFNULL(b.SMT, 0)
+              WHEN a.Type = 'AOI' THEN IFNULL(c.AOI, 0)
+              WHEN a.Type = 'Assembly' THEN IFNULL(f.Assembly, 0)
+              WHEN a.Type = 'IPQC (Hàn tay)' THEN IFNULL(e.IPQC, 0)
+              WHEN a.Type = 'OQC' THEN IFNULL(g.OQC, 0)
+              WHEN a.Type = 'IPQC (SMT)' THEN IFNULL(h.IPQCSMT, 0)
+              WHEN a.Type = 'Test 1' THEN IFNULL(j.Test1, 0)
+              WHEN a.Type = 'Test 2' THEN IFNULL(k.Test2, 0)
+              WHEN a.Type = 'Box Build' THEN IFNULL(m.BoxBuild, 0)
+              WHEN a.Type = 'Nhập kho' THEN IFNULL(n.Warehouse, 0)
+              ELSE 0
+            END AS Quantity_Real,
+            CASE 
+              WHEN a.Quantity_Plan > 0 THEN 
+                CASE
+                  WHEN a.Type = 'SMT' THEN (IFNULL(b.SMT, 0) * 100.0) / a.Quantity_Plan
+                  WHEN a.Type = 'AOI' THEN (IFNULL(c.AOI, 0) * 100.0) / a.Quantity_Plan
+                  WHEN a.Type = 'Assembly' THEN (IFNULL(f.Assembly, 0) * 100.0) / a.Quantity_Plan
+                  WHEN a.Type = 'IPQC (Hàn tay)' THEN (IFNULL(e.IPQC, 0) * 100.0) / a.Quantity_Plan
+                  WHEN a.Type = 'OQC' THEN (IFNULL(g.OQC, 0) * 100.0) / a.Quantity_Plan
+                  WHEN a.Type = 'IPQC (SMT)' THEN (IFNULL(h.IPQCSMT, 0) * 100.0) / a.Quantity_Plan
+                  WHEN a.Type = 'Test 1' THEN (IFNULL(j.Test1, 0) * 100.0) / a.Quantity_Plan
+                  WHEN a.Type = 'Test 2' THEN (IFNULL(k.Test2, 0) * 100.0) / a.Quantity_Plan
+                  WHEN a.Type = 'Box Build' THEN (IFNULL(m.BoxBuild, 0) * 100.0) / a.Quantity_Plan
+                  WHEN a.Type = 'Nhập kho' THEN (IFNULL(n.Warehouse, 0) * 100.0) / a.Quantity_Plan
+                  ELSE 0
+                END
+              ELSE 0
+            END AS Percent
+          FROM Summary a
+          LEFT JOIN (SELECT id, Name_Order FROM PlanManufacture) z ON a.PlanID = z.id
+          LEFT JOIN (SELECT HistoryID, COUNT(id) AS SMT FROM ManufactureSMT GROUP BY HistoryID) b ON a.id = b.HistoryID
+          LEFT JOIN (SELECT HistoryID, COUNT(id) AS AOI FROM ManufactureAOI WHERE Status = 'ok' GROUP BY HistoryID) c ON a.id = c.HistoryID
+          LEFT JOIN (SELECT HistoryID, COUNT(id) AS IPQC FROM ManufactureIPQC WHERE Status = 'ok' GROUP BY HistoryID) e ON a.id = e.HistoryID
+          LEFT JOIN (SELECT HistoryID, COUNT(id) AS Assembly FROM ManufactureAssembly WHERE Status = 'ok' GROUP BY HistoryID) f ON a.id = f.HistoryID
+          LEFT JOIN (SELECT HistoryID, COUNT(id) AS OQC FROM ManufactureOQC WHERE Status = 'ok' GROUP BY HistoryID) g ON a.id = g.HistoryID
+          LEFT JOIN (SELECT HistoryID, COUNT(id) AS IPQCSMT FROM ManufactureIPQCSMT WHERE Status = 'ok' GROUP BY HistoryID) h ON a.id = h.HistoryID
+          LEFT JOIN (SELECT HistoryID, COUNT(id) AS Test1 FROM ManufactureTest1 WHERE Status = 'ok' GROUP BY HistoryID) j ON a.id = j.HistoryID
+          LEFT JOIN (SELECT HistoryID, COUNT(id) AS Test2 FROM ManufactureTest2 WHERE Status = 'ok' GROUP BY HistoryID) k ON a.id = k.HistoryID
+          LEFT JOIN (SELECT HistoryID, COUNT(id) AS BoxBuild FROM ManufactureBoxBuild WHERE Status = 'ok' GROUP BY HistoryID) m ON a.id = m.HistoryID
+          LEFT JOIN (SELECT HistoryID, COUNT(id) AS Warehouse FROM ManufactureWarehouse WHERE Status = 'ok' GROUP BY HistoryID) n ON a.id = n.HistoryID
+          WHERE a.Created_At LIKE ?`;
+
+        let rows = [];
+        try {
+          const currentDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+          rows = await db.all(summarySQL, [`${currentDate}%`]); // dùng LIKE nếu có giờ phút giây
+          if (!rows.length) {
+            socket.emit(
+              "ai_error",
+              `📊 Không có dữ liệu sản xuất cho ngày ${currentDate}.`
+            );
+            return;
+          }
+        } catch (e) {
+          socket.emit(
+            "ai_error",
+            "Lỗi khi thực hiện truy vấn summary: " + e.message
+          );
+          return;
+        }
+
+        const content = rows
+          .map((r, i) => `${i + 1}. ${JSON.stringify(r)}`)
+          .join("\n");
+
+        history.push({
+          role: "system",
+          content: `📋 Bạn là trợ lý AI đang thực hiện **tóm tắt tình hình sản xuất** cho ngày hôm nay (${new Date().toLocaleDateString(
+            "vi-VN"
+          )}).\nDữ liệu:\n${content}`,
+        });
+      }
+
+      // ✅ Ưu tiên nếu prompt chứa từ khóa tóm tắt → chạy SQL đặc biệt
+      if (
+        history.length === 0 &&
+        /project|dự án|khách hàng|Số PO|PO|dự án đang sản xuất|dự án đã hoàn thành|đang sản xuất|hoàn thành/i.test(
+          msg
+        )
+      ) {
+        const db = await sqlite.open({
+          filename: "database.db",
+          driver: sqlite3.Database,
+        });
+
+        // 🔍 Trạng thái (nếu có)
+        let statusFilter = null;
+        if (/đang sản xuất/i.test(msg)) {
+          statusFilter = "Đang sản xuất";
+        } else if (/đã hoàn thành|hoàn thành/i.test(msg)) {
+          statusFilter = "Hoàn thành";
+        }
+
+        // 🔍 Ngày (nếu có)
+        const dateRangeMatch = msg.match(
+          /từ ngày (\d{4}-\d{2}-\d{2}) đến (ngày )?(\d{4}-\d{2}-\d{2})/i
+        );
+        let dateCondition = "";
+        let dateParams = [];
+        if (dateRangeMatch) {
+          const fromDate = dateRangeMatch[1];
+          const toDate = dateRangeMatch[3];
+          dateCondition = `AND Date_Created_PO BETWEEN ? AND ?`;
+          dateParams = [fromDate, toDate];
+        }
+
+        // ✅ Query subquery kết hợp lọc Status + Date nếu có
+        const projectSQL = `
+          SELECT * FROM (
+            SELECT 
+              a.id,
+              c.POID,
+              c.id AS ProductID,
+              c.ProductDetail,
+              a.CustomerName,
+              b.PONumber,
+              b.DateCreated AS Date_Created_PO,
+              b.DateDelivery AS Date_Delivery_PO,
+              c.QuantityProduct,
+              c.QuantityDelivered,
+              c.QuantityAmount,
+              CASE
+                WHEN (c.QuantityProduct - c.QuantityDelivered)  =  0  THEN 'Hoàn thành'
+                WHEN (c.QuantityProduct - c.QuantityDelivered) > 0 THEN 'Đang sản xuất'
+                ELSE 'Chưa có đơn hàng'
+              END AS Status
+            FROM Customers a
+            LEFT JOIN PurchaseOrders b ON a.id = b.CustomerID
+            LEFT JOIN ProductDetails c ON b.id = c.POID
+          ) 
+          WHERE 1=1
+          ${statusFilter ? `AND Status = ?` : ""}
+          ${dateCondition}
+        `;
+
+        // 📦 Tham số truyền vào
+        const queryParams = [];
+        if (statusFilter) queryParams.push(statusFilter);
+        queryParams.push(...dateParams);
+
+        let rows = [];
+        try {
+          rows = await db.all(projectSQL, queryParams);
+
+          if (!rows.length) {
+            socket.emit(
+              "ai_error",
+              `📊 Không có dữ liệu dự án${
+                statusFilter ? ` với trạng thái "${statusFilter}"` : ""
+              }${
+                dateCondition
+                  ? ` trong khoảng từ ${dateParams[0]} đến ${dateParams[1]}`
+                  : ""
+              }.`
+            );
+            return;
+          }
+        } catch (e) {
+          socket.emit(
+            "ai_error",
+            "Lỗi khi thực hiện truy vấn project: " + e.message
+          );
+          return;
+        }
+
+        const content = rows
+          .map((r, i) => `${i + 1}. ${JSON.stringify(r)}`)
+          .join("\n");
+
+        history.push({
+          role: "system",
+          content: `📋 Bạn là trợ lý AI đang phân tích dự án${
+            statusFilter ? ` với trạng thái "${statusFilter}"` : ""
+          }${
+            dateCondition ? ` từ ${dateParams[0]} đến ${dateParams[1]}` : ""
+          }.\nDữ liệu:\n${content}`,
+        });
+      }
+
+      // ✅ Ưu tiên nếu prompt chứa từ khóa tóm tắt → chạy SQL đặc biệt
+      if (
+        history.length === 0 &&
+        /thiết bị|máy móc|bảo trì|bảo trì định kỳ|kiểm tra thiết bị|sửa chữa|linh kiện|lịch sử bảo trì|nhật ký bảo trì|người phụ trách|hạng mục bảo trì/i.test(
+          msg
+        )
+      ) {
+        const db = await sqlite.open({
+          filename: "database.db",
+          driver: sqlite3.Database,
+        });
+
+        // Bạn có thể điều chỉnh để chọn query phù hợp hơn theo nội dung `msg`
+        const maintainceSQL = `
+                      SELECT DISTINCT *
+                      FROM Machine a
+                      LEFT JOIN Maintenance b ON a.MaThietBi = b.MaThietBi
+                      LEFT JOIN MaintenanceSchedule c ON a.MaThietBi = c.MaThietBi`;
+
+        let rows = [];
+        try {
+          rows = await db.all(maintainceSQL);
+          if (!rows.length) {
+            socket.emit(
+              "ai_error",
+              `📊 Không có dữ liệu thiết bị hoặc lịch bảo trì nào.`
+            );
+            return;
+          }
+        } catch (e) {
+          socket.emit(
+            "ai_error",
+            "Lỗi khi thực hiện truy vấn maintaince: " + e.message
+          );
+          return;
+        }
+
+        const content = rows
+          .map((r, i) => `${i + 1}. ${JSON.stringify(r)}`)
+          .join("\n");
+        history.push({
+          role: "system",
+          content: `Bạn là trợ lý AI đang thực hiện phân tích tóm tắt dữ liệu bảo trì.\nDữ liệu tóm tắt:\n${content}`,
+        });
+      }
+
+      // ✅ Ưu tiên nếu prompt chứa từ khóa tóm tắt → chạy SQL đặc biệt
+      if (
+        history.length === 0 &&
+        /đơn hàng|po|bom|order|Danh sách đơn hàng|danh sách đơn hàng/i.test(msg)
+      ) {
+        const db = await sqlite.open({
+          filename: "database.db",
+          driver: sqlite3.Database,
+        });
+
+        let statusCondition = "";
+        let description = "tất cả đơn hàng"; // mặc định
+
+        // Tự động phát hiện yêu cầu lọc
+        if (/kho đã xác nhận|đã xác nhận/i.test(msg)) {
+          statusCondition = "WHERE a.Status = '1'";
+          description = "Kho đã xác nhận";
+        } else if (/kho chưa xác nhận|chưa xác nhận/i.test(msg)) {
+          statusCondition = "WHERE a.Status != '1'";
+          description = "Kho chưa xác nhận";
+        } else if (/thiếu linh kiện|thiếu hàng/i.test(msg)) {
+          statusCondition = `
+            WHERE (b.SL_Tồn_Kho <= b.So_Luong * b.SL_Board)
+          `;
+          description = "Thiếu linh kiện";
+        } else if (/còn linh kiện|còn hàng/i.test(msg)) {
+          statusCondition = `
+            WHERE (b.SL_Tồn_Kho > b.So_Luong * b.SL_Board)
+          `;
+          description = "Còn linh kiện";
+        }
+
+        const ordersSQL = `
+          SELECT DISTINCT 
+            a.Name_PO,
+            a.Quantity_Items,
+            CASE
+              WHEN a.Status = '1' THEN 'Kho đã xác nhận'
+              ELSE 'Kho chưa xác nhận'
+            END AS Status,
+            a.Date,
+            a.Creater
+          FROM Orders a
+          LIMIT 100
+        `;
+
+        let rows = [];
+        try {
+          rows = await db.all(ordersSQL);
+
+          if (!rows.length) {
+            socket.emit(
+              "ai_error",
+              `❌ Không có đơn hàng nào ${
+                description !== "tất cả đơn hàng"
+                  ? `với trạng thái "${description}"`
+                  : ""
+              }.`
+            );
+            socket.emit("ai_done");
+            return;
+          }
+        } catch (e) {
+          socket.emit("ai_error", "❌ Lỗi truy vấn SQL: " + e.message);
+          socket.emit("ai_done");
+          return;
+        }
+
+        const content = rows
+          .map((r, i) => `${i + 1}. ${JSON.stringify(r)}`)
+          .join("\n");
+
+        history.push({
+          role: "system",
+          content: `📦 Danh sách ${description}:\n${content}`,
+        });
+
+        // Tiếp tục xử lý AI như bình thường
+      }
+
+      // ✅ Ưu tiên nếu prompt chứa từ khóa tóm tắt → chạy SQL đặc biệt
+      if (
+        history.length === 0 &&
+        /tồn kho|kho|warehouse|số lượng nhập|số lượng xuất|số lượng tồn kho|part number|description|mã hàng|mô tả|mã kho|vị trí|input|output|inventory|location|customer|tìm linh kiện|linh kiện|vật tư|tụ điện|cảm biến|điện trở|relay|motor|ic|biến tần|module|connector|board|socket|pcb|Misa/i.test(
+          msg
+        )
+      ) {
+        const db = await sqlite.open({
+          filename: "database.db",
+          driver: sqlite3.Database,
+        });
+
+        // 🧠 Trích PartNumber nếu có
+        const partMatch = msg.match(/\b([A-Z0-9\-]{6,})\b/i); // đơn giản: lấy cụm viết hoa dài từ 6 ký tự trở lên
+        const partNumber = partMatch?.[1]?.trim();
+
+        // 🧠 SQL query
+        let warehouseSQL = `
+                      SELECT 
+                        a.PartNumber_1, 
+                        a.Description, 
+                        (a.Input - a.Output) AS Inventory,
+                        a.Customer,
+                        a.Location,
+                        IFNULL(b.Input - b.Output, 0) AS Inventory_Misa,
+                        IFNULL(b.Customer, 'Không có') AS Customer_Misa,
+                        IFNULL(b.Location, 'Không có' ) AS Location_Misa
+                      FROM WareHouse a
+					            LEFT JOIN WareHouse2 b ON a.PartNumber_1 = b.PartNumber_1
+                      LIMIT 50`;
+
+        let rows = [];
+        try {
+          if (partNumber) {
+            warehouseSQL = `
+                      SELECT 
+                        a.PartNumber_1, 
+                        a.Description, 
+                        (a.Input - a.Output) AS Inventory,
+                        a.Customer,
+                        a.Location,
+                        IFNULL(b.Input - b.Output, 0) AS Inventory_Misa,
+                        IFNULL(b.Customer, 'Không có') AS Customer_Misa,
+                        IFNULL(b.Location, 'Không có' ) AS Location_Misa
+                      FROM WareHouse a
+					            LEFT JOIN WareHouse2 b ON a.PartNumber_1 = b.PartNumber_1
+                      WHERE a.PartNumber_1 = ?
+                      LIMIT 50`;
+            rows = await db.all(warehouseSQL, [partNumber]);
+          } else {
+            rows = await db.all(warehouseSQL);
+          }
+        } catch (e) {
+          socket.emit(
+            "ai_error",
+            "Lỗi khi thực hiện truy vấn warehouse: " + e.message
+          );
+          return;
+        }
+
+        const content = rows.length
+          ? rows.map((r, i) => `${i + 1}. ${JSON.stringify(r)}`).join("\n")
+          : "Không tìm thấy linh kiện.";
+
+        history.push({
+          role: "system",
+          content: `Bạn là trợ lý AI đang kiểm tra tồn kho linh kiện${
+            partNumber ? ` có mã "${partNumber}"` : ""
+          }.\nDữ liệu:\n${content}`,
+        });
+      }
+
+      // ➕ lần đầu thì extract tên bảng hoặc join
+      if (history.length === 0) {
+        // 1. Kiểm tra có yêu cầu left join không
+        let joinMatch = msg.match(
+          /left join ([A-Za-z0-9_]+)[, và ]+([A-Za-z0-9_]+)[^\w]+(theo|on) ([A-Za-z0-9_\.]+) *= *([A-Za-z0-9_\.]+)/i
+        );
+        if (joinMatch) {
+          const tableA = joinMatch[1];
+          const tableB = joinMatch[2];
+          const leftKey = joinMatch[4];
+          const rightKey = joinMatch[5];
+          const db = await sqlite.open({
+            filename: "database.db",
+            driver: sqlite3.Database,
+          });
+
+          const existsA = await db.get(
+            `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
+            [tableA]
+          );
+          const existsB = await db.get(
+            `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
+            [tableB]
+          );
+          if (!existsA || !existsB) {
+            socket.emit(
+              "ai_error",
+              `Bảng không tồn tại: ${!existsA ? tableA : ""} ${
+                !existsB ? tableB : ""
+              }`
+            );
+            return;
+          }
+
+          let sql = `SELECT * FROM ${tableA} LEFT JOIN ${tableB} ON ${leftKey} = ${rightKey}`;
+          let rows = [];
+          try {
+            rows = await db.all(sql);
+          } catch (e) {
+            socket.emit("ai_error", "Lỗi truy vấn LEFT JOIN: " + e.message);
+            return;
+          }
+          const content = rows
+            .map((r, i) => `${i + 1}. ${JSON.stringify(r)}`)
+            .join("\n");
+          history.push({
+            role: "system",
+            content: `Bạn là trợ lý AI đang hỗ trợ phân tích dữ liệu LEFT JOIN giữa hai bảng ${tableA} và ${tableB} theo điều kiện ${leftKey} = ${rightKey}.\nDữ liệu:\n${content}`,
+          });
+        } else {
+          // Logic cũ: nhiều bảng hoặc 1 bảng
+          let match = msg.match(/bảng ([A-Za-z0-9_, và]+)/i);
+          let tableList = [];
+          if (match && match[1]) {
+            tableList = match[1]
+              .replace(/ và /gi, ",")
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean);
+          }
+          if (!tableList.length) {
+            socket.emit("ai_error", "Không rõ bảng dữ liệu nào được yêu cầu.");
+            return;
+          }
+
+          const db = await sqlite.open({
+            filename: "database.db",
+            driver: sqlite3.Database,
+          });
+          let context = "";
+          let notFound = [];
+          for (const table of tableList) {
+            const exists = await db.get(
+              `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
+              [table]
+            );
+            if (!exists) {
+              notFound.push(table);
+              continue;
+            }
+
+            let rows = [];
+            let columns = [];
+            if (table === "ProductDetails") {
+              rows = await db.all(
+                `SELECT *, (QuantityProduct - QuantityDelivered) AS Remaining FROM ProductDetails LIMIT 50`
+              );
+              columns = Object.keys(rows[0] || {});
+              columns.push("Trạng thái");
+              rows = rows.map((r) => ({
+                ...r,
+                ["Trạng thái"]:
+                  r.Remaining > 0 ? "Đang sản xuất" : "Hoàn thành",
+              }));
+            } else if (table === "WareHouse" || table === "WareHouse2") {
+              rows = await db.all(
+                `SELECT *, (Input - Output) AS Inventory FROM ${table} LIMIT 50`
+              );
+              columns = Object.keys(rows[0] || {});
+              columns.push("Trạng thái");
+              rows = rows.map((r) => ({
+                ...r,
+                ["Trạng thái"]: r.Inventory > 0 ? "Còn hàng" : "Hết hàng",
+              }));
+            } else {
+              rows = await db.all(`SELECT * FROM ${table} LIMIT 50`);
+              columns = Object.keys(rows[0] || {});
+            }
+
+            let tableMd = "";
+            if (rows.length) {
+              tableMd += "| " + columns.join(" | ") + " |\n";
+              tableMd += "| " + columns.map(() => "---").join(" | ") + " |\n";
+              for (const row of rows) {
+                tableMd +=
+                  "| " +
+                  columns
+                    .map((col) => (row[col] !== undefined ? row[col] : ""))
+                    .join(" | ") +
+                  " |\n";
+              }
+            } else {
+              tableMd = "Không có dữ liệu.";
+            }
+            context += `\n\n===== BẢNG ${table} =====\n${tableMd}`;
+          }
+          if (notFound.length) {
+            socket.emit(
+              "ai_error",
+              `Bảng không tồn tại: ${notFound.join(", ")}`
+            );
+            return;
+          }
+          if (!context) {
+            socket.emit("ai_error", "Không lấy được dữ liệu từ các bảng.");
+            return;
+          }
+
+          history.push({
+            role: "system",
+            content: `Bạn là trợ lý AI đang hỗ trợ phân tích dữ liệu từ các bảng: ${tableList.join(
+              ", "
+            )}.\n${context}`,
+          });
+        }
+      }
+
+      // ➕ user hỏi
+      history.push({ role: "user", content: msg });
+
+      const res = await fetch(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer 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`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "llama3-8b-8192",
+            messages: history,
+            stream: true,
+          }),
+        }
+      );
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+      let reply = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (line.startsWith("data:")) {
+            const json = line.replace("data: ", "");
+            if (json === "[DONE]") {
+              socket.emit("ai_done");
+              history.push({ role: "assistant", content: reply });
+              return;
+            }
+
+            try {
+              const delta = JSON.parse(json).choices?.[0]?.delta?.content;
+              if (delta) {
+                reply += delta;
+                socket.emit("ai_message", delta);
+              }
+            } catch (err) {}
+          }
+        }
+      }
+    });
+
+  socket.on("disconnect", () => {
+    console.log("🔌 Client disconnected");
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Client disconnected:", socket.id);
+  });
+});
+// 📄 Đọc toàn bộ nội dung từ nhiều file PDF trong thư mục
+// async function readAllPdfsInFolder(folderPath) {
+//   const files = fs.readdirSync(folderPath)
+//   const pdfFiles = files.filter(f => f.toLowerCase().endsWith('.pdf'))
+
+//   const contents = []
+
+//   for (const file of pdfFiles) {
+//     const filePath = path.join(folderPath, file)
+//     const buffer = fs.readFileSync(filePath)
+//     const data = await pdfParse(buffer)
+//     contents.push(`📄 ${file}:\n${data.text}`)
+//   }
+
+//   return contents.join('\n\n')
+// }
+
+// 🧠 Hàm tách tên bảng từ prompt
+function extractTableName(prompt) {
+  const match =
+    prompt.match(/\bbảng\s+([A-Za-z0-9_]+)/i) ||
+    prompt.match(/\bfrom\s+([A-Za-z0-9_]+)/i);
+  return match?.[1] || null;
+}
 const getPivotQuery = async (id) => {
   return new Promise((resolve, reject) => {
     db.all(
@@ -1200,7 +1844,8 @@ const getPivotQuery = async (id) => {
 
         // Tạo biểu thức tổng từ các cột động
         const sumColumns = Boms.map(
-          (bom) => `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE 0 END)`
+          (bom) =>
+            `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE 0 END)`
         ).join(" + ");
 
         // Full SQL query
@@ -1318,7 +1963,8 @@ const getCompareWareHouse = async (id) => {
 
         // Tạo biểu thức tổng từ các cột động
         const sumColumns = Boms.map(
-          (bom) => `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE 0 END)`
+          (bom) =>
+            `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE 0 END)`
         ).join(" + ");
 
         const Buy = `
@@ -1379,8 +2025,8 @@ app.post("/insert-compare-inventory/:id", async (req, res) => {
   // Check if this PO is already being processed
   if (processingRequests.has(id)) {
     console.log(`Request for PO ${id} is already being processed, skipping...`);
-    return res.status(409).json({ 
-      error: "Yêu cầu này đang được xử lý. Vui lòng đợi." 
+    return res.status(409).json({
+      error: "Yêu cầu này đang được xử lý. Vui lòng đợi.",
     });
   }
 
@@ -1406,13 +2052,17 @@ app.post("/insert-compare-inventory/:id", async (req, res) => {
 
     // Delete existing records for this order to prevent duplicates
     await new Promise((resolve, reject) => {
-      db.run("DELETE FROM DetailOrders WHERE Order_Id = ?", [orderId], function (err) {
-        if (err) {
-          return reject(err);
+      db.run(
+        "DELETE FROM DetailOrders WHERE Order_Id = ?",
+        [orderId],
+        function (err) {
+          if (err) {
+            return reject(err);
+          }
+          console.log(`Deleted ${this.changes} old rows for order ${orderId}`);
+          resolve();
         }
-        console.log(`Deleted ${this.changes} old rows for order ${orderId}`);
-        resolve();
-      });
+      );
     });
 
     // Get the compare inventory data
@@ -1566,7 +2216,6 @@ app.put("/Users/Edit-User/:id", async (req, res) => {
   });
 });
 
-
 // Router upload file xlsx to WareHouse table
 app.post("/WareHouse/Upload", upload.single("file"), async (req, res) => {
   if (!req.file) return res.status(400).send("No file uploaded.");
@@ -1650,9 +2299,6 @@ app.post("/WareHouse/Upload", upload.single("file"), async (req, res) => {
   }
 });
 
-
-
-
 // Router update item WareHouse table
 app.put("/WareHouse/update-item/:id", async (req, res) => {
   const {
@@ -1700,8 +2346,6 @@ app.put("/WareHouse/update-item/:id", async (req, res) => {
   );
 });
 
-
-
 // Router delete item in WareHouse table
 app.delete("/WareHouse/delete-item/:id", async (req, res) => {
   const { id } = req.params;
@@ -1717,8 +2361,6 @@ app.delete("/WareHouse/delete-item/:id", async (req, res) => {
     res.json({ message: "Item inserted successfully" });
   });
 });
-
-
 
 //Router post new item in WareHouse table
 app.post("/WareHouse/upload-new-item", (req, res) => {
@@ -2009,29 +2651,44 @@ app.put("/WareHouse2/update-Inventory-CheckBom/:id", async (req, res) => {
 app.put("/Temporary_WareHouse/Update-File", async (req, res) => {
   try {
     // Lấy tất cả dữ liệu từ Temporary_WareHouse
-    db.all("SELECT PartNumber_1, Input, Note, Description, Location FROM Temporary_WareHouse", [], async (err, rows) => {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-      if (!rows || rows.length === 0) {
-        return res.json({ message: "Không có dữ liệu trong Temporary_WareHouse" });
-      }
-      // Cập nhật từng dòng vào WareHouse
-      for (const row of rows) {
-        await new Promise((resolve, reject) => {
-          db.run(
-            `UPDATE WareHouse SET Output = Output + ?, Note_Output = ? WHERE PartNumber_1 = ? AND Description = ? AND Location = ?`,
-            [row.Input || 0, row.Note || '', row.PartNumber_1, row.Description || '', row.Location || ''],
-            function (err) {
-              if (err) reject(err);
-              else resolve();
-            }
-          );
+    db.all(
+      "SELECT PartNumber_1, Input, Note, Description, Location FROM Temporary_WareHouse",
+      [],
+      async (err, rows) => {
+        if (err) {
+          return res.status(500).json({ error: err.message });
+        }
+        if (!rows || rows.length === 0) {
+          return res.json({
+            message: "Không có dữ liệu trong Temporary_WareHouse",
+          });
+        }
+        // Cập nhật từng dòng vào WareHouse
+        for (const row of rows) {
+          await new Promise((resolve, reject) => {
+            db.run(
+              `UPDATE WareHouse SET Output = Output + ?, Note_Output = ? WHERE PartNumber_1 = ? AND Description = ? AND Location = ?`,
+              [
+                row.Input || 0,
+                row.Note || "",
+                row.PartNumber_1,
+                row.Description || "",
+                row.Location || "",
+              ],
+              function (err) {
+                if (err) reject(err);
+                else resolve();
+              }
+            );
+          });
+        }
+        io.emit("WareHouseUpdate");
+        res.json({
+          message:
+            "Đã cập nhật dữ liệu từ Temporary_WareHouse vào WareHouse thành công",
         });
       }
-      io.emit("WareHouseUpdate");
-      res.json({ message: "Đã cập nhật dữ liệu từ Temporary_WareHouse vào WareHouse thành công" });
-    });
+    );
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -2071,29 +2728,44 @@ app.delete("/Temporary-WareHouse/delete-all", async (req, res) => {
 app.put("/Temporary_WareHouse_2/Update-File", async (req, res) => {
   try {
     // Lấy tất cả dữ liệu từ Temporary_WareHouse
-    db.all("SELECT PartNumber_1, Input, Note, Description, Location FROM Temporary_WareHouse_2", [], async (err, rows) => {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-      if (!rows || rows.length === 0) {
-        return res.json({ message: "Không có dữ liệu trong Temporary_WareHouse" });
-      }
-      // Cập nhật từng dòng vào WareHouse
-      for (const row of rows) {
-        await new Promise((resolve, reject) => {
-          db.run(
-            `UPDATE WareHouse2 SET Output = Output + ?, Note_Output = ? WHERE PartNumber_1 = ? AND Description = ? AND Location = ?`,
-            [row.Input || 0, row.Note || '', row.PartNumber_1, row.Description || '', row.Location || ''],
-            function (err) {
-              if (err) reject(err);
-              else resolve();
-            }
-          );
+    db.all(
+      "SELECT PartNumber_1, Input, Note, Description, Location FROM Temporary_WareHouse_2",
+      [],
+      async (err, rows) => {
+        if (err) {
+          return res.status(500).json({ error: err.message });
+        }
+        if (!rows || rows.length === 0) {
+          return res.json({
+            message: "Không có dữ liệu trong Temporary_WareHouse",
+          });
+        }
+        // Cập nhật từng dòng vào WareHouse
+        for (const row of rows) {
+          await new Promise((resolve, reject) => {
+            db.run(
+              `UPDATE WareHouse2 SET Output = Output + ?, Note_Output = ? WHERE PartNumber_1 = ? AND Description = ? AND Location = ?`,
+              [
+                row.Input || 0,
+                row.Note || "",
+                row.PartNumber_1,
+                row.Description || "",
+                row.Location || "",
+              ],
+              function (err) {
+                if (err) reject(err);
+                else resolve();
+              }
+            );
+          });
+        }
+        io.emit("WareHouse2Update");
+        res.json({
+          message:
+            "Đã cập nhật dữ liệu từ Temporary_WareHouse vào WareHouse thành công",
         });
       }
-      io.emit("WareHouse2Update");
-      res.json({ message: "Đã cập nhật dữ liệu từ Temporary_WareHouse vào WareHouse thành công" });
-    });
+    );
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -2196,13 +2868,28 @@ app.put("/CheckBom/Update-Hao-Phi", async (req, res) => {
 
 // Router update Hao_Phi_Thuc_Te in CheckBom table
 app.put("/DetailOrders/Update", async (req, res) => {
-  const { Input_Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, SL_Ton_Kho, SL_Ton_Kho_Misa, PartNumber_1, PO } =
-    req.body;
+  const {
+    Input_Hao_Phi_Thuc_Te,
+    Ma_Kho,
+    Ma_Kho_Misa,
+    SL_Ton_Kho,
+    SL_Ton_Kho_Misa,
+    PartNumber_1,
+    PO,
+  } = req.body;
   // Insert data into SQLite database
   const query = `UPDATE DetailOrders SET Hao_Phi_Thuc_Te = ?, Ma_Kho = ?, Ma_Kho_Misa = ?, SL_Tồn_Kho = ?, SL_Tồn_Kho_Misa = ? WHERE PartNumber_1 = ? AND PO = ?`;
   db.run(
     query,
-    [Input_Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, SL_Ton_Kho, SL_Ton_Kho_Misa, PartNumber_1, PO],
+    [
+      Input_Hao_Phi_Thuc_Te,
+      Ma_Kho,
+      Ma_Kho_Misa,
+      SL_Ton_Kho,
+      SL_Ton_Kho_Misa,
+      PartNumber_1,
+      PO,
+    ],
     function (err) {
       if (err) {
         return console.error(err.message);
@@ -2245,9 +2932,6 @@ app.put("/Orders/WareHouse-Accept/:id", async (req, res) => {
     res.json({ message: "Item inserted successfully" });
   });
 });
-
-
-
 
 // Router update item in ProductDetails table
 app.put("/Project/Customer/Edit-Item/:id", async (req, res) => {
@@ -3140,7 +3824,6 @@ app.post("/Manufacture/RW", (req, res) => {
   );
 });
 
-
 // Post value in table ManufactureIPQC
 app.post("/Manufacture/IPQC", (req, res) => {
   const { PartNumber, HistoryID, Timestamp, Status } = req.body;
@@ -3423,22 +4106,13 @@ app.put("/Manufacture/AOI/Edit-status/:id", async (req, res) => {
 
 // Update value in table AOI Status
 app.put("/Manufacture/AOI-Fixed/Edit-status/:id", (req, res) => {
-  const {
-    Status,
-    RWID,
-    TimestampRW
-  } = req.body;
+  const { Status, RWID, TimestampRW } = req.body;
   const { id } = req.params;
   db.run(
     `UPDATE ManufactureAOI
       SET Status=?, RWID=?, TimestampRW=?
       WHERE id=?`,
-    [
-      Status,
-      RWID,
-      TimestampRW,
-      id,
-    ],
+    [Status, RWID, TimestampRW, id],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureAOI");
@@ -3452,22 +4126,13 @@ app.put("/Manufacture/AOI-Fixed/Edit-status/:id", (req, res) => {
 
 // Update value in table IPQC Status
 app.put("/Manufacture/IPQC-Fixed/Edit-status/:id", (req, res) => {
-  const {
-    Status,
-    RWID,
-    TimestampRW
-  } = req.body;
+  const { Status, RWID, TimestampRW } = req.body;
   const { id } = req.params;
   db.run(
     `UPDATE ManufactureIPQC
       SET Status=?, RWID=?, TimestampRW=?
       WHERE id=?`,
-    [
-      Status,
-      RWID,
-      TimestampRW,
-      id,
-    ],
+    [Status, RWID, TimestampRW, id],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureIPQC");
@@ -3481,22 +4146,13 @@ app.put("/Manufacture/IPQC-Fixed/Edit-status/:id", (req, res) => {
 
 // Update value in table IPQC-SMT Status
 app.put("/Manufacture/IPQC-SMT-Fixed/Edit-status/:id", (req, res) => {
-  const {
-    Status,
-    RWID,
-    TimestampRW
-  } = req.body;
+  const { Status, RWID, TimestampRW } = req.body;
   const { id } = req.params;
   db.run(
     `UPDATE ManufactureIPQCSMT
       SET RWID=?, TimestampRW=?
       WHERE id=?`,
-    [
-      Status,
-      RWID,
-      TimestampRW,
-      id,
-    ],
+    [Status, RWID, TimestampRW, id],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureIPQCSMT");
@@ -3510,22 +4166,13 @@ app.put("/Manufacture/IPQC-SMT-Fixed/Edit-status/:id", (req, res) => {
 
 // Update value in table Test1 Status
 app.put("/Manufacture/Test1-Fixed/Edit-status/:id", (req, res) => {
-  const {
-    Status,
-    RWID,
-    TimestampRW
-  } = req.body;
+  const { Status, RWID, TimestampRW } = req.body;
   const { id } = req.params;
   db.run(
     `UPDATE ManufactureTest1
       SET Status=?, RWID=?, TimestampRW=?
       WHERE id=?`,
-    [
-      Status,
-      RWID,
-      TimestampRW,
-      id,
-    ],
+    [Status, RWID, TimestampRW, id],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureTest1");
@@ -3539,22 +4186,13 @@ app.put("/Manufacture/Test1-Fixed/Edit-status/:id", (req, res) => {
 
 // Update value in table Test2 Status
 app.put("/Manufacture/Test2-Fixed/Edit-status/:id", (req, res) => {
-  const {
-    Status,
-    RWID,
-    TimestampRW
-  } = req.body;
+  const { Status, RWID, TimestampRW } = req.body;
   const { id } = req.params;
   db.run(
     `UPDATE ManufactureTest2
       SET Status=?, RWID=?, TimestampRW=?
       WHERE id=?`,
-    [
-      Status,
-      RWID,
-      TimestampRW,
-      id,
-    ],
+    [Status, RWID, TimestampRW, id],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureTest2");
@@ -3568,22 +4206,13 @@ app.put("/Manufacture/Test2-Fixed/Edit-status/:id", (req, res) => {
 
 // Update value in table OQC Status
 app.put("/Manufacture/OQC-Fixed/Edit-status/:id", (req, res) => {
-  const {
-    Status,
-    RWID,
-    TimestampRW
-  } = req.body;
+  const { Status, RWID, TimestampRW } = req.body;
   const { id } = req.params;
   db.run(
     `UPDATE ManufactureOQC
       SET Status=?, RWID=?, TimestampRW=?
       WHERE id=?`,
-    [
-      Status,
-      RWID,
-      TimestampRW,
-      id,
-    ],
+    [Status, RWID, TimestampRW, id],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureOQC");
@@ -3692,6 +4321,47 @@ app.delete("/Summary/Delete-item/:id", async (req, res) => {
     res.json({ message: "Đã xoá dữ liệu bảo trì định kỳ thành công" });
   });
 });
+
+// 🎯 Hàm đọc toàn bộ file PDF trong folder ./data
+async function readPDFs(folderPath) {
+  const files = fs.readdirSync(folderPath).filter((f) => f.endsWith(".pdf"));
+  let text = "";
+
+  for (const file of files) {
+    const buffer = fs.readFileSync(path.join(folderPath, file));
+    const data = await pdfParse(buffer);
+    text += `--- ${file} ---\n${data.text}\n\n`;
+  }
+
+  return text;
+}
+
+// 🎯 Hàm đọc toàn bộ bảng từ erp.db
+function readSQLite(dbPath) {
+  return new Promise((resolve, reject) => {
+    const db = new sqlite3.Database(dbPath);
+    db.all(
+      `SELECT name FROM sqlite_master WHERE type='table'`,
+      [],
+      async (err, tables) => {
+        if (err) return reject(err);
+        const result = {};
+
+        for (const table of tables.map((t) => t.name)) {
+          result[table] = await new Promise((res, rej) => {
+            db.all(`SELECT * FROM ${table} LIMIT 10`, [], (err, rows) => {
+              if (err) res([]);
+              else res(rows);
+            });
+          });
+        }
+
+        db.close();
+        resolve(result);
+      }
+    );
+  });
+}
 
 // Catch-all route cho frontend
 app.get("*", (req, res) => {

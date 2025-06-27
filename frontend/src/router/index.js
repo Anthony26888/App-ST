@@ -34,6 +34,7 @@ import PageDetailWarehouse from "@/pages/Page-Manufacture/Page-Detail-Warehouse.
 import PageDetailTest1 from "@/pages/Page-Manufacture/Page-Detail-Test1.vue";
 import PageDetailTest2 from "@/pages/Page-Manufacture/Page-Detail-Test2.vue";
 import PageListWork from "@/pages/Page-Manufacture/Page-ListWork.vue";
+import PageAI from "@/pages/Page-AI-Chatbox/Page-AI.vue"
 
 
 const routes = [
@@ -226,6 +227,12 @@ const routes = [
         name: "ListWork",
         meta: { requiresAuth: true },
         component: PageListWork,
+      },
+      {
+        path: "/AI-Chatbox",
+        name: "AIChatbox",
+        meta: { requiresAuth: true },
+        component: PageAI,
       },
     ],
   },
