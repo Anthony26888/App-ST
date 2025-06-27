@@ -1196,7 +1196,7 @@ io.on("connection", (socket) => {
       // ✅ Ưu tiên nếu prompt chứa từ khóa tóm tắt → chạy SQL đặc biệt
       if (
         history.length === 0 &&
-        /summary|Tóm tắt tình hình sản xuất hôm nay|thống kê tình hình sản xuất hôm nay|báo cáo|Báo cáo sản xuất/i.test(
+        /summary|Tóm tắt tình hình sản xuất hôm nay|tình hình sản xuất ngày|thống kê tình hình sản xuất hôm nay|báo cáo|Báo cáo sản xuất/i.test(
           msg
         )
       ) {
@@ -1204,6 +1204,22 @@ io.on("connection", (socket) => {
           filename: "database.db",
           driver: sqlite3.Database,
         });
+
+        // 📅 Lấy ngày từ prompt định dạng dd/mm/yyyy nếu có
+        // 🧠 Phân tích từ prompt: người dùng nhập dd/mm/yyyy
+        const dateMatch = msg.match(/ngày (\d{2})\/(\d{2})\/(\d{4})/i);
+
+        let displayDate = ""; // cho người dùng
+        let queryDate = "";   // cho SQL
+
+        if (dateMatch) {
+          displayDate = `${dateMatch[1]}/${dateMatch[2]}/${dateMatch[3]}`; // dd/mm/yyyy
+          queryDate = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;   // yyyy-mm-dd
+        } else {
+          const now = new Date();
+          displayDate = now.toLocaleDateString('vi-VN');                  // dd/mm/yyyy
+          queryDate = now.toISOString().slice(0, 10);                     // yyyy-mm-dd
+        }
 
         const summarySQL = `
           SELECT 
@@ -1259,16 +1275,17 @@ io.on("connection", (socket) => {
           LEFT JOIN (SELECT HistoryID, COUNT(id) AS Test2 FROM ManufactureTest2 WHERE Status = 'ok' GROUP BY HistoryID) k ON a.id = k.HistoryID
           LEFT JOIN (SELECT HistoryID, COUNT(id) AS BoxBuild FROM ManufactureBoxBuild WHERE Status = 'ok' GROUP BY HistoryID) m ON a.id = m.HistoryID
           LEFT JOIN (SELECT HistoryID, COUNT(id) AS Warehouse FROM ManufactureWarehouse WHERE Status = 'ok' GROUP BY HistoryID) n ON a.id = n.HistoryID
-          WHERE a.Created_At LIKE ?`;
+          WHERE a.Created_At LIKE ?
+        `;
 
         let rows = [];
         try {
-          const currentDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-          rows = await db.all(summarySQL, [`${currentDate}%`]); // dùng LIKE nếu có giờ phút giây
+          rows = await db.all(summarySQL, [`${displayDate}%`]);
+
           if (!rows.length) {
             socket.emit(
               "ai_error",
-              `📊 Không có dữ liệu sản xuất cho ngày ${currentDate}.`
+              `📊 Không có dữ liệu sản xuất cho ngày ${displayDate}.`
             );
             return;
           }
@@ -1286,9 +1303,7 @@ io.on("connection", (socket) => {
 
         history.push({
           role: "system",
-          content: `📋 Bạn là trợ lý AI đang thực hiện **tóm tắt tình hình sản xuất** cho ngày hôm nay (${new Date().toLocaleDateString(
-            "vi-VN"
-          )}).\nDữ liệu:\n${content}`,
+          content: `📋 Bạn là trợ lý AI đang tóm tắt tình hình sản xuất ngày ${displayDate}.\nDữ liệu:\n${content}`,
         });
       }
 
@@ -1677,7 +1692,7 @@ io.on("connection", (socket) => {
               continue;
             }
 
-            let rows = [];
+            rows = [];
             let columns = [];
             if (table === "ProductDetails") {
               rows = await db.all(
@@ -4371,4 +4386,14 @@ app.get("*", (req, res) => {
 // Khởi động server
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
+});
+
+// Thêm endpoint xóa session AI chat
+app.post("/ai/clear-session", (req, res) => {
+  const { sessionId } = req.body;
+  if (sessionId && sessions[sessionId]) {
+    delete sessions[sessionId];
+    return res.json({ success: true });
+  }
+  res.json({ success: false, message: "Session not found" });
 });

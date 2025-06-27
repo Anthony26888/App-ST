@@ -368,7 +368,6 @@
       </v-card-text>
     </v-card>
   </v-dialog>
-  <ButtonAI :tableNames="['Customers', 'PurchaseOrders', 'ProductDetails']"></ButtonAI>
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />

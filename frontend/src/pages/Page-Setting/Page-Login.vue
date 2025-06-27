@@ -125,12 +125,18 @@ const FetchUser = async () => {
     if (LevelUser == "Admin" || LevelUser == "Kế hoạch" || LevelUser == "Quản lý") {
       router.push(`/Kiem-tra-so-lieu`);
       DialogLoading.value = false;
-    } else if(LevelUser == "Kinh doanh" || LevelUser == "Thủ kho" || LevelUser == "Kinh doanh admin") {
+    } else if(LevelUser == "Kinh doanh" || LevelUser == "Thủ kho" || LevelUser == "Quản lý kinh doanh") {
       DialogLoading.value = false;
       router.push(`/Ton-kho`);
     } else if (LevelUser == 'Nhân viên'){
       DialogLoading.value = false;
       router.push(`/Danh-sach-cong-viec`);
+    } else if (LevelUser == 'Quản lý sản xuất'){
+      DialogLoading.value = false;
+      router.push(`/San-xuat`);
+    } else if (LevelUser == 'Quản lý bảo trì'){
+      DialogLoading.value = false;
+      router.push(`/Bao-tri`);
     } else{
       router.push(`/`);
       DialogLoading.value = false;

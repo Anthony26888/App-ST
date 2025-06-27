@@ -101,6 +101,7 @@ const StatusOption_7 = ref(false);
 const StatusOption_8 = ref(false);
 const StatusOption_9 = ref(false);
 const StatusOption_10 = ref(false);
+const StatusOption_11 = ref(false);
 const Date_Expired = ref("");
 
 // Dialog
@@ -152,12 +153,13 @@ const FetchUser = async () => {
         StatusOption_7.value = true;
         StatusOption_8.value = true;
         StatusOption_9.value = true;
+        StatusOption_11.value = true; 
       } else if (LevelUser.value == "Thủ kho") {
-        StatusOption_1.value = true;
-        StatusOption_5.value = true;
         StatusOption_6.value = true;
         StatusOption_7.value = true;
         StatusOption_8.value = true;
+        StatusOption_9.value = true;  
+        StatusOption_11.value = true;    
       } else if (LevelUser.value == "Kế hoạch") {
         StatusOption_2.value = true;
         StatusOption_3.value = true;
@@ -165,8 +167,14 @@ const FetchUser = async () => {
         StatusOption_6.value = true;
         StatusOption_7.value = true;
         StatusOption_8.value = true;
-      } else if (LevelUser.value == "Quản lý") {
-        StatusOption_8.value = true;
+      } else if (LevelUser.value == "Quản lý tổng") {
+        StatusOption_9.value = true;
+      } else if (LevelUser.value == "Quản lý bảo trì") {
+        StatusOption_1.value = true;
+        StatusOption_9.value = true;
+        StatusOption_11.value = true;
+        StatusOption_7.value = true;
+        StatusOption_4.value = true;
       } else if (LevelUser.value == "Admin") {
         StatusOption_1.value = false;
         StatusOption_2.value = false;
@@ -263,7 +271,7 @@ const menuItems = computed(() => [
     title: "Danh sách công việc",
     value: "ListWork",
     to: "/Danh-sach-cong-viec",
-    disabled: StatusOption_10.value,
+    disabled: StatusOption_11.value,
   },
   {
     icon: "mdi-wrench",
@@ -274,10 +282,10 @@ const menuItems = computed(() => [
   },
   {
     icon: "mdi-robot-confused-outline",
-    title: "Trợ lí AI",
+    title: "Trợ lí ứng dụng",
     value: "AI",
     to: "/AI-Chatbox",
-    disabled: StatusOption_9.value,
+    disabled: StatusOption_10.value,
   },
   {
     icon: "mdi-cog",

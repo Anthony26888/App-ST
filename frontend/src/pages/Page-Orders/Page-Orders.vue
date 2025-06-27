@@ -18,7 +18,7 @@
         <v-col cols="12" sm="4" md="4">
           <v-card class="rounded-lg" color="success" variant="tonal">
             <v-card-text>
-              <div class="text-subtitle-1">Đơn hoàn thành</div>
+              <div class="text-subtitle-1">Đơn hàng đã xác nhận</div>
               <div class="text-h4 font-weight-bold">
                 {{
                   orders?.filter((p) => p.Status === '1').length || 0
@@ -30,7 +30,7 @@
         <v-col cols="12" sm="4" md="4">
           <v-card class="rounded-lg" color="warning" variant="tonal">
             <v-card-text>
-              <div class="text-subtitle-1">Đơn chưa hoàn thành</div>
+              <div class="text-subtitle-1">Đơn hàng chưa xác nhận</div>
               <div class="text-h4 font-weight-bold">
                 {{
                   orders?.filter((p) => p.Status === '0').length ||

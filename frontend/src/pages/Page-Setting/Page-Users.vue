@@ -88,7 +88,7 @@
           <v-col cols="12">
             <InputSelect
               label="Phân quyền"
-              :items="['Admin', 'Kế hoạch', 'Thủ kho', 'Kinh doanh', 'Kinh doanh admin', 'Quản lý', 'Nhân viên']"
+              :items="['Admin', 'Kế hoạch', 'Thủ kho', 'Kinh doanh', 'Quản lý kinh doanh', 'Quản lý tổng', 'Nhân viên', 'Quản lý sản xuất', 'Quản lý bảo trì']"
               variant="solo-filled"
               v-model="Level_Edit"
             />
@@ -113,7 +113,7 @@
         <InputField label="Password" type="password" v-model="Password_Add" />
         <InputSelect
           label="Phân quyền"
-          :items="['Admin', 'Kế hoạch', 'Thủ kho', 'Kinh doanh', 'Kinh doanh admin', 'Quản lý', 'Nhân viên']"
+          :items="['Admin', 'Kế hoạch', 'Thủ kho', 'Kinh doanh', 'Quản lý kinh doanh', 'Quản lý tổng', 'Nhân viên', 'Quản lý sản xuất', 'Quản lý bảo trì']"
           variant="solo-filled"
           v-model="Level_Add"
         />

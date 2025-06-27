@@ -9,6 +9,7 @@
         <div>
           <h3 class="text-h6 mb-0">Trợ lí ứng dụng</h3>
           <span class="text-caption text-medium-emphasis">
+            <v-icon :color="loading ? 'warning' : 'success'">mdi-circle-slice-8</v-icon>
             {{ loading ? "Đang nhập..." : "Sẵn sàng trò chuyện" }}
           </span>
         </div>
@@ -33,7 +34,7 @@
         >
         <h4 class="text-h6 text-grey-darken-1 mb-2">Chào mừng bạn!</h4>
         <p class="text-body-2 text-grey">
-          Hãy bắt đầu cuộc trò chuyện với AI Assistant
+          Hãy bắt đầu cuộc trò chuyện với Trợ lý ứng dụng
         </p>
       </div>
 
@@ -151,13 +152,16 @@ import { useChat } from "@/composables/AI-Chat/AI-chat";
 import InputFiled from "@/components/Input-Field.vue";
 import InputSelect from "@/components/Input-Select.vue";
 import MarkdownIt from "markdown-it";
+import { io } from "socket.io-client";
 const md = new MarkdownIt();
 
 const input = ref("");
 const messagesContainer = ref(null);
-const { messages, sendMessage: sendChatMessage, loading, clearMessages } = useChat();
+const { messages, sendMessage: sendChatMessage, loading } = useChat();
 
 const selectedSuggestion = ref(null);
+
+const socket = io("http://localhost:3000"); // hoặc URL backend
 
 const suggestions = ref([
   {
@@ -220,7 +224,23 @@ function formatTime(date) {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
+};
+
+const clearMessages = async () => {
+  messages.value = [];
+  try {
+    const response = await axios.delete(
+      `${Url}/ai/clear-session`
+    );
+    console.log(response);
+    MessageDialog.value = "Xoá dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.error(error);
+    MessageErrorDialog.value = "Xoá dữ liệu thất bại";
+    Error();
+  }
+};
 
 // Auto scroll when new messages arrive
 watch(
