@@ -422,7 +422,7 @@ io.on("connection", (socket) => {
                       LEFT JOIN MaintenanceSchedule b 
                       ON a.MaThietBi = b.MaThietBi
                       GROUP BY TenThietBi 
-                      ORDER BY Status ASC`;
+                      ORDER BY Status DESC`;
         db.all(query, [], (err, rows) => {
           if (err) return socket.emit("MachineError", err);
           socket.emit("MachineData", rows);
@@ -1303,7 +1303,7 @@ io.on("connection", (socket) => {
 
         history.push({
           role: "system",
-          content: `📋 Bạn là trợ lý AI đang tóm tắt tình hình sản xuất ngày ${displayDate}.\nDữ liệu:\n${content}`,
+          content: `Tóm tắt tình hình sản xuất ngày ${displayDate}.\nDữ liệu:\n${content}`,
         });
       }
 
@@ -1405,7 +1405,7 @@ io.on("connection", (socket) => {
 
         history.push({
           role: "system",
-          content: `📋 Bạn là trợ lý AI đang phân tích dự án${
+          content: `Liệt kê các dự án${
             statusFilter ? ` với trạng thái "${statusFilter}"` : ""
           }${
             dateCondition ? ` từ ${dateParams[0]} đến ${dateParams[1]}` : ""
@@ -1455,7 +1455,7 @@ io.on("connection", (socket) => {
           .join("\n");
         history.push({
           role: "system",
-          content: `Bạn là trợ lý AI đang thực hiện phân tích tóm tắt dữ liệu bảo trì.\nDữ liệu tóm tắt:\n${content}`,
+          content: `Tóm tắt dữ liệu bảo trì.\nDữ liệu tóm tắt:\n${content}`,
         });
       }
 

@@ -387,6 +387,7 @@
       </v-card-text>
     </v-card>
   </v-dialog>
+
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarCaution v-model="DialogCaution" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
@@ -412,6 +413,7 @@ import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonRemove from "@/components/Button-Remove.vue"
 import ButtonAdd from "@/components/Button-Add.vue";
+import ButtonHistoryExport from "@/components/Button-History-Export.vue";
 import ButtonSearch from "@/components/Button-Search.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";

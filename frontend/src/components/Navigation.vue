@@ -147,13 +147,6 @@ const FetchUser = async () => {
         StatusOption_7.value = true;
         StatusOption_8.value = true;
         StatusOption_9.value = true;
-      } else if (LevelUser.value == "Kinh doanh admin") {
-        StatusOption_1.value = true;
-        StatusOption_6.value = true;
-        StatusOption_7.value = true;
-        StatusOption_8.value = true;
-        StatusOption_9.value = true;
-        StatusOption_11.value = true; 
       } else if (LevelUser.value == "Thủ kho") {
         StatusOption_6.value = true;
         StatusOption_7.value = true;
@@ -169,12 +162,26 @@ const FetchUser = async () => {
         StatusOption_8.value = true;
       } else if (LevelUser.value == "Quản lý tổng") {
         StatusOption_9.value = true;
+      } else if (LevelUser.value == "Quản lý kinh doanh") {
+        StatusOption_1.value = true;
+        StatusOption_6.value = true;
+        StatusOption_7.value = true;
+        StatusOption_8.value = true;
+        StatusOption_9.value = true;
+        StatusOption_11.value = true; 
       } else if (LevelUser.value == "Quản lý bảo trì") {
         StatusOption_1.value = true;
         StatusOption_9.value = true;
         StatusOption_11.value = true;
         StatusOption_7.value = true;
         StatusOption_4.value = true;
+      } else if (LevelUser.value == "Quản lý sản xuất") {
+        StatusOption_1.value = true;
+        StatusOption_9.value = true;
+        StatusOption_2.value = true;
+        StatusOption_3.value = true;
+        StatusOption_4.value = true;
+        StatusOption_6.value = true;
       } else if (LevelUser.value == "Admin") {
         StatusOption_1.value = false;
         StatusOption_2.value = false;

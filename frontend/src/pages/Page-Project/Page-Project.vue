@@ -62,7 +62,7 @@
         </v-card-title>
         <v-card-title class="d-flex align-center">
           <!-- <ButtonImportFile @import-file="Dialog = true" /> -->
-          <ButtonAdd @add="DialogAdd = true" />
+          <ButtonAdd @add="DialogAdd = true"  v-if="LevelUser == 'Admin' || LevelUser == 'Quản lý kinh doanh'" />
           <v-menu :location="location">
             <template v-slot:activator="{ props }">
               <v-btn
@@ -158,7 +158,7 @@
                 <ButtonEdit
                   class="ms-2"
                   @edit="GetItem(value)"
-                  v-if="LevelUser == 'Admin' || LevelUser == 'Kinh doanh admin'"
+                  v-if="LevelUser == 'Admin' || LevelUser == 'Quản lý kinh doanh'"
                 />
                 <Button-Download-Icon
                   @click="DownloadProjectDetail(value)"
