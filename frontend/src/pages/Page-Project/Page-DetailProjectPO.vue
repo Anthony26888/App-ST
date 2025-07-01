@@ -263,7 +263,7 @@ const id = route.params.id;
 
 // Initialize composables
 const { detailProjectPO, detailProjectPOError } = useDetailProjectPO(id);
-
+console.log(detailProjectPO)
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
@@ -370,6 +370,7 @@ const Quantity_Amount_Add = computed(() => {
 function GetItem(item) {
   DialogEdit.value = true;
   GetID.value = item.id;
+  console.log(item)
   Product_Detail_Edit.value = item.Product_Detail;
   Quantity_Product_Edit.value = item.Quantity_Product;
   Quantity_Delivered_Edit.value = item.Quantity_Delivered;

@@ -232,7 +232,7 @@ db.serialize(() => {
       Timestamp TEXT NOT NULL,
       RWID TEXT,
       TimestampRW TEXT,
-      Status Text,
+      Status TEXT,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);

@@ -61,10 +61,10 @@
           </v-col>
         </v-row>
 
-        <!-- Process Cards Grid -->
-        <v-row class="mb-6">
-          <v-col cols="12" sm="6" md="4" v-if="Level_SMT">
-            <v-card class="h-100" rounded="lg">
+        <!-- SMT Cards Grouped with Title and Vertical Dividers -->
+        <v-row v-if="Level_SMT" class="mb-6 align-center">
+          <v-col cols="12">
+            <v-card class="rounded-lg">
               <v-card-title
                 class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
               >
@@ -74,30 +74,90 @@
                   icon="mdi-cog"
                   variant="text"
                   color="primary"
+                  class="ms-2"
                   @click="DialogSettingSMT = true"
                 ></v-btn>
               </v-card-title>
               <v-card-text class="pa-4">
-                <div class="d-flex justify-space-between align-center mb-4">
-                  <div class="text-h4 font-weight-bold">
-                    <span class="text-primary">{{ totalInput }}</span> /
-                    <span class="text-success">{{ totalSMT }}</span>
-                  </div>
-                  <v-progress-circular
-                    :model-value="(totalSMT / totalInput) * 100"
-                    color="primary"
-                    size="48"
+                <div
+                  class="d-flex align-center flex-wrap-sm-nowrap flex-column flex-sm-row"
+                >
+                  <div
+                    class="flex-grow-1 d-flex flex-column align-center mb-4 mb-sm-0"
                   >
-                    {{ Math.round((totalSMT / totalInput) * 100) }}%
-                  </v-progress-circular>
-                </div>
-                <div class="text-caption text-medium-emphasis">
-                  Tổng số lượng SMT
+                    <div class="text-h6 font-weight-bold mb-2">Printer</div>
+                    <div class="text-h4 font-weight-bold mb-2">
+                      <span class="text-primary">{{ totalInput }}</span> /
+                      <span class="text-success">{{ totalSMT }}</span>
+                    </div>
+                    <v-progress-circular
+                      :model-value="(totalSMT / totalInput) * 100"
+                      color="primary"
+                      size="48"
+                    >
+                      {{ Math.round((totalSMT / totalInput) * 100) }}%
+                    </v-progress-circular>
+                    <div class="text-caption text-medium-emphasis mt-2">
+                      Tổng số lượng SMT (Printer)
+                    </div>
+                  </div>
+                  <v-divider
+                    vertical
+                    class="mx-0 d-none d-sm-flex"
+                    style="height: 120px"
+                  ></v-divider>
+                  <div
+                    class="flex-grow-1 d-flex flex-column align-center mb-4 mb-sm-0"
+                  >
+                    <div class="text-h6 font-weight-bold mb-2">
+                      Gắp linh kiện
+                    </div>
+                    <div class="text-h4 font-weight-bold mb-2">
+                      <span class="text-primary">{{ totalInput }}</span> /
+                      <span class="text-success">{{ totalSMT }}</span>
+                    </div>
+                    <v-progress-circular
+                      :model-value="(totalSMT / totalInput) * 100"
+                      color="primary"
+                      size="48"
+                    >
+                      {{ Math.round((totalSMT / totalInput) * 100) }}%
+                    </v-progress-circular>
+                    <div class="text-caption text-medium-emphasis mt-2">
+                      Tổng số lượng SMT (Gắp linh kiện)
+                    </div>
+                  </div>
+                  <v-divider
+                    vertical
+                    class="mx-0 d-none d-sm-flex"
+                    style="height: 120px"
+                  ></v-divider>
+                  <div class="flex-grow-1 d-flex flex-column align-center">
+                    <div class="text-h6 font-weight-bold mb-2">Lò Reflow</div>
+                    <div class="text-h4 font-weight-bold mb-2">
+                      <span class="text-primary">{{ totalInput }}</span> /
+                      <span class="text-success">{{ totalSMT }}</span>
+                    </div>
+                    <v-progress-circular
+                      :model-value="(totalSMT / totalInput) * 100"
+                      color="primary"
+                      size="48"
+                    >
+                      {{ Math.round((totalSMT / totalInput) * 100) }}%
+                    </v-progress-circular>
+                    <div class="text-caption text-medium-emphasis mt-2">
+                      Tổng số lượng SMT (Lò Reflow)
+                    </div>
+                  </div>
                 </div>
               </v-card-text>
             </v-card>
           </v-col>
+        </v-row>
+        <!-- End SMT Cards Group -->
 
+        <!-- Process Cards Grid -->
+        <v-row class="mb-6">
           <v-col cols="12" sm="6" md="4" v-if="Level_AOI">
             <v-card class="h-100" rounded="lg">
               <v-card-title
@@ -281,14 +341,18 @@
                 <div class="d-flex justify-space-between align-center mb-4">
                   <div class="text-h4 font-weight-bold">
                     <span class="text-primary">{{ totalInput }}</span> /
-                    <span class="text-success">{{ totalConformalCoating }}</span>
+                    <span class="text-success">{{
+                      totalConformalCoating
+                    }}</span>
                   </div>
                   <v-progress-circular
                     :model-value="(totalConformalCoating / totalInput) * 100"
                     color="primary"
                     size="48"
                   >
-                    {{ Math.round((totalConformalCoating / totalInput) * 100) }}%
+                    {{
+                      Math.round((totalConformalCoating / totalInput) * 100)
+                    }}%
                   </v-progress-circular>
                 </div>
                 <div class="text-caption text-medium-emphasis">
@@ -374,7 +438,7 @@
                     color="primary"
                     size="48"
                   >
-                    {{ Math.round((totalFixed / totalError) * 100) || 0}}%
+                    {{ Math.round((totalFixed / totalError) * 100) || 0 }}%
                   </v-progress-circular>
                 </div>
                 <div class="text-caption text-medium-emphasis">
@@ -533,14 +597,14 @@
                 size="small"
                 variant="tonal"
               >
-                {{ item.Status === 'error' ? 'Lỗi' : 'OK' }}
+                {{ item.Status === "error" ? "Lỗi" : "OK" }}
               </v-chip>
             </template>
             <template #[`bottom`]>
               <div class="text-center pt-2">
                 <v-pagination
                   v-model="page"
-                  :length="Math.ceil((manufactureBoxBuild?.length || 0) / itemsPerPage)"
+                  :length="Math.ceil((historyPart?.length || 0) / itemsPerPage)"
                 ></v-pagination>
               </div>
             </template>
@@ -548,8 +612,6 @@
         </v-card>
       </v-card-text>
     </v-card>
-
-    
 
     <!-- Dialog Add -->
     <v-dialog v-model="DialogAdd" width="500" scrollable>
@@ -743,7 +805,7 @@ import Loading from "@/components/Loading.vue";
 import { useManufactureDetails } from "@/composables/Manufacture/useManufactureDetails";
 import { useManufacture } from "@/composables/Manufacture/useManufacture";
 import { useHistory } from "@/composables/Manufacture/useHistory";
-import { useHistoryPart } from "@/composables/Manufacture/useHistoryPart"
+import { useHistoryPart } from "@/composables/Manufacture/useHistoryPart";
 
 // ... existing refs and constants ...
 const Url = import.meta.env.VITE_API_URL;
@@ -756,7 +818,7 @@ const { manufacture, manufactureFound, manufactureError, isConnected } =
   useManufacture();
 const { history, historyError, refresh } = useHistory(id);
 const { historyPart, historyPartError } = useHistoryPart(id);
-console.log(historyPart)
+console.log(historyPart);
 // Dialog
 const DialogSuccess = ref(false);
 const DialogLoading = ref(false);
@@ -853,7 +915,7 @@ const HeadersHistory = [
   { title: "RW đã sửa", key: "Total_Fixed", sortable: true },
   { title: "Thao tác", key: "id", sortable: false },
 ];
-const HeadersHistoryPart = [ 
+const HeadersHistoryPart = [
   { title: "Mã hàng", key: "PartNumber", sortable: true },
   { title: "Trạng thái", key: "Status", sortable: true },
   { title: "Ngày", key: "Timestamp", sortable: true },
@@ -881,7 +943,8 @@ watch(
         Level_Test_1.value = DataManufacture.value.includes("Test 1");
         Level_Test_2.value = DataManufacture.value.includes("Test 2");
         Level_BoxBuild.value = DataManufacture.value.includes("Box Build");
-        Level_ConformalCoating.value = DataManufacture.value.includes("Tẩm phủ");
+        Level_ConformalCoating.value =
+          DataManufacture.value.includes("Tẩm phủ");
       }
     }
   },
@@ -908,7 +971,7 @@ watch(
         totalTest1.value = data.Test1 || 0;
         totalTest2.value = data.Test2 || 0;
         totalBoxBuild.value = data.BoxBuild || 0;
-        totalConformalCoating.value = data.ConformalCoating || 0
+        totalConformalCoating.value = data.ConformalCoating || 0;
         totalWarehouse.value = data.Warehouse || 0;
         totalIPQCSMT.value = data.IPQCSMT || 0;
         totalAOIError.value = data.AOIError || 0;

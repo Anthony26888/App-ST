@@ -357,7 +357,7 @@ io.on("connection", (socket) => {
                           ELSE 'Đang sản xuất'
                         END AS Status,
                         o.QuantityProduct AS Quantity_Product, 
-                        IFNULL(c.Total_Output, 0) AS Quantity_Delivered, 
+                        IFNULL(o.QuantityDelivered, 0) AS Quantity_Delivered, 
                         IFNULL(o.QuantityProduct - o.QuantityDelivered, 0) AS Quantity_Amount,
                         o.Note AS Note 
                       FROM ProductDetails o 
