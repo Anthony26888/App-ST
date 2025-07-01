@@ -522,6 +522,7 @@ io.on("connection", (socket) => {
                           SUM(IFNULL(m.Test1, 0)) AS Test1,
                           SUM(IFNULL(n.Test2, 0)) AS Test2,
                           SUM(IFNULL(j.BoxBuild, 0)) AS BoxBuild,
+                          SUM(IFNULL(l.ConformalCoating, 0)) AS ConformalCoating,
                           SUM(IFNULL(o.Warehouse, 0)) AS Warehouse,
                           SUM(IFNULL(c1.AOIError, 0)) AS AOIError,
                           SUM(IFNULL(e1.IPQCError, 0)) AS IPQCError,
@@ -613,6 +614,12 @@ io.on("connection", (socket) => {
 						              WHERE Status = 'ok'
                           GROUP BY HistoryID
                       ) j ON a.id = j.HistoryID
+                       LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS ConformalCoating 
+                          FROM ManufactureConformalCoating
+						              WHERE Status = 'ok'
+                          GROUP BY HistoryID
+                      ) l ON a.id = l.HistoryID
                        LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS Warehouse
                           FROM ManufactureWarehouse
@@ -828,18 +835,18 @@ io.on("connection", (socket) => {
         socket.emit("ManufactureBoxBuildError", error);
       }
     }),
-    socket.on("getManufactureConformalCoating", async (id) => {
+    socket.on("getManufactureCC", async (id) => {
       try {
         const query = `SELECT *
                       FROM ManufactureConformalCoating
                       WHERE HistoryID = ?
                       ORDER BY Timestamp DESC`;
         db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("ManufactureBoxBuildError", err);
-          socket.emit("ManufactureBoxBuildData", rows);
+          if (err) return socket.emit("ManufactureCCError", err);
+          socket.emit("ManufactureCCData", rows);
         });
       } catch (error) {
-        socket.emit("ManufactureBoxBuildError", error);
+        socket.emit("ManufactureCCError", error);
       }
     }),
     socket.on("getManufactureTest1", async (id) => {
@@ -907,6 +914,7 @@ io.on("connection", (socket) => {
                           WHEN a.Type = 'Test 1' THEN IFNULL(j.Test1, 0)
                           WHEN a.Type = 'Test 2' THEN IFNULL(k.Test2, 0)
                           WHEN a.Type = 'Box Build' THEN IFNULL(m.BoxBuild, 0)
+                          WHEN a.Type = 'Tẩm phủ' THEN IFNULL(l.ConformalCoating, 0)
                           WHEN a.Type = 'Nhập kho' THEN IFNULL(n.Warehouse, 0)
                           ELSE 0
                         END AS Quantity_Real,
@@ -923,6 +931,7 @@ io.on("connection", (socket) => {
                               WHEN a.Type = 'Test 2' THEN (IFNULL(k.Test2, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'Box Build' THEN (IFNULL(m.BoxBuild, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'Nhập kho' THEN (IFNULL(n.Warehouse, 0) * 100.0) / a.Quantity_Plan
+                              WHEN a.Type = 'Tẩm phủ' THEN (IFNULL(l.ConformalCoating, 0) * 100.0) / a.Quantity_Plan
                               ELSE 0
                             END
                           ELSE 0
@@ -990,6 +999,12 @@ io.on("connection", (socket) => {
                         WHERE Status = 'ok'
                         GROUP BY HistoryID
                       ) n ON a.id = n.HistoryID
+                       LEFT JOIN (
+                        SELECT HistoryID, COUNT(id) AS ConformalCoating
+                        FROM ManufactureConformalCoating
+                        WHERE Status = 'ok'
+                        GROUP BY HistoryID
+                      ) l ON a.id = l.HistoryID
                       WHERE a.Created_At = ?
                       ORDER BY a.Created_At DESC`;
         db.all(query, [id], (err, rows) => {
@@ -1024,6 +1039,7 @@ io.on("connection", (socket) => {
                           WHEN a.Type = 'Test 1' THEN IFNULL(m.Test1, 0)
                           WHEN a.Type = 'Test 2' THEN IFNULL(n.Test2, 0)
                           WHEN a.Type = 'Box Build' THEN IFNULL(j.BoxBuild, 0)
+                          WHEN a.Type = 'Tẩm phủ' THEN IFNULL(l.ConformalCoating, 0)
                           WHEN a.Type = 'Nhập kho' THEN IFNULL(o.Warehouse, 0)
                           ELSE 0
                         END AS Quantity_Real,
@@ -1102,6 +1118,12 @@ io.on("connection", (socket) => {
 						              WHERE Status = 'ok'
                           GROUP BY HistoryID
                         ) j ON a.id = j.HistoryID
+                          LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS ConformalCoating
+                          FROM ManufactureConformalCoating
+						              WHERE Status = 'ok'
+                          GROUP BY HistoryID
+                        ) l ON a.id = l.HistoryID
                         LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS Warehouse
                           FROM ManufactureWarehouse
@@ -1188,6 +1210,37 @@ io.on("connection", (socket) => {
         });
       } catch (error) {
         socket.emit("HistoryError", error);
+      }
+    }),
+    socket.on("getHistoryPart", async (id) => {
+      try {
+        const query = `
+                      SELECT * 
+                      FROM (
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, HistoryID, 'AOI' AS Source FROM ManufactureAOI
+                        UNION ALL
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, HistoryID, 'Tẩm phủ' FROM ManufactureConformalCoating
+                        UNION ALL
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, HistoryID, 'Test1' FROM ManufactureTest1
+                        UNION ALL
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, HistoryID, 'Test2' FROM ManufactureTest2
+                        UNION ALL
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, HistoryID, 'BoxBuild' FROM ManufactureBoxBuild
+                        UNION ALL
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, HistoryID, 'SMT' FROM ManufactureSMT
+                        UNION ALL
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, HistoryID, 'IPQC' FROM ManufactureIPQC
+                        UNION ALL
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, HistoryID, 'IPQCSMT' FROM ManufactureIPQCSMT
+                      ) 
+                      WHERE HistoryID = ?
+                      ORDER BY Timestamp DESC`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("HistoryPartError", err);
+          socket.emit("HistoryPartData", rows);
+        });
+      } catch (error) {
+        socket.emit("HistoryPartError", error);
       }
     }),
     socket.on("user_message", async (msg) => {
@@ -1405,7 +1458,7 @@ io.on("connection", (socket) => {
 
         history.push({
           role: "system",
-          content: `Liệt kê các dự án${
+          content: `📋 Bạn là trợ lý AI đang phân tích dự án của khách hàng${
             statusFilter ? ` với trạng thái "${statusFilter}"` : ""
           }${
             dateCondition ? ` từ ${dateParams[0]} đến ${dateParams[1]}` : ""
@@ -1455,7 +1508,7 @@ io.on("connection", (socket) => {
           .join("\n");
         history.push({
           role: "system",
-          content: `Tóm tắt dữ liệu bảo trì.\nDữ liệu tóm tắt:\n${content}`,
+          content: `Bạn là trợ lý AI đang thực hiện phân tích tóm tắt dữ liệu bảo trì.\nDữ liệu tóm tắt:\n${content}`,
         });
       }
 
@@ -1766,7 +1819,7 @@ io.on("connection", (socket) => {
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer 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`,
+            Authorization: `Bearer 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`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -3732,7 +3785,7 @@ app.post("/api/sensor", (req, res) => {
   }
 
   const stmt = db.prepare(
-    "INSERT INTO ManufactureSMT (HistoryID, Input, Timestamp) VALUES (?, ?, ?)"
+    "INSERT INTO ManufactureSMT (HistoryID, PartNumber, Timestamp, Status) VALUES (?, ?, ?, 'ok')"
   );
   stmt.run(project_id, input_value, Timestamp, function (err) {
     if (err) {

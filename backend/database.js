@@ -228,8 +228,11 @@ db.serialize(() => {
     CREATE TABLE IF NOT EXISTS ManufactureSMT (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       HistoryID INTEGER NOT NULL,
-      Input INTEGER NOT NULL,
+      PartNumber INTEGER NOT NULL,
       Timestamp TEXT NOT NULL,
+      RWID TEXT,
+      TimestampRW TEXT,
+      Status Text,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
@@ -267,6 +270,8 @@ db.serialize(() => {
       PartNumber TEXT NOT NULL,
       Status TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
+      RWID TEXT,
+      TimestampRW TEXT,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
@@ -327,6 +332,8 @@ db.serialize(() => {
       PartNumber TEXT NOT NULL,
       Status TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
+      RWID TEXT,
+      TimestampRW TEXT,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
@@ -337,6 +344,8 @@ db.serialize(() => {
       PartNumber TEXT NOT NULL,
       Status TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
+      RWID TEXT,
+      TimestampRW TEXT,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
@@ -347,6 +356,8 @@ db.serialize(() => {
       PartNumber TEXT NOT NULL,
       Status TEXT NOT NULL,
       Timestamp TEXT NOT NULL,
+      RWID TEXT,
+      TimestampRW TEXT,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);

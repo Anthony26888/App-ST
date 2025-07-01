@@ -338,8 +338,8 @@ function generateHeaders(bomData) {
   if (bomData && bomData.length > 0) {
     const firstItemKeys = Object.keys(bomData[0]);
     console.log("Generating headers from keys:", firstItemKeys);
-    // Remove the last 4 headers
-    const filteredKeys = firstItemKeys;
+    // Remove the last 5 headers
+    const filteredKeys = firstItemKeys.slice(0, -11);
     Headers.value = filteredKeys.map((key) => ({
       title: key.replace(/_/g, " "),
       key: key,

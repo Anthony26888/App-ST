@@ -179,7 +179,9 @@ const Headers = [
   { title: 'Trạng thái', key: 'Status', sortable: true },
   { title: 'Thời gian', key: 'Timestamp', sortable: true },
 ]
-
+const search = ref("");
+const page = ref(1);
+const itemsPerPage = ref(10);
 // ===== Composables & Data Management =====
 // Initialize composables for data fetching
 const { history, historyError } = useHistory(back);
@@ -190,9 +192,7 @@ const { manufactureBoxBuild, manufactureBoxBuildError } = useManufactureBoxBuild
 const DialogLoading = ref(false);
 
 // Table
-const search = ref("");
-const page = ref(1);
-const itemsPerPage = ref(10);
+
 
 // Input/Output State
 const Input = ref("");

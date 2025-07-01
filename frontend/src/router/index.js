@@ -30,11 +30,13 @@ import PageDetailOQC from "@/pages/Page-Manufacture/Page-DetailOQC.vue";
 import PageSummary from "@/pages/Page-Summary/Page-Summary.vue"
 import PageDetailIPQCSMT from "@/pages/Page-Manufacture/Page-Detail-IPQC-SMT.vue";
 import PageDetailBoxBuild from "@/pages/Page-Manufacture/Page-Detail-BoxBuild.vue";
+import PageConformalCoating from "@/pages/Page-Manufacture/Page-Detail-Conformal-Coating.vue";
 import PageDetailWarehouse from "@/pages/Page-Manufacture/Page-Detail-Warehouse.vue";
 import PageDetailTest1 from "@/pages/Page-Manufacture/Page-Detail-Test1.vue";
 import PageDetailTest2 from "@/pages/Page-Manufacture/Page-Detail-Test2.vue";
 import PageListWork from "@/pages/Page-Manufacture/Page-ListWork.vue";
 import PageAI from "@/pages/Page-AI-Chatbox/Page-AI.vue"
+import PageDetailConformalCoating from "@/pages/Page-Manufacture/Page-Detail-Conformal-Coating.vue";
 
 
 const routes = [
@@ -215,6 +217,12 @@ const routes = [
         name: "DetailBoxBuild",
         meta: { requiresAuth: true },
         component: PageDetailBoxBuild,
+      },
+      {
+        path: "/San-xuat/Conformal-Coating/:id",
+        name: "DetailConformalCoating",
+        meta: { requiresAuth: true },
+        component: PageDetailConformalCoating,
       },
       {
         path: "/Bao-cao-san-xuat",

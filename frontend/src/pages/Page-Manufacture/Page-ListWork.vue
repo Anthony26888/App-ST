@@ -267,6 +267,8 @@ const PushItem = (item) => {
     router.push(`/San-xuat/Test2/${item.id}`);
   } else if (item.Type === "Box Build") {
     router.push(`/San-xuat/BoxBuild/${item.id}`);
+  } else if (item.Type === "Tẩm phủ") {
+    router.push(`/San-xuat/Conformal-Coating/${item.id}`);
   } else if (item.Type === "Nhập kho") {
     router.push(`/San-xuat/Nhap-kho/${item.id}`);
   } else if (item.Type === "IPQC (SMT)") {

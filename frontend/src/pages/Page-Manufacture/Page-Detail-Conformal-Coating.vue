@@ -45,19 +45,6 @@
               </v-card-text>
             </v-card>
           </v-col>
-          <!-- <v-col cols="12" sm="4">
-            <v-card class="rounded-lg" color="warning" variant="tonal">
-              <v-card-text>
-                <div class="text-subtitle-1">Lỗi</div>
-                <div class="text-h4 font-weight-bold">
-                  {{ totalErrors }}
-                </div>
-                <div class="text-caption">
-                  Tổng số lượng lỗi
-                </div>
-              </v-card-text>
-            </v-card>
-          </v-col> -->
         </v-row>
 
         <!-- Input Section -->
@@ -76,15 +63,6 @@
                   density="comfortable"
                 />
               </v-col>
-              <!-- <v-col cols="12" md="4">
-                <v-checkbox
-                  v-model="isError"
-                  label="Đánh dấu lỗi"
-                  color="warning"
-                  hide-details
-                  class="mt-2"
-                ></v-checkbox>
-              </v-col> -->
             </v-row>
           </v-card-text>
         </v-card>
@@ -98,7 +76,7 @@
           </v-card-title>
           <v-data-table
             :headers="Headers"
-            :items="manufactureBoxBuild"
+            :items="manufactureCC"
             :search="search"
             :items-per-page="itemsPerPage"
             v-model="page"
@@ -134,7 +112,7 @@
               <div class="text-center pt-2">
                 <v-pagination
                   v-model="page"
-                  :length="Math.ceil((manufactureBoxBuild?.length || 0) / itemsPerPage)"
+                  :length="Math.ceil((manufactureCC?.length || 0) / itemsPerPage)"
                 ></v-pagination>
               </div>
             </template>
@@ -158,7 +136,7 @@ import axios from "axios";
 
 // Composables
 import { useHistory } from "@/composables/Manufacture/useHistory";
-import { useManufactureCC } from "@/composables/Manufacture/useManufactureCC";
+import { useManufactureCC } from "@/composables/Manufacture/useManufactureConformal-Coating";
 
 // Components
 import Loading from "@/components/Loading.vue";
@@ -184,6 +162,7 @@ const Headers = [
 // Initialize composables for data fetching
 const { history, historyError } = useHistory(back);
 const { manufactureCC, manufactureCCError } = useManufactureCC(id);
+console.log(manufactureCC)
 
 // ===== Reactive State =====
 // UI State

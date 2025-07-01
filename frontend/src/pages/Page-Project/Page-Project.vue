@@ -10,7 +10,7 @@
             <v-col cols="12" sm="6" md="3">
               <v-card class="rounded-lg" color="primary" variant="tonal">
                 <v-card-text>
-                  <div class="text-subtitle-1">Tổng số dự án</div>
+                  <div class="text-subtitle-1">Tổng số khách hàng</div>
                   <div class="text-h4 font-weight-bold">
                     {{ project?.length || 0 }}
                   </div>
@@ -35,10 +35,10 @@
             <v-col cols="12" sm="6" md="3">
               <v-card class="rounded-lg" color="success" variant="tonal">
                 <v-card-text>
-                  <div class="text-subtitle-1">Dự án hoàn thành</div>
+                  <div class="text-subtitle-1">Tổng PO hoàn thành</div>
                   <div class="text-h4 font-weight-bold">
                     {{
-                      project?.filter((p) => p.Status === "Hoàn thành")
+                      filteredProjectFind?.filter((p) => p.Status === "Hoàn thành")
                         .length || 0
                     }}
                   </div>
@@ -48,10 +48,10 @@
             <v-col cols="12" sm="6" md="3">
               <v-card class="rounded-lg" color="warning" variant="tonal">
                 <v-card-text>
-                  <div class="text-subtitle-1">Dự án đang sản xuất</div>
+                  <div class="text-subtitle-1">Tổng PO đang sản xuất</div>
                   <div class="text-h4 font-weight-bold">
                     {{
-                      project?.filter((p) => p.Status === "Đang sản xuất")
+                      filteredProjectFind?.filter((p) => p.Status === "Đang sản xuất")
                         .length || 0
                     }}
                   </div>

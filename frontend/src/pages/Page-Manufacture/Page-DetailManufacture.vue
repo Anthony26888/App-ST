@@ -270,6 +270,34 @@
             </v-card>
           </v-col>
 
+          <v-col cols="12" sm="6" md="4" v-if="Level_ConformalCoating">
+            <v-card class="h-100" rounded="lg">
+              <v-card-title
+                class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
+              >
+                Tẩm phủ
+              </v-card-title>
+              <v-card-text class="pa-4">
+                <div class="d-flex justify-space-between align-center mb-4">
+                  <div class="text-h4 font-weight-bold">
+                    <span class="text-primary">{{ totalInput }}</span> /
+                    <span class="text-success">{{ totalConformalCoating }}</span>
+                  </div>
+                  <v-progress-circular
+                    :model-value="(totalConformalCoating / totalInput) * 100"
+                    color="primary"
+                    size="48"
+                  >
+                    {{ Math.round((totalConformalCoating / totalInput) * 100) }}%
+                  </v-progress-circular>
+                </div>
+                <div class="text-caption text-medium-emphasis">
+                  Tổng số lượng Tẩm phủ
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+
           <v-col cols="12" sm="6" md="4" v-if="Level_Test_2">
             <v-card class="h-100" rounded="lg">
               <v-card-title
@@ -472,8 +500,56 @@
             </template>
           </v-data-table-virtual>
         </v-card>
+
+        <!-- Data Table Section -->
+        <v-card class="rounded-lg mt-5" elevation="2">
+          <v-data-table-virtual
+            :headers="HeadersHistoryPart"
+            :items="historyPart"
+            :search="searchHistory"
+            fixed-header
+            class="elevation-0"
+          >
+            <template v-slot:top>
+              <v-toolbar flat dense class="rounded-t-lg">
+                <v-toolbar-title class="d-flex align-center">
+                  <v-icon
+                    color="primary"
+                    icon="mdi-history"
+                    size="small"
+                    class="me-2"
+                  ></v-icon>
+                  <span class="text-h6">Lịch sử sản xuất</span>
+                </v-toolbar-title>
+
+                <v-spacer></v-spacer>
+
+                <InputSearch v-model="searchHistory" class="mr-2" />
+              </v-toolbar>
+            </template>
+            <template #[`item.Status`]="{ item }">
+              <v-chip
+                :color="item.Status === 'error' ? 'warning' : 'success'"
+                size="small"
+                variant="tonal"
+              >
+                {{ item.Status === 'error' ? 'Lỗi' : 'OK' }}
+              </v-chip>
+            </template>
+            <template #[`bottom`]>
+              <div class="text-center pt-2">
+                <v-pagination
+                  v-model="page"
+                  :length="Math.ceil((manufactureBoxBuild?.length || 0) / itemsPerPage)"
+                ></v-pagination>
+              </div>
+            </template>
+          </v-data-table-virtual>
+        </v-card>
       </v-card-text>
     </v-card>
+
+    
 
     <!-- Dialog Add -->
     <v-dialog v-model="DialogAdd" width="500" scrollable>
@@ -667,6 +743,7 @@ import Loading from "@/components/Loading.vue";
 import { useManufactureDetails } from "@/composables/Manufacture/useManufactureDetails";
 import { useManufacture } from "@/composables/Manufacture/useManufacture";
 import { useHistory } from "@/composables/Manufacture/useHistory";
+import { useHistoryPart } from "@/composables/Manufacture/useHistoryPart"
 
 // ... existing refs and constants ...
 const Url = import.meta.env.VITE_API_URL;
@@ -678,7 +755,8 @@ const { manufactureDetails, connectionStatus } = useManufactureDetails(id);
 const { manufacture, manufactureFound, manufactureError, isConnected } =
   useManufacture();
 const { history, historyError, refresh } = useHistory(id);
-console.log(manufactureDetails)
+const { historyPart, historyPartError } = useHistoryPart(id);
+console.log(historyPart)
 // Dialog
 const DialogSuccess = ref(false);
 const DialogLoading = ref(false);
@@ -707,6 +785,7 @@ const totalOQC = ref(0);
 const totalTest1 = ref(0);
 const totalTest2 = ref(0);
 const totalBoxBuild = ref(0);
+const totalConformalCoating = ref(0);
 const totalWarehouse = ref(0);
 
 const totalError = ref(0);
@@ -719,6 +798,7 @@ const totalOQCError = ref(0);
 const totalTest1Error = ref(0);
 const totalTest2Error = ref(0);
 const totalBoxBuildError = ref(0);
+const totalConformalCoatingError = ref(0);
 const totalWarehouseError = ref(0);
 
 const totalFixed = ref(0);
@@ -733,6 +813,7 @@ const Level_IPQCSMT = ref(0);
 const Level_Test_1 = ref(0);
 const Level_Test_2 = ref(0);
 const Level_BoxBuild = ref(0);
+const Level_ConformalCoating = ref(0);
 const LevelSelectAdd = ref(null);
 
 // Data
@@ -760,7 +841,7 @@ const DelaySMT_Edit = ref(50);
 const Quantity_Edit = ref(1);
 
 // Table
-const search = ref("");
+const searchHistory = ref("");
 const page = ref(1);
 const itemsPerPage = ref(10);
 const HeadersHistory = [
@@ -771,6 +852,14 @@ const HeadersHistory = [
   { title: "Hàng lỗi", key: "Quantity_Error", sortable: true },
   { title: "RW đã sửa", key: "Total_Fixed", sortable: true },
   { title: "Thao tác", key: "id", sortable: false },
+];
+const HeadersHistoryPart = [ 
+  { title: "Mã hàng", key: "PartNumber", sortable: true },
+  { title: "Trạng thái", key: "Status", sortable: true },
+  { title: "Ngày", key: "Timestamp", sortable: true },
+  { title: "Vị trí", key: "Source", sortable: true },
+  { title: "RW", key: "RWID", sortable: true },
+  { title: "Thời gian RW", key: "TimestampRW", sortable: true },
 ];
 
 // Watch for manufactureFound changes to update levels
@@ -792,6 +881,7 @@ watch(
         Level_Test_1.value = DataManufacture.value.includes("Test 1");
         Level_Test_2.value = DataManufacture.value.includes("Test 2");
         Level_BoxBuild.value = DataManufacture.value.includes("Box Build");
+        Level_ConformalCoating.value = DataManufacture.value.includes("Tẩm phủ");
       }
     }
   },
@@ -818,6 +908,7 @@ watch(
         totalTest1.value = data.Test1 || 0;
         totalTest2.value = data.Test2 || 0;
         totalBoxBuild.value = data.BoxBuild || 0;
+        totalConformalCoating.value = data.ConformalCoating || 0
         totalWarehouse.value = data.Warehouse || 0;
         totalIPQCSMT.value = data.IPQCSMT || 0;
         totalAOIError.value = data.AOIError || 0;
@@ -849,6 +940,7 @@ watch(
         totalTest1.value = newValue.Test1 || 0;
         totalTest2.value = newValue.Test2 || 0;
         totalBoxBuild.value = newValue.BoxBuild || 0;
+        totalConformalCoating.value = newValue.ConformalCoating || 0;
         totalWarehouse.value = newValue.Warehouse || 0;
         totalIPQCSMT.value = newValue.IPQCSMT || 0;
         totalAOIError.value = newValue.AOIError || 0;
@@ -941,6 +1033,8 @@ const PushItem = (item) => {
     router.push(`/San-xuat/Test2/${item.id}`);
   } else if (item.Type === "Box Build") {
     router.push(`/San-xuat/BoxBuild/${item.id}`);
+  } else if (item.Type === "Tẩm phủ") {
+    router.push(`/San-xuat/Conformal-Coating/${item.id}`);
   } else if (item.Type === "Nhập kho") {
     router.push(`/San-xuat/Nhap-kho/${item.id}`);
   } else if (item.Type === "IPQC (SMT)") {
