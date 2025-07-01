@@ -47,7 +47,7 @@
             <div class="d-flex">
               <ButtonEdit
                 @edit="GetItem(item)"
-                v-if="LevelUser == 'Admin' || LevelUser == 'Kinh doanh admin'"
+                v-if="LevelUser == 'Admin' || LevelUser == 'Quản lý kinh doanh'"
               />
               <v-btn
                 color="success"

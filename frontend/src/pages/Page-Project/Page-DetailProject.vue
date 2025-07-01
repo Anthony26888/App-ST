@@ -98,7 +98,7 @@
               <ButtonEye @detail="PushItem(item)" />
               <ButtonEdit
                 @edit="GetItem(item)"
-                v-if="LevelUser == 'Admin' || LevelUser == 'Kinh doanh admin'"
+                v-if="LevelUser == 'Admin' || LevelUser == 'Quản lý kinh doanh'"
               />
             </div>
           </template>
