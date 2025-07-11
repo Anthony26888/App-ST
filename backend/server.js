@@ -32,10 +32,8 @@ const sessions = {}; // lưu theo socket.id
 // Khởi tạo Express và Socket.IO
 const PORT = 3000;
 // const HTTPS_PORT = 3443; // XÓA: không dùng HTTPS
-app.use(bodyParser.json());
-app.use("/", routes);
 
-const allowedOrigins = [
+const allowedOrigins = new Set([
   "http://localhost:8080",
   "https://localhost:8080",
   "http://localhost:3000",
@@ -44,11 +42,19 @@ const allowedOrigins = [
   "http://127.0.0.1:3000",
   "http://192.168.100.210:3000",
   "http://192.168.1.10:3000",
-  "http://erp.sieuthuat.com:3000" // ← thêm dòng này
-];
+  "http://erp.sieuthuat.com:3000"
+]);
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // Cho phép postman hoặc curl
+    if (allowedOrigins.has(origin)) {
+      return callback(null, true);
+    } else {
+      console.log("❌ Blocked origin:", origin);
+      return callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
@@ -56,15 +62,24 @@ app.use(cors({
 
 app.use(bodyParser.json());
 app.use("/", routes);
+// BẮT BUỘC CÓ để xử lý preflight OPTIONS
+app.options("*", cors());
 
 // Tạo HTTP server
 const server = require("http").createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.has(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error("Socket origin not allowed by CORS"));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-  },
+  }
 });
 
 
