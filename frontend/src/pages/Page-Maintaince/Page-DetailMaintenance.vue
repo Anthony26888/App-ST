@@ -82,6 +82,12 @@
               ></v-chip>
             </div>
           </template>
+          <template #item.MoTaLoi="{ item }">
+            <div style="white-space: pre-line">{{ item.MoTaLoi }}</div>
+          </template>
+          <template #item.BienPhapKhacPhuc="{ item }">
+            <div style="white-space: pre-line">{{ item.BienPhapKhacPhuc }}</div>
+          </template>
           <template #item.MaBaoTri="{ item }">
             <div class="d-flex">
               <ButtonEye @detail="PushItem(item)" />

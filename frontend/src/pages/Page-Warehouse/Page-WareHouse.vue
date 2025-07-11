@@ -7,9 +7,17 @@
       <v-card variant="text">
         <v-card-title class="d-flex align-center pe-2">
           <ButtonImportFile @import-file="Dialog = true" />
-          <ButtonImportFile color="warning" class="ms-2" @import-file="DialogOutput = true" />
+          <ButtonImportFile
+            color="warning"
+            class="ms-2"
+            @import-file="DialogOutput = true"
+          />
           <ButtonAdd @click="DialogAdd = true" />
           <ButtonDownload @download-file="DownloadWareHouse()" />
+          <ButtonHistoryExport
+            @history="DialogHistory = true"
+            v-if="LevelUser == 'Admin' || LevelUser == 'Thủ kho'"
+          />
           <p class="ms-2 font-weight-thin text-subtitle-1">
             ( {{ warehouse.length }} linh kiện)
           </p>
@@ -26,12 +34,12 @@
             class="elevation-1"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
-              'items-per-page-text': 'Số hàng mỗi trang'
+              'items-per-page-text': 'Số hàng mỗi trang',
             }"
             :header-props="{
               sortByText: 'Sắp xếp theo',
               sortDescText: 'Giảm dần',
-              sortAscText: 'Tăng dần'
+              sortAscText: 'Tăng dần',
             }"
             :loading="DialogLoading"
             loading-text="Đang tải dữ liệu..."
@@ -52,7 +60,10 @@
             </template>
             <template v-slot:item.id="{ value }">
               <div>
-                <ButtonEdit @edit="GetItem(value)" v-if="LevelUser == 'Admin' || LevelUser == 'Thủ kho'" />
+                <ButtonEdit
+                  @edit="GetItem(value)"
+                  v-if="LevelUser == 'Admin' || LevelUser == 'Thủ kho'"
+                />
                 <ButtonSearch @search="getAccessToken(value)" />
               </div>
             </template>
@@ -75,7 +86,7 @@
   </v-dialog>
 
   <v-dialog v-model="DialogOutput" width="600">
-    <v-card max-width="600">
+    <v-card max-width="600" color="#F5F5F5">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-magnify" color="primary" class="me-2"></v-icon>
         Thêm dữ liệu trừ linh kiện
@@ -88,22 +99,40 @@
       </v-card-title>
       <v-card-text>
         <div class="d-flex">
-          <InputFiles abel="Thêm File Excel trừ linh kiện" v-model="FileOutput" />
-          <v-btn class="text-caption ms-2 mt-3" variant="tonal" color="primary" prepend-icon="mdi-send" @click="ImportFile_Output()">
+          <InputFiles
+            label="Thêm File Excel trừ linh kiện"
+            v-model="FileOutput"
+            :disabled="temporaryWarehouse != ''"
+          />
+          <v-btn
+            class="text-caption ms-2 mt-3"
+            variant="tonal"
+            color="primary"
+            prepend-icon="mdi-send"
+            @click="ImportFile_Output()"
+            :disabled="temporaryWarehouse != ''"
+          >
             Gửi File
           </v-btn>
         </div>
-        
       </v-card-text>
       <template v-slot:actions>
-        <ButtonCancel @cancel="DialogOutput = false" />
-        <v-btn class="text-caption" variant="tonal" color="success" prepend-icon="mdi-map-search-outline" @click="DialogPreview = true">Xem trước</v-btn>
+        <p class="text-error ms-2" v-if="temporaryWarehouse != ''">Đang có dữ liệu cần xem trước</p>
+        <v-spacer></v-spacer>
+        <v-btn
+          class="text-caption"
+          variant="tonal"
+          color="success"
+          prepend-icon="mdi-map-search-outline"
+          @click="DialogPreview = true"
+          >Xem trước</v-btn
+        >
       </template>
     </v-card>
   </v-dialog>
 
   <v-dialog v-model="DialogPreview" width="1200">
-    <v-card max-width="1200">
+    <v-card max-width="1200" color="#F5F5F5">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-magnify" color="primary" class="me-2"></v-icon>
         Kiểm tra dữ liệu sẽ trừ
@@ -178,10 +207,7 @@
   </v-dialog>
 
   <v-dialog v-model="DialogAdd" scrollable>
-    <v-card
-      width="600"
-      class="mx-auto overflow-y-auto"
-    >
+    <v-card width="600" class="mx-auto overflow-y-auto">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
         Thêm linh kiện
@@ -198,11 +224,22 @@
             <InputField label="Xuất kho" type="number" v-model="Output_Add" />
           </v-col>
           <v-col>
-            <InputField label="Tồn kho" type="number" disabled v-model="inventory_Add" />
+            <InputField
+              label="Tồn kho"
+              type="number"
+              disabled
+              v-model="inventory_Add"
+            />
           </v-col>
         </v-row>
-        <InputField label="Vị trí" v-model="Location_Add" />
-        <InputField label="Khách hàng" v-model="Customer_Add" />
+        <v-row>
+          <v-col>
+            <InputField label="Vị trí" v-model="Location_Add" />
+          </v-col>
+          <v-col>
+            <InputField label="Khách hàng" v-model="Customer_Add" />
+          </v-col>
+        </v-row>
         <InputField label="Ghi chú" v-model="Note_Add" />
         <InputField label="Ghi chú xuất" v-model="Note_Output_Add" />
       </v-card-text>
@@ -214,15 +251,12 @@
   </v-dialog>
 
   <v-dialog v-model="DialogEdit" width="600" scrollable>
-    <v-card
-      width="600"
-      class="mx-auto overflow-y-auto"
-    >
+    <v-card width="600" class="mx-auto overflow-y-auto">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
         Cập nhật dữ liệu
       </v-card-title>
-      <v-card-text >
+      <v-card-text>
         <InputField label="Part Number 1" v-model="PartNumber1_Edit" />
         <InputField label="Part Number 2" v-model="PartNumber2_Edit" />
         <InputTextarea label="Mô tả" v-model="Description_Edit" />
@@ -253,10 +287,23 @@
             />
           </v-col>
         </v-row>
-        <InputField label="Vị trí" v-model="Location_Edit" />
-        <InputField label="Khách hàng" v-model="Customer_Edit" />
+        <v-row>
+          <v-col>
+            <InputField label="Vị trí" v-model="Location_Edit" />
+          </v-col>
+          <v-col>
+            <InputField label="Khách hàng" v-model="Customer_Edit" />
+          </v-col>
+        </v-row>
         <InputField label="Ghi chú" v-model="Note_Edit" />
         <InputField label="Ghi chú xuất" v-model="Note_Output_Edit" />
+        <InputSelect
+          label="Loại giao dịch"
+          :items="['Nhập', 'Xuất']"
+          v-model="TransactionType_Edit"
+          :rules="[(v) => !!v || 'Vui lòng chọn loại giao dịch']"
+          required
+        />
       </v-card-text>
       <v-card-actions>
         <ButtonDelete @delete="DialogRemove = true" />
@@ -274,9 +321,7 @@
       </v-card-title>
 
       <v-card-text class="pa-4">
-        <div class="text-body-1">
-          Bạn có chắc chắn muốn xóa linh kiện này?
-        </div>
+        <div class="text-body-1">Bạn có chắc chắn muốn xóa linh kiện này?</div>
       </v-card-text>
 
       <v-card-actions class="pa-4">
@@ -294,9 +339,7 @@
       </v-card-title>
 
       <v-card-text class="pa-4">
-        <div class="text-body-1">
-          Bạn có chắc chắn muốn xóa linh kiện này?
-        </div>
+        <div class="text-body-1">Bạn có chắc chắn muốn xóa linh kiện này?</div>
       </v-card-text>
 
       <v-card-actions class="pa-4">
@@ -329,7 +372,11 @@
   <v-dialog v-model="DialogInfo" width="800" scrollable>
     <v-card class="overflow-y-auto">
       <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-information-variant-circle" color="primary" class="me-2"></v-icon>
+        <v-icon
+          icon="mdi-information-variant-circle"
+          color="primary"
+          class="me-2"
+        ></v-icon>
         Thông số kỹ thuật
         <v-spacer></v-spacer>
         <v-btn
@@ -388,8 +435,78 @@
     </v-card>
   </v-dialog>
 
+  <v-dialog v-model="DialogHistory" width="1200" scrollable>
+    <v-card class="overflow-y-auto" color="#F5F5F5">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-history" color="primary" class="me-2"></v-icon>
+        Lịch sử xuất nhập linh kiện
+        <v-spacer></v-spacer>
+        <InputSearch v-model="searchLog" />
+        <v-btn
+          icon="mdi-close"
+          variant="text"
+          class="ms-2"
+          @click="DialogHistory = false"
+        ></v-btn>
+      </v-card-title>
+
+      <v-card-text class="overflow-auto">
+        <v-data-table
+          :headers="HeadersHistoryLog"
+          :items="warehouseLog"
+          :search="searchLog"
+          :items-per-page="itemsPerPage"
+          v-model:page="page"
+          class="elevation-1"
+          :footer-props="{
+            'items-per-page-options': [10, 20, 50, 100],
+            'items-per-page-text': 'Số hàng mỗi trang',
+          }"
+          :header-props="{
+            sortByText: 'Sắp xếp theo',
+            sortDescText: 'Giảm dần',
+            sortAscText: 'Tăng dần',
+          }"
+          :loading="DialogLoading"
+          loading-text="Đang tải dữ liệu..."
+          no-data-text="Không có dữ liệu"
+          no-results-text="Không tìm thấy kết quả"
+          :hover="true"
+          :dense="false"
+          :fixed-header="true"
+          height="calc(100vh - 320px)"
+        >
+          <template v-slot:bottom>
+            <div class="text-center pt-2">
+              <v-pagination
+                v-model="page"
+                :length="Math.ceil(warehouseLog.length / itemsPerPage)"
+              ></v-pagination>
+            </div>
+          </template>
+          <template v-slot:item.ActionType="{ value }">
+            <div>
+              <v-chip
+                :color="value === 'Xuất' ? 'warning' : 'success'"
+                variant="tonal"
+                class="text-caption"
+              >
+                {{ value }}
+              </v-chip>
+            </div>
+          </template>
+          <template v-slot:item.id="{ item }">
+            <div class="d-flex align-center">
+              <ButtonRemove @remove="GetRemove(item)" />
+            </div>
+          </template>
+        </v-data-table>
+      </v-card-text>
+    </v-card>
+  </v-dialog>
+
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
-  <SnackbarCaution v-model="DialogCaution" />
+  <SnackbarCaution v-model="DialogCaution" :message="MessageCautionDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
 </template>
@@ -400,10 +517,12 @@ import axios from "axios";
 import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Buffer } from "buffer";
+import { jwtDecode } from "jwt-decode";
 
 // Composables
 import { useWareHouse } from "@/composables/Warehouse/useWareHouse";
 import { useTemporaryWareHouse } from "@/composables/Warehouse/useTemporaryWareHouse";
+import { useWareHouseLog } from "@/composables/Warehouse/useWareHouseLog";
 
 // Components
 import ButtonImportFile from "@/components/Button-ImportFile.vue";
@@ -411,13 +530,14 @@ import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
-import ButtonRemove from "@/components/Button-Remove.vue"
+import ButtonRemove from "@/components/Button-Remove.vue";
 import ButtonAdd from "@/components/Button-Add.vue";
 import ButtonHistoryExport from "@/components/Button-History-Export.vue";
 import ButtonSearch from "@/components/Button-Search.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputFiles from "@/components/Input-Files.vue";
+import InputSelect from "@/components/Input-Select.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
@@ -427,7 +547,8 @@ import Loading from "@/components/Loading.vue";
 // ===== STATE MANAGEMENT =====
 // Initialize composables and router
 const { warehouse } = useWareHouse();
-const { temporaryWarehouse } = useTemporaryWareHouse()
+const { temporaryWarehouse } = useTemporaryWareHouse();
+const { warehouseLog, warehouseLogError } = useWareHouseLog();
 const router = useRouter();
 
 // API Configuration
@@ -437,24 +558,26 @@ const clientSecret = import.meta.env.VITE_DIGIKEY_CLIENT_SECRET;
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
-const Dialog = ref(false);           // Import file dialog
-const DialogOutput = ref(false);     // Import file dialog
-const DialogPreview = ref(false)     // Preview table 
-const DialogAgree = ref(false);      // Agree file 
-const DialogEdit = ref(false);       // Edit item dialog
-const DialogRemove = ref(false);     // Remove item confirmation dialog
-const DialogRemoveFile = ref(false)   // Remove item from Temporary warehouse
-const DialogSuccess = ref(false);    // Success notification
-const DialogFailed = ref(false);     // Error notification
-const DialogAdd = ref(false);        // Add new item dialog
-const DialogInfo = ref(false);       // Product info dialog
-const DialogCaution = ref(false);    // Warning notification
-const DialogLoading = ref(false);    // Loading state
+const Dialog = ref(false); // Import file dialog
+const DialogOutput = ref(false); // Import file dialog
+const DialogPreview = ref(false); // Preview table
+const DialogAgree = ref(false); // Agree file
+const DialogEdit = ref(false); // Edit item dialog
+const DialogRemove = ref(false); // Remove item confirmation dialog
+const DialogRemoveFile = ref(false); // Remove item from Temporary warehouse
+const DialogSuccess = ref(false); // Success notification
+const DialogFailed = ref(false); // Error notification
+const DialogAdd = ref(false); // Add new item dialog
+const DialogInfo = ref(false); // Product info dialog
+const DialogCaution = ref(false); // Warning notification
+const DialogLoading = ref(false); // Loading state
+const DialogHistory = ref(false); // History import, export in warehouse
 
 // ===== MESSAGE DIALOG =====
 // Message for success and error notifications
 const MessageDialog = ref("");
 const MessageErrorDialog = ref("");
+const MessageCautionDialog = ref("");
 
 // ===== TABLE CONFIGURATION =====
 // Define table headers and their properties
@@ -464,7 +587,7 @@ const Headers = ref([
     sortable: false,
     title: "Mô tả",
     width: "200px",
-    noWrap: true
+    noWrap: true,
   },
   { key: "PartNumber_1", title: "Mã hàng 1", width: "150px", noWrap: true },
   { key: "PartNumber_2", title: "Mã hàng 2", width: "150px", noWrap: true },
@@ -484,7 +607,7 @@ const HeadersFile = ref([
     sortable: false,
     title: "Mô tả",
     width: "200px",
-    noWrap: true
+    noWrap: true,
   },
   { key: "PartNumber_1", title: "Mã hàng", width: "150px", noWrap: true },
   { key: "Location_1", title: "Vị trí file", width: "100px", noWrap: true },
@@ -497,6 +620,21 @@ const HeadersFile = ref([
   { key: "id", title: "Thao tác", noWrap: true },
 ]);
 
+const HeadersHistoryLog = ref([
+  { key: "PartNumber", title: "Mã hàng", width: "150px", noWrap: true },
+  { key: "Customer", title: "Mã kho", width: "150px", noWrap: true },
+  { key: "Location", title: "Vị trí", width: "150px", noWrap: true },
+  { key: "ActionType", title: "Trạng thái", width: "150px", noWrap: true },
+  { key: "Quantity", title: "Số lượng", width: "100px", noWrap: true },
+  { key: "Updated_by", title: "Người thực hiện", width: "100px", noWrap: true },
+  { key: "Created_at", title: "Ngày cập nhật", width: "100px", noWrap: true },
+]);
+
+const search = ref("");
+const searchLog = ref("");
+const itemsPerPage = ref(15);
+const page = ref(1);
+
 // ===== FORM STATES =====
 // File upload state
 const File = ref(null);
@@ -508,12 +646,13 @@ const PartNumber2_Edit = ref("");
 const Description_Edit = ref("");
 const Input_Edit = ref("");
 const Output_Edit = ref("");
-const inventory_Edit = ref("");
+// const inventory_Edit = ref("");
 const Location_Edit = ref("");
 const Customer_Edit = ref("");
 const Note_Edit = ref("");
 const Note_Output_Edit = ref("");
-
+const TransactionType_Edit = ref("");
+const inventory_Temporary = ref(0);
 // Add form states
 const PartNumber1_Add = ref("");
 const PartNumber2_Add = ref("");
@@ -525,7 +664,11 @@ const Customer_Add = ref("");
 const Note_Add = ref("");
 const Note_Output_Add = ref("");
 
+//History
+const NameItem = ref("");
 
+// User information
+const UserInfo = ref("");
 
 // ===== DIGIKEY API STATES =====
 // States for DigiKey API integration
@@ -539,6 +682,23 @@ const ResultSearch = ref(null);
 
 // ===== User Information =====
 const LevelUser = localStorage.getItem("LevelUser");
+onMounted(() => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    const decoded = jwtDecode(token);
+    UserInfo.value = decoded.Username;
+  } else {
+    console.log("Không tìm thấy token!");
+  }
+});
+
+const formattedSelectedDate = computed(() => {
+  const date = new Date();
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+});
 
 // ===== CRUD OPERATIONS =====
 /**
@@ -554,44 +714,54 @@ const GetItem = (value) => {
   Description_Edit.value = found.Description;
   Input_Edit.value = found.Input;
   Output_Edit.value = found.Output;
-  inventory_Edit.value = found.Inventory;
   Location_Edit.value = found.Location;
   Customer_Edit.value = found.Customer;
   Note_Edit.value = found.Note;
   Note_Output_Edit.value = found.Note_Output_Edit;
-}
+  TransactionType_Edit.value = found.TransactionType;
+  inventory_Temporary.value = found.Input - found.Output
+};
 
 const GetRemove = (item) => {
-  DialogRemoveFile.value = true
-  GetIDRemove.value = item.id
-}
-
+  DialogRemoveFile.value = true;
+  GetIDRemove.value = item.id;
+};
 
 // ==== COMPUTED ======
-const inventory_Add = computed(() =>{
-  return Input_Add.value - Output_Add.value
-})
-
+const inventory_Add = computed(() => {
+  return Input_Add.value - Output_Add.value;
+});
+const inventory_Edit = computed(() => {
+  return Input_Edit.value - Output_Edit.value;
+});
+const inventory = computed(() => {
+  return Math.abs(inventory_Edit.value - inventory_Temporary.value)
+});
 /**
  * Updates inventory count based on input and output values
  * @param {Event} event - The input event containing the new value
  */
-function updateInventoryOnOutput(event) {
-  const outputValue = parseInt(event.target.value) || 0;
-  const inputValue = parseInt(Input_Edit.value) || 0;
-  if (!Output_Edit.value) {
-    inventory_Edit.value = inputValue;
-  } else if (inputValue - outputValue > 0) {
-    inventory_Edit.value = inputValue - outputValue;
-  } else {
-    inventory_Edit.value = 0;
-  }
-}
+// function updateInventoryOnOutput(event) {
+//   const outputValue = parseInt(event.target.value) || 0;
+//   const inputValue = parseInt(Input_Edit.value) || 0;
+//   if (!Output_Edit.value) {
+//     inventory_Edit.value = inputValue;
+//   } else if (inputValue - outputValue > 0) {
+//     inventory_Edit.value = inputValue - outputValue;
+//   } else {
+//     inventory_Edit.value = 0;
+//   }
+// }
 
 /**
  * Saves edited item data to the server
  */
 const SaveEdit = async () => {
+  if (!TransactionType_Edit.value) {
+    MessageErrorDialog.value = "Vui lòng chọn loại giao dịch";
+    DialogFailed.value = true;
+    return;
+  }
   DialogLoading.value = true;
   const formData = {
     PartNumber1_Edit: PartNumber1_Edit.value,
@@ -604,12 +774,17 @@ const SaveEdit = async () => {
     Customer_Edit: Customer_Edit.value,
     Note_Edit: Note_Edit.value,
     Note_Output_Edit: Note_Output_Edit.value,
+    TransactionType_Edit: TransactionType_Edit.value,
   };
   try {
-    const response = await axios.put(`${Url}/WareHouse/update-item/${GetID.value}`, formData);
+    const response = await axios.put(
+      `${Url}/WareHouse/update-item/${GetID.value}`,
+      formData
+    );
     console.log(response);
     MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
     Reset();
+    SaveLog();
   } catch (error) {
     console.log(error);
     MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
@@ -635,7 +810,10 @@ const SaveAdd = async () => {
     Note_Output: Note_Output_Add.value,
   };
   try {
-    const response = await axios.post(`${Url}/WareHouse/upload-new-item`, formData);
+    const response = await axios.post(
+      `${Url}/WareHouse/upload-new-item`,
+      formData
+    );
     console.log(response);
     MessageDialog.value = "Thêm dữ liệu thành công";
     Reset();
@@ -652,7 +830,9 @@ const SaveAdd = async () => {
 const RemoveItem = async () => {
   DialogLoading.value = true;
   try {
-    const response = await axios.delete(`${Url}/WareHouse/delete-item/${GetID.value}`);
+    const response = await axios.delete(
+      `${Url}/WareHouse/delete-item/${GetID.value}`
+    );
     console.log(response);
     MessageDialog.value = "Xoá dữ liệu thành công";
     Reset();
@@ -665,31 +845,37 @@ const RemoveItem = async () => {
 
 // Delete item in Temporary_WareHouse when do not match value in WareHouse
 const RemoveItemFile = async () => {
-  DialogLoading.value = true
+  DialogLoading.value = true;
   try {
-    const response = await axios.delete(`${Url}/Temporary-WareHouse/delete-item/${GetIDRemove.value}`);
+    const response = await axios.delete(
+      `${Url}/Temporary-WareHouse/delete-item/${GetIDRemove.value}`
+    );
     console.log(response);
     MessageDialog.value = "Xoá dữ liệu thành công";
-    Reset();
+    DialogSuccess.value = true
+    DialogLoading.value = false
+    DialogRemoveFile.value = false
   } catch (error) {
     console.log(error);
     MessageErrorDialog.value = "Xoá dữ liệu thất bại";
-    Error();
+    DialogFailed.value = true
+    DialogLoading.value = false
+    DialogRemoveFile.value = false
   }
 };
 
 // Delete all item in Temporary_WareHouse table when already update WareHouse table
 const RemoveAllFile = async () => {
-  DialogLoading.value = true
+  DialogLoading.value = true;
   try {
-    const response = await axios.delete(`${Url}/Temporary-WareHouse/delete-all`);
+    const response = await axios.delete(
+      `${Url}/Temporary-WareHouse/delete-all`
+    );
     console.log(response);
-    Reset()
   } catch (error) {
     console.log(error);
-    Error()
   }
-}
+};
 
 // ===== FILE OPERATIONS =====
 /**
@@ -703,6 +889,7 @@ const ImportFile = async () => {
     const response = await axios.post(`${Url}/WareHouse/Upload`, formData);
     console.log(response);
     MessageDialog.value = "Thêm dữ liệu thành công";
+    Save_Import_File_Output()
     Reset();
   } catch (error) {
     console.log(error);
@@ -717,10 +904,14 @@ const ImportFile_Output = async () => {
   const formData = new FormData();
   formData.append("file", FileOutput.value);
   try {
-    const response = await axios.post(`${Url}/Temporary_WareHouse/Upload`, formData);
+    const response = await axios.post(
+      `${Url}/Temporary_WareHouse/Upload`,
+      formData
+    );
     console.log(response);
     MessageDialog.value = "Thêm dữ liệu thành công";
-    Reset();
+    DialogSuccess.value = true;
+    DialogLoading.value = false
   } catch (error) {
     console.log(error);
     MessageErrorDialog.value = "Thêm dữ liệu thất bại";
@@ -735,11 +926,70 @@ const UpdateFile_Output = async () => {
     const response = await axios.put(`${Url}/Temporary_WareHouse/Update-File`);
     console.log(response);
     MessageDialog.value = "Đã trừ dữ liệu thành công";
-    RemoveAllFile()
+    RemoveAllFile();
+    Save_Export_File_Output();
+    Reset()
   } catch (error) {
     console.log(error);
     MessageErrorDialog.value = "Trừ dữ liệu thất bại";
     Error();
+  }
+};
+
+const SaveLog = async () => {
+  const formData = {
+    ActionType: TransactionType_Edit.value,
+    PartNumber: PartNumber1_Edit.value,
+    Quantity: inventory.value,
+    Updated_by: UserInfo.value,
+    Created_at: formattedSelectedDate.value,
+    Customer: Customer_Edit.value,
+    Location: Location_Edit.value
+  };
+  try {
+    const response = await axios.post(
+      `${Url}/WareHouse/Log/add-new-item`,
+      formData
+    );
+    console.log(response);
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+// Import File excel include item wanna export in WareHouse table
+const Save_Export_File_Output = async () => {
+  DialogLoading.value = true;
+  const formData = new FormData();
+  formData.append("file", FileOutput.value);
+  formData.append("Updated_by", UserInfo.value); // Add Updated_by
+  formData.append("Created_at", formattedSelectedDate.value); // Add Created_at
+  try {
+    const response = await axios.post(
+      `${Url}/WarHouseLog/Upload-File-Export`,
+      formData
+    );
+    console.log(response);
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+// Import File excel include item wanna export in WareHouse table
+const Save_Import_File_Output = async () => {
+  DialogLoading.value = true;
+  const formData = new FormData();
+  formData.append("file", File.value);
+  formData.append("Updated_by", UserInfo.value); // Add Updated_by
+  formData.append("Created_at", formattedSelectedDate.value); // Add Created_at
+  try {
+    const response = await axios.post(
+      `${Url}/WarHouseLog/Upload-File-Import`,
+      formData
+    );
+    console.log(response);
+  } catch (error) {
+    console.log(error);
   }
 };
 
@@ -837,7 +1087,6 @@ const searchProduct = async () => {
       return (DialogInfo.value = true), Reset();
     }
     return response.data;
-
   } catch (error) {
     console.error(
       "Lỗi khi tìm kiếm sản phẩm:",
@@ -864,7 +1113,10 @@ function Reset() {
   DialogRemoveFile.value = false;
   DialogAgree.value = false;
   DialogLoading.value = false;
-  
+  DialogCaution.value = false;
+  DialogPreview.value = false;
+  DialogOutput.value = false;
+
   PartNumber1_Add.value = ref("");
   PartNumber2_Add.value = ref("");
   Description_Add.value = ref("");
@@ -883,16 +1135,19 @@ function Reset() {
  * Handles error states and resets loading
  */
 function Error() {
-  DialogFailed.value = false;
+  DialogFailed.value = true;
   DialogLoading.value = false;
-  DialogCaution.value = true;
+  DialogCaution.value = false;
   DialogSuccess.value = false;
   DialogOutput.value = false;
   DialogRemoveFile.value = false;
   DialogAgree.value = false;
-  Dialog.value=false;
+  Dialog.value = false;
   File.value = null;
   FileOutput.value = null;
+  FileOutput.value = null;
+  DialogPreview.value = false;
+  DialogOutput.value = false;
 }
 </script>
 <script>
@@ -913,14 +1168,10 @@ export default {
     SnackbarCaution,
     ButtonSearch,
     Loading,
+    ButtonHistoryExport,
   },
   data() {
-    return {
-      search: "",
-      
-      itemsPerPage: 15,
-      page: 1,
-    };
+    return {};
   },
   methods: {},
 };

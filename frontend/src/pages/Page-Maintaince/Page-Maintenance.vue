@@ -298,7 +298,7 @@ const MoTa_Add = ref(""); // Description for adding new
 // Search and pagination states
 const search = ref("");
 const page = ref(1);
-const itemsPerPage = ref(10);
+const itemsPerPage = ref(15);
 
 // Table headers configuration
 const Headers = [

@@ -2,7 +2,8 @@
 import { ref, onUnmounted } from 'vue'
 import { io } from 'socket.io-client'
 
-const socket = io('http://localhost:3000') // chỉnh lại nếu deploy
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+const socket = io(SOCKET_URL) // chỉnh lại nếu deploy
 
 export function useChat() {
   const messages = ref([])

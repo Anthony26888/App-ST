@@ -138,13 +138,14 @@
               'AOI',
               'IPQC (SMT)',
               'Assembly',
-              'IPQC (Hàn tay)',
+              'IPQC',
               'Test 1',
               'Test 2',
               'Box Build',
               'OQC',
               'RW',
-              'Nhập kho'
+              'Nhập kho',
+              'Tẩm phủ'
             ]"
             multiple
             chips
@@ -204,7 +205,7 @@
               'AOI',
               'IPQC (SMT)',
               'Assembly',
-              'IPQC (Hàn tay)',
+              'IPQC',
               'Test 1',
               'Test 2',
               'Box Build',

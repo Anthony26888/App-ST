@@ -299,12 +299,12 @@
         </v-row>
       </v-card-title>
       <v-card-text class="overflow-auto">
-        <v-data-table
+        <v-data-table-virtual
           :headers="HeadersFind"
           :items="filteredProjectFind"
           :search="searchFind"
-          :items-per-page="itemsPerPage"
-          v-model:page="page"
+          :items-per-page="itemsPerPageFind"
+          v-model:page="pageFind"
           class="elevation-1"
           :footer-props="{
             'items-per-page-options': [10, 20, 50, 100],
@@ -324,14 +324,6 @@
           :fixed-header="true"
           height="calc(100vh - 320px)"
         >
-          <template v-slot:bottom>
-            <div class="text-center pt-2">
-              <v-pagination
-                v-model="page"
-                :length="Math.ceil(filteredProjectFind.length / itemsPerPage)"
-              ></v-pagination>
-            </div>
-          </template>
           <template v-slot:item.Status="{ value }">
             <div>
               <v-chip
@@ -364,7 +356,13 @@
               />
             </div>
           </template>
-        </v-data-table>
+          <template v-slot:item.Date_Created_PO="{ item }">
+            {{ item.Date_Created_PO.split("-").reverse().join("/") }}
+          </template>
+          <template v-slot:item.Date_Delivery_PO="{ item }">
+            {{ item.Date_Delivery_PO.split("-").reverse().join("/") }}
+          </template>
+        </v-data-table-virtual>
       </v-card-text>
     </v-card>
   </v-dialog>
@@ -408,7 +406,6 @@ const router = useRouter();
 const { project } = useProject();
 const { projectFind } = useProjectFind();
 
-console.log(projectFind);
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
@@ -443,21 +440,19 @@ const Headers = ref([
   { key: "Customer", title: "Khách hàng", width: "300" },
   { key: "Status", title: "Trạng thái" },
   { key: "Quantity_PO", title: "Số lượng PO" },
-  { key: "Years", title: "Thời gian tạo", sortable: true },
   { key: "id", sortable: false, title: "Thao tác" },
 ]);
 
 const HeadersFind = ref([
-  { key: "CustomerName", title: "Khách hàng", width: "200" },
-  { key: "PONumber", title: "Tên dự án" },
-  { key: "Date_Created_PO", title: "Ngày tạo PO" },
-  { key: "Date_Delivery_PO", title: "Ngày giao PO", sortable: true },
-  { key: "ProductDetail", title: "Tên đơn hàng", sortable: true },
+  { key: "CustomerName", title: "Khách hàng", width: "100" },
+  { key: "PONumber", title: "Tên dự án", width: "150" },
+  { key: "Date_Created_PO", title: "Ngày tạo PO", width: "150" },
+  { key: "Date_Delivery_PO", title: "Ngày giao PO", sortable: true, width: "150" },
+  { key: "ProductDetail", title: "Tên đơn hàng", sortable: false },
   { key: "Status", title: "Trạng thái đơn hàng", sortable: true },
   { key: "id", sortable: false, title: "Thao tác" },
 ]);
 
-// ===== FILTER STATES =====
 const itemsFilter = [
   { title: "Tất cả", value: "" },
   { title: "Chưa có đơn hàng", value: "Chưa có đơn hàng" },
@@ -476,6 +471,11 @@ const searchFind = ref("");
 
 const itemsPerPage = ref(15);
 const page = ref(1);
+
+const itemsPerPageFind = ref(15);
+const pageFind = ref(1);
+// ===== FILTER STATES =====
+
 
 // ===== User Information =====
 const UserInfo = ref(null);

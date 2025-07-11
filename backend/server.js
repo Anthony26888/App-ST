@@ -20,23 +20,59 @@ const fs = require("fs");
 const sqlite3 = require("sqlite3");
 const sqlite = require("sqlite");
 const { createParser } = require("eventsource-parser");
+// const https = require("https"); // XÓA: không dùng SSL nữa
 
 // Add processing flags at the top of the file
 const processingRequests = new Set();
+
+const ESP32_IP = "http://192.168.100.80"; // IP ESP32 (phải đổi đúng IP của bạn)
 
 const GROQ_API_KEY = "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";
 const sessions = {}; // lưu theo socket.id
 // Khởi tạo Express và Socket.IO
 const PORT = 3000;
-app.use(cors());
+// const HTTPS_PORT = 3443; // XÓA: không dùng HTTPS
 app.use(bodyParser.json());
 app.use("/", routes);
-app.use(express.static(path.join(__dirname, "../frontend/dist")));
+
+const allowedOrigins = [
+  "http://localhost:8080",
+  "https://localhost:8080",
+  "http://localhost:3000",
+  "https://localhost:3000",
+  "http://127.0.0.1:8080",
+  "http://127.0.0.1:3000",
+  "http://192.168.100.210:3000",
+  "http://192.168.1.10:3000",
+  "http://erp.sieuthuat.com:3000" // ← thêm dòng này
+];
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
+}));
+
+app.use(bodyParser.json());
+app.use("/", routes);
 
 // Tạo HTTP server
 const server = require("http").createServer(app);
 const io = new Server(server, {
-  cors: { origin: "*" },
+  cors: {
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  },
+});
+
+
+// GIỮ LẠI CHỈ HTTP
+io.on("connection", (socket) => {
+  console.log("Client connected:", socket.id);
+  if (!sessions[socket.id]) sessions[socket.id] = [];
+  // ... existing socket event handlers ...
 });
 
 // Configure Multer for file storage
@@ -180,13 +216,19 @@ io.on("connection", (socket) => {
                         a.Description,
                         a.Location AS Location_1,
                         b.Location AS Location_2,
-                        (b.Input - b.Output) AS Inventory,
+                        CASE
+                          WHEN (b.Input - b.Output) > 0 THEN (b.Input - b.Output)
+                          ELSE 0
+                        END AS Inventory,
                         CASE
                           WHEN b.PartNumber_1 IS NULL OR b.Description IS NULL OR b.Location IS NULL THEN 'Chưa xác minh'
                           ELSE 'Đã xác minh'
                         END AS Status,
                         a.Input,
-                        (b.Input - (b.Output + a.Input)) AS Quantity_Amount,
+                        CASE
+                          WHEN (b.Input - (b.Output + a.Input)) > 0 THEN (b.Input - (b.Output + a.Input))
+                          ELSE 0
+                        END AS Quantity_Amount,
                         a.Note
                       FROM Temporary_WareHouse a
                       LEFT JOIN (
@@ -202,9 +244,7 @@ io.on("connection", (socket) => {
                       ) AS b 
                       ON a.PartNumber_1 = b.PartNumber_1 
                         AND a.Description = b.Description 
-                        AND a.Location = b.Location;
-
-                      `;
+                        AND a.Location = b.Location;`;
         db.all(query, [], (err, rows) => {
           if (err) return socket.emit("TemporaryWareHouseError", err);
           socket.emit("TemporaryWareHouseData", rows);
@@ -250,6 +290,48 @@ io.on("connection", (socket) => {
         });
       } catch (error) {
         socket.emit("TemporaryWareHouse2Error", error);
+      }
+    }),
+    socket.on("getWareHouseLog", async () => {
+      try {
+        const query = `SELECT DISTINCT 
+                        id,
+                        PartNumber,
+                        Customer,
+                        Location,
+                        ActionType,
+                        Quantity,
+                        Updated_by,
+                        Created_at
+                      FROM WareHouseLog
+                      ORDER BY id DESC`;
+        db.all(query, [], (err, rows) => {
+          if (err) return socket.emit("WareHouseLogError", err);
+          socket.emit("WareHouseLogData", rows);
+        });
+      } catch (error) {
+        socket.emit("WareHouseLogError", error);
+      }
+    }),
+    socket.on("getWareHouse2Log", async () => {
+      try {
+        const query = `SELECT DISTINCT 
+                        id,
+                        PartNumber,
+                        Customer,
+                        Location,
+                        ActionType,
+                        Quantity,
+                        Updated_by,
+                        Created_at
+                      FROM WareHouse2Log
+                      ORDER BY id DESC`;
+        db.all(query, [], (err, rows) => {
+          if (err) return socket.emit("WareHouse2LogError", err);
+          socket.emit("WareHouse2LogData", rows);
+        });
+      } catch (error) {
+        socket.emit("WareHouse2LogError", error);
       }
     }),
     socket.on("getProject", async () => {
@@ -433,7 +515,7 @@ io.on("connection", (socket) => {
     }),
     socket.on("getMaintenance", async (id) => {
       try {
-        const query = `SELECT DISTINCT * FROM Maintenance WHERE MaThietBi = ?`;
+        const query = `SELECT DISTINCT * FROM Maintenance WHERE MaThietBi = ? ORDER BY NgayBaoTri DESC`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("MaintenanceError", err);
           socket.emit("MaintenanceData", rows);
@@ -446,7 +528,8 @@ io.on("connection", (socket) => {
       try {
         const query = `SELECT DISTINCT *,  CAST((julianday(NgayBaoTriTiepTheo) - julianday('now')) AS INTEGER) AS SoNgayConLai
                       FROM MaintenanceSchedule 
-                      WHERE MaThietBi = ?`;
+                      WHERE MaThietBi = ?
+                      ORDER BY NgayBaoTriTiepTheo ASC`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("MaintenanceScheduleError", err);
           socket.emit("MaintenanceScheduleData", rows);
@@ -513,16 +596,27 @@ io.on("connection", (socket) => {
                           h.DelaySMT,
                           h.Quantity,
                           h.Name_Order,
-                          SUM(IFNULL(b.SMT, 0)) AS SMT,
-                          SUM(IFNULL(c.AOI, 0)) AS AOI,
-                          SUM(IFNULL(e.IPQC, 0)) AS IPQC,
-                          SUM(IFNULL(f.Assembly, 0)) AS Assembly,
-                          SUM(IFNULL(g.OQC, 0)) AS OQC,
-                          SUM(IFNULL(k.IPQCSMT, 0)) AS IPQCSMT,
-                          SUM(IFNULL(m.Test1, 0)) AS Test1,
-                          SUM(IFNULL(n.Test2, 0)) AS Test2,
-                          SUM(IFNULL(j.BoxBuild, 0)) AS BoxBuild,
-                          SUM(IFNULL(l.ConformalCoating, 0)) AS ConformalCoating,
+                          h.Quantity_AOI,
+                          h.Quantity_IPQCSMT,
+                          h.Quantity_IPQC,
+                          h.Quantity_Assembly,
+                          h.Quantity_BoxBuild,
+                          h.Quantity_ConformalCoating,
+                          h.Quantity_OQC,
+                          h.Quantity_Test1,
+                          h.Quantity_Test2,
+                          SUM(IFNULL(b.SMT_1, 0)) * h.Quantity AS SMT_1,
+                          SUM(IFNULL(p.SMT_2, 0)) * h.Quantity AS SMT_2,
+                          SUM(IFNULL(z.SMT_3, 0)) * h.Quantity AS SMT_3,
+                          SUM(IFNULL(c.AOI, 0)) * h.Quantity_AOI AS AOI,
+                          SUM(IFNULL(e.IPQC, 0)) * h.Quantity_IPQC AS IPQC,
+                          SUM(IFNULL(f.Assembly, 0)) * h.Quantity_Assembly AS Assembly,
+                          SUM(IFNULL(g.OQC, 0)) * h.Quantity_OQC AS OQC,
+                          SUM(IFNULL(k.IPQCSMT, 0)) * h.Quantity_IPQCSMT AS IPQCSMT,
+                          SUM(IFNULL(m.Test1, 0)) * h.Quantity_Test1 AS Test1,
+                          SUM(IFNULL(n.Test2, 0)) * h.Quantity_Test2 AS Test2,
+                          SUM(IFNULL(j.BoxBuild, 0)) * h.Quantity_BoxBuild AS BoxBuild,
+                          SUM(IFNULL(l.ConformalCoating, 0)) * h.Quantity_ConformalCoating AS ConformalCoating,
                           SUM(IFNULL(o.Warehouse, 0)) AS Warehouse,
                           SUM(IFNULL(c1.AOIError, 0)) AS AOIError,
                           SUM(IFNULL(e1.IPQCError, 0)) AS IPQCError,
@@ -562,10 +656,23 @@ io.on("connection", (socket) => {
                       FROM PlanManufacture h
                       LEFT JOIN Summary a ON a.PlanID = h.id
                       LEFT JOIN (
-                          SELECT HistoryID, COUNT(*) AS SMT 
+                          SELECT HistoryID, COUNT(*) AS SMT_1 
                           FROM ManufactureSMT 
+                          WHERE Source = 'source_1'
                           GROUP BY HistoryID
                       ) b ON a.id = b.HistoryID
+                      LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS SMT_2 
+                          FROM ManufactureSMT 
+                          WHERE Source = 'source_2'
+                          GROUP BY HistoryID
+                      ) p ON a.id = p.HistoryID
+                      LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS SMT_3 
+                          FROM ManufactureSMT 
+                          WHERE Source = 'source_3'
+                          GROUP BY HistoryID
+                      ) z ON a.id = z.HistoryID
                       LEFT JOIN (
                           SELECT HistoryID, COUNT(*) AS AOI 
                           FROM ManufactureAOI 
@@ -809,7 +916,17 @@ io.on("connection", (socket) => {
     }),
     socket.on("getManufactureSMT", async (id) => {
       try {
-        const query = `SELECT *
+        const query = `SELECT 
+                        id,
+                        PartNumber,
+                        CASE
+                          WHEN Source = 'source_3' THEN 'Máy printer'
+                          WHEN Source = 'source_2' THEN 'Máy gắp linh kiện'
+                          ELSE 'Máy Reflow'
+                        END AS Source,
+                        Status,
+                        Timestamp,
+                        HistoryID
                       FROM ManufactureSMT
                       WHERE HistoryID = ?
                       ORDER BY Timestamp DESC`;
@@ -908,7 +1025,7 @@ io.on("connection", (socket) => {
                           WHEN a.Type = 'SMT' THEN IFNULL(b.SMT, 0)
                           WHEN a.Type = 'AOI' THEN IFNULL(c.AOI, 0)
                           WHEN a.Type = 'Assembly' THEN IFNULL(f.Assembly, 0)
-                          WHEN a.Type = 'IPQC (Hàn tay)' THEN IFNULL(e.IPQC, 0)
+                          WHEN a.Type = 'IPQC' THEN IFNULL(e.IPQC, 0)
                           WHEN a.Type = 'OQC' THEN IFNULL(g.OQC, 0)
                           WHEN a.Type = 'IPQC (SMT)' THEN IFNULL(h.IPQCSMT, 0)
                           WHEN a.Type = 'Test 1' THEN IFNULL(j.Test1, 0)
@@ -924,7 +1041,7 @@ io.on("connection", (socket) => {
                               WHEN a.Type = 'SMT' THEN (IFNULL(b.SMT, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'AOI' THEN (IFNULL(c.AOI, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'Assembly' THEN (IFNULL(f.Assembly, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'IPQC (Hàn tay)' THEN (IFNULL(e.IPQC, 0) * 100.0) / a.Quantity_Plan
+                              WHEN a.Type = 'IPQC' THEN (IFNULL(e.IPQC, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'OQC' THEN (IFNULL(g.OQC, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'IPQC (SMT)' THEN (IFNULL(h.IPQCSMT, 0) * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'Test 1' THEN (IFNULL(j.Test1, 0) * 100.0) / a.Quantity_Plan
@@ -935,7 +1052,24 @@ io.on("connection", (socket) => {
                               ELSE 0
                             END
                           ELSE 0
-                        END AS Percent
+                        END AS Percent,
+                        CASE
+                          WHEN a.Type = 'AOI' THEN IFNULL(c1.AOIError, 0)
+                          WHEN a.Type = 'IPQC' THEN IFNULL(e1.IPQCError, 0)
+                          WHEN a.Type = 'OQC' THEN IFNULL(g1.OQCError, 0)
+                          WHEN a.Type = 'IPQC (SMT)' THEN IFNULL(k1.IPQCSMTError, 0)
+                          WHEN a.Type = 'Test 1' THEN IFNULL(m1.Test1Error, 0)
+                          WHEN a.Type = 'Test 2' THEN IFNULL(n1.Test2Error, 0)
+                          ELSE 0
+						            END AS Quantity_Error,
+                        (
+                          IFNULL(c2.AOIFixed, 0) + 
+                          IFNULL(e2.IPQCFixed, 0) + 
+                          IFNULL(g2.OQCFixed, 0) + 
+                          IFNULL(k2.IPQCSMTFixed, 0) + 
+                          IFNULL(m2.Test1Fixed, 0) + 
+                          IFNULL(n2.Test2Fixed, 0)
+                        ) AS Total_Fixed
                       FROM Summary a
                       LEFT JOIN (
                         SELECT id, Name_Order FROM PlanManufacture
@@ -1005,6 +1139,78 @@ io.on("connection", (socket) => {
                         WHERE Status = 'ok'
                         GROUP BY HistoryID
                       ) l ON a.id = l.HistoryID
+                       LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS AOIError
+                          FROM ManufactureAOI 
+						              WHERE Status = 'error'
+                          GROUP BY HistoryID
+                        ) c1 ON a.id = c1.HistoryID
+                        LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS IPQCError 
+                          FROM ManufactureIPQC 
+						              WHERE Status = 'error'
+                          GROUP BY HistoryID
+                        ) e1 ON a.id = e1.HistoryID
+                        LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS OQCError 
+                          FROM ManufactureOQC 
+						              WHERE Status = 'error'
+                          GROUP BY HistoryID
+                        ) g1 ON a.id = g1.HistoryID
+                        LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS IPQCSMTError 
+                          FROM ManufactureIPQCSMT
+						              WHERE Status = 'error'
+                          GROUP BY HistoryID
+                        ) k1 ON a.id = k1.HistoryID
+                        LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS Test1Error 
+                          FROM ManufactureTest1 
+						              WHERE Status = 'error'
+                          GROUP BY HistoryID
+                        ) m1 ON a.id = m1.HistoryID
+                        LEFT JOIN (
+                          SELECT HistoryID, COUNT(*) AS Test2Error 
+                          FROM ManufactureTest2
+						              WHERE Status = 'error'
+                          GROUP BY HistoryID
+                        ) n1 ON a.id = n1.HistoryID
+                         LEFT JOIN (
+                            SELECT HistoryID, COUNT(*) AS AOIFixed, RWID
+                            FROM ManufactureAOI
+                            WHERE Status = 'fixed'
+                            GROUP BY HistoryID
+                        ) c2 ON a.id = c2.HistoryID
+                        LEFT JOIN (
+                            SELECT HistoryID, COUNT(*) AS IPQCFixed, RWID
+                            FROM ManufactureIPQC
+                            WHERE Status = 'fixed'
+                            GROUP BY HistoryID
+                        ) e2 ON a.id = e2.HistoryID
+                        LEFT JOIN (
+                            SELECT HistoryID, COUNT(*) AS OQCFixed, RWID
+                            FROM ManufactureOQC
+                            WHERE Status = 'fixed'
+                            GROUP BY HistoryID
+                        ) g2 ON a.id = g2.HistoryID
+                        LEFT JOIN (
+                            SELECT HistoryID, COUNT(*) AS IPQCSMTFixed, RWID
+                            FROM ManufactureIPQCSMT
+                            WHERE Status = 'fixed'
+                            GROUP BY HistoryID
+                        ) k2 ON a.id = k2.HistoryID
+                        LEFT JOIN (
+                            SELECT HistoryID, COUNT(*) AS Test1Fixed, RWID
+                            FROM ManufactureTest1
+                            WHERE Status = 'fixed'
+                            GROUP BY HistoryID
+                        ) m2 ON a.id = m2.HistoryID
+                        LEFT JOIN (
+                            SELECT HistoryID, COUNT(*) AS Test2Fixed, RWID
+                            FROM ManufactureTest2
+                            WHERE Status = 'fixed'
+                            GROUP BY HistoryID
+                        ) n2 ON a.id = n2.HistoryID
                       WHERE a.Created_At = ?
                       ORDER BY a.Created_At DESC`;
         db.all(query, [id], (err, rows) => {
@@ -1021,31 +1227,41 @@ io.on("connection", (socket) => {
                         a.id,
                         a.Type,
                         a.PONumber,
+                        a.PlanID,
                         z.Name_Order,
                         z.DelaySMT,
 						            z.Quantity,
+                        z.Quantity_AOI,
+                        z.Quantity_IPQCSMT,
+                        z.Quantity_IPQC,
+                        z.Quantity_Assembly,
+                        z.Quantity_BoxBuild,
+                        z.Quantity_ConformalCoating,
+                        z.Quantity_OQC,
+                        z.Quantity_Test1,
+                        z.Quantity_Test2,
                         a.Category,
                         a.Quantity_Plan,
                         a.CycleTime_Plan,
                         a.Time_Plan,
                         a.Created_At,
                         CASE
-                          WHEN a.Type = 'SMT' THEN IFNULL(b.SMT, 0)
-                          WHEN a.Type = 'AOI' THEN IFNULL(c.AOI, 0)
-                          WHEN a.Type = 'Assembly' THEN IFNULL(f.Assembly, 0)
-                          WHEN a.Type = 'IPQC (Hàn tay)' THEN IFNULL(e.IPQC, 0)
-                          WHEN a.Type = 'OQC' THEN IFNULL(g.OQC, 0)
-                          WHEN a.Type = 'IPQC (SMT)' THEN IFNULL(k.IPQCSMT, 0)
-                          WHEN a.Type = 'Test 1' THEN IFNULL(m.Test1, 0)
-                          WHEN a.Type = 'Test 2' THEN IFNULL(n.Test2, 0)
-                          WHEN a.Type = 'Box Build' THEN IFNULL(j.BoxBuild, 0)
-                          WHEN a.Type = 'Tẩm phủ' THEN IFNULL(l.ConformalCoating, 0)
+                          WHEN a.Type = 'SMT' THEN IFNULL(b.SMT, 0) * z.Quantity
+                          WHEN a.Type = 'AOI' THEN IFNULL(c.AOI, 0) * z.Quantity_AOI
+                          WHEN a.Type = 'Assembly' THEN IFNULL(f.Assembly, 0) * z.Quantity_Assembly
+                          WHEN a.Type = 'IPQC' THEN IFNULL(e.IPQC, 0) * z.Quantity_IPQC
+                          WHEN a.Type = 'OQC' THEN IFNULL(g.OQC, 0) * z.Quantity_OQC
+                          WHEN a.Type = 'IPQC (SMT)' THEN IFNULL(k.IPQCSMT, 0) * z.Quantity_IPQCSMT
+                          WHEN a.Type = 'Test 1' THEN IFNULL(m.Test1, 0) * z.Quantity_Test1
+                          WHEN a.Type = 'Test 2' THEN IFNULL(n.Test2, 0) * z.Quantity_Test2
+                          WHEN a.Type = 'Box Build' THEN IFNULL(j.BoxBuild, 0) * z.Quantity_BoxBuild
+                          WHEN a.Type = 'Tẩm phủ' THEN IFNULL(l.ConformalCoating, 0) * z.Quantity_ConformalCoating
                           WHEN a.Type = 'Nhập kho' THEN IFNULL(o.Warehouse, 0)
                           ELSE 0
                         END AS Quantity_Real,
                         CASE
                           WHEN a.Type = 'AOI' THEN IFNULL(c1.AOIError, 0)
-                          WHEN a.Type = 'IPQC (Hàn tay)' THEN IFNULL(e1.IPQCError, 0)
+                          WHEN a.Type = 'IPQC' THEN IFNULL(e1.IPQCError, 0)
                           WHEN a.Type = 'OQC' THEN IFNULL(g1.OQCError, 0)
                           WHEN a.Type = 'IPQC (SMT)' THEN IFNULL(k1.IPQCSMTError, 0)
                           WHEN a.Type = 'Test 1' THEN IFNULL(m1.Test1Error, 0)
@@ -1062,7 +1278,20 @@ io.on("connection", (socket) => {
                         ) AS Total_Fixed
                         FROM Summary a
                         LEFT JOIN (
-                          SELECT id, Name_Order, Quantity, DelaySMT 
+                          SELECT 
+                            id, 
+                            Name_Order, 
+                            Quantity, 
+                            DelaySMT, 
+                            Quantity_AOI, 
+                            Quantity_IPQC, 
+                            Quantity_IPQCSMT, 
+                            Quantity_Assembly,
+                            Quantity_BoxBuild,
+                            Quantity_ConformalCoating,
+                            Quantity_OQC,
+                            Quantity_Test1,
+                            Quantity_Test2 
                           FROM PlanManufacture
                         ) z ON a.PlanID = z.id
                         LEFT JOIN (
@@ -1171,37 +1400,37 @@ io.on("connection", (socket) => {
                             FROM ManufactureAOI
                             WHERE Status = 'fixed'
                             GROUP BY HistoryID
-                        ) c2 ON a.id = c2.RWID
+                        ) c2 ON a.id = c2.HistoryID
                         LEFT JOIN (
                             SELECT HistoryID, COUNT(*) AS IPQCFixed, RWID
                             FROM ManufactureIPQC
                             WHERE Status = 'fixed'
                             GROUP BY HistoryID
-                        ) e2 ON a.id = e2.RWID
+                        ) e2 ON a.id = e2.HistoryID
                         LEFT JOIN (
                             SELECT HistoryID, COUNT(*) AS OQCFixed, RWID
                             FROM ManufactureOQC
                             WHERE Status = 'fixed'
                             GROUP BY HistoryID
-                        ) g2 ON a.id = g2.RWID
+                        ) g2 ON a.id = g2.HistoryID
                         LEFT JOIN (
                             SELECT HistoryID, COUNT(*) AS IPQCSMTFixed, RWID
                             FROM ManufactureIPQCSMT
                             WHERE Status = 'fixed'
                             GROUP BY HistoryID
-                        ) k2 ON a.id = k2.RWID
+                        ) k2 ON a.id = k2.HistoryID
                         LEFT JOIN (
                             SELECT HistoryID, COUNT(*) AS Test1Fixed, RWID
                             FROM ManufactureTest1
                             WHERE Status = 'fixed'
                             GROUP BY HistoryID
-                        ) m2 ON a.id = m2.RWID
+                        ) m2 ON a.id = m2.HistoryID
                         LEFT JOIN (
                             SELECT HistoryID, COUNT(*) AS Test2Fixed, RWID
                             FROM ManufactureTest2
                             WHERE Status = 'fixed'
                             GROUP BY HistoryID
-                        ) n2 ON a.id = n2.RWID
+                        ) n2 ON a.id = n2.HistoryID
                         WHERE a.PlanID = ?
                         ORDER BY a.Created_At DESC`;
         db.all(query, [id], (err, rows) => {
@@ -1217,23 +1446,25 @@ io.on("connection", (socket) => {
         const query = `
                       SELECT * 
                       FROM (
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, HistoryID, 'AOI' AS Source FROM ManufactureAOI
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'AOI' AS Source FROM ManufactureAOI
                         UNION ALL
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, HistoryID, 'Tẩm phủ' FROM ManufactureConformalCoating
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Tẩm phủ' FROM ManufactureConformalCoating
                         UNION ALL
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, HistoryID, 'Test1' FROM ManufactureTest1
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Test1' FROM ManufactureTest1
                         UNION ALL
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, HistoryID, 'Test2' FROM ManufactureTest2
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Test2' FROM ManufactureTest2
                         UNION ALL
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, HistoryID, 'BoxBuild' FROM ManufactureBoxBuild
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'BoxBuild' FROM ManufactureBoxBuild
                         UNION ALL
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, HistoryID, 'SMT' FROM ManufactureSMT
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'SMT' FROM ManufactureSMT
                         UNION ALL
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, HistoryID, 'IPQC' FROM ManufactureIPQC
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'IPQC' FROM ManufactureIPQC
                         UNION ALL
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, HistoryID, 'IPQCSMT' FROM ManufactureIPQCSMT
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'IPQCSMT' FROM ManufactureIPQCSMT
+                        UNION ALL
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'OQC' FROM ManufactureOQC
                       ) 
-                      WHERE HistoryID = ?
+                      WHERE PlanID = ?
                       ORDER BY Timestamp DESC`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("HistoryPartError", err);
@@ -1263,15 +1494,15 @@ io.on("connection", (socket) => {
         const dateMatch = msg.match(/ngày (\d{2})\/(\d{2})\/(\d{4})/i);
 
         let displayDate = ""; // cho người dùng
-        let queryDate = "";   // cho SQL
+        let queryDate = ""; // cho SQL
 
         if (dateMatch) {
           displayDate = `${dateMatch[1]}/${dateMatch[2]}/${dateMatch[3]}`; // dd/mm/yyyy
-          queryDate = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;   // yyyy-mm-dd
+          queryDate = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`; // yyyy-mm-dd
         } else {
           const now = new Date();
-          displayDate = now.toLocaleDateString('vi-VN');                  // dd/mm/yyyy
-          queryDate = now.toISOString().slice(0, 10);                     // yyyy-mm-dd
+          displayDate = now.toLocaleDateString("vi-VN"); // dd/mm/yyyy
+          queryDate = now.toISOString().slice(0, 10); // yyyy-mm-dd
         }
 
         const summarySQL = `
@@ -1290,7 +1521,7 @@ io.on("connection", (socket) => {
               WHEN a.Type = 'SMT' THEN IFNULL(b.SMT, 0)
               WHEN a.Type = 'AOI' THEN IFNULL(c.AOI, 0)
               WHEN a.Type = 'Assembly' THEN IFNULL(f.Assembly, 0)
-              WHEN a.Type = 'IPQC (Hàn tay)' THEN IFNULL(e.IPQC, 0)
+              WHEN a.Type = 'IPQC' THEN IFNULL(e.IPQC, 0)
               WHEN a.Type = 'OQC' THEN IFNULL(g.OQC, 0)
               WHEN a.Type = 'IPQC (SMT)' THEN IFNULL(h.IPQCSMT, 0)
               WHEN a.Type = 'Test 1' THEN IFNULL(j.Test1, 0)
@@ -1305,7 +1536,7 @@ io.on("connection", (socket) => {
                   WHEN a.Type = 'SMT' THEN (IFNULL(b.SMT, 0) * 100.0) / a.Quantity_Plan
                   WHEN a.Type = 'AOI' THEN (IFNULL(c.AOI, 0) * 100.0) / a.Quantity_Plan
                   WHEN a.Type = 'Assembly' THEN (IFNULL(f.Assembly, 0) * 100.0) / a.Quantity_Plan
-                  WHEN a.Type = 'IPQC (Hàn tay)' THEN (IFNULL(e.IPQC, 0) * 100.0) / a.Quantity_Plan
+                  WHEN a.Type = 'IPQC' THEN (IFNULL(e.IPQC, 0) * 100.0) / a.Quantity_Plan
                   WHEN a.Type = 'OQC' THEN (IFNULL(g.OQC, 0) * 100.0) / a.Quantity_Plan
                   WHEN a.Type = 'IPQC (SMT)' THEN (IFNULL(h.IPQCSMT, 0) * 100.0) / a.Quantity_Plan
                   WHEN a.Type = 'Test 1' THEN (IFNULL(j.Test1, 0) * 100.0) / a.Quantity_Plan
@@ -2086,6 +2317,35 @@ const getCompareWareHouse = async (id) => {
   });
 };
 
+// 📥 API to Download PO as XLSX
+app.get("/Download-PO/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const query = await getPivotQuery(id);
+    db.all(query, [id], (err, rows) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      // Convert data to worksheet
+      const ws = xlsx.utils.json_to_sheet(rows);
+      const wb = xlsx.utils.book_new();
+      xlsx.utils.book_append_sheet(wb, ws, `${id}`);
+
+      // Save the file temporarily
+      const filePath = path.join(__dirname, `${id}.xlsx`);
+      xlsx.writeFile(wb, filePath);
+
+      // Send the file to the client
+      res.download(filePath, `${id}.xlsx`, (err) => {
+        if (err) console.error("Error sending file:", err);
+        fs.unlinkSync(filePath); // Delete after sending
+      });
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post("/insert-compare-inventory/:id", async (req, res) => {
   const id = req.params.id;
   console.log("Processing insert-compare-inventory for PO:", id);
@@ -2157,8 +2417,8 @@ app.post("/insert-compare-inventory/:id", async (req, res) => {
       INSERT INTO DetailOrders (
         Description, Manufacturer_1, PartNumber_1, Manufacturer_2, PartNumber_2, 
         Manufacturer_3, PartNumber_3, So_Luong, SL_Board, Du_Toan_Hao_Phi, 
-        Hao_Phi_Thuc_Te, SL_Tồn_Kho, SL_Tồn_Kho_Misa, Ma_Kho, Ma_Kho_Misa, Bom, PO, Order_Id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, Bom, PO, Order_Id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     let successCount = 0;
@@ -2179,8 +2439,6 @@ app.post("/insert-compare-inventory/:id", async (req, res) => {
             row.SL_Board,
             row.Dự_Toán_Hao_Phí,
             row.Hao_Phi_Thuc_Te,
-            row.SL_Tồn_Kho,
-            row.SL_Tồn_Kho_Misa,
             row.Mã_Kho,
             row.Mã_Kho_Misa,
             row.Bom,
@@ -2791,6 +3049,63 @@ app.delete("/Temporary-WareHouse/delete-all", async (req, res) => {
     res.json({ message: "Item inserted successfully" });
   });
 });
+app.post("/Temporary_WareHouse/Upload", upload.single("file"), (req, res) => {
+  if (!req.file) return res.status(400).send("No file uploaded.");
+  // Read Excel file
+  const filePath = path.join(__dirname, req.file.path);
+  const workbook = xlsx.readFile(filePath);
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  // Convert sheet data to JSON
+  const data = xlsx.utils.sheet_to_json(sheet);
+
+  // Insert data into SQLite database
+  const stmt = db.prepare(
+    `INSERT INTO Temporary_WareHouse (Description, PartNumber_1, Input, Location, Note) VALUES (?, ?, ?, ?, ?)`
+  );
+  data.forEach((row) => {
+    stmt.run(
+      row.Description,
+      row.PartNumber_1,
+      row.Input,
+      row.Location,
+      row.Note
+    );
+  });
+
+  stmt.finalize();
+  io.emit("TemporaryWareHouseUpdate");
+  res.send("File processed successfully.");
+});
+
+app.post("/Temporary_WareHouse_2/Upload", upload.single("file"), (req, res) => {
+  if (!req.file) return res.status(400).send("No file uploaded.");
+  // Read Excel file
+  const filePath = path.join(__dirname, req.file.path);
+  const workbook = xlsx.readFile(filePath);
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  // Convert sheet data to JSON
+  const data = xlsx.utils.sheet_to_json(sheet);
+
+  // Insert data into SQLite database
+  const stmt = db.prepare(
+    `INSERT INTO Temporary_WareHouse_2 (Description, PartNumber_1, Input, Location, Note) VALUES (?, ?, ?, ?, ?)`
+  );
+  data.forEach((row) => {
+    stmt.run(
+      row.Description,
+      row.PartNumber_1,
+      row.Input,
+      row.Location,
+      row.Note
+    );
+  });
+
+  stmt.finalize();
+  io.emit("WareHouse2Update");
+  res.send("File processed successfully.");
+});
 
 // Router upload file xlsx to WareHouse table
 app.put("/Temporary_WareHouse_2/Update-File", async (req, res) => {
@@ -2867,6 +3182,206 @@ app.delete("/Temporary-WareHouse_2/delete-all", async (req, res) => {
     // Broadcast the new message to all clients
     res.json({ message: "Item inserted successfully" });
   });
+});
+
+// Route to post item into warehouse log
+app.post("/WareHouse/Log/add-new-item", async (req, res) => {
+  const {
+    ActionType,
+    PartNumber,
+    Quantity,
+    Updated_by,
+    Created_at,
+    Customer,
+    Location,
+  } = req.body;
+  // Insert data into SQLite database
+  const query =
+    "INSERT INTO WareHouseLog (ActionType, PartNumber, Quantity, Updated_by, Created_at, Customer, Location) VALUES (?, ?, ?, ?, ?, ?, ?)";
+  db.run(
+    query,
+    [
+      ActionType,
+      PartNumber,
+      Quantity,
+      Updated_by,
+      Created_at,
+      Customer,
+      Location,
+    ],
+    function (err) {
+      if (err) {
+        return console.error(err.message);
+      }
+      io.emit("WareHouseLogUpdate");
+      // Broadcast the new message to all clients
+      res.json({ message: "Item inserted successfully" });
+    }
+  );
+});
+
+//Router to post all item into WareHouseLog table
+app.post(
+  "/WarHouseLog/Upload-File-Export",
+  upload.single("file"),
+  (req, res) => {
+    if (!req.file) return res.status(400).send("No file uploaded.");
+    // Read Excel file
+    const filePath = path.join(__dirname, req.file.path);
+    const workbook = xlsx.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    // Convert sheet data to JSON
+    const data = xlsx.utils.sheet_to_json(sheet);
+
+    // Get timestamp from req.body
+    const { Created_at, Updated_by } = req.body;
+
+    // Insert data into SQLite database
+    const stmt = db.prepare(
+      `INSERT INTO WareHouseLog (ActionType, PartNumber, Quantity, Location, Created_at, Updated_by) VALUES ('Xuất', ?, ?, ?, ?, ?)`
+    );
+    data.forEach((row) => {
+      stmt.run(
+        row.PartNumber_1,
+        row.Input,
+        row.Location,
+        Created_at,
+        Updated_by
+      );
+    });
+
+    stmt.finalize();
+    io.emit("WareHouseLogUpdate");
+    res.send("File processed successfully.");
+  }
+);
+
+//Router to post all item into WareHouseLog table
+app.post(
+  "/WarHouseLog/Upload-File-Import",
+  upload.single("file"),
+  (req, res) => {
+    if (!req.file) return res.status(400).send("No file uploaded.");
+    // Read Excel file
+    const filePath = path.join(__dirname, req.file.path);
+    const workbook = xlsx.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    // Convert sheet data to JSON
+    const data = xlsx.utils.sheet_to_json(sheet);
+
+    // Get timestamp from req.body
+    const { Created_at, Updated_by } = req.body;
+
+    // Insert data into SQLite database
+    const stmt = db.prepare(
+      `INSERT INTO WareHouseLog (ActionType, PartNumber, Quantity, Location, Customer, Created_at, Updated_by) VALUES ('Nhập', ?, ?, ?, ?, ?, ?)`
+    );
+    data.forEach((row) => {
+      stmt.run(
+        row.PartNumber_1,
+        row.Input,
+        row.Location,
+        row.Customer,
+        Created_at,
+        Updated_by
+      );
+    });
+
+    stmt.finalize();
+    io.emit("WareHouseLogUpdate");
+    res.send("File processed successfully.");
+  }
+);
+
+// Router insert item in WareHouseLog table from Orders table
+app.post("/insert-log/:po", async (req, res) => {
+  const poNumber = req.params.po;
+  const {
+    Updated_by,
+    Created_at
+  } = req.body;
+
+  const selectQuery = `SELECT * FROM DetailOrders WHERE PO = ?`;
+  const insertQuery = `
+    INSERT INTO WareHouseLog (
+      ActionType, PartNumber, Quantity, Location, Updated_by, Created_At
+    ) VALUES (?, ?, ?, ?, ?, ?)
+  `;
+
+  db.all(selectQuery, [poNumber], (err, rows) => {
+    if (err) {
+      console.error("Error selecting DetailOrders:", err.message);
+      return res.status(500).json({ error: "Failed to select DetailOrders" });
+    }
+
+    if (rows.length === 0) {
+      return res.status(200).json({ message: "No DetailOrders found for this PO" });
+    }
+
+    let pending = rows.length;
+
+    rows.forEach((row) => {
+      const quantity = (row.So_Luong || 0) * (row.SL_Board || 0);
+      db.run(
+        insertQuery,
+        [
+          'Xuất',
+          row.PartNumber_1,
+          quantity,
+          row.Ma_Kho,
+          Updated_by,
+          Created_at
+        ],
+        (err) => {
+          if (err) {
+            console.error("Insert error:", err.message);
+          }
+
+          if (--pending === 0) {
+            res.json({ message: "Inserted into WareHouseLog successfully" });
+          }
+        }
+      );
+    });
+  });
+});
+
+// Route to post item into warehouse2 log
+app.post("/WareHouse2/Log/add-new-item", async (req, res) => {
+  const {
+    ActionType,
+    PartNumber,
+    Quantity,
+    Updated_by,
+    Created_at,
+    Customer,
+    Location,
+  } = req.body;
+  // Insert data into SQLite database
+  const query =
+    "INSERT INTO WareHouse2Log (ActionType, PartNumber, Quantity, Updated_by, Created_at, Customer, Location) VALUES (?, ?, ?, ?, ?, ?, ?)";
+  db.run(
+    query,
+    [
+      ActionType,
+      PartNumber,
+      Quantity,
+      Updated_by,
+      Created_at,
+      Customer,
+      Location,
+    ],
+    function (err) {
+      if (err) {
+        return console.error(err.message);
+      }
+      io.emit("WareHouseLogUpdate");
+      // Broadcast the new message to all clients
+      res.json({ message: "Item inserted successfully" });
+    }
+  );
 });
 
 // Router delete item in Orders
@@ -2999,6 +3514,120 @@ app.put("/Orders/WareHouse-Accept/:id", async (req, res) => {
     // Broadcast the new message to all clients
     res.json({ message: "Item inserted successfully" });
   });
+});
+
+// Router upload file xlsx to Project table
+app.post("/Project/upload", upload.single("file"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).send("No file uploaded.");
+  }
+
+  const filePath = req.file.path;
+  const workbook = xlsx.readFile(filePath);
+  const sheetName = workbook.SheetNames[0];
+  const jsonData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+  const customerStmt = db.prepare(`
+    INSERT OR IGNORE INTO Customers (CustomerName, Years) VALUES (?, ?)
+`);
+
+  const poStmt = db.prepare(`
+    INSERT OR IGNORE INTO PurchaseOrders (PONumber, CustomerID, DateCreated, DateDelivery)
+    VALUES (?, ?, ?, ?)
+`);
+
+  const productStmt = db.prepare(`
+    INSERT INTO ProductDetails (POID, ProductDetail, QuantityProduct, QuantityDelivered, QuantityAmount, CustomerID)
+    VALUES (?, ?, ?, ?, ?, ?)
+`);
+
+  try {
+    for (const row of jsonData) {
+      const customerName = row["Customers"];
+      const poNumber = row["PO"];
+      const dateCreated = row["Date_Created"];
+      const dateDelivery = row["Date_Delivery"];
+      const productDetail = row["Product_Detail"];
+      const quantityProduct = row["Quantity_Product"];
+      const quantityDelivered = row["Quantity_Delivered"];
+      const quantityAmount = row["Quantity_Amount"];
+      const yearCreated = row["Years"];
+      let customerId = null;
+      await new Promise((resolve, reject) => {
+        customerStmt.run(customerName, yearCreated, function (err) {
+          if (err) reject(err);
+          db.get(
+            "SELECT id FROM Customers WHERE CustomerName = ?",
+            [customerName],
+            (err, row) => {
+              if (err) reject(err);
+              customerId = row ? row.id : null;
+              resolve();
+            }
+          );
+        });
+      });
+
+      if (!customerId) {
+        console.error(`Không tìm thấy CustomerID cho ${customerName}`);
+        continue;
+      }
+
+      let poId = null;
+      await new Promise((resolve, reject) => {
+        poStmt.run(
+          poNumber,
+          customerId,
+          dateCreated,
+          dateDelivery,
+          function (err) {
+            if (err) reject(err);
+            db.get(
+              "SELECT id FROM PurchaseOrders WHERE PONumber = ?",
+              [poNumber],
+              (err, row) => {
+                if (err) reject(err);
+                poId = row ? row.id : null;
+                resolve();
+              }
+            );
+          }
+        );
+      });
+
+      if (!poId) {
+        console.error(`Không tìm thấy POID cho ${poNumber}`);
+        continue;
+      }
+
+      await new Promise((resolve, reject) => {
+        productStmt.run(
+          poId,
+          productDetail,
+          quantityProduct,
+          quantityDelivered,
+          quantityAmount,
+          customerId,
+          function (err) {
+            if (err) reject(err);
+            resolve();
+          }
+        );
+      });
+    }
+
+    customerStmt.finalize();
+    poStmt.finalize();
+    productStmt.finalize();
+    io.emit("ProjectUpdate");
+    res.send("Dữ liệu đã được nhập thành công!");
+  } catch (error) {
+    console.error("Lỗi trong quá trình nhập liệu:", error);
+    if (customerStmt) customerStmt.finalize();
+    if (poStmt) poStmt.finalize();
+    if (productStmt) productStmt.finalize();
+    res.status(500).send("Lỗi khi nhập dữ liệu.");
+  }
 });
 
 // Router update item in ProductDetails table
@@ -3631,18 +4260,38 @@ app.post("/PlanManufacture/Add", async (req, res) => {
     Creater,
     Note,
     Total,
-    DelaySMT,
+    DelaySMT = 0, // default value if undefined
     Level,
     Quantity,
     ProjectID,
-  } = req.body; // Set default value for DelaySMT
-  const LevelString = JSON.stringify(Level);
-  const LevelCleaned = LevelString.replace(/[\[\]"]/g, "").replace(/,/g, "-");
-  // Insert data into SQLite database
+  } = req.body;
+
+  const LevelCleaned = Array.isArray(Level) ? Level.join("-") : String(Level); // fallback nếu không phải mảng
+
   const query = `
-    INSERT INTO PlanManufacture (Name, Date, Creater, Note, Total, DelaySMT, Level, Quantity, ProjectID, Name_Order)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO PlanManufacture (
+      Name, 
+      Date, 
+      Creater, 
+      Note, 
+      Total, 
+      DelaySMT, 
+      Level, 
+      Quantity, 
+      ProjectID, 
+      Name_Order,
+      Quantity_IPQCSMT,
+      Quantity_IPQC,
+      Quantity_AOI,
+      Quantity_Test1,
+      Quantity_Test2,
+      Quantity_BoxBuild,
+      Quantity_ConformalCoating,
+      Quantity_OQC,
+      Quantity_Assembly)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1, 1, 1, 1, 1, 1, 1)
   `;
+
   db.run(
     query,
     [
@@ -3659,10 +4308,13 @@ app.post("/PlanManufacture/Add", async (req, res) => {
     ],
     function (err) {
       if (err) {
-        return res
-          .status(500)
-          .json({ error: "Lỗi khi thêm dữ liệu vào cơ sở dữ liệu" });
+        console.error("DB Error:", err.message);
+        return res.status(500).json({
+          error: "Lỗi khi thêm dữ liệu vào cơ sở dữ liệu",
+          detail: err.message,
+        });
       }
+
       io.emit("ManufactureUpdate");
       res.json({ message: "Đã thêm dữ liệu dự án sản xuất thành công" });
     }
@@ -3672,19 +4324,71 @@ app.post("/PlanManufacture/Add", async (req, res) => {
 // Router update item in PlanManufacture table
 app.put("/PlanManufacture/Edit/:id", async (req, res) => {
   const { id } = req.params;
-  const { Name, Date, Creater, Note, Total, DelaySMT, Level, Quantity } =
-    req.body;
+  const {
+    Name,
+    Date,
+    Creater,
+    Note,
+    Total,
+    DelaySMT,
+    Level,
+    Quantity,
+    Quantity_IPQCSMT,
+    Quantity_IPQC,
+    Quantity_AOI,
+    Quantity_BoxBuild,
+    Quantity_Assembly,
+    Quantity_ConformalCoating,
+    Quantity_Test1,
+    Quantity_Test2,
+    Quantity_OQC,
+  } = req.body;
   const LevelString = JSON.stringify(Level);
   const LevelCleaned = LevelString.replace(/[\[\]"]/g, "").replace(/,/g, "-");
   // Insert data into SQLite database
   const query = `
       UPDATE PlanManufacture 
-      SET Name = ?, Date = ?, Creater = ?, Note = ?, Total = ?, DelaySMT = ?, Level = ?, Quantity = ?
+      SET Name = ?, 
+          Date = ?, 
+          Creater = ?, 
+          Note = ?, 
+          Total = ?, 
+          DelaySMT = ?, 
+          Level = ?, 
+          Quantity = ?,
+          Quantity_IPQCSMT = ?,
+          Quantity_IPQC = ?,
+          Quantity_AOI = ?, 
+          Quantity_BoxBuild = ?,
+          Quantity_Assembly = ?,
+          Quantity_ConformalCoating = ?,
+          Quantity_Test1 = ?,
+          Quantity_Test2 = ?,
+          Quantity_OQC = ?
       WHERE id = ?
     `;
   db.run(
     query,
-    [Name, Date, Creater, Note, Total, DelaySMT, LevelCleaned, Quantity, id],
+    [
+      Name,
+      Date,
+      Creater,
+      Note,
+      Total,
+      DelaySMT,
+      LevelCleaned,
+      Quantity,
+      Quantity_IPQCSMT,
+      Quantity_IPQC,
+      Quantity_AOI,
+      Quantity_BoxBuild,
+      Quantity_Assembly,
+      Quantity_ConformalCoating,
+      Quantity_Test1,
+      Quantity_Test2,
+      Quantity_OQC,
+      id,
+    ],
     function (err) {
       if (err) {
         return res
@@ -3698,24 +4402,66 @@ app.put("/PlanManufacture/Edit/:id", async (req, res) => {
 });
 
 // Router update item in PlanManufacture table for setting SMT
-app.put("/PlanManufacture/Edit-SMT/:id", async (req, res) => {
+app.put("/PlanManufacture/Edit-Line/:id", async (req, res) => {
   const { id } = req.params;
-  const { DelaySMT, Quantity } = req.body;
+  const {
+    DelaySMT,
+    Quantity,
+    Quantity_IPQCSMT,
+    Quantity_IPQC,
+    Quantity_AOI,
+    Quantity_BoxBuild,
+    Quantity_Assembly,
+    Quantity_ConformalCoating,
+    Quantity_Test1,
+    Quantity_Test2,
+    Quantity_OQC,
+  } = req.body;
   // Insert data into SQLite database
   const query = `
       UPDATE PlanManufacture 
-      SET DelaySMT = ?, Quantity = ?
+      SET DelaySMT = ?, 
+          Quantity = ?, 
+          Quantity_IPQCSMT = ?,
+          Quantity_IPQC = ?,
+          Quantity_AOI = ?, 
+          Quantity_BoxBuild = ?,
+          Quantity_Assembly = ?,
+          Quantity_ConformalCoating = ?,
+          Quantity_Test1 = ?,
+          Quantity_Test2 = ?,
+          Quantity_OQC = ?
       WHERE id = ?
     `;
-  db.run(query, [DelaySMT, Quantity, id], function (err) {
-    if (err) {
-      return res
-        .status(500)
-        .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
+  db.run(
+    query,
+    [
+      DelaySMT,
+      Quantity,
+      Quantity_IPQCSMT,
+      Quantity_IPQC,
+      Quantity_AOI,
+      Quantity_BoxBuild,
+      Quantity_Assembly,
+      Quantity_ConformalCoating,
+      Quantity_Test1,
+      Quantity_Test2,
+      Quantity_OQC,
+      id,
+    ],
+    function (err) {
+      if (err) {
+        return res
+          .status(500)
+          .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
+      }
+      io.emit("ManufactureUpdate");
+      io.emit("updateManufactureDetails");
+      io.emit("UpdateHistory");
+      io.emit("UpdateSummary");
+      res.json({ message: "Đã cập nhật dữ liệu dự án sản xuất thành công" });
     }
-    io.emit("ManufactureUpdate");
-    res.json({ message: "Đã cập nhật dữ liệu dự án sản xuất thành công" });
-  });
+  );
 });
 
 // Router delete item in PlanManufacture table
@@ -3736,16 +4482,15 @@ app.delete("/PlanManufacture/Delete/:id", async (req, res) => {
   });
 });
 
-const ESP32_IP = "http://192.168.2.241"; // IP ESP32 (phải đổi đúng IP của bạn)
-
 app.post("/api/esp-config", async (req, res) => {
-  const { project_id, delay } = req.body;
+  const { project_id, delay, planID } = req.body;
   try {
     const response = await axios.post(
-      `${ESP32_IP}/set-project`,
+      `${ESP32_IP}/set-project-delay`,
       {
         project_id,
         delay,
+        planID,
       },
       {
         headers: { "Content-Type": "application/json" },
@@ -3765,7 +4510,7 @@ app.post("/api/esp-config", async (req, res) => {
 });
 
 app.post("/api/sensor", (req, res) => {
-  const { project_id, input_value } = req.body;
+  const { project_id, input_value, source } = req.body;
   const Timestamp = new Date()
     .toLocaleString("en-GB", {
       day: "2-digit",
@@ -3778,16 +4523,20 @@ app.post("/api/sensor", (req, res) => {
       timeZone: "Asia/Bangkok", // GMT+7 timezone
     })
     .replace(/,/g, "");
-  if (!project_id || input_value === undefined) {
+  if (
+    typeof project_id === "undefined" ||
+    typeof input_value === "undefined" ||
+    typeof source === "undefined"
+  ) {
     return res
       .status(400)
-      .json({ error: "Missing project_id or sensor_value" });
+      .json({ error: "Missing project_id or input_value or source" });
   }
 
   const stmt = db.prepare(
-    "INSERT INTO ManufactureSMT (HistoryID, PartNumber, Timestamp, Status) VALUES (?, ?, ?, 'ok')"
+    "INSERT INTO ManufactureSMT (HistoryID, PartNumber, Timestamp, Status, Source) VALUES (?, ?, ?, 'ok', ?)"
   );
-  stmt.run(project_id, input_value, Timestamp, function (err) {
+  stmt.run(project_id, input_value, Timestamp, source, function (err) {
     if (err) {
       console.error(err);
       return res.status(500).json({ error: "Database error" });
@@ -3821,7 +4570,15 @@ app.delete("/reset-data/:id", (req, res) => {
 app.post("/api/heartbeat", (req, res) => {
   const { device_id } = req.body;
   const now = Date.now();
-  console.log(`Heartbeat from ${device_id} at ${new Date(now).toISOString()}`); // Thêm dòng này
+
+  // ✅ Kiểm tra device_id
+  if (!device_id) {
+    return res.status(400).json({ error: "Missing device_id" });
+  }
+
+  console.log(
+    `📡 Heartbeat from ${device_id} at ${new Date(now).toISOString()}`
+  );
 
   db.run(
     `INSERT INTO heartbeats (device_id, last_seen)
@@ -3829,14 +4586,18 @@ app.post("/api/heartbeat", (req, res) => {
      ON CONFLICT(device_id) DO UPDATE SET last_seen = ?`,
     [device_id, now, now],
     (err) => {
-      if (err) return res.status(500).json({ error: "Database error" });
+      if (err) {
+        console.error("❌ DB Error:", err.message); // 👈 In lỗi chi tiết
+        return res.status(500).json({ error: "Database error" });
+      }
+
       io.emit("device-status", {
         device_id,
         status: "online",
         last_seen: now,
       });
 
-      res.json({ message: "Heartbeat received" });
+      res.json({ message: "✅ Heartbeat received" });
     }
   );
 });
@@ -3860,12 +4621,12 @@ app.get("/api/devices", (req, res) => {
 
 // Post value in table ManufactureAOI
 app.post("/Manufacture/AOI", (req, res) => {
-  const { PartNumber, HistoryID, Timestamp, Status } = req.body;
+  const { PartNumber, HistoryID, Timestamp, Status, Note, PlanID } = req.body;
 
   db.run(
-    `INSERT INTO ManufactureAOI (PartNumber, HistoryID, Timestamp, Status)
-     VALUES (?, ?, ? ,?)`,
-    [PartNumber, HistoryID, Timestamp, Status],
+    `INSERT INTO ManufactureAOI (PartNumber, HistoryID, Timestamp, Status, Note, PlanID)
+     VALUES (?, ?, ? ,?, ?, ?)`,
+    [PartNumber, HistoryID, Timestamp, Status, Note, PlanID],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureAOI");
@@ -3894,12 +4655,12 @@ app.post("/Manufacture/RW", (req, res) => {
 
 // Post value in table ManufactureIPQC
 app.post("/Manufacture/IPQC", (req, res) => {
-  const { PartNumber, HistoryID, Timestamp, Status } = req.body;
+  const { PartNumber, HistoryID, Timestamp, Status, Note, PlanID } = req.body;
 
   db.run(
-    `INSERT INTO ManufactureIPQC (HistoryID, PartNumber, Timestamp, Status)
-     VALUES (?, ?, ?, ?)`,
-    [HistoryID, PartNumber, Timestamp, Status],
+    `INSERT INTO ManufactureIPQC (HistoryID, PartNumber, Timestamp, Status, Note, PlanID)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [HistoryID, PartNumber, Timestamp, Status, Note, PlanID],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureIPQC");
@@ -3911,12 +4672,12 @@ app.post("/Manufacture/IPQC", (req, res) => {
 
 // Post value in table ManufactureAssembly
 app.post("/Manufacture/Assembly", (req, res) => {
-  const { PartNumber, HistoryID, Timestamp, Status } = req.body;
+  const { PartNumber, HistoryID, Timestamp, Status, PlanID } = req.body;
 
   db.run(
-    `INSERT INTO ManufactureAssembly (HistoryID, PartNumber, Timestamp, Status)
-     VALUES (?, ?, ?, ?)`,
-    [HistoryID, PartNumber, Timestamp, Status],
+    `INSERT INTO ManufactureAssembly (HistoryID, PartNumber, Timestamp, Status, PlanID)
+     VALUES (?, ?, ?, ?, ?)`,
+    [HistoryID, PartNumber, Timestamp, Status, PlanID],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureAssembly");
@@ -3928,12 +4689,12 @@ app.post("/Manufacture/Assembly", (req, res) => {
 
 // Post value in table ManufactureOQC
 app.post("/Manufacture/OQC", (req, res) => {
-  const { PartNumber, HistoryID, Timestamp, Status } = req.body;
+  const { PartNumber, HistoryID, Timestamp, Status, Note, PlanID } = req.body;
 
   db.run(
-    `INSERT INTO ManufactureOQC (HistoryID, PartNumber, Timestamp, Status)
-     VALUES (?, ?, ?, ?)`,
-    [HistoryID, PartNumber, Timestamp, Status],
+    `INSERT INTO ManufactureOQC (HistoryID, PartNumber, Timestamp, Status, Note, PlanID)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [HistoryID, PartNumber, Timestamp, Status, Note, PlanID],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureOQC");
@@ -3945,12 +4706,12 @@ app.post("/Manufacture/OQC", (req, res) => {
 
 // Post value in table ManufactureIPQCSMT
 app.post("/Manufacture/IPQC-SMT", (req, res) => {
-  const { PartNumber, HistoryID, Timestamp, Status } = req.body;
+  const { PartNumber, HistoryID, Timestamp, Status, Note, PlanID } = req.body;
 
   db.run(
-    `INSERT INTO ManufactureIPQCSMT (HistoryID, PartNumber, Timestamp, Status)
-     VALUES (?, ?, ?, ?)`,
-    [HistoryID, PartNumber, Timestamp, Status],
+    `INSERT INTO ManufactureIPQCSMT (HistoryID, PartNumber, Timestamp, Status, Note, PlanID)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [HistoryID, PartNumber, Timestamp, Status, Note, PlanID],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureIPQCSMT");
@@ -3961,12 +4722,12 @@ app.post("/Manufacture/IPQC-SMT", (req, res) => {
 });
 // Post value in table ManufactureBoxBuild
 app.post("/Manufacture/BoxBuild", (req, res) => {
-  const { PartNumber, HistoryID, Timestamp, Status } = req.body;
+  const { PartNumber, HistoryID, Timestamp, Status, PlanID } = req.body;
 
   db.run(
-    `INSERT INTO ManufactureBoxBuild (HistoryID, PartNumber, Timestamp, Status)
-     VALUES (?, ?, ?, ?)`,
-    [HistoryID, PartNumber, Timestamp, Status],
+    `INSERT INTO ManufactureBoxBuild (HistoryID, PartNumber, Timestamp, Status, PlanID)
+     VALUES (?, ?, ?, ?, ?)`,
+    [HistoryID, PartNumber, Timestamp, Status, PlanID],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureBoxBuild");
@@ -3977,15 +4738,15 @@ app.post("/Manufacture/BoxBuild", (req, res) => {
 });
 // Post value in table ManufactureBoxBuild
 app.post("/Manufacture/Conformal-Coating", (req, res) => {
-  const { PartNumber, HistoryID, Timestamp, Status } = req.body;
+  const { PartNumber, HistoryID, Timestamp, Status, PlanID } = req.body;
 
   db.run(
-    `INSERT INTO ManufactureConformalCoating (HistoryID, PartNumber, Timestamp, Status)
-     VALUES (?, ?, ?, ?)`,
-    [HistoryID, PartNumber, Timestamp, Status],
+    `INSERT INTO ManufactureConformalCoating (HistoryID, PartNumber, Timestamp, Status, PlanID)
+     VALUES (?, ?, ?, ?, ?)`,
+    [HistoryID, PartNumber, Timestamp, Status, PlanID],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
-      io.emit("UpdateManufactureConformalCoating");
+      io.emit("UpdateManufactureCC");
       io.emit("updateManufactureDetails");
       res.json({ message: "ManufactureConformalCoating received" });
     }
@@ -3993,12 +4754,12 @@ app.post("/Manufacture/Conformal-Coating", (req, res) => {
 });
 // Post value in table ManufactureTest1
 app.post("/Manufacture/Test1", (req, res) => {
-  const { PartNumber, HistoryID, Timestamp, Status } = req.body;
+  const { PartNumber, HistoryID, Timestamp, Status, Note, PlanID } = req.body;
 
   db.run(
-    `INSERT INTO ManufactureTest1 (HistoryID, PartNumber, Timestamp, Status)
-     VALUES (?, ?, ?, ?)`,
-    [HistoryID, PartNumber, Timestamp, Status],
+    `INSERT INTO ManufactureTest1 (HistoryID, PartNumber, Timestamp, Status, Note, PlanID)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [HistoryID, PartNumber, Timestamp, Status, Note, PlanID],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureTest1");
@@ -4009,12 +4770,12 @@ app.post("/Manufacture/Test1", (req, res) => {
 });
 // Post value in table ManufactureTest2
 app.post("/Manufacture/Test2", (req, res) => {
-  const { PartNumber, HistoryID, Timestamp, Status } = req.body;
+  const { PartNumber, HistoryID, Timestamp, Status, Note, PlanID } = req.body;
 
   db.run(
-    `INSERT INTO ManufactureTest2 (HistoryID, PartNumber, Timestamp, Status)
-     VALUES (?, ?, ?, ?)`,
-    [HistoryID, PartNumber, Timestamp, Status],
+    `INSERT INTO ManufactureTest2 (HistoryID, PartNumber, Timestamp, Status, Note, PlanID)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [HistoryID, PartNumber, Timestamp, Status, Note, PlanID],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureTest2");
@@ -4025,12 +4786,12 @@ app.post("/Manufacture/Test2", (req, res) => {
 });
 // Post value in table ManufactureWarehouse
 app.post("/Manufacture/Warehouse", (req, res) => {
-  const { PartNumber, HistoryID, Timestamp, Status } = req.body;
+  const { PartNumber, HistoryID, Timestamp, Status, PlanID } = req.body;
 
   db.run(
-    `INSERT INTO ManufactureWarehouse (HistoryID, PartNumber, Timestamp, Status)
+    `INSERT INTO ManufactureWarehouse (HistoryID, PartNumber, Timestamp, Status, PlanID)
      VALUES (?, ?, ?, ?)`,
-    [HistoryID, PartNumber, Timestamp, Status],
+    [HistoryID, PartNumber, Timestamp, Status, PlanID],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureWarehouse");
@@ -4058,6 +4819,8 @@ app.put("/Manufacture/IPQC-SMT/Edit-status/:id", async (req, res) => {
     }
     io.emit("UpdateManufactureIPQCSMT");
     io.emit("updateManufactureDetails");
+    io.emit("UpdateHistory");
+    io.emit("updateHistoryPart");
     res.json({ message: "ManufactureIPQCSMT received" });
   });
 });
@@ -4080,6 +4843,8 @@ app.put("/Manufacture/IPQC/Edit-status/:id", async (req, res) => {
     }
     io.emit("UpdateManufactureIPQC");
     io.emit("updateManufactureDetails");
+    io.emit("UpdateHistory");
+    io.emit("updateHistoryPart");
     res.json({ message: "ManufactureIPQC received" });
   });
 });
@@ -4102,6 +4867,8 @@ app.put("/Manufacture/Test1/Edit-status/:id", async (req, res) => {
     }
     io.emit("UpdateManufactureTest1");
     io.emit("updateManufactureDetails");
+    io.emit("UpdateHistory");
+    io.emit("updateHistoryPart");
     res.json({ message: "ManufactureTest1 received" });
   });
 });
@@ -4124,6 +4891,8 @@ app.put("/Manufacture/Test2/Edit-status/:id", async (req, res) => {
     }
     io.emit("UpdateManufactureTest2");
     io.emit("updateManufactureDetails");
+    io.emit("UpdateHistory");
+    io.emit("updateHistoryPart");
     res.json({ message: "ManufactureTest2 received" });
   });
 });
@@ -4146,6 +4915,8 @@ app.put("/Manufacture/OQC/Edit-status/:id", async (req, res) => {
     }
     io.emit("UpdateManufactureOQC");
     io.emit("updateManufactureDetails");
+    io.emit("UpdateHistory");
+    io.emit("updateHistoryPart");
     res.json({ message: "ManufactureOQC received" });
   });
 });
@@ -4168,6 +4939,8 @@ app.put("/Manufacture/AOI/Edit-status/:id", async (req, res) => {
     }
     io.emit("UpdateManufactureAOI");
     io.emit("updateManufactureDetails");
+    io.emit("UpdateHistory");
+    io.emit("updateHistoryPart");
     res.json({ message: "ManufactureAOI received" });
   });
 });
@@ -4185,7 +4958,7 @@ app.put("/Manufacture/AOI-Fixed/Edit-status/:id", (req, res) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureAOI");
       io.emit("UpdateHistory");
-      io.emit("UpdateManufactureRW");
+      io.emit("updateHistoryPart");
       io.emit("updateManufactureDetails");
       res.json({ message: "Summary received" });
     }
@@ -4218,7 +4991,7 @@ app.put("/Manufacture/IPQC-SMT-Fixed/Edit-status/:id", (req, res) => {
   const { id } = req.params;
   db.run(
     `UPDATE ManufactureIPQCSMT
-      SET RWID=?, TimestampRW=?
+      SET Status=?, RWID=?, TimestampRW=?
       WHERE id=?`,
     [Status, RWID, TimestampRW, id],
     (err) => {
@@ -4436,9 +5209,9 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
 });
 
-// Khởi động server
+// Khởi động servers
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🚀 HTTP Server running on port ${PORT}`);
 });
 
 // Thêm endpoint xóa session AI chat

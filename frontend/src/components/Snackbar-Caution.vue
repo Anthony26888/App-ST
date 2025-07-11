@@ -2,10 +2,10 @@
   <v-snackbar
     v-model="visible"
     :timeout="timeout"
-    color="orange-darken-2"
+    color="red"
   >
     <v-icon>mdi-alert-decagram</v-icon>
-    Không tìm thấy dữ liệu từ Digikey.
+    {{ message }}
   </v-snackbar>
 </template>
 <script setup>
@@ -29,3 +29,4 @@ const visible = computed({
 });
 </script>
 <style lang=""></style>
+

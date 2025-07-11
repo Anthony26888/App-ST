@@ -35,10 +35,13 @@
             <v-card class="rounded-lg" color="success" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra</div>
-                <div class="text-h4 font-weight-bold">
+                <div class="text-h4 font-weight-bold" v-if="Quantity_Assembly > 1">
+                  {{ totalOutput }} / {{ totalOutput * Quantity_Assembly }}
+                </div>
+                <div class="text-h4 font-weight-bold" v-else>
                   {{ totalOutput }}
                 </div>
-                <div class="text-caption">Tổng số lượng đầu ra</div>
+                <div class="text-caption">Tổng số lượng đầu ra ( {{ Quantity_Assembly }} pcs/ panel )</div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -183,8 +186,8 @@ const totalFixed = ref(0);
 const NameManufacture = ref("");
 const Name_Order = ref("");
 const Name_Category = ref("");
-
-
+const PlanID = ref("");
+const Quantity_Assembly = ref(1);
 // ===== User Information =====
 const LevelUser = localStorage.getItem("LevelUser");
 // ===== Watchers =====
@@ -235,12 +238,16 @@ watch(
       NameManufacture.value = foundHistory.PONumber ?? "";
       Name_Category.value = foundHistory.Category ?? "";
       totalInput.value = foundHistory.Quantity_Plan ?? 0;
+      PlanID.value = foundHistory.PlanID ?? "";
+      Quantity_Assembly.value = foundHistory.Quantity_Assembly ?? 1;
     } else {
       console.log("No matching history found for ID:", id);
       // Set default values if no match found
       Name_Order.value = "";
       NameManufacture.value = "";
       Name_Category.value = "";
+      PlanID.value = "";
+      Quantity_Assembly.value = 1;
     }
   },
   { immediate: true, deep: true }
@@ -269,6 +276,7 @@ const submitBarcode = async () => {
       hour12: false,
     }),
     HistoryID: id,
+    PlanID:PlanID.value
   });
   try {
     const response = await axios.post(`${Url}/Manufacture/Assembly`, formData);

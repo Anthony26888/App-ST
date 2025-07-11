@@ -1,11 +1,12 @@
 <template lang="">
   <v-btn
-    icon="mdi mdi-history"
-    size="xs"
-    color="primary"
-    variant="text"
+    prepend-icon="mdi mdi-history"
+    variant="tonal"
+    color="info"
+    class="text-caption ms-2"
     @click="emitHistory()"
-  ></v-btn>
+    >Lịch sử</v-btn
+  >
 </template>
 <script>
 export default {

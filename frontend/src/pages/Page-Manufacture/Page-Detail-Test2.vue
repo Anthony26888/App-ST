@@ -2,7 +2,11 @@
   <div>
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <v-card-title class="text-h4 font-weight-light">
-        <ButtonBack v-if="LevelUser === 'Nhân viên'" :to="`/Danh-sach-cong-viec`" @click="removeGoBackListWork" />
+        <ButtonBack
+          v-if="LevelUser === 'Nhân viên'"
+          :to="`/Danh-sach-cong-viec`"
+          @click="removeGoBackListWork"
+        />
         <ButtonBack v-else :to="`/San-xuat/Chi-tiet/${back}`" />
         Theo dõi sản xuất Test 2</v-card-title
       >
@@ -33,10 +37,13 @@
             <v-card class="rounded-lg" color="success" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra</div>
-                <div class="text-h4 font-weight-bold">
+                <div class="text-h4 font-weight-bold" v-if="Quantity_Test2 > 1">
+                  {{ totalOutput }} / {{ totalOutput * Quantity_Test2}}
+                </div>
+                <div class="text-h4 font-weight-bold" v-else>
                   {{ totalOutput }}
                 </div>
-                <div class="text-caption">Tổng số lượng đầu ra</div>
+                <div class="text-caption">Tổng số lượng đầu ra ( {{ Quantity_Test2 }} pcs/ panel )</div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -90,6 +97,10 @@
                 ></v-checkbox>
               </v-col>
             </v-row>
+            <InputTextarea
+              label="Ghi chú lỗi"
+              v-model="ErrorLog"
+            ></InputTextarea>
           </v-card-text>
         </v-card>
 
@@ -127,11 +138,23 @@
           >
             <template #[`item.Status`]="{ item }">
               <v-chip
-                :color="item.Status === 'error' ? 'warning' : item.Status === 'fixed' ? 'info' : 'success'"
+                :color="
+                  item.Status === 'error'
+                    ? 'warning'
+                    : item.Status === 'fixed'
+                    ? 'info'
+                    : 'success'
+                "
                 size="small"
                 variant="tonal"
               >
-                {{ item.Status === "error" ? "Lỗi" : item.Status === "fixed" ? "Đã sửa" : "OK" }}
+                {{
+                  item.Status === "error"
+                    ? "Lỗi"
+                    : item.Status === "fixed"
+                    ? "Đã sửa"
+                    : "OK"
+                }}
               </v-chip>
               <v-btn
                 v-if="item.Status === 'fixed'"
@@ -144,6 +167,9 @@
                 <v-icon size="small">mdi-check</v-icon>
                 Sửa lỗi
               </v-btn>
+            </template>
+            <template #item.Note="{ item }">
+              <div style="white-space: pre-line">{{ item.Note }}</div>
             </template>
             <template #[`bottom`]>
               <div class="text-center pt-2">
@@ -209,6 +235,7 @@ import Loading from "@/components/Loading.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import ButtonBack from "@/components/Button-Back.vue";
 import InputField from "@/components/Input-Field.vue";
+import InputTextarea from "@/components/Input-Textarea.vue";
 
 // ===== Constants & Configuration =====
 const Url = import.meta.env.VITE_API_URL;
@@ -246,6 +273,7 @@ const itemsPerPage = ref(10);
 
 // Input/Output State
 const Input = ref("");
+const ErrorLog = ref("");
 const isSubmitting = ref(false);
 const isError = ref(false);
 const submitting = ref(false);
@@ -254,10 +282,13 @@ const totalInput = ref(0);
 const totalOutput = ref(0);
 const totalErrors = ref(0);
 const totalFixed = ref(0);
+
 // Production Info
 const NameManufacture = ref("");
 const Name_Order = ref("");
 const Name_Category = ref("");
+const PlanID = ref("");
+const Quantity_Test2 = ref(1);
 
 // ===== User Information =====
 const LevelUser = localStorage.getItem("LevelUser");
@@ -311,11 +342,15 @@ watch(
       NameManufacture.value = foundHistory.PONumber ?? "";
       Name_Category.value = foundHistory.Category ?? "";
       totalInput.value = foundHistory.Quantity_Plan ?? 0;
+      PlanID.value = foundHistory.PlanID ?? "";
+      Quantity_Test2.value = foundHistory.Quantity_Test2 ?? 1;
     } else {
       console.log("No matching history found for ID:", id);
       // Set default values if no match found
       Name_Order.value = "";
       NameManufacture.value = "";
+      PlanID.value = "";
+      Quantity_Test2.value = 1;
     }
   },
   { immediate: true, deep: true }
@@ -344,6 +379,8 @@ const submitBarcode = async () => {
       hour12: false,
     }),
     HistoryID: id,
+    Note: ErrorLog,
+    PlanID: PlanID.value,
   });
   try {
     const response = await axios.post(`${Url}/Manufacture/Test2`, formData);

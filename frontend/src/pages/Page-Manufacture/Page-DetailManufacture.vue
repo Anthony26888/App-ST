@@ -3,8 +3,8 @@
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <v-card-title class="text-h4 font-weight-light">
         <ButtonBack to="/san-xuat" />
-        Theo dõi sản xuất</v-card-title
-      >
+        Theo dõi sản xuất
+      </v-card-title>
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-cart"></v-icon> &nbsp;
         <v-breadcrumbs :items="[`${NameManufacture}`, `${NameOrder}`]">
@@ -12,6 +12,14 @@
             <v-icon icon="mdi-chevron-right"></v-icon>
           </template>
         </v-breadcrumbs>
+        <v-spacer></v-spacer>
+        <v-btn
+          prepend-icon="mdi-cog"
+          variant="tonal"
+          color="primary"
+          class="ms-2 text-caption"
+          @click="DialogSettingSMT = true"
+        >Cài đặt</v-btn>
       </v-card-title>
 
       <v-card-text class="pa-6">
@@ -69,14 +77,6 @@
                 class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
               >
                 SMT
-                <v-spacer></v-spacer>
-                <v-btn
-                  icon="mdi-cog"
-                  variant="text"
-                  color="primary"
-                  class="ms-2"
-                  @click="DialogSettingSMT = true"
-                ></v-btn>
               </v-card-title>
               <v-card-text class="pa-4">
                 <div
@@ -88,14 +88,14 @@
                     <div class="text-h6 font-weight-bold mb-2">Printer</div>
                     <div class="text-h4 font-weight-bold mb-2">
                       <span class="text-primary">{{ totalInput }}</span> /
-                      <span class="text-success">{{ totalSMT }}</span>
+                      <span class="text-success">{{ totalSMT_3 }}</span>
                     </div>
                     <v-progress-circular
-                      :model-value="(totalSMT / totalInput) * 100"
+                      :model-value="(totalSMT_3 / totalInput) * 100"
                       color="primary"
                       size="48"
                     >
-                      {{ Math.round((totalSMT / totalInput) * 100) }}%
+                      {{ Math.round((totalSMT_3 / totalInput) * 100) }}%
                     </v-progress-circular>
                     <div class="text-caption text-medium-emphasis mt-2">
                       Tổng số lượng SMT (Printer)
@@ -114,14 +114,14 @@
                     </div>
                     <div class="text-h4 font-weight-bold mb-2">
                       <span class="text-primary">{{ totalInput }}</span> /
-                      <span class="text-success">{{ totalSMT }}</span>
+                      <span class="text-success">{{ totalSMT_2 }}</span>
                     </div>
                     <v-progress-circular
-                      :model-value="(totalSMT / totalInput) * 100"
+                      :model-value="(totalSMT_2 / totalInput) * 100"
                       color="primary"
                       size="48"
                     >
-                      {{ Math.round((totalSMT / totalInput) * 100) }}%
+                      {{ Math.round((totalSMT_2 / totalInput) * 100) }}%
                     </v-progress-circular>
                     <div class="text-caption text-medium-emphasis mt-2">
                       Tổng số lượng SMT (Gắp linh kiện)
@@ -136,14 +136,14 @@
                     <div class="text-h6 font-weight-bold mb-2">Lò Reflow</div>
                     <div class="text-h4 font-weight-bold mb-2">
                       <span class="text-primary">{{ totalInput }}</span> /
-                      <span class="text-success">{{ totalSMT }}</span>
+                      <span class="text-success">{{ totalSMT_1 }}</span>
                     </div>
                     <v-progress-circular
-                      :model-value="(totalSMT / totalInput) * 100"
+                      :model-value="(totalSMT_1 / totalInput) * 100"
                       color="primary"
                       size="48"
                     >
-                      {{ Math.round((totalSMT / totalInput) * 100) }}%
+                      {{ Math.round((totalSMT_1 / totalInput) * 100) }}%
                     </v-progress-circular>
                     <div class="text-caption text-medium-emphasis mt-2">
                       Tổng số lượng SMT (Lò Reflow)
@@ -249,7 +249,7 @@
               <v-card-title
                 class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
               >
-                IPQC (Hàn tay)
+                IPQC
               </v-card-title>
               <v-card-text class="pa-4">
                 <div class="d-flex justify-space-between align-center mb-4">
@@ -267,7 +267,7 @@
                   </v-progress-circular>
                 </div>
                 <div class="text-caption text-medium-emphasis">
-                  Tổng số lượng IPQC hàn tay
+                  Tổng số lượng IPQC
                 </div>
               </v-card-text>
             </v-card>
@@ -572,7 +572,26 @@
             :items="historyPart"
             :search="searchHistory"
             fixed-header
+            :items-per-page="itemsPerPage"
+            v-model="page"
             class="elevation-0"
+            :footer-props="{
+              'items-per-page-options': [10, 20, 50, 100],
+              'items-per-page-text': 'Số hàng mỗi trang',
+            }"
+            :header-props="{
+              sortByText: 'Sắp xếp theo',
+              sortDescText: 'Giảm dần',
+              sortAscText: 'Tăng dần',
+            }"
+            :loading="DialogLoading"
+            loading-text="Đang tải dữ liệu..."
+            no-data-text="Không có dữ liệu"
+            no-results-text="Không tìm thấy kết quả"
+            :hover="true"
+            :dense="false"
+            :fixed-header="true"
+            height="calc(100vh - 600px)"
           >
             <template v-slot:top>
               <v-toolbar flat dense class="rounded-t-lg">
@@ -593,21 +612,30 @@
             </template>
             <template #[`item.Status`]="{ item }">
               <v-chip
-                :color="item.Status === 'error' ? 'warning' : 'success'"
+                :color="
+                  item.Status === 'error'
+                    ? 'warning'
+                    : item.Status === 'fixed'
+                    ? 'info'
+                    : 'success'
+                "
                 size="small"
                 variant="tonal"
               >
-                {{ item.Status === "error" ? "Lỗi" : "OK" }}
+                {{
+                  item.Status === "error"
+                    ? "Lỗi"
+                    : item.Status === "fixed"
+                    ? "Đã sửa"
+                    : "OK"
+                }}
               </v-chip>
             </template>
-            <template #[`bottom`]>
-              <div class="text-center pt-2">
-                <v-pagination
-                  v-model="page"
-                  :length="Math.ceil((historyPart?.length || 0) / itemsPerPage)"
-                ></v-pagination>
-              </div>
-            </template>
+            <template #item.Note="{ item }">
+              <div style="white-space: pre-line" class="text-error">
+                {{ item.Note }}
+              </div> </template
+            >S
           </v-data-table-virtual>
         </v-card>
       </v-card-text>
@@ -745,23 +773,98 @@
     </v-dialog>
 
     <!-- Dialog Setting SMT -->
-    <v-dialog v-model="DialogSettingSMT" max-width="400px">
+    <v-dialog v-model="DialogSettingSMT" max-width="700px">
       <v-card>
         <v-card-title class="d-flex align-center pa-4">
           <v-icon icon="mdi-cog" color="primary" class="me-2"></v-icon>
-          Cài đặt dây chuyền SMT
+          Cài đặt dây chuyền
         </v-card-title>
         <v-card-text>
-          <InputField
-            v-model="DelaySMT_Edit"
-            label="Độ trễ SMT (ms)"
-            type="number"
-          />
-          <InputField
-            v-model="Quantity_Edit"
-            label="Số lượng board"
-            type="number"
-          />
+          <v-row>
+            <v-col>
+              <InputField
+                v-model="DelaySMT_Edit"
+                label="Độ trễ SMT (ms)"
+                type="number"
+              />
+            </v-col>
+            <v-col>
+              <InputField
+                v-model="Quantity_Edit"
+                label="Số lượng board SMT"
+                type="number"
+              />
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col>
+              <InputField
+                v-model="Quantity_IPQCSMT_Edit"
+                label="Số lượng board IPQC SMT"
+                type="number"
+              />
+            </v-col>
+            <v-col>
+              <InputField
+                v-model="Quantity_IPQC_Edit"
+                label="Số lượng board IPQC"
+                type="number"
+              />
+            </v-col>
+            <v-col>
+              <InputField
+                v-model="Quantity_AOI_Edit"
+                label="Số lượng board AOI"
+                type="number"
+              />
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col>
+              <InputField
+                v-model="Quantity_Assembly_Edit"
+                label="Số lượng board Assembly"
+                type="number"
+              />
+            </v-col>
+            <v-col>
+              <InputField
+                v-model="Quantity_BoxBuild_Edit"
+                label="Số lượng board BoxBuild"
+                type="number"
+              />
+            </v-col>
+            <v-col>
+              <InputField
+                v-model="Quantity_ConformalCoating_Edit"
+                label="Số lượng board Tẩm phủ"
+                type="number"
+              />
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col>
+              <InputField
+                v-model="Quantity_Test1_Edit"
+                label="Số lượng board Test 1"
+                type="number"
+              />
+            </v-col>
+            <v-col>
+              <InputField
+                v-model="Quantity_Test2_Edit"
+                label="Số lượng board Test 2"
+                type="number"
+              />
+            </v-col>
+            <v-col>
+              <InputField
+                v-model="Quantity_OQC_Edit"
+                label="Số lượng board OQC"
+                type="number"
+              />
+            </v-col>
+          </v-row>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -818,7 +921,7 @@ const { manufacture, manufactureFound, manufactureError, isConnected } =
   useManufacture();
 const { history, historyError, refresh } = useHistory(id);
 const { historyPart, historyPartError } = useHistoryPart(id);
-console.log(historyPart);
+console.log(manufactureDetails);
 // Dialog
 const DialogSuccess = ref(false);
 const DialogLoading = ref(false);
@@ -837,7 +940,9 @@ const GetID = ref(null);
 
 // Production statistics
 const totalInput = ref(0);
-const totalSMT = ref(0);
+const totalSMT_1 = ref(0);
+const totalSMT_2 = ref(0);
+const totalSMT_3 = ref(0);
 const totalAOI = ref(0);
 const totalRW = ref(0);
 const totalIPQC = ref(0);
@@ -862,8 +967,8 @@ const totalTest2Error = ref(0);
 const totalBoxBuildError = ref(0);
 const totalConformalCoatingError = ref(0);
 const totalWarehouseError = ref(0);
-
 const totalFixed = ref(0);
+
 
 // Level
 const Level_SMT = ref(false);
@@ -901,6 +1006,15 @@ const Note_Edit = ref("");
 // ===== FORM SETTING SMT =====
 const DelaySMT_Edit = ref(50);
 const Quantity_Edit = ref(1);
+const Quantity_IPQCSMT_Edit = ref(1);
+const Quantity_IPQC_Edit =ref(1);
+const Quantity_AOI_Edit = ref(1);
+const Quantity_Assembly_Edit = ref(1);
+const Quantity_BoxBuild_Edit = ref(1);
+const Quantity_Test1_Edit = ref(1);
+const Quantity_Test2_Edit = ref(1);
+const Quantity_ConformalCoating_Edit = ref(1);
+const Quantity_OQC_Edit = ref(1);
 
 // Table
 const searchHistory = ref("");
@@ -917,10 +1031,10 @@ const HeadersHistory = [
 ];
 const HeadersHistoryPart = [
   { title: "Mã hàng", key: "PartNumber", sortable: true },
-  { title: "Trạng thái", key: "Status", sortable: true },
-  { title: "Ngày", key: "Timestamp", sortable: true },
   { title: "Vị trí", key: "Source", sortable: true },
-  { title: "RW", key: "RWID", sortable: true },
+  { title: "Trạng thái", key: "Status", sortable: true },
+  { title: "Thời gian", key: "Timestamp", sortable: true },
+  { title: "Ghi chú lỗi", key: "Note", sortable: true },
   { title: "Thời gian RW", key: "TimestampRW", sortable: true },
 ];
 
@@ -936,15 +1050,14 @@ watch(
 
         Level_SMT.value = DataManufacture.value.includes("SMT");
         Level_AOI.value = DataManufacture.value.includes("AOI");
-        Level_IPQC.value = DataManufacture.value.includes("IPQC (Hàn tay)");
+        Level_IPQC.value = DataManufacture.value.includes("IPQC");
         Level_Assembly.value = DataManufacture.value.includes("Assembly");
         Level_OQC.value = DataManufacture.value.includes("OQC");
         Level_IPQCSMT.value = DataManufacture.value.includes("IPQC (SMT)");
         Level_Test_1.value = DataManufacture.value.includes("Test 1");
         Level_Test_2.value = DataManufacture.value.includes("Test 2");
         Level_BoxBuild.value = DataManufacture.value.includes("Box Build");
-        Level_ConformalCoating.value =
-          DataManufacture.value.includes("Tẩm phủ");
+        Level_ConformalCoating.value = DataManufacture.value.includes("Tẩm phủ");
       }
     }
   },
@@ -959,10 +1072,13 @@ watch(
       // Check if newValue is an array and has items
       if (Array.isArray(newValue) && newValue.length > 0) {
         const data = newValue[0]; // Get first item if it's an array
+        console.log(data);
         totalInput.value = data.Total || 0;
         totalError.value = data.Quantity_Error || 0;
         totalFixed.value = data.Quantity_Fixed || 0;
-        totalSMT.value = data.SMT || 0;
+        totalSMT_1.value = data.SMT_1 || 0;
+        totalSMT_2.value = data.SMT_2 || 0;
+        totalSMT_3.value = data.SMT_3 || 0;
         totalAOI.value = data.AOI || 0;
         totalRW.value = data.RW || 0;
         totalIPQC.value = data.IPQC || 0;
@@ -983,9 +1099,19 @@ watch(
         totalTest1Error.value = data.Test1Error || 0;
         totalTest2Error.value = data.Test2Error || 0;
         totalBoxBuildError.value = data.BoxBuildError || 0;
+        totalConformalCoatingError.value = data.ConformalCotaingError || 0;
         totalWarehouseError.value = data.WarehouseError || 0;
         Quantity_Edit.value = data.Quantity;
         DelaySMT_Edit.value = data.DelaySMT;
+        Quantity_AOI_Edit.value = data.Quantity_AOI,
+        Quantity_Assembly_Edit.value = data.Quantity_Assembly,
+        Quantity_ConformalCoating_Edit.value = data.Quantity_ConformalCoating,
+        Quantity_IPQCSMT_Edit.value = data.Quantity_IPQCSMT,
+        Quantity_IPQC_Edit.value = data.Quantity_IPQC,
+        Quantity_Test1_Edit.value = data.Quantity_Test1,
+        Quantity_Test2_Edit.value = data.Quantity_Test2,
+        Quantity_BoxBuild_Edit.value = data.Quantity_BoxBuild,
+        Quantity_OQC_Edit.value = data.Quantity_OQC,
         LevelSelectAdd.value = data.Level.split("-");
         NameOrder.value = data.Name_Order;
         Name_Order_Add.value = data.Name_Order;
@@ -994,7 +1120,9 @@ watch(
         // If it's a single object
         totalInput.value = newValue.Total || 0;
         totalError.value = newValue.Quantity_Error || 0;
-        totalSMT.value = newValue.SMT || 0;
+        totalSMT_1.value = newValue.SMT_1 || 0;
+        totalSMT_2.value = newValue.SMT_2 || 0;
+        totalSMT_3.value = newValue.SMT_3 || 0;
         totalAOI.value = newValue.AOI || 0;
         totalRW.value = newValue.RW || 0;
         totalIPQC.value = newValue.IPQC || 0;
@@ -1015,10 +1143,19 @@ watch(
         totalTest1Error.value = newValue.Test1Error || 0;
         totalTest2Error.value = newValue.Test2Error || 0;
         totalBoxBuildError.value = newValue.BoxBuildError || 0;
+        totalConformalCoatingError.value = newValue.ConformalCoatingError || 0;
         totalWarehouseError.value = newValue.WarehouseError || 0;
         Quantity_Edit.value = newValue.Quantity;
         DelaySMT_Edit.value = newValue.DelaySMT;
-
+        Quantity_AOI_Edit.value = newValue.Quantity_AOI,
+        Quantity_Assembly_Edit.value = newValue.Quantity_Assembly,
+        Quantity_ConformalCoating_Edit.value = newValue.Quantity_ConformalCoating,
+        Quantity_IPQCSMT_Edit.value = newValue.Quantity_IPQCSMT,
+        Quantity_IPQC_Edit.value = newValue.Quantity_IPQC,
+        Quantity_Test1_Edit.value = newValue.Quantity_Test1,
+        Quantity_Test2_Edit.value = newValue.Quantity_Test2,
+        Quantity_BoxBuild_Edit.value = newValue.Quantity_BoxBuild,
+        Quantity_OQC_Edit.value = newValue.Quantity_OQC,
         NameOrder.value = newValue.Name_Order;
       }
     }
@@ -1086,7 +1223,7 @@ const PushItem = (item) => {
     router.push(`/San-xuat/RW/${item.id}`);
   } else if (item.Type === "Assembly") {
     router.push(`/San-xuat/Assembly/${item.id}`);
-  } else if (item.Type === "IPQC (Hàn tay)") {
+  } else if (item.Type === "IPQC") {
     router.push(`/San-xuat/IPQC/${item.id}`);
   } else if (item.Type === "OQC") {
     router.push(`/San-xuat/OQC/${item.id}`);
@@ -1153,10 +1290,19 @@ const SaveEditSettingSMT = async () => {
   const formData = reactive({
     DelaySMT: DelaySMT_Edit.value,
     Quantity: Quantity_Edit.value,
+    Quantity_AOI: Quantity_AOI_Edit.value,
+    Quantity_IPQCSMT: Quantity_IPQCSMT_Edit.value,
+    Quantity_IPQC: Quantity_IPQC_Edit.value,
+    Quantity_Assembly: Quantity_Assembly_Edit.value,
+    Quantity_BoxBuild:  Quantity_BoxBuild_Edit.value,
+    Quantity_ConformalCoating: Quantity_ConformalCoating_Edit.value,
+    Quantity_Test1: Quantity_Test1_Edit.value,
+    Quantity_Test2: Quantity_Test2_Edit.value,
+    Quantity_OQC: Quantity_OQC_Edit.value
   });
   try {
     const response = await axios.put(
-      `${Url}/PlanManufacture/Edit-SMT/${id}`,
+      `${Url}/PlanManufacture/Edit-Line/${id}`,
       formData
     );
     console.log(response.data.message);

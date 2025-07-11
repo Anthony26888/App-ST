@@ -3,16 +3,20 @@
     <!-- Card chính chứa toàn bộ nội dung -->
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <!-- Phần tiêu đề và nút quay lại -->
-      <v-card-title class="text-h4 font-weight-light">
-        <ButtonBack v-if="LevelUser === 'Nhân viên'" :to="`/Danh-sach-cong-viec`" @click="removeGoBackListWork" />
+      <v-card-title class="text-h4 font-weight-light d-flex align-center">
+        <ButtonBack
+          v-if="LevelUser === 'Nhân viên'"
+          :to="`/Danh-sach-cong-viec`"
+          @click="removeGoBackListWork"
+        />
         <ButtonBack v-else :to="`/San-xuat/Chi-tiet/${back}`" />
-        Theo dõi sản xuất SMT
+        <span class="ml-2">Theo dõi sản xuất SMT</span>
       </v-card-title>
 
       <!-- Phần điều khiển và trạng thái -->
       <v-card-title class="d-flex align-center pe-2">
         <!-- Tên sản phẩm -->
-        <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
+        <v-icon icon="mdi mdi-tools" color="primary" size="large"></v-icon>
         <v-breadcrumbs :items="[`${NameManufacture}`, `${Name_Order}`]">
           <template v-slot:divider>
             <v-icon icon="mdi-chevron-right"></v-icon>
@@ -22,7 +26,11 @@
 
         <!-- Hiển thị trạng thái kết nối -->
         <v-chip
-          :prepend-icon="status === 'Online' ? 'mdi-contactless-payment-circle' : 'mdi-web-off'"
+          :prepend-icon="
+            status === 'Online'
+              ? 'mdi-contactless-payment-circle'
+              : 'mdi-web-off'
+          "
           :color="status === 'Online' ? 'green' : 'red'"
           class="ma-2"
           dark
@@ -54,7 +62,11 @@
           &nbsp;
           {{ isBegin ? "Dừng" : "Bắt đầu" }}
         </v-btn>
-        <v-btn @click="DialogRemove = true" color="error" class="ms-2 text-caption">
+        <v-btn
+          @click="DialogRemove = true"
+          color="error"
+          class="ms-2 text-caption"
+        >
           Reset dữ liệu
         </v-btn>
       </v-card-title>
@@ -65,43 +77,48 @@
         <v-row class="mb-4">
           <!-- Thẻ thống kê đầu vào -->
           <v-col cols="12" sm="4">
-            <v-card class="mx-auto" elevation="2">
+            <v-card class="rounded-lg" color="primary" variant="tonal">
               <v-card-text>
-                <div class="text-h6 mb-2">Đầu vào</div>
-                <div class="text-h4 font-weight-bold text-error">
+                <div class="text-subtitle-1">Đầu vào</div>
+                <div class="text-h4 font-weight-bold">
                   {{ totalInput }}
                 </div>
-                <div class="text-caption text-medium-emphasis">
-                  Tổng số lượng đầu vào
-                </div>
+                <div class="text-caption">Tổng số lượng đầu vào</div>
               </v-card-text>
             </v-card>
           </v-col>
 
           <!-- Thẻ thống kê đầu ra -->
           <v-col cols="12" sm="4">
-            <v-card class="mx-auto" elevation="2">
+            <v-card class="rounded-lg" color="success" variant="tonal">
               <v-card-text>
-                <div class="text-h6 mb-2">Đầu ra</div>
-                <div class="text-h4 font-weight-bold text-primary">
-                  {{ manufactureSMT.length }}
+                <div class="text-subtitle-1">Đầu ra</div>
+                <div class="text-h4 font-weight-bold">
+                  {{
+                    manufactureSMT.filter(
+                      (item) => item.Source === "Máy Reflow"
+                    ).length || 0
+                  }}
                 </div>
-                <div class="text-caption text-medium-emphasis">
-                  Tổng số lượng đầu ra
-                </div>
+                <div class="text-caption">Tổng số lượng đầu ra</div>
               </v-card-text>
             </v-card>
           </v-col>
 
           <!-- Thẻ thống kê đầu ra board-->
           <v-col cols="12" sm="4">
-            <v-card class="mx-auto" elevation="2">
+            <v-card class="rounded-lg" color="info" variant="tonal">
               <v-card-text>
-                <div class="text-h6 mb-2">Đầu ra board</div>
-                <div class="text-h4 font-weight-bold text-success">
-                  {{ QuantityBoard * manufactureSMT.length || 0 }}
+                <div class="text-subtitle-1">Đầu ra board</div>
+                <div class="text-h4 font-weight-bold">
+                  {{
+                    QuantityBoard *
+                      manufactureSMT.filter(
+                        (item) => item.Source === "Máy Reflow"
+                      ).length || 0
+                  }}
                 </div>
-                <div class="text-caption text-medium-emphasis">
+                <div class="text-caption">
                   Tổng số lượng board (board/panel)
                 </div>
               </v-card-text>
@@ -109,10 +126,89 @@
           </v-col>
         </v-row>
 
+        <!-- SMT Cards Grouped with Title and Vertical Dividers -->
+        <v-row class="mb-6 align-center justify-center">
+          <v-col cols="12">
+            <v-row class="justify-center pa-4" align="center">
+              <!-- Printer -->
+              <v-col
+                cols="12"
+                sm="4"
+                class="d-flex justify-center mb-3 mb-sm-0"
+              >
+                <v-card
+                  class="pa-3 rounded-lg d-flex flex-column align-center"
+                  color="primary"
+                  variant="tonal"
+                  style="min-height: 150px; max-width: 340px; width: 100%"
+                >
+                  <v-icon color="primary" size="30">mdi-printer</v-icon>
+                  <div class="text-h6 font-weight-bold mb-1 mt-2">Printer</div>
+                  <div class="text-h4 font-weight-bold mb-1">
+                    <span>{{
+                      manufactureSMT.filter(
+                        (item) => item.Source === "Máy printer"
+                      ).length || 0
+                    }}</span>
+                  </div>
+                </v-card>
+              </v-col>
+              <!-- Gắp linh kiện -->
+              <v-col
+                cols="12"
+                sm="4"
+                class="d-flex justify-center mb-3 mb-sm-0"
+              >
+                <v-card
+                  class="pa-3 rounded-lg d-flex flex-column align-center"
+                  color="warning"
+                  variant="tonal"
+                  style="min-height: 150px; max-width: 340px; width: 100%"
+                >
+                  <v-icon color="warning" size="30"
+                    >mdi-robot-industrial</v-icon
+                  >
+                  <div class="text-h6 font-weight-bold mb-1 mt-2">
+                    Gắp linh kiện
+                  </div>
+                  <div class="text-h4 font-weight-bold mb-1">
+                    <span>{{
+                      manufactureSMT.filter(
+                        (item) => item.Source === "Máy gắp linh kiện"
+                      ).length || 0
+                    }}</span>
+                  </div>
+                </v-card>
+              </v-col>
+              <!-- Lò Reflow -->
+              <v-col cols="12" sm="4" class="d-flex justify-center">
+                <v-card
+                  class="pa-3 rounded-lg d-flex flex-column align-center"
+                  color="success"
+                  variant="tonal"
+                  style="min-height: 150px; max-width: 340px; width: 100%"
+                >
+                  <v-icon color="success" size="30">mdi-fire</v-icon>
+                  <div class="text-h6 font-weight-bold mb-1 mt-2">
+                    Lò Reflow
+                  </div>
+                  <div class="text-h4 font-weight-bold mb-1">
+                    <span>{{
+                      manufactureSMT.filter(
+                        (item) => item.Source === "Máy Reflow"
+                      ).length || 0
+                    }}</span>
+                  </div>
+                </v-card>
+              </v-col>
+            </v-row>
+          </v-col>
+        </v-row>
+
         <!-- Bảng chi tiết sản xuất -->
-        <v-card class="mt-4" variant="text">
+        <v-card class="mt-4 rounded-lg" variant="text">
           <v-card-title class="d-flex align-center">
-            <span>Bảng chi tiết sản xuất</span>
+            <span class="text-h6">Bảng chi tiết sản xuất</span>
             <v-spacer></v-spacer>
             <InputSearch v-model="search" />
           </v-card-title>
@@ -139,13 +235,39 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="calc(100vh - 200px)"
+            height="calc(100vh - 300px)"
           >
+            <template #[`item.Status`]="{ item }">
+              <v-chip
+                :color="item.Status === 'ok' ? 'success' : 'error'"
+                size="small"
+                variant="tonal"
+              >
+                {{ item.Status === "ok" ? "OK" : "Lỗi" }}
+              </v-chip>
+            </template>
+            <template #[`item.Source`]="{ item }">
+              <v-chip
+                :color="
+                  item.Source === 'Máy printer'
+                    ? 'primary'
+                    : item.Source === 'Máy gắp linh kiện'
+                    ? 'warning'
+                    : 'success'
+                "
+                size="small"
+                variant="outlined"
+              >
+                {{ item.Source }}
+              </v-chip>
+            </template>
             <template #[`bottom`]>
               <div class="text-center pt-2">
                 <v-pagination
                   v-model="page"
-                  :length="Math.ceil((manufactureAOI?.length || 0) / itemsPerPage)"
+                  :length="
+                    Math.ceil((manufactureSMT?.length || 0) / itemsPerPage)
+                  "
                 ></v-pagination>
               </div>
             </template>
@@ -176,7 +298,7 @@
 <script setup>
 // ===== Import các thư viện và component =====
 // Import từ Vue core
-import { ref, watch, reactive } from "vue";
+import { ref, watch, reactive, computed } from "vue";
 import { useRoute } from "vue-router";
 import axios from "axios";
 
@@ -206,8 +328,9 @@ const LevelUser = localStorage.getItem("LevelUser");
 
 // Cấu hình cột cho bảng dữ liệu
 const Headers = [
-  { title: "STT", key: "id" },
-  { title: "Mã sản phẩm", key: "Input" },
+  { title: "Mã sản phẩm", key: "PartNumber" },
+  { title: "Trạng thái", key: "Status" },
+  { title: "Vị trí", key: "Source" },
   { title: "Thời gian", key: "Timestamp" },
 ];
 
@@ -236,13 +359,16 @@ const totalInput = ref(0);
 const totalOutput = ref(0);
 const NameManufacture = ref("");
 const Name_Order = ref("");
-const QuantityBoard =ref(0);
+const QuantityBoard = ref(0);
 const Delay = ref(0);
-
+const PlanID = ref("");
 
 // Trạng thái kết nối Arduino
 const isBegin = ref(false);
 const isConnecting = ref(false);
+
+// Thêm biến totalSMT để dùng cho progress SMT
+const totalSMT = computed(() => manufactureSMT.length);
 
 // ===== Lifecycle Hooks =====
 onMounted(() => {
@@ -253,21 +379,21 @@ onMounted(() => {
     isBegin.value = false;
     localStorage.removeItem("isRunning");
   }
-  
 });
-
-
 
 // ===== Watchers =====
 
-
 // Thêm watch để theo dõi manufactureFound
-watch(manufactureFound, (newValue) => {
-  if (newValue) {
-    console.log('Manufacture data updated:', newValue);
-    // Có thể thêm xử lý khác nếu cần
-  }
-}, { immediate: true });
+watch(
+  manufactureFound,
+  (newValue) => {
+    if (newValue) {
+      console.log("Manufacture data updated:", newValue);
+      // Có thể thêm xử lý khác nếu cần
+    }
+  },
+  { immediate: true }
+);
 
 // Watch for changes in manufacture details to calculate total input
 watch(
@@ -275,17 +401,24 @@ watch(
   (newData) => {
     console.log("History data:", newData);
     if (newData?.value && Array.isArray(newData.value)) {
-      const filteredHistory = newData.value.filter(item => item.Type === 'SMT');
-      totalInput.value = filteredHistory.reduce((sum, item) => sum + (Number(item.Quantity_Plan) || 0), 0);
+      const filteredHistory = newData.value.filter(
+        (item) => item.Type === "SMT"
+      );
+      totalInput.value = filteredHistory.reduce(
+        (sum, item) => sum + (Number(item.Quantity_Plan) || 0),
+        0
+      );
       const data = newData.value[0];
       Name_Order.value = data?.Name_Order;
       NameManufacture.value = data?.PONumber;
       Delay.value = data?.DelaySMT;
-      QuantityBoard.value = data?.QuantityBoard;
+      QuantityBoard.value = data?.Quantity;
+      PlanID.value = data?.PlanID;
     }
   },
-  { immediate: true, deep: true },
+  { immediate: true, deep: true }
 );
+
 // ===== Các phương thức =====
 /**
  * Kết nối với thiết bị Arduino và quản lý trạng thái sản xuất
@@ -296,16 +429,13 @@ watch(
 
 const connectArduino = () => {
   if (!manufactureFound.value) {
-    console.error('Manufacture data not available');
+    console.error("Manufacture data not available");
     MessageErrorDialog.value = "Không thể lấy dữ liệu sản xuất";
     DialogFailed.value = true;
     return;
   }
-
-  const delaySMT = manufactureFound.value.DelaySMT;
-
-  if (typeof delaySMT !== 'number' || delaySMT < 0) {
-    console.error('Invalid DelaySMT value:', delaySMT);
+  const delaySMT = Number(Delay.value);
+  if (isNaN(delaySMT) || delaySMT < 0) {
     MessageErrorDialog.value = "Giá trị độ trễ không hợp lệ";
     DialogFailed.value = true;
     return;
@@ -314,15 +444,16 @@ const connectArduino = () => {
   const formData = reactive({
     project_id: isBegin.value ? "" : route.params.id,
     delay: delaySMT, // Sử dụng DelaySMT từ manufactureFound
+    planID: PlanID.value
   });
   isConnecting.value = true;
 
   axios
     .post(`${Url}/api/esp-config`, formData)
     .then(function (response) {
-      console.log('Arduino config response:', response.data);
+      console.log("Arduino config response:", response.data);
       isBegin.value = !isBegin.value;
-      
+
       // Cập nhật localStorage dựa trên trạng thái mới
       if (isBegin.value) {
         localStorage.setItem("isRunning", route.params.id);
@@ -330,14 +461,15 @@ const connectArduino = () => {
         localStorage.removeItem("isRunning");
       }
 
-      MessageDialog.value = isBegin.value 
-        ? `Đã bắt đầu sản xuất với độ trễ ${delaySMT}ms` 
+      MessageDialog.value = isBegin.value
+        ? `Đã bắt đầu sản xuất với độ trễ ${delaySMT}ms`
         : "Đã dừng sản xuất";
       DialogSuccess.value = true;
     })
     .catch(function (error) {
-      console.error('Arduino config error:', error);
-      MessageErrorDialog.value = error.response?.data?.message || "Có lỗi xảy ra khi gửi đến Esp32";
+      console.error("Arduino config error:", error);
+      MessageErrorDialog.value =
+        error.response?.data?.message || "Có lỗi xảy ra khi gửi đến Esp32";
       DialogFailed.value = true;
     })
     .finally(() => {

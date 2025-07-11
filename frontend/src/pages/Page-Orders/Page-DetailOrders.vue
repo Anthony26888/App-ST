@@ -112,7 +112,7 @@
         </v-row>
         
         
-        <InputField label="Hao phí thực tế" v-model="ActualCost" />
+        <!-- <InputField label="Hao phí thực tế" v-model="ActualCost" /> -->
       </v-card-text>
       <v-card-actions>
         <ButtonCancel @cancel="DialogEdit = false" />
@@ -309,6 +309,15 @@ const status = computed(() => {
   const found = orders.value.find((v) => v.Name_PO === route.params.id);
   return found ? found.Status : null;
 });
+const formattedSelectedDate = computed(() => {
+  const date = new Date();
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "Asia/Bangkok",
+  });
+});
 
 // ===== LIFECYCLE HOOKS =====
 /**
@@ -326,6 +335,8 @@ onMounted(() => {
     console.log("Không tìm thấy token!");
   }
 });
+
+
 
 // ===== WATCHERS =====
 /**
@@ -419,8 +430,6 @@ function GetItem(value) {
     ActualCost.value = found.Hao_Phi_Thực_Tế;
     Ma_Kho.value = found.Mã_Kho;
     Ma_Kho_Misa.value = found.Mã_Kho_Misa;
-    console.log(found);
-
   }
 }
 
@@ -461,6 +470,22 @@ const WareHouseAcceptWareHouse = async () => {
     const response = await axios.put(`${Url}/WareHouse/update-Inventory-CheckBom/${id}`);
     console.log(response);
     WareHouseAccept();
+    WareHouseLog();
+  } catch (error) {
+    console.log(error);
+    Error();
+  }
+};
+
+const WareHouseLog = async () => {
+  DialogLoading.value = true;
+  const formData = {
+    Updated_by: UserInfo.value,
+    Created_at: formattedSelectedDate.value
+  };
+  try {
+    const response = await axios.post(`${Url}/insert-log/${id}`, formData);
+    console.log(response);
   } catch (error) {
     console.log(error);
     Error();
@@ -472,6 +497,7 @@ const WareHouseAcceptWareHouse = async () => {
  */
 const WareHouse2AcceptWareHouse = async () => {
   DialogLoading.value = true;
+
   try {
     const response = await axios.put(`${Url}/WareHouse2/update-Inventory-CheckBom/${id}`);
     console.log(response);

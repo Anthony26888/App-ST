@@ -4,7 +4,7 @@
       <v-col cols="12" md="6" class="d-none d-md-flex">
         <div class="login-image-container">
           <div class="login-image-overlay">
-            <h3 class="text-h3 font-weight-bold mb-4 gradient-text">Chào mừng đến với ERP System</h3>
+            <h3 class="text-h3 font-weight-bold mb-4 gradient-text">Chào mừng đến với <br> ERP System</h3>
             <p class="text-h6 ">Quản lý và theo dõi thông tin một cách hiệu quả</p>
           </div>
         </div>
@@ -14,7 +14,7 @@
           <!-- Logo/Branding Section -->
           <div class="text-center pa-8">
             <v-avatar size="80" color="primary" class="mb-4">
-              <v-img src="https://sieuthuat.vn/wp-content/uploads/2019/06/logo-ST-_-original-02-1.png"></v-img>
+              <v-img src="@/assets/z6789719219807_0f949e3d7cde44d40c0dcac3476ef513.jpg"></v-img>
             </v-avatar>
             <h1 class="text-h4 font-weight-bold mb-2">Đăng Nhập</h1>
             <p class="text-subtitle-1 text-medium-emphasis">Vui lòng đăng nhập để tiếp tục</p>

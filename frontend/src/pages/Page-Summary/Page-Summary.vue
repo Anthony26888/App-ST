@@ -143,7 +143,9 @@
                 @click="toggleGroup(item)"
                 class="me-2"
               ></v-btn>
-              <span class="font-weight-bold text-primary">{{ item.value }}</span>
+              <span class="font-weight-bold text-primary">{{
+                item.value
+              }}</span>
             </td>
           </tr>
         </template>
@@ -160,6 +162,78 @@
         <template v-slot:item.Percent="{ item }">
           <v-progress-linear v-model="item.Percent" height="25" color="success">
             <strong>{{ item.Percent.toFixed(1) }}%</strong>
+          </v-progress-linear>
+        </template>
+      </v-data-table-virtual>
+
+      <!-- Bảng dữ liệu tỷ lệ lỗi -->
+      <v-data-table-virtual
+        :headers="HeadersError"
+        :items="summary"
+        :search="search"
+        fixed-header
+        :items-per-page="itemsPerPage"
+        v-model:page="page"
+        class="elevation-1 mt-5"
+        :footer-props="{
+          'items-per-page-options': [10, 20, 50, 100],
+          'items-per-page-text': 'Số hàng mỗi trang',
+        }"
+        :header-props="{
+          sortByText: 'Sắp xếp theo',
+          sortDescText: 'Giảm dần',
+          sortAscText: 'Tăng dần',
+        }"
+        :loading="DialogLoading"
+        loading-text="Đang tải dữ liệu..."
+        no-data-text="Không có dữ liệu"
+        no-results-text="Không tìm thấy kết quả"
+        :hover="true"
+        :dense="false"
+        :fixed-header="true"
+      >
+        <template v-slot:top>
+          <v-toolbar flat dense>
+            <v-toolbar-title>
+              <v-icon
+                color="medium-primay"
+                icon="mdi-book-multiple"
+                size="x-small"
+                start
+              ></v-icon>
+              Tỷ lệ lỗi trong đơn hàng
+            </v-toolbar-title>
+          </v-toolbar>
+        </template>
+
+        <template #[`item.Quantity_Error`]="{ item }">
+          <div class="d-flex">
+            <p class="text-primary">
+              {{ item.Quantity_Real + item.Quantity_Error }}
+            </p>
+            /
+            <p class="text-error">{{ item.Quantity_Error }}</p>
+          </div>
+        </template>
+        <template #[`item.Quantity_Real`]="{ item }">
+          <v-progress-linear
+            :model-value="
+              Number(
+                (item.Quantity_Error * 100) /
+                  (item.Quantity_Real + item.Quantity_Error) || 0
+              )
+            "
+            height="25"
+            color="success"
+          >
+            <strong
+              >{{
+                (
+                  (item.Quantity_Error * 100) /
+                    (item.Quantity_Real + item.Quantity_Error) || 0
+                ).toFixed(1)
+              }}%</strong
+            >
           </v-progress-linear>
         </template>
       </v-data-table-virtual>
@@ -215,7 +289,7 @@ const MessageErrorDialog = ref("");
 
 // ===== Table States =====
 const search = ref("");
-const itemsPerPage = ref(10);
+const itemsPerPage = ref(15);
 const page = ref(1);
 const Headers = ref([
   { key: "PONumber", title: "Dự án", width: "150" },
@@ -241,9 +315,17 @@ const Headers = ref([
   },
 ]);
 
+const HeadersError = ref([
+  { key: "PONumber", title: "Dự án", width: "150" },
+  { key: "Name_Order", title: "Đơn hàng", width: "150" },
+  { key: "Quantity_Error", title: "Tổng / Lỗi", width: "150" },
+  { key: "Quantity_Real", title: "Tỷ lệ lỗi", width: "100" },
+  { key: "Note", title: "Ghi chú lỗi", width: "200" },
+]);
+
 // ===== COMPUTED =======
 const dateMenu = ref(false);
-const selectedDate = ref(new Date().toLocaleDateString('sv')); // Returns YYYY-MM-DD in local time
+const selectedDate = ref(new Date().toLocaleDateString("sv")); // Returns YYYY-MM-DD in local time
 
 const formattedSelectedDate = computed(() => {
   const date = new Date(selectedDate.value);
@@ -251,7 +333,7 @@ const formattedSelectedDate = computed(() => {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-    timeZone: "Asia/Bangkok"
+    timeZone: "Asia/Bangkok",
   });
 });
 
@@ -272,7 +354,7 @@ const formattedWeekDate = computed(() => {
   const weekNumber = getWeekNumber(monday);
   const weekday = selectedDateObj.toLocaleDateString("vi-VN", {
     weekday: "long",
-    timeZone: "Asia/Bangkok"
+    timeZone: "Asia/Bangkok",
   });
 
   return `Tuần ${weekNumber} - ${weekday}`;
@@ -280,7 +362,6 @@ const formattedWeekDate = computed(() => {
 
 // Pass the computed ref to useSummary
 const { summary, summaryError } = useSummary(formattedSelectedDate);
-
 
 // Watch for errors
 watch(summaryError, (error) => {
@@ -347,7 +428,7 @@ function initializeChart() {
 
   // Prepare data for chart
   const chartData = {
-    labels: Object.keys(sortedCategories).map(() => ''),
+    labels: Object.keys(sortedCategories),
     datasets: [
       {
         label: "Kế hoạch",
@@ -407,18 +488,24 @@ function initializeChart() {
           callbacks: {
             title: function (tooltipItems) {
               const category = tooltipItems[0].label;
-              const planValue = tooltipItems[0].dataset.data[tooltipItems[0].dataIndex];
-              const realValue = tooltipItems[1].dataset.data[tooltipItems[0].dataIndex];
+              const planValue =
+                tooltipItems[0].dataset.data[tooltipItems[0].dataIndex];
+              const realValue =
+                tooltipItems[1].dataset.data[tooltipItems[0].dataIndex];
               const percentage = ((realValue / planValue) * 100).toFixed(1);
-              
+
               return [
                 `Hạng mục: ${category}`,
-                `Kế hoạch: ${new Intl.NumberFormat("vi-VN").format(planValue)} pcs`,
-                `Thực tế: ${new Intl.NumberFormat("vi-VN").format(realValue)} pcs`,
-                `Tỷ lệ hoàn thành: ${percentage}%`
+                `Kế hoạch: ${new Intl.NumberFormat("vi-VN").format(
+                  planValue
+                )} pcs`,
+                `Thực tế: ${new Intl.NumberFormat("vi-VN").format(
+                  realValue
+                )} pcs`,
+                `Tỷ lệ hoàn thành: ${percentage}%`,
               ];
-            }
-          }
+            },
+          },
         },
       },
       scales: {
@@ -454,8 +541,8 @@ function initializeChart() {
             display: false,
           },
           ticks: {
-            display: false,
-            maxRotation: 0,
+            display: true,
+            maxRotation: 45,
             minRotation: 0,
             autoSkip: true,
             maxTicksLimit: 10,
@@ -633,7 +720,7 @@ watch(
             return acc;
           }, {});
 
-        chart.data.labels = Object.keys(sortedCategories).map(() => '');
+        chart.data.labels = Object.keys(sortedCategories);
         chart.data.datasets[0].data = Object.values(sortedCategories).map(
           (item) => item.plan
         );

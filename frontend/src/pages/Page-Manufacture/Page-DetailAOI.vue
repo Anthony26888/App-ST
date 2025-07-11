@@ -2,14 +2,20 @@
   <div>
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <v-card-title class="text-h4 font-weight-light d-flex align-center">
-        <ButtonBack v-if="LevelUser === 'Nhân viên'" :to="`/Danh-sach-cong-viec`" @click="removeGoBackListWork" />
+        <ButtonBack
+          v-if="LevelUser === 'Nhân viên'"
+          :to="`/Danh-sach-cong-viec`"
+          @click="removeGoBackListWork"
+        />
         <ButtonBack v-else :to="`/San-xuat/Chi-tiet/${back}`" />
         <span class="ml-2">Theo dõi sản xuất AOI</span>
       </v-card-title>
 
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-tools" color="primary" size="large"></v-icon>
-        <v-breadcrumbs :items="[`${NameManufacture}`, `${Name_Order}`, `${Name_Category}`]">
+        <v-breadcrumbs
+          :items="[`${NameManufacture}`, `${Name_Order}`, `${Name_Category}`]"
+        >
           <template v-slot:divider>
             <v-icon icon="mdi-chevron-right"></v-icon>
           </template>
@@ -26,9 +32,7 @@
                 <div class="text-h4 font-weight-bold">
                   {{ totalInput }}
                 </div>
-                <div class="text-caption">
-                  Tổng số lượng đầu vào
-                </div>
+                <div class="text-caption">Tổng số lượng đầu vào</div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -36,12 +40,13 @@
             <v-card class="rounded-lg" color="success" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra</div>
-                <div class="text-h4 font-weight-bold">
+                <div class="text-h4 font-weight-bold" v-if="Quantity_AOI > 1">
+                  {{ totalOutput }} / {{ totalOutput * Quantity_AOI }}
+                </div>
+                <div class="text-h4 font-weight-bold" v-else>
                   {{ totalOutput }}
                 </div>
-                <div class="text-caption">
-                  Tổng số lượng đầu ra
-                </div>
+                <div class="text-caption">Tổng số lượng đầu ra ( {{ Quantity_AOI }} pcs/ panel )</div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -52,9 +57,7 @@
                 <div class="text-h4 font-weight-bold">
                   {{ totalErrors }}
                 </div>
-                <div class="text-caption">
-                  Tổng số lượng lỗi
-                </div>
+                <div class="text-caption">Tổng số lượng lỗi</div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -65,9 +68,7 @@
                 <div class="text-h4 font-weight-bold">
                   {{ totalFixed }}
                 </div>
-                <div class="text-caption">
-                  Tổng số lượng đã sửa
-                </div>
+                <div class="text-caption">Tổng số lượng đã sửa</div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -99,6 +100,10 @@
                 ></v-checkbox>
               </v-col>
             </v-row>
+            <InputTextarea
+              label="Ghi chú lỗi"
+              v-model="ErrorLog"
+            ></InputTextarea>
           </v-card-text>
         </v-card>
 
@@ -136,11 +141,23 @@
           >
             <template #[`item.Status`]="{ item }">
               <v-chip
-                :color="item.Status === 'error' ? 'warning' : item.Status === 'fixed' ? 'info' : 'success'"
+                :color="
+                  item.Status === 'error'
+                    ? 'warning'
+                    : item.Status === 'fixed'
+                    ? 'info'
+                    : 'success'
+                "
                 size="small"
                 variant="tonal"
               >
-                {{ item.Status === "error" ? "Lỗi" : item.Status === "fixed" ? "Đã sửa" : "OK" }}
+                {{
+                  item.Status === "error"
+                    ? "Lỗi"
+                    : item.Status === "fixed"
+                    ? "Đã sửa"
+                    : "OK"
+                }}
               </v-chip>
               <v-btn
                 v-if="item.Status === 'fixed'"
@@ -154,11 +171,16 @@
                 Kiểm tra
               </v-btn>
             </template>
+            <template #item.Note="{ item }">
+              <div style="white-space: pre-line">{{ item.Note }}</div>
+            </template>
             <template #[`bottom`]>
               <div class="text-center pt-2">
                 <v-pagination
                   v-model="page"
-                  :length="Math.ceil((manufactureAOI?.length || 0) / itemsPerPage)"
+                  :length="
+                    Math.ceil((manufactureAOI?.length || 0) / itemsPerPage)
+                  "
                 ></v-pagination>
               </div>
             </template>
@@ -166,8 +188,8 @@
         </v-card>
       </v-card-text>
     </v-card>
-     <!-- Dialog xác nhận xóa -->
-     <v-dialog
+    <!-- Dialog xác nhận xóa -->
+    <v-dialog
       :model-value="DialogFixed"
       @update:model-value="DialogFixed = $event"
       width="500"
@@ -216,6 +238,7 @@ import Loading from "@/components/Loading.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import ButtonBack from "@/components/Button-Back.vue";
 import InputField from "@/components/Input-Field.vue";
+import InputTextarea from "@/components/Input-Textarea.vue";
 
 // ===== Constants & Configuration =====
 const Url = import.meta.env.VITE_API_URL;
@@ -226,11 +249,12 @@ const GetID = ref("");
 
 // Table configuration
 const Headers = [
-  { title: 'STT', key: 'id', sortable: true },
-  { title: 'Mã sản phẩm', key: 'PartNumber', sortable: true },
-  { title: 'Trạng thái', key: 'Status', sortable: true },
-  { title: 'Thời gian', key: 'Timestamp', sortable: true },
-]
+  { title: "STT", key: "id", sortable: true },
+  { title: "Mã sản phẩm", key: "PartNumber", sortable: true },
+  { title: "Trạng thái", key: "Status", sortable: true },
+  { title: "Ghi chú lỗi", key: "Note", sortable: true },
+  { title: "Thời gian", key: "Timestamp", sortable: true },
+];
 
 // ===== Composables & Data Management =====
 // Initialize composables for data fetching
@@ -253,15 +277,19 @@ const itemsPerPage = ref(10);
 
 // Input/Output State
 const Input = ref("");
+const ErrorLog = ref("");
 const isSubmitting = ref(false);
 const totalInput = ref(0);
 const totalOutput = ref(0);
 const totalErrors = ref(0);
 const totalFixed = ref(0);
+
 // Production Info
 const NameManufacture = ref("");
 const Name_Order = ref("");
 const Name_Category = ref("");
+const PlanID = ref("");
+const Quantity_AOI = ref(1);
 
 // ===== User Information =====
 const LevelUser = localStorage.getItem("LevelUser");
@@ -269,13 +297,15 @@ const LevelUser = localStorage.getItem("LevelUser");
 // Add new reactive state
 const isError = ref(false);
 
-
-
 // ===== Watchers =====
 // Watch for manufactureAOI changes and log updates
-watch(manufactureAOI, (newValue) => {
-  console.log("manufactureAOI updated:", newValue);
-}, { deep: true });
+watch(
+  manufactureAOI,
+  (newValue) => {
+    console.log("manufactureAOI updated:", newValue);
+  },
+  { deep: true }
+);
 
 // Watch for manufactureAOI errors
 watch(manufactureAOIError, (error) => {
@@ -288,36 +318,41 @@ watch(manufactureAOIError, (error) => {
 watch(
   () => history,
   (newData) => {
-    
     if (!newData?.value) {
-      console.log('No history data available');
+      console.log("No history data available");
       return;
     }
 
     if (!Array.isArray(newData.value)) {
-      console.log('History data is not an array');
+      console.log("History data is not an array");
       return;
     }
 
     // Convert id to number for comparison since it's coming from route params
     const numericId = Number(id);
-    const foundHistory = newData.value.find(item => Number(item.id) === numericId);
-    console.log('Found history item:', foundHistory);
+    const foundHistory = newData.value.find(
+      (item) => Number(item.id) === numericId
+    );
+    console.log("Found history item:", foundHistory);
 
     if (foundHistory) {
-      Name_Order.value = foundHistory.Name_Order ?? '';
-      NameManufacture.value = foundHistory.PONumber ?? '';
-      Name_Category.value = foundHistory.Category ?? '';
+      Name_Order.value = foundHistory.Name_Order ?? "";
+      NameManufacture.value = foundHistory.PONumber ?? "";
+      Name_Category.value = foundHistory.Category ?? "";
+      PlanID.value = foundHistory.PlanID ?? "";
       totalInput.value = foundHistory.Quantity_Plan ?? 0;
+      Quantity_AOI.value = foundHistory.Quantity_AOI ?? 1;
     } else {
-      console.log('No matching history found for ID:', id);
+      console.log("No matching history found for ID:", id);
       // Set default values if no match found
-      Name_Order.value = '';
-      NameManufacture.value = '';
-      Name_Category.value = '';
+      Name_Order.value = "";
+      NameManufacture.value = "";
+      Name_Category.value = "";
+      PlanID.value = "";
+      Quantity_AOI.value = 1;
     }
   },
-  { immediate: true, deep: true },
+  { immediate: true, deep: true }
 );
 
 // Watch for changes in manufactureAOI to calculate total output
@@ -325,19 +360,25 @@ watch(
   () => manufactureAOI,
   (newData) => {
     if (!newData?.value) {
-      console.log('No manufactureAOI data available');
+      console.log("No manufactureAOI data available");
       return;
     }
 
     if (!Array.isArray(newData.value)) {
-      console.log('manufactureAOI data is not an array');
+      console.log("manufactureAOI data is not an array");
       return;
     }
 
     // Calculate totals using the array data
-    totalErrors.value = newData.value.filter(item => item?.Status === 'error').length;
-    totalFixed.value = newData.value.filter(item => item?.Status === 'fixed').length;
-    totalOutput.value = newData.value.filter(item => item?.Status === 'ok').length;
+    totalErrors.value = newData.value.filter(
+      (item) => item?.Status === "error"
+    ).length;
+    totalFixed.value = newData.value.filter(
+      (item) => item?.Status === "fixed"
+    ).length;
+    totalOutput.value = newData.value.filter(
+      (item) => item?.Status === "ok"
+    ).length;
   },
   { immediate: true, deep: true }
 );
@@ -354,27 +395,29 @@ const submitBarcode = async () => {
 
   isSubmitting.value = true;
   DialogLoading.value = true;
-  
+
   const formData = reactive({
     HistoryID: id,
     PartNumber: Input.value.trim(),
-    Timestamp: new Date().toLocaleString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
+    Timestamp: new Date().toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
       hour12: false,
-      timeZone: 'Asia/Bangkok'
-    }).replace(/,/g, ''),
-    Status: isError.value ? 'error' : 'ok'
+    }),
+    Status: isError.value ? "error" : "ok",
+    Note: ErrorLog.value,
+    PlanID: PlanID.value,
   });
 
   try {
     const response = await axios.post(`${Url}/Manufacture/AOI`, formData);
     console.log(response.data);
     Input.value = "";
+    ErrorLog.value = "";
     isError.value = false;
   } catch (error) {
     console.error("Error submitting barcode:", error);
@@ -416,10 +459,10 @@ const markAsFixed = async () => {
 };
 
 const isGoBackListWork = computed(() => {
-  return localStorage.getItem('Go-Back-List-Work') === 'true';
+  return localStorage.getItem("Go-Back-List-Work") === "true";
 });
 
 const removeGoBackListWork = () => {
-  localStorage.removeItem('Go-Back-List-Work');
+  localStorage.removeItem("Go-Back-List-Work");
 };
 </script>

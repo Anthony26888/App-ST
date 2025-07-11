@@ -33,10 +33,13 @@
             <v-card class="rounded-lg" color="success" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra</div>
-                <div class="text-h4 font-weight-bold">
+                <div class="text-h4 font-weight-bold" v-if="Quantity_IPQCSMT > 1">
+                  {{ totalOutput }} / {{ totalOutput * Quantity_IPQCSMT }}
+                </div>
+                <div class="text-h4 font-weight-bold" v-else>
                   {{ totalOutput }}
                 </div>
-                <div class="text-caption">Tổng số lượng đầu ra</div>
+                <div class="text-caption">Tổng số lượng đầu ra ( {{ Quantity_IPQCSMT }} pcs/ panel)</div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -90,6 +93,7 @@
                 ></v-checkbox>
               </v-col>
             </v-row>
+            <InputTextarea label="Ghi chú lỗi" v-model="ErrorLog"></InputTextarea>
           </v-card-text>
         </v-card>
 
@@ -224,6 +228,7 @@ import InputSearch from "@/components/Input-Search.vue";
 import ButtonBack from "@/components/Button-Back.vue";
 import InputField from "@/components/Input-Field.vue";
 import ButtonAgree from "@/components/Button-Agree.vue";
+import InputTextarea from "@/components/Input-Textarea.vue";
 
 // ===== Constants & Configuration =====
 const Url = import.meta.env.VITE_API_URL;
@@ -237,6 +242,7 @@ const Headers = [
   { title: "STT", key: "id", sortable: true },
   { title: "Mã sản phẩm", key: "PartNumber", sortable: true },
   { title: "Trạng thái", key: "Status", sortable: true },
+  { title: "Ghi chú lỗi", key: "Note", sortable: true },
   { title: "Thời gian", key: "Timestamp", sortable: true },
 ];
 
@@ -262,6 +268,7 @@ const itemsPerPage = ref(10);
 
 // Input/Output State
 const Input = ref("");
+const ErrorLog = ref("");
 const isError = ref(false);
 const submitting = ref(false);
 const totalInput = ref(0);
@@ -273,8 +280,8 @@ const totalFixed = ref(0);
 const NameManufacture = ref("");
 const Name_Order = ref("");
 const Name_Category = ref("");
-
-
+const PlanID = ref("");
+const Quantity_IPQCSMT =ref(1);
 // ===== Watchers =====
 // Watch for manufactureIPQCSMT changes and log updates
 watch(
@@ -323,12 +330,16 @@ watch(
       NameManufacture.value = foundHistory.PONumber ?? "";
       Name_Category.value = foundHistory.Category ?? "";
       totalInput.value = foundHistory.Quantity_Plan ?? 0;
+      PlanID.value = foundHistory.PlanID ?? "";
+      Quantity_IPQCSMT.value = foundHistory.Quantity_IPQCSMT ?? 1;
     } else {
       console.log("No matching history found for ID:", id);
       // Set default values if no match found
       Name_Order.value = "";
       NameManufacture.value = "";
       Name_Category.value = "";
+      PlanID.value = "";
+      Quantity_IPQCSMT.value = 1;
     }
   },
   { immediate: true, deep: true }
@@ -357,6 +368,8 @@ const submitBarcode = async () => {
       hour12: false,
     }),
     HistoryID: id,
+    Note: ErrorLog.value,
+    PlanID: PlanID.value
   });
   try {
     const response = await axios.post(`${Url}/Manufacture/IPQC-SMT`, formData);

@@ -36,28 +36,16 @@
             <v-card class="rounded-lg" color="success" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra</div>
-                <div class="text-h4 font-weight-bold">
+                <div class="text-h4 font-weight-bold" v-if="Quantity_BoxBuild > 1">
+                  {{ totalOutput }} / {{ totalOutput * Quantity_BoxBuild }}
+                </div>
+                <div class="text-h4 font-weight-bold" v-else>
                   {{ totalOutput }}
                 </div>
-                <div class="text-caption">
-                  Tổng số lượng đầu ra
-                </div>
+                <div class="text-caption">Tổng số lượng đầu ra ( {{ Quantity_BoxBuild }} pcs/ panel )</div>
               </v-card-text>
             </v-card>
           </v-col>
-          <!-- <v-col cols="12" sm="4">
-            <v-card class="rounded-lg" color="warning" variant="tonal">
-              <v-card-text>
-                <div class="text-subtitle-1">Lỗi</div>
-                <div class="text-h4 font-weight-bold">
-                  {{ totalErrors }}
-                </div>
-                <div class="text-caption">
-                  Tổng số lượng lỗi
-                </div>
-              </v-card-text>
-            </v-card>
-          </v-col> -->
         </v-row>
 
         <!-- Input Section -->
@@ -76,15 +64,6 @@
                   density="comfortable"
                 />
               </v-col>
-              <!-- <v-col cols="12" md="4">
-                <v-checkbox
-                  v-model="isError"
-                  label="Đánh dấu lỗi"
-                  color="warning"
-                  hide-details
-                  class="mt-2"
-                ></v-checkbox>
-              </v-col> -->
             </v-row>
           </v-card-text>
         </v-card>
@@ -205,7 +184,9 @@ const totalErrors = ref(0);
 // Production Info
 const NameManufacture = ref("");
 const Name_Order = ref("");
-const Name_Category = ref("");s
+const Name_Category = ref("");
+const PlanID = ref("");
+const Quantity_BoxBuild = ref(1);
 // ===== Watchers =====
 // Watch for manufactureBoxBuild changes and log updates
 // Watch for changes in manufacture details to calculate total input
@@ -233,12 +214,16 @@ watch(
       NameManufacture.value = foundHistory.PONumber ?? '';
       Name_Category.value = foundHistory.Category ?? '';
       totalInput.value = foundHistory.Quantity_Plan ?? 0;
+      PlanID.value = foundHistory.PlanID ?? "";
+      Quantity_BoxBuild.value = foundHistory.Quantity_BoxBuild ?? 1;
     } else {
       console.log('No matching history found for ID:', id);
       // Set default values if no match found
       Name_Order.value = '';
       NameManufacture.value = '';
       Name_Category.value = '';
+      PlanID.value = '';
+      Quantity_BoxBuild.value = 1;
     }
   },
   { immediate: true, deep: true },
@@ -279,7 +264,8 @@ const submitBarcode = async () => {
       second: '2-digit',
       hour12: false
     }),
-    HistoryID: id
+    HistoryID: id,
+    PlanID: PlanID.value,
   });
   try {
     const response = await axios.post(`${Url}/Manufacture/BoxBuild`, formData);

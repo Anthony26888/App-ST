@@ -2,9 +2,13 @@
   <div>
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <v-card-title class="text-h4 font-weight-light">
-        <ButtonBack v-if="LevelUser === 'Nhân viên'" :to="`/Danh-sach-cong-viec`" @click="removeGoBackListWork" />
+        <ButtonBack
+          v-if="LevelUser === 'Nhân viên'"
+          :to="`/Danh-sach-cong-viec`"
+          @click="removeGoBackListWork"
+        />
         <ButtonBack v-else :to="`/San-xuat/Chi-tiet/${back}`" />
-        Theo dõi sản xuất IPQC (Hàn tay)</v-card-title
+        Theo dõi sản xuất IPQC</v-card-title
       >
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
@@ -34,10 +38,13 @@
             <v-card class="rounded-lg" color="success" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra</div>
-                <div class="text-h4 font-weight-bold">
+                <div class="text-h4 font-weight-bold" v-if="Quantity_IPQC > 1">
+                  {{ totalOutput }} / {{ totalOutput * Quantity_IPQC }}
+                </div>
+                <div class="text-h4 font-weight-bold" v-else>
                   {{ totalOutput }}
                 </div>
-                <div class="text-caption">Tổng số lượng đầu ra</div>
+                <div class="text-caption">Tổng số lượng đầu ra ( {{ Quantity_IPQC }} pcs/ panel )</div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -91,6 +98,10 @@
                 ></v-checkbox>
               </v-col>
             </v-row>
+            <InputTextarea
+              label="Ghi chú lỗi"
+              v-model="ErrorLog"
+            ></InputTextarea>
           </v-card-text>
         </v-card>
 
@@ -158,6 +169,9 @@
                 Sửa lỗi
               </v-btn>
             </template>
+            <template #item.Note="{ item }">
+              <div style="white-space: pre-line">{{ item.Note }}</div>
+            </template>
             <template #[`bottom`]>
               <div class="text-center pt-2">
                 <v-pagination
@@ -222,6 +236,7 @@ import Loading from "@/components/Loading.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import ButtonBack from "@/components/Button-Back.vue";
 import InputField from "@/components/Input-Field.vue";
+import InputTextarea from "@/components/Input-Textarea.vue";
 
 // ===== Constants & Configuration =====
 const Url = import.meta.env.VITE_API_URL;
@@ -235,6 +250,7 @@ const Headers = [
   { title: "STT", key: "id", sortable: true },
   { title: "Mã sản phẩm", key: "PartNumber", sortable: true },
   { title: "Trạng thái", key: "Status", sortable: true },
+  { title: "Ghi chú lỗi", key: "Note", sortable: true },
   { title: "Thời gian", key: "Timestamp", sortable: true },
 ];
 
@@ -260,6 +276,7 @@ const itemsPerPage = ref(10);
 
 // Input/Output State
 const Input = ref("");
+const ErrorLog = ref("");
 const isSubmitting = ref(false);
 const isError = ref(false);
 const totalInput = ref(0);
@@ -270,6 +287,8 @@ const totalFixed = ref(0);
 const NameManufacture = ref("");
 const Name_Order = ref("");
 const Name_Category = ref("");
+const PlanID =ref("");
+const Quantity_IPQC = ref(1);
 
 // ===== User Information =====
 const LevelUser = localStorage.getItem("LevelUser");
@@ -283,7 +302,9 @@ watch(
     totalErrors.value = newValue.filter(
       (item) => item.Status === "error"
     ).length;
-    totalFixed.value = newValue.filter((item) => item.Status === "fixed").length;
+    totalFixed.value = newValue.filter(
+      (item) => item.Status === "fixed"
+    ).length;
     totalOutput.value = newValue.filter((item) => item.Status === "ok").length;
   },
   { deep: true }
@@ -321,12 +342,16 @@ watch(
       NameManufacture.value = foundHistory.PONumber ?? "";
       Name_Category.value = foundHistory.Category ?? "";
       totalInput.value = foundHistory.Quantity_Plan ?? 0;
+      PlanID.value = foundHistory.PlanID ?? "";
+      Quantity_IPQC.value = foundHistory.Quantity_IPQC ?? 1;
     } else {
       console.log("No matching history found for ID:", id);
       // Set default values if no match found
       Name_Order.value = "";
       NameManufacture.value = "";
       Name_Category.value = "";
+      PlanID.value = "";
+      Quantity_IPQC.value = 1;
     }
   },
   { immediate: true, deep: true }
@@ -354,6 +379,8 @@ const submitBarcode = async () => {
       hour12: false,
     }),
     HistoryID: id,
+    Note: ErrorLog.value,
+    PlanID: PlanID.value
   });
   try {
     const response = await axios.post(`${Url}/Manufacture/IPQC`, formData);

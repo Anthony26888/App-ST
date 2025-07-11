@@ -12,6 +12,15 @@ const app = express.Router();
 
 const SECRET_KEY = process.env.JWT_SECRET || "default_secret_key";
 
+// Test route để kiểm tra kết nối
+app.get("/test", (req, res) => {
+  res.json({ 
+    message: "Backend is working!", 
+    timestamp: new Date().toISOString(),
+    cors: "CORS is configured correctly"
+  });
+});
+
 // Configure Multer for file storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -62,183 +71,6 @@ app.post("/upload", upload.single("file"), (req, res) => {
   stmt.finalize();
 
   res.send("File processed successfully.");
-});
-
-
-app.post("/Temporary_WareHouse/Upload", upload.single("file"), (req, res) => {
-  if (!req.file) return res.status(400).send("No file uploaded.");
-  // Read Excel file
-  const filePath = path.join(__dirname, req.file.path);
-  const workbook = xlsx.readFile(filePath);
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  // Convert sheet data to JSON
-  const data = xlsx.utils.sheet_to_json(sheet);
-
-  // Insert data into SQLite database
-  const stmt = db.prepare(
-    `INSERT INTO Temporary_WareHouse (Description, PartNumber_1, Input, Location, Note) VALUES (?, ?, ?, ?, ?)`
-  );
-  data.forEach((row) => {
-    stmt.run(
-      row.Description,
-      row.PartNumber_1,
-      row.Input,
-      row.Location,
-      row.Note
-    );
-  });
-
-  stmt.finalize();
-
-  res.send("File processed successfully.");
-});
-
-app.post("/Temporary_WareHouse_2/Upload", upload.single("file"), (req, res) => {
-  if (!req.file) return res.status(400).send("No file uploaded.");
-  // Read Excel file
-  const filePath = path.join(__dirname, req.file.path);
-  const workbook = xlsx.readFile(filePath);
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  // Convert sheet data to JSON
-  const data = xlsx.utils.sheet_to_json(sheet);
-
-  // Insert data into SQLite database
-  const stmt = db.prepare(
-    `INSERT INTO Temporary_WareHouse_2 (Description, PartNumber_1, Input, Location, Note) VALUES (?, ?, ?, ?, ?)`
-  );
-  data.forEach((row) => {
-    stmt.run(
-      row.Description,
-      row.PartNumber_1,
-      row.Input,
-      row.Location,
-      row.Note
-    );
-  });
-
-  stmt.finalize();
-
-  res.send("File processed successfully.");
-});
-
-
-
-
-
-// Router upload file xlsx to Project table
-app.post("/Project/upload", upload.single("file"), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).send("No file uploaded.");
-  }
-
-  const filePath = req.file.path;
-  const workbook = xlsx.readFile(filePath);
-  const sheetName = workbook.SheetNames[0];
-  const jsonData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
-
-  const customerStmt = db.prepare(`
-    INSERT OR IGNORE INTO Customers (CustomerName, Years) VALUES (?, ?)
-`);
-
-  const poStmt = db.prepare(`
-    INSERT OR IGNORE INTO PurchaseOrders (PONumber, CustomerID, DateCreated, DateDelivery)
-    VALUES (?, ?, ?, ?)
-`);
-
-  const productStmt = db.prepare(`
-    INSERT INTO ProductDetails (POID, ProductDetail, QuantityProduct, QuantityDelivered, QuantityAmount, CustomerID)
-    VALUES (?, ?, ?, ?, ?, ?)
-`);
-
-  try {
-    for (const row of jsonData) {
-      const customerName = row["Customers"];
-      const poNumber = row["PO"];
-      const dateCreated = row["Date_Created"];
-      const dateDelivery = row["Date_Delivery"];
-      const productDetail = row["Product_Detail"];
-      const quantityProduct = row["Quantity_Product"];
-      const quantityDelivered = row["Quantity_Delivered"];
-      const quantityAmount = row["Quantity_Amount"];
-      const yearCreated = row["Years"]
-      let customerId = null;
-      await new Promise((resolve, reject) => {
-        customerStmt.run(customerName, yearCreated, function (err) {
-          if (err) reject(err);
-          db.get(
-            "SELECT id FROM Customers WHERE CustomerName = ?",
-            [customerName],
-            (err, row) => {
-              if (err) reject(err);
-              customerId = row ? row.id : null;
-              resolve();
-            }
-          );
-        });
-      });
-
-      if (!customerId) {
-        console.error(`Không tìm thấy CustomerID cho ${customerName}`);
-        continue;
-      }
-
-      let poId = null;
-      await new Promise((resolve, reject) => {
-        poStmt.run(
-          poNumber,
-          customerId,
-          dateCreated,
-          dateDelivery,
-          function (err) {
-            if (err) reject(err);
-            db.get(
-              "SELECT id FROM PurchaseOrders WHERE PONumber = ?",
-              [poNumber],
-              (err, row) => {
-                if (err) reject(err);
-                poId = row ? row.id : null;
-                resolve();
-              }
-            );
-          }
-        );
-      });
-
-      if (!poId) {
-        console.error(`Không tìm thấy POID cho ${poNumber}`);
-        continue;
-      }
-
-      await new Promise((resolve, reject) => {
-        productStmt.run(
-          poId,
-          productDetail,
-          quantityProduct,
-          quantityDelivered,
-          quantityAmount,
-          customerId,
-          function (err) {
-            if (err) reject(err);
-            resolve();
-          }
-        );
-      });
-    }
-
-    customerStmt.finalize();
-    poStmt.finalize();
-    productStmt.finalize();
-
-    res.send("Dữ liệu đã được nhập thành công!");
-  } catch (error) {
-    console.error("Lỗi trong quá trình nhập liệu:", error);
-    if (customerStmt) customerStmt.finalize();
-    if (poStmt) poStmt.finalize();
-    if (productStmt) productStmt.finalize();
-    res.status(500).send("Lỗi khi nhập dữ liệu.");
-  }
 });
 
 
@@ -353,34 +185,7 @@ app.delete("/CheckBOM/delete-all", async (req, res) => {
   });
 });
 
-// 📥 API to Download PO as XLSX
-app.get("/Download-PO/:id", async (req, res) => {
-  const { id } = req.params;
-  try {
-    const query = await getPivotQuery(id);
-    db.all(query, [id], (err, rows) => {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-      // Convert data to worksheet
-      const ws = xlsx.utils.json_to_sheet(rows);
-      const wb = xlsx.utils.book_new();
-      xlsx.utils.book_append_sheet(wb, ws, `${id}`);
 
-      // Save the file temporarily
-      const filePath = path.join(__dirname, `${id}.xlsx`);
-      xlsx.writeFile(wb, filePath);
-
-      // Send the file to the client
-      res.download(filePath, `${id}.xlsx`, (err) => {
-        if (err) console.error("Error sending file:", err);
-        fs.unlinkSync(filePath); // Delete after sending
-      });
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
 // 📥 API to Download WareHouse as XLSX
 app.get("/Ware-House/download", async (req, res) => {
   try {

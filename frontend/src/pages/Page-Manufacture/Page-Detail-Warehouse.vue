@@ -184,6 +184,7 @@ const totalFixed = ref(0);
 const NameManufacture = ref("");
 const Name_Order = ref("");
 const Name_Category = ref("");
+const PlanID = ref("");
 
 // ===== User Information =====
 const LevelUser = localStorage.getItem("LevelUser");
@@ -235,12 +236,14 @@ watch(
       NameManufacture.value = foundHistory.PONumber ?? "";
       Name_Category.value = foundHistory.Category ?? "";
       totalInput.value = foundHistory.Quantity_Plan ?? 0;
+      PlanID.value = foundHistory.PlanID ?? "";
     } else {
       console.log("No matching history found for ID:", id);
       // Set default values if no match found
       Name_Order.value = "";
       NameManufacture.value = "";
       Name_Category.value = "";
+      PlanID.value = "";
     }
   },
   { immediate: true, deep: true }
@@ -268,7 +271,8 @@ watch(
       second: '2-digit',
       hour12: false
     }),
-    HistoryID: id
+    HistoryID: id,
+    PlanID: PlanID.value
   });
   try {
     const response = await axios.post(`${Url}/Manufacture/Warehouse`, formData);

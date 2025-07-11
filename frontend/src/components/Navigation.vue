@@ -11,8 +11,9 @@
   >
     <template v-slot:prepend>
       <v-list-item
+        class="ms-2"
         lines="two"
-        prepend-avatar="https://sieuthuat.vn/wp-content/uploads/2019/06/logo-ST-_-original-02-1.png"
+        prepend-avatar="@/assets/z6789719219807_0f949e3d7cde44d40c0dcac3476ef513.jpg"
       >
         <template v-slot:title>
           <p class="text-h6 font-weight-medium ms-3 text-white">

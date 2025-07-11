@@ -36,12 +36,13 @@
             <v-card class="rounded-lg" color="success" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra</div>
-                <div class="text-h4 font-weight-bold">
+                <div class="text-h4 font-weight-bold" v-if="Quantity_ConformalCoating">
+                  {{ totalOutput }} / {{ totalOutput * Quantity_ConformalCoating }}
+                </div>
+                <div class="text-h4 font-weight-bold" v-else>
                   {{ totalOutput }}
                 </div>
-                <div class="text-caption">
-                  Tổng số lượng đầu ra
-                </div>
+                <div class="text-caption">Tổng số lượng đầu ra ( {{ Quantity_ConformalCoating }} pcs/ panel )</div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -143,6 +144,7 @@ import Loading from "@/components/Loading.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import ButtonBack from "@/components/Button-Back.vue";
 import InputField from "@/components/Input-Field.vue";
+import InputTextarea from "@/components/Input-Textarea.vue";
 
 // ===== Constants & Configuration =====
 const Url = import.meta.env.VITE_API_URL;
@@ -185,6 +187,8 @@ const totalErrors = ref(0);
 const NameManufacture = ref("");
 const Name_Order = ref("");
 const Name_Category = ref("");
+const PlanID = ref("");
+const Quantity_ConformalCoating = ref(1);
 // ===== Watchers =====
 // Watch for manufactureBoxBuild changes and log updates
 // Watch for changes in manufacture details to calculate total input
@@ -212,12 +216,16 @@ watch(
       NameManufacture.value = foundHistory.PONumber ?? '';
       Name_Category.value = foundHistory.Category ?? '';
       totalInput.value = foundHistory.Quantity_Plan ?? 0;
+      PlanID.value = foundHistory.PlanID ?? "";
+      Quantity_ConformalCoating.value = foundHistory.Quantity_ConformalCoating ?? 1;
     } else {
       console.log('No matching history found for ID:', id);
       // Set default values if no match found
       Name_Order.value = '';
       NameManufacture.value = '';
       Name_Category.value = '';
+      PlanID.value = '';
+      Quantity_ConformalCoating.value = 1;
     }
   },
   { immediate: true, deep: true },
@@ -258,7 +266,8 @@ const submitBarcode = async () => {
       second: '2-digit',
       hour12: false
     }),
-    HistoryID: id
+    HistoryID: id,
+    PlanID: PlanID.value
   });
   try {
     const response = await axios.post(`${Url}/Manufacture/Conformal-Coating`, formData);

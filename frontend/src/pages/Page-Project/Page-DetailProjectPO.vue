@@ -198,7 +198,7 @@
         />
         <InputSelect
           label="Quy trình"
-          :items="['SMT', 'AOI', 'IPQC (SMT)', 'Assembly', 'IPQC (Hàn tay)', 'Test 1', 'Test 2', 'Box Build', 'Tẩm phủ', 'OQC', 'RW', 'Nhập kho']"
+          :items="['SMT', 'AOI', 'IPQC (SMT)', 'Assembly', 'IPQC', 'Test 1', 'Test 2', 'Box Build', 'Tẩm phủ', 'OQC', 'RW', 'Nhập kho']"
           multiple
           chips
           hint="Lựa chọn quy trình phù hợp"
@@ -208,7 +208,7 @@
         <InputField
           label="Ngày tạo"
           type="date"
-          :model-value="Date_Manufacture_Add"
+          v-model="Date_Manufacture_Add"
           @update:model-value="Date_Manufacture_Add = $event"
         />
         <InputTextarea
@@ -263,7 +263,6 @@ const id = route.params.id;
 
 // Initialize composables
 const { detailProjectPO, detailProjectPOError } = useDetailProjectPO(id);
-console.log(detailProjectPO)
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
@@ -370,7 +369,6 @@ const Quantity_Amount_Add = computed(() => {
 function GetItem(item) {
   DialogEdit.value = true;
   GetID.value = item.id;
-  console.log(item)
   Product_Detail_Edit.value = item.Product_Detail;
   Quantity_Product_Edit.value = item.Quantity_Product;
   Quantity_Delivered_Edit.value = item.Quantity_Delivered;

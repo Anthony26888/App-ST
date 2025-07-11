@@ -102,6 +102,28 @@ db.serialize(() => {
       Location TEXT,
       Note TEXT
     )`);
+  db.run(`CREATE TABLE IF NOT EXISTS WareHouseLog (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ActionType TEXT,
+      PartNumber TEXT,
+      Quantity INTEGER,
+      Updated_by TEXT,
+      Created_at TEXT,
+      Customer TEXT,
+      Location TEXT,
+      Note TEXT
+    )`);
+  db.run(`CREATE TABLE IF NOT EXISTS WareHouse2Log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ActionType TEXT,
+      PartNumber TEXT,
+      Quantity TEXT,
+      Updated_by TEXT,
+      Created_at TEXT,
+      Customer TEXT,
+      Location TEXT,
+      Note TEXT
+    )`);
   db.run(`CREATE TABLE IF NOT EXISTS Orders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       Name_PO TEXT,
@@ -233,6 +255,8 @@ db.serialize(() => {
       RWID TEXT,
       TimestampRW TEXT,
       Status TEXT,
+      PlanID INTEGER,
+      Note TEXT,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
@@ -246,6 +270,8 @@ db.serialize(() => {
       Timestamp TEXT NOT NULL,
       RWID TEXT,
       TimestampRW TEXT,
+      Note TEXT,
+      PlanID INTEGER,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
@@ -259,6 +285,8 @@ db.serialize(() => {
       Timestamp TEXT NOT NULL,
       RWID TEXT,
       TimestampRW TEXT,
+      Note TEXR,
+      PlanID INTEGER,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
@@ -272,6 +300,8 @@ db.serialize(() => {
       Timestamp TEXT NOT NULL,
       RWID TEXT,
       TimestampRW TEXT,
+      PlanID INTEGER,
+      Note TEXT,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
@@ -285,6 +315,8 @@ db.serialize(() => {
       Timestamp TEXT NOT NULL,
       RWID TEXT,
       TimestampRW TEXT,
+      Note TEXT,
+      PlanID INTEGER,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
@@ -298,6 +330,8 @@ db.serialize(() => {
       Timestamp TEXT NOT NULL,
       RWID TEXT,
       TimestampRW TEXT,
+      Note TEXT,
+      PlanID INTEGER,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
@@ -310,6 +344,8 @@ db.serialize(() => {
       Timestamp TEXT NOT NULL,
       RWID TEXT,
       TimestampRW TEXT,
+      Note TEXT,
+      PlanID INTEGER,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
@@ -322,6 +358,8 @@ db.serialize(() => {
       Timestamp TEXT NOT NULL,
       RWID TEXT,
       TimestampRW TEXT,
+      PlanID INTEGER,
+      Note TEXT,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
@@ -334,6 +372,8 @@ db.serialize(() => {
       Timestamp TEXT NOT NULL,
       RWID TEXT,
       TimestampRW TEXT,
+      PlanID INTEGER,
+      Note TEXT,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
@@ -346,6 +386,8 @@ db.serialize(() => {
       Timestamp TEXT NOT NULL,
       RWID TEXT,
       TimestampRW TEXT,
+      PlanID INTEGER,
+      Note TEXT,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);
@@ -358,6 +400,8 @@ db.serialize(() => {
       Timestamp TEXT NOT NULL,
       RWID TEXT,
       TimestampRW TEXT,
+      PlanID INTEGER,
+      Note TEXT,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);

@@ -349,8 +349,8 @@ const GetItem = (item) => {
   if (item.Type === "AOI") {
     ConditionType.value = "AOI-Fixed";
   } else if (item.Type === "IPQC (SMT)") {
-    ConditionType.value = "IPQC-SMT";
-  } else if (item.Type === "IPQC-Fixed") {
+    ConditionType.value = "IPQC-SMT-Fixed";
+  } else if (item.Type === "IPQC") {
     ConditionType.value = "IPQC-Fixed";
   } else if (item.Type === "Test 1") {
     ConditionType.value = "Test1-Fixed";

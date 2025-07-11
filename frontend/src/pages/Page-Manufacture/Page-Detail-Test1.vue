@@ -2,13 +2,19 @@
   <div>
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <v-card-title class="text-h4 font-weight-light">
-        <ButtonBack v-if="LevelUser === 'Nhân viên'" :to="`/Danh-sach-cong-viec`" @click="removeGoBackListWork" />
+        <ButtonBack
+          v-if="LevelUser === 'Nhân viên'"
+          :to="`/Danh-sach-cong-viec`"
+          @click="removeGoBackListWork"
+        />
         <ButtonBack v-else :to="`/San-xuat/Chi-tiet/${back}`" />
         Theo dõi sản xuất Test 1</v-card-title
       >
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
-        <v-breadcrumbs :items="[`${NameManufacture}`, `${Name_Order}`, `${Name_Category}`]">
+        <v-breadcrumbs
+          :items="[`${NameManufacture}`, `${Name_Order}`, `${Name_Category}`]"
+        >
           <template v-slot:divider>
             <v-icon icon="mdi-chevron-right"></v-icon>
           </template>
@@ -33,10 +39,13 @@
             <v-card class="rounded-lg" color="success" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra</div>
-                <div class="text-h4 font-weight-bold">
+                <div class="text-h4 font-weight-bold" v-if="Quantity_Test1 > 1">
+                  {{ totalOutput }} / {{ totalOutput * Quantity_Test1}}
+                </div>
+                <div class="text-h4 font-weight-bold" v-else>
                   {{ totalOutput }}
                 </div>
-                <div class="text-caption">Tổng số lượng đầu ra</div>
+                <div class="text-caption">Tổng số lượng đầu ra ( {{ Quantity_Test1 }} pcs/ panel )</div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -90,6 +99,10 @@
                 ></v-checkbox>
               </v-col>
             </v-row>
+            <InputTextarea
+              label="Ghi chú lỗi"
+              v-model="ErrorLog"
+            ></InputTextarea>
           </v-card-text>
         </v-card>
 
@@ -127,11 +140,23 @@
           >
             <template #[`item.Status`]="{ item }">
               <v-chip
-                :color="item.Status === 'error' ? 'warning' : item.Status === 'fixed' ? 'info' : 'success'"
+                :color="
+                  item.Status === 'error'
+                    ? 'warning'
+                    : item.Status === 'fixed'
+                    ? 'info'
+                    : 'success'
+                "
                 size="small"
                 variant="tonal"
               >
-                {{ item.Status === "error" ? "Lỗi" : item.Status === "fixed" ? "Đã sửa" : "OK" }}
+                {{
+                  item.Status === "error"
+                    ? "Lỗi"
+                    : item.Status === "fixed"
+                    ? "Đã sửa"
+                    : "OK"
+                }}
               </v-chip>
               <v-btn
                 v-if="item.Status === 'fixed'"
@@ -144,6 +169,9 @@
                 <v-icon size="small">mdi-check</v-icon>
                 Sửa lỗi
               </v-btn>
+            </template>
+            <template #item.Note="{ item }">
+              <div style="white-space: pre-line">{{ item.Note }}</div>
             </template>
             <template #[`bottom`]>
               <div class="text-center pt-2">
@@ -165,10 +193,12 @@
       @update:model-value="DialogFixed = $event"
       width="500"
     >
-      <v-card max-width="500" prepend-icon="mdi-hammer-screwdriver" title="Xác nhận sửa sản phẩm">
-        <v-card-text>
-          Sản phẩm đã được sửa lỗi hoàn tất ?
-        </v-card-text>
+      <v-card
+        max-width="500"
+        prepend-icon="mdi-hammer-screwdriver"
+        title="Xác nhận sửa sản phẩm"
+      >
+        <v-card-text> Sản phẩm đã được sửa lỗi hoàn tất ? </v-card-text>
         <template #actions>
           <ButtonCancel @cancel="DialogRemove = false" />
           <ButtonAgree @agree="markAsFixed()" />
@@ -207,6 +237,7 @@ import Loading from "@/components/Loading.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import ButtonBack from "@/components/Button-Back.vue";
 import InputField from "@/components/Input-Field.vue";
+import InputTextarea from "@/components/Input-Textarea.vue";
 
 // ===== Constants & Configuration =====
 const Url = import.meta.env.VITE_API_URL;
@@ -248,6 +279,7 @@ const MessageDialog = ref("");
 
 // Input/Output State=
 const Input = ref("");
+const ErrorLog = ref("");
 const isSubmitting = ref(false);
 const submitting = ref(false);
 const isError = ref(false);
@@ -255,10 +287,13 @@ const totalInput = ref(0);
 const totalOutput = ref(0);
 const totalErrors = ref(0);
 const totalFixed = ref(0);
+
 // Production Info
 const NameManufacture = ref("");
 const Name_Order = ref("");
 const Name_Category = ref("");
+const PlanID = ref("");
+const Quantity_Test1 = ref(1);
 // ===== Watchers =====
 // Watch for manufactureAOI changes and log updates
 watch(
@@ -280,36 +315,40 @@ watch(manufactureTest1Error, (error) => {
 watch(
   () => history,
   (newData) => {
-    
     if (!newData?.value) {
-      console.log('No history data available');
+      console.log("No history data available");
       return;
     }
 
     if (!Array.isArray(newData.value)) {
-      console.log('History data is not an array');
+      console.log("History data is not an array");
       return;
     }
 
     // Convert id to number for comparison since it's coming from route params
     const numericId = Number(id);
-    const foundHistory = newData.value.find(item => Number(item.id) === numericId);
-    console.log('Found history item:', foundHistory);
+    const foundHistory = newData.value.find(
+      (item) => Number(item.id) === numericId
+    );
+    console.log("Found history item:", foundHistory);
 
     if (foundHistory) {
-      Name_Order.value = foundHistory.Name_Order ?? '';
-      NameManufacture.value = foundHistory.PONumber ?? '';
-      Name_Category.value = foundHistory.Category ?? '';
+      Name_Order.value = foundHistory.Name_Order ?? "";
+      NameManufacture.value = foundHistory.PONumber ?? "";
+      Name_Category.value = foundHistory.Category ?? "";
       totalInput.value = foundHistory.Quantity_Plan ?? 0;
+      PlanID.value = foundHistory.PlanID ?? "";
+      Quantity_Test1.value = foundHistory.Quantity_Test1 ?? 1;
     } else {
-      console.log('No matching history found for ID:', id);
+      console.log("No matching history found for ID:", id);
       // Set default values if no match found
-      Name_Order.value = '';
-      NameManufacture.value = '';
-      Name_Category.value = '';
+      Name_Order.value = "";
+      NameManufacture.value = "";
+      Name_Category.value = "";
+      Quantity_Test1.value = 1;
     }
   },
-  { immediate: true, deep: true },
+  { immediate: true, deep: true }
 );
 
 // Watch for changes in manufactureTest1 to update error count
@@ -319,9 +358,7 @@ watch(
     totalErrors.value = newValue.filter(
       (item) => item.Status === "error"
     ).length;
-    totalOutput.value = newValue.filter(
-      (item) => item.Status === "ok"
-    ).length;
+    totalOutput.value = newValue.filter((item) => item.Status === "ok").length;
     totalFixed.value = newValue.filter(
       (item) => item.Status === "fixed"
     ).length;
@@ -352,6 +389,8 @@ const submitBarcode = async () => {
       hour12: false,
     }),
     HistoryID: id,
+    Note: ErrorLog.value,
+    PlanID: PlanID.value,
   });
   try {
     const response = await axios.post(`${Url}/Manufacture/Test1`, formData);
@@ -367,29 +406,32 @@ const submitBarcode = async () => {
   }
 };
 
-const GetItem = (item) =>{
+const GetItem = (item) => {
   DialogFixed.value = true;
-  GetID.value = item.id; 
-}
+  GetID.value = item.id;
+};
 
 const markAsFixed = async () => {
   DialogFixed.value = true;
   try {
-    const response = await axios.put(`${Url}/Manufacture/Test1/Edit-status/${GetID.value}`, {
-      Status: 'ok'
-    });
-    console.log('Item marked as fixed:', response.data);
+    const response = await axios.put(
+      `${Url}/Manufacture/Test1/Edit-status/${GetID.value}`,
+      {
+        Status: "ok",
+      }
+    );
+    console.log("Item marked as fixed:", response.data);
     // Refresh the data after successful update
     DialogFixed.value = false;
     DialogLoading.value = true;
     DialogSuccess.value = true;
-    MessageDialog.value = "Sản phẩm đã được sửa lỗi hoàn tất"
+    MessageDialog.value = "Sản phẩm đã được sửa lỗi hoàn tất";
   } catch (error) {
-    console.error('Error marking item as fixed:', error);
+    console.error("Error marking item as fixed:", error);
     DialogFixed.value = false;
     DialogLoading.value = true;
     DialogFailed.value = true;
-    MessageErrorDialog.value = "Sản phẩm đã được sửa lỗi hoàn tất"
+    MessageErrorDialog.value = "Sản phẩm đã được sửa lỗi hoàn tất";
   } finally {
     DialogLoading.value = false;
   }
