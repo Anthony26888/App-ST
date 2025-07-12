@@ -2058,7 +2058,7 @@ io.on("connection", (socket) => {
 
       // ➕ user hỏi
       history.push({ role: "user", content: msg });
-      const apiKey = process.env.GROQ_API_KEY;
+      const apiKey = process.env.VITE_GROQ_API_KEY;
       const res = await fetch(
         "https://api.groq.com/openai/v1/chat/completions",
         {
