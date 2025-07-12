@@ -27,7 +27,6 @@ const processingRequests = new Set();
 
 const ESP32_IP = "http://192.168.100.80"; // IP ESP32 (phải đổi đúng IP của bạn)
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const sessions = {}; // lưu theo socket.id
 // Khởi tạo Express và Socket.IO
 const PORT = 3000;
@@ -2059,13 +2058,13 @@ io.on("connection", (socket) => {
 
       // ➕ user hỏi
       history.push({ role: "user", content: msg });
-
+      const apiKey = process.env.GROQ_API_KEY;
       const res = await fetch(
         "https://api.groq.com/openai/v1/chat/completions",
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer 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`,
+            Authorization: `Bearer ${apiKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
