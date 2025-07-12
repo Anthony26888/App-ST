@@ -25,7 +25,7 @@ const { createParser } = require("eventsource-parser");
 // Add processing flags at the top of the file
 const processingRequests = new Set();
 
-const ESP32_IP = "http://192.168.100.80"; // IP ESP32 (phải đổi đúng IP của bạn)
+const ESP32_IP = "http://192.168.2.241"; // IP ESP32 (phải đổi đúng IP của bạn)
 
 const sessions = {}; // lưu theo socket.id
 // Khởi tạo Express và Socket.IO
@@ -41,6 +41,7 @@ const allowedOrigins = new Set([
   "http://127.0.0.1:3000",
   "http://192.168.100.210:3000",
   "http://192.168.1.10:3000",
+  "http://192.168.2.248:3000",
   "http://erp.sieuthuat.com:3000"
 ]);
 
@@ -1460,6 +1461,12 @@ io.on("connection", (socket) => {
         const query = `
                       SELECT * 
                       FROM (
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'SMT - Printer' AS Source FROM ManufactureSMT WHERE Source = 'source_3'
+                        UNION ALL
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'SMT - Gắp linh kiện' AS Source FROM ManufactureSMT WHERE Source = 'source_2'
+                        UNION ALL
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'SMT - Lò Reflow' AS Source FROM ManufactureSMT WHERE Source = 'source_1'
+                        UNION ALL
                         SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'AOI' AS Source FROM ManufactureAOI
                         UNION ALL
                         SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Tẩm phủ' FROM ManufactureConformalCoating
@@ -1469,8 +1476,6 @@ io.on("connection", (socket) => {
                         SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Test2' FROM ManufactureTest2
                         UNION ALL
                         SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'BoxBuild' FROM ManufactureBoxBuild
-                        UNION ALL
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'SMT' FROM ManufactureSMT
                         UNION ALL
                         SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'IPQC' FROM ManufactureIPQC
                         UNION ALL
@@ -4493,14 +4498,14 @@ app.delete("/PlanManufacture/Delete/:id", async (req, res) => {
 });
 
 app.post("/api/esp-config", async (req, res) => {
-  const { project_id, delay, planID } = req.body;
+  const { project_id, delay, plan_id } = req.body;
   try {
     const response = await axios.post(
       `${ESP32_IP}/set-project-delay`,
       {
         project_id,
         delay,
-        planID,
+        plan_id,
       },
       {
         headers: { "Content-Type": "application/json" },
@@ -4520,7 +4525,7 @@ app.post("/api/esp-config", async (req, res) => {
 });
 
 app.post("/api/sensor", (req, res) => {
-  const { project_id, input_value, source } = req.body;
+  const { project_id, input_value, source, plan_id } = req.body;
   const Timestamp = new Date()
     .toLocaleString("en-GB", {
       day: "2-digit",
@@ -4536,7 +4541,8 @@ app.post("/api/sensor", (req, res) => {
   if (
     typeof project_id === "undefined" ||
     typeof input_value === "undefined" ||
-    typeof source === "undefined"
+    typeof source === "undefined" ||
+    typeof plan_id === "undefined"
   ) {
     return res
       .status(400)
@@ -4544,9 +4550,9 @@ app.post("/api/sensor", (req, res) => {
   }
 
   const stmt = db.prepare(
-    "INSERT INTO ManufactureSMT (HistoryID, PartNumber, Timestamp, Status, Source) VALUES (?, ?, ?, 'ok', ?)"
+    "INSERT INTO ManufactureSMT (HistoryID, PartNumber, Timestamp, Status, Source, PlanID) VALUES (?, ?, ?, 'ok', ?, ?)"
   );
-  stmt.run(project_id, input_value, Timestamp, source, function (err) {
+  stmt.run(project_id, input_value, Timestamp, source, plan_id, function (err) {
     if (err) {
       console.error(err);
       return res.status(500).json({ error: "Database error" });
@@ -4554,6 +4560,7 @@ app.post("/api/sensor", (req, res) => {
     io.emit("UpdateManufactureSMT");
     io.emit("updateManufactureDetails");
     io.emit("UpdateHistory");
+    io.emit("updateHistoryPart");
     io.emit("UpdateSummary");
     res.json({ success: true, id: this.lastID });
   });
@@ -4573,6 +4580,7 @@ app.delete("/reset-data/:id", (req, res) => {
     }
     io.emit("UpdateManufactureSMT");
     io.emit("updateManufactureDetails");
+    io.emit("updateHistoryPart");
     res.json({ message: "Đã xoá dữ liệu sản xuất thành công" });
   });
 });
@@ -4641,6 +4649,9 @@ app.post("/Manufacture/AOI", (req, res) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureAOI");
       io.emit("updateManufactureDetails");
+      io.emit("UpdateHistory");
+      io.emit("updateHistoryPart");
+      io.emit("UpdateSummary");
       res.json({ message: "ManufactureAOI received" });
     }
   );
@@ -4658,6 +4669,9 @@ app.post("/Manufacture/RW", (req, res) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureRW");
       io.emit("updateManufactureDetails");
+      io.emit("UpdateHistory");
+      io.emit("updateHistoryPart");
+      io.emit("UpdateSummary");
       res.json({ message: "ManufactureRW received" });
     }
   );
@@ -4675,6 +4689,9 @@ app.post("/Manufacture/IPQC", (req, res) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureIPQC");
       io.emit("updateManufactureDetails");
+      io.emit("UpdateHistory");
+      io.emit("updateHistoryPart");
+      io.emit("UpdateSummary");
       res.json({ message: "ManufactureIPQC received" });
     }
   );
@@ -4692,6 +4709,9 @@ app.post("/Manufacture/Assembly", (req, res) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureAssembly");
       io.emit("updateManufactureDetails");
+      io.emit("UpdateHistory");
+      io.emit("updateHistoryPart");
+      io.emit("UpdateSummary");
       res.json({ message: "ManufactureTest received" });
     }
   );
@@ -4709,6 +4729,9 @@ app.post("/Manufacture/OQC", (req, res) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureOQC");
       io.emit("updateManufactureDetails");
+      io.emit("UpdateHistory");
+      io.emit("updateHistoryPart");
+      io.emit("UpdateSummary");
       res.json({ message: "ManufactureOQC received" });
     }
   );
@@ -4726,6 +4749,9 @@ app.post("/Manufacture/IPQC-SMT", (req, res) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureIPQCSMT");
       io.emit("updateManufactureDetails");
+      io.emit("UpdateHistory");
+      io.emit("updateHistoryPart");
+      io.emit("UpdateSummary");
       res.json({ message: "ManufactureIPQCSMT received" });
     }
   );
@@ -4742,6 +4768,9 @@ app.post("/Manufacture/BoxBuild", (req, res) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureBoxBuild");
       io.emit("updateManufactureDetails");
+      io.emit("UpdateHistory");
+      io.emit("updateHistoryPart");
+      io.emit("UpdateSummary");
       res.json({ message: "ManufactureBoxBuild received" });
     }
   );
@@ -4758,6 +4787,9 @@ app.post("/Manufacture/Conformal-Coating", (req, res) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureCC");
       io.emit("updateManufactureDetails");
+      io.emit("UpdateHistory");
+      io.emit("updateHistoryPart");
+      io.emit("UpdateSummary");
       res.json({ message: "ManufactureConformalCoating received" });
     }
   );
@@ -4774,6 +4806,9 @@ app.post("/Manufacture/Test1", (req, res) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureTest1");
       io.emit("updateManufactureDetails");
+      io.emit("UpdateHistory");
+      io.emit("updateHistoryPart");
+      io.emit("UpdateSummary");
       res.json({ message: "ManufactureOQC received" });
     }
   );
@@ -4790,6 +4825,9 @@ app.post("/Manufacture/Test2", (req, res) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureTest2");
       io.emit("updateManufactureDetails");
+      io.emit("UpdateHistory");
+      io.emit("updateHistoryPart");
+      io.emit("UpdateSummary");
       res.json({ message: "ManufactureOQC received" });
     }
   );
@@ -4806,6 +4844,9 @@ app.post("/Manufacture/Warehouse", (req, res) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureWarehouse");
       io.emit("updateManufactureDetails");
+      io.emit("UpdateHistory");
+      io.emit("updateHistoryPart");
+      io.emit("UpdateSummary");
       res.json({ message: "ManufactureOQC received" });
     }
   );
@@ -4831,6 +4872,7 @@ app.put("/Manufacture/IPQC-SMT/Edit-status/:id", async (req, res) => {
     io.emit("updateManufactureDetails");
     io.emit("UpdateHistory");
     io.emit("updateHistoryPart");
+    io.emit("UpdateSummary");
     res.json({ message: "ManufactureIPQCSMT received" });
   });
 });
@@ -4855,6 +4897,7 @@ app.put("/Manufacture/IPQC/Edit-status/:id", async (req, res) => {
     io.emit("updateManufactureDetails");
     io.emit("UpdateHistory");
     io.emit("updateHistoryPart");
+    io.emit("UpdateSummary");
     res.json({ message: "ManufactureIPQC received" });
   });
 });
@@ -4879,6 +4922,7 @@ app.put("/Manufacture/Test1/Edit-status/:id", async (req, res) => {
     io.emit("updateManufactureDetails");
     io.emit("UpdateHistory");
     io.emit("updateHistoryPart");
+    io.emit("UpdateSummary");
     res.json({ message: "ManufactureTest1 received" });
   });
 });
@@ -4903,6 +4947,7 @@ app.put("/Manufacture/Test2/Edit-status/:id", async (req, res) => {
     io.emit("updateManufactureDetails");
     io.emit("UpdateHistory");
     io.emit("updateHistoryPart");
+    io.emit("UpdateSummary");
     res.json({ message: "ManufactureTest2 received" });
   });
 });
@@ -4927,6 +4972,7 @@ app.put("/Manufacture/OQC/Edit-status/:id", async (req, res) => {
     io.emit("updateManufactureDetails");
     io.emit("UpdateHistory");
     io.emit("updateHistoryPart");
+    io.emit("UpdateSummary");
     res.json({ message: "ManufactureOQC received" });
   });
 });
@@ -4951,6 +4997,7 @@ app.put("/Manufacture/AOI/Edit-status/:id", async (req, res) => {
     io.emit("updateManufactureDetails");
     io.emit("UpdateHistory");
     io.emit("updateHistoryPart");
+    io.emit("UpdateSummary");
     res.json({ message: "ManufactureAOI received" });
   });
 });
@@ -4967,9 +5014,10 @@ app.put("/Manufacture/AOI-Fixed/Edit-status/:id", (req, res) => {
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureAOI");
+      io.emit("updateManufactureDetails");
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
-      io.emit("updateManufactureDetails");
+      io.emit("UpdateSummary");
       res.json({ message: "Summary received" });
     }
   );
@@ -4987,9 +5035,10 @@ app.put("/Manufacture/IPQC-Fixed/Edit-status/:id", (req, res) => {
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureIPQC");
-      io.emit("UpdateManufactureRW");
-      io.emit("UpdateHistory");
       io.emit("updateManufactureDetails");
+      io.emit("UpdateHistory");
+      io.emit("updateHistoryPart");
+      io.emit("UpdateSummary");
       res.json({ message: "Summary received" });
     }
   );
@@ -5007,9 +5056,10 @@ app.put("/Manufacture/IPQC-SMT-Fixed/Edit-status/:id", (req, res) => {
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureIPQCSMT");
-      io.emit("UpdateManufactureRW");
-      io.emit("UpdateHistory");
       io.emit("updateManufactureDetails");
+      io.emit("UpdateHistory");
+      io.emit("updateHistoryPart");
+      io.emit("UpdateSummary");
       res.json({ message: "IPQCSMT received" });
     }
   );
@@ -5027,9 +5077,10 @@ app.put("/Manufacture/Test1-Fixed/Edit-status/:id", (req, res) => {
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureTest1");
-      io.emit("UpdateManufactureRW");
-      io.emit("UpdateHistory");
       io.emit("updateManufactureDetails");
+      io.emit("UpdateHistory");
+      io.emit("updateHistoryPart");
+      io.emit("UpdateSummary");
       res.json({ message: "Summary received" });
     }
   );
@@ -5047,9 +5098,10 @@ app.put("/Manufacture/Test2-Fixed/Edit-status/:id", (req, res) => {
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureTest2");
-      io.emit("UpdateManufactureRW");
-      io.emit("UpdateHistory");
       io.emit("updateManufactureDetails");
+      io.emit("UpdateHistory");
+      io.emit("updateHistoryPart");
+      io.emit("UpdateSummary");
       res.json({ message: "Summary received" });
     }
   );
@@ -5067,9 +5119,10 @@ app.put("/Manufacture/OQC-Fixed/Edit-status/:id", (req, res) => {
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureOQC");
-      io.emit("UpdateManufactureRW");
-      io.emit("UpdateHistory");
       io.emit("updateManufactureDetails");
+      io.emit("UpdateHistory");
+      io.emit("updateHistoryPart");
+      io.emit("UpdateSummary");
       res.json({ message: "Summary received" });
     }
   );

@@ -339,6 +339,7 @@ const { manufactureSMT, manufactureSMTError } = useManufactureSMT(id);
 const { manufacture, manufactureFound, manufactureError } = useManufacture();
 const { history, historyError } = useHistory(back);
 const { status } = useDeviceStatusSocket("esp32-001");
+console.log(manufactureFound)
 
 // ===== Khai báo các biến reactive =====
 // Trạng thái UI
@@ -367,6 +368,9 @@ const PlanID = ref("");
 const isBegin = ref(false);
 const isConnecting = ref(false);
 
+// Lưu trữ ID của manufacture
+const manufactureId = ref(null);
+
 // Thêm biến totalSMT để dùng cho progress SMT
 const totalSMT = computed(() => manufactureSMT.length);
 
@@ -389,6 +393,9 @@ watch(
   (newValue) => {
     if (newValue) {
       console.log("Manufacture data updated:", newValue);
+      // Lấy ID từ manufactureFound
+      manufactureId.value = newValue.id;
+      console.log("Manufacture ID:", manufactureId.value);
       // Có thể thêm xử lý khác nếu cần
     }
   },
@@ -444,7 +451,7 @@ const connectArduino = () => {
   const formData = reactive({
     project_id: isBegin.value ? "" : route.params.id,
     delay: delaySMT, // Sử dụng DelaySMT từ manufactureFound
-    planID: PlanID.value
+    plan_id: manufactureId.value
   });
   isConnecting.value = true;
 

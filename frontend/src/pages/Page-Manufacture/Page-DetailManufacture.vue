@@ -19,7 +19,8 @@
           color="primary"
           class="ms-2 text-caption"
           @click="DialogSettingSMT = true"
-        >Cài đặt</v-btn>
+          >Cài đặt</v-btn
+        >
       </v-card-title>
 
       <v-card-text class="pa-6">
@@ -565,6 +566,134 @@
           </v-data-table-virtual>
         </v-card>
 
+        <!-- Horizontal Bar Chart Section -->
+        <v-row class="mb-6 mt-5">
+          <!-- Chart Card -->
+          <v-col cols="12" md="8">
+            <v-card class="rounded-lg h-100" elevation="2">
+              <v-card-title
+                class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
+              >
+                <v-icon icon="mdi-chart-bar" class="me-2"></v-icon>
+                Thống kê theo công đoạn
+              </v-card-title>
+              <v-card-text class="pa-4">
+                <div
+                  class="chart-container"
+                  style="position: relative; height: 400px"
+                >
+                  <canvas ref="historyChart"></canvas>
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+
+          <!-- Detail Table Card -->
+          <v-col cols="12" md="4">
+            <v-card class="rounded-lg h-100" elevation="2">
+              <v-card-title
+                class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
+              >
+                <v-icon icon="mdi-table" class="me-2"></v-icon>
+                Chi tiết theo công đoạn
+              </v-card-title>
+              <v-card-text class="pa-4">
+                <div class="detail-table-container">
+                  <v-table density="compact" class="elevation-1 rounded">
+                    <thead>
+                      <tr>
+                        <th class="text-left text-caption">Công đoạn</th>
+                        <th class="text-center text-caption">OK</th>
+                        <th class="text-center text-caption">Lỗi</th>
+                        <th class="text-center text-caption">Tỷ lệ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(item, index) in chartDetailData" :key="index">
+                        <td class="text-caption font-weight-medium">
+                          {{ item.process }}
+                          <v-chip
+                            v-if="item.multiplier > 1"
+                            size="x-small"
+                            color="info"
+                            variant="tonal"
+                            class="ms-1"
+                            :title="`Hệ số nhân: ${item.multiplier}`"
+                          >
+                            ×{{ item.multiplier }}
+                          </v-chip>
+                        </td>
+                        <td class="text-center">
+                          <v-chip
+                            size="x-small"
+                            color="success"
+                            variant="tonal"
+                          >
+                            {{ item.ok }}
+                          </v-chip>
+                        </td>
+                        <td class="text-center">
+                          <v-chip size="x-small" color="error" variant="tonal">
+                            {{ item.error }}
+                          </v-chip>
+                        </td>
+                        <td class="text-center">
+                          <v-chip
+                            size="x-small"
+                            :color="
+                              item.rate >= 95
+                                ? 'success'
+                                : item.rate >= 80
+                                ? 'warning'
+                                : 'error'
+                            "
+                            variant="tonal"
+                          >
+                            {{ item.rate }}%
+                          </v-chip>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </v-table>
+
+                  <!-- Summary Stats -->
+                  <div class="mt-4">
+                    <v-divider class="mb-3"></v-divider>
+                    <div class="d-flex justify-space-between align-center mb-2">
+                      <span class="text-caption">Tổng OK:</span>
+                      <v-chip size="small" color="success" variant="tonal">
+                        {{ totalChartOK }}
+                      </v-chip>
+                    </div>
+                    <div class="d-flex justify-space-between align-center mb-2">
+                      <span class="text-caption">Tổng Lỗi:</span>
+                      <v-chip size="small" color="error" variant="tonal">
+                        {{ totalChartError }}
+                      </v-chip>
+                    </div>
+                    <div class="d-flex justify-space-between align-center">
+                      <span class="text-caption">Tỷ lệ chung:</span>
+                      <v-chip
+                        size="small"
+                        :color="
+                          overallRate >= 95
+                            ? 'success'
+                            : overallRate >= 80
+                            ? 'warning'
+                            : 'error'
+                        "
+                        variant="tonal"
+                      >
+                        {{ overallRate }}%
+                      </v-chip>
+                    </div>
+                  </div>
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+
         <!-- Data Table Section -->
         <v-card class="rounded-lg mt-5" elevation="2">
           <v-data-table-virtual
@@ -634,8 +763,8 @@
             <template #item.Note="{ item }">
               <div style="white-space: pre-line" class="text-error">
                 {{ item.Note }}
-              </div> </template
-            >S
+              </div>
+            </template>
           </v-data-table-virtual>
         </v-card>
       </v-card-text>
@@ -881,7 +1010,15 @@
 </template>
 
 <script setup>
-import { ref, watch, reactive, computed, nextTick, onMounted } from "vue";
+import {
+  ref,
+  watch,
+  reactive,
+  computed,
+  nextTick,
+  onMounted,
+  onUnmounted,
+} from "vue";
 import axios from "axios";
 import { useRoute, useRouter } from "vue-router";
 import Chart from "chart.js/auto";
@@ -969,7 +1106,6 @@ const totalConformalCoatingError = ref(0);
 const totalWarehouseError = ref(0);
 const totalFixed = ref(0);
 
-
 // Level
 const Level_SMT = ref(false);
 const Level_AOI = ref(0);
@@ -1007,7 +1143,7 @@ const Note_Edit = ref("");
 const DelaySMT_Edit = ref(50);
 const Quantity_Edit = ref(1);
 const Quantity_IPQCSMT_Edit = ref(1);
-const Quantity_IPQC_Edit =ref(1);
+const Quantity_IPQC_Edit = ref(1);
 const Quantity_AOI_Edit = ref(1);
 const Quantity_Assembly_Edit = ref(1);
 const Quantity_BoxBuild_Edit = ref(1);
@@ -1020,6 +1156,12 @@ const Quantity_OQC_Edit = ref(1);
 const searchHistory = ref("");
 const page = ref(1);
 const itemsPerPage = ref(10);
+
+// Chart
+const historyChart = ref(null);
+const chartInstance = ref(null);
+
+// Table
 const HeadersHistory = [
   { title: "Ngày", key: "Created_At", sortable: true },
   { title: "Tên danh mục", key: "Category", sortable: true },
@@ -1057,7 +1199,8 @@ watch(
         Level_Test_1.value = DataManufacture.value.includes("Test 1");
         Level_Test_2.value = DataManufacture.value.includes("Test 2");
         Level_BoxBuild.value = DataManufacture.value.includes("Box Build");
-        Level_ConformalCoating.value = DataManufacture.value.includes("Tẩm phủ");
+        Level_ConformalCoating.value =
+          DataManufacture.value.includes("Tẩm phủ");
       }
     }
   },
@@ -1103,16 +1246,17 @@ watch(
         totalWarehouseError.value = data.WarehouseError || 0;
         Quantity_Edit.value = data.Quantity;
         DelaySMT_Edit.value = data.DelaySMT;
-        Quantity_AOI_Edit.value = data.Quantity_AOI,
-        Quantity_Assembly_Edit.value = data.Quantity_Assembly,
-        Quantity_ConformalCoating_Edit.value = data.Quantity_ConformalCoating,
-        Quantity_IPQCSMT_Edit.value = data.Quantity_IPQCSMT,
-        Quantity_IPQC_Edit.value = data.Quantity_IPQC,
-        Quantity_Test1_Edit.value = data.Quantity_Test1,
-        Quantity_Test2_Edit.value = data.Quantity_Test2,
-        Quantity_BoxBuild_Edit.value = data.Quantity_BoxBuild,
-        Quantity_OQC_Edit.value = data.Quantity_OQC,
-        LevelSelectAdd.value = data.Level.split("-");
+        (Quantity_AOI_Edit.value = data.Quantity_AOI),
+          (Quantity_Assembly_Edit.value = data.Quantity_Assembly),
+          (Quantity_ConformalCoating_Edit.value =
+            data.Quantity_ConformalCoating),
+          (Quantity_IPQCSMT_Edit.value = data.Quantity_IPQCSMT),
+          (Quantity_IPQC_Edit.value = data.Quantity_IPQC),
+          (Quantity_Test1_Edit.value = data.Quantity_Test1),
+          (Quantity_Test2_Edit.value = data.Quantity_Test2),
+          (Quantity_BoxBuild_Edit.value = data.Quantity_BoxBuild),
+          (Quantity_OQC_Edit.value = data.Quantity_OQC),
+          (LevelSelectAdd.value = data.Level.split("-"));
         NameOrder.value = data.Name_Order;
         Name_Order_Add.value = data.Name_Order;
         Name_Order_Edit.value = data.Name_Order;
@@ -1147,16 +1291,17 @@ watch(
         totalWarehouseError.value = newValue.WarehouseError || 0;
         Quantity_Edit.value = newValue.Quantity;
         DelaySMT_Edit.value = newValue.DelaySMT;
-        Quantity_AOI_Edit.value = newValue.Quantity_AOI,
-        Quantity_Assembly_Edit.value = newValue.Quantity_Assembly,
-        Quantity_ConformalCoating_Edit.value = newValue.Quantity_ConformalCoating,
-        Quantity_IPQCSMT_Edit.value = newValue.Quantity_IPQCSMT,
-        Quantity_IPQC_Edit.value = newValue.Quantity_IPQC,
-        Quantity_Test1_Edit.value = newValue.Quantity_Test1,
-        Quantity_Test2_Edit.value = newValue.Quantity_Test2,
-        Quantity_BoxBuild_Edit.value = newValue.Quantity_BoxBuild,
-        Quantity_OQC_Edit.value = newValue.Quantity_OQC,
-        NameOrder.value = newValue.Name_Order;
+        (Quantity_AOI_Edit.value = newValue.Quantity_AOI),
+          (Quantity_Assembly_Edit.value = newValue.Quantity_Assembly),
+          (Quantity_ConformalCoating_Edit.value =
+            newValue.Quantity_ConformalCoating),
+          (Quantity_IPQCSMT_Edit.value = newValue.Quantity_IPQCSMT),
+          (Quantity_IPQC_Edit.value = newValue.Quantity_IPQC),
+          (Quantity_Test1_Edit.value = newValue.Quantity_Test1),
+          (Quantity_Test2_Edit.value = newValue.Quantity_Test2),
+          (Quantity_BoxBuild_Edit.value = newValue.Quantity_BoxBuild),
+          (Quantity_OQC_Edit.value = newValue.Quantity_OQC),
+          (NameOrder.value = newValue.Name_Order);
       }
     }
   },
@@ -1175,7 +1320,19 @@ watch(manufactureError, (error) => {
 onMounted(() => {
   nextTick(() => {
     fetchProductionData();
+    // Initialize chart after a short delay to ensure DOM is ready
+    setTimeout(() => {
+      initializeChart();
+    }, 500);
   });
+});
+
+// Cleanup chart on unmount
+onUnmounted(() => {
+  if (chartInstance.value) {
+    chartInstance.value.destroy();
+    chartInstance.value = null;
+  }
 });
 
 // ====== COMPUTED ======
@@ -1208,6 +1365,298 @@ const Time_Edit = computed(() => {
     return 0;
   }
   return ((Quantity_Plan_Edit.value * CycleTime_Edit.value) / 3600).toFixed(1);
+});
+
+// Chart data computed property
+const chartData = computed(() => {
+  if (!historyPart.value || !Array.isArray(historyPart.value)) {
+    return {
+      labels: [],
+      datasets: [],
+    };
+  }
+
+  // Define the process steps we want to track with possible variations
+  const processSteps = [
+    "SMT - Printer",
+    "SMT - Gắp linh kiện",
+    "SMT - Lò Reflow",
+    "IPQCSMT",
+    "AOI",
+    "Test1",
+    "Test2",
+    "IPQC",
+    "BoxBuild",
+    "Tẩm phủ",
+    "OQC",
+  ];
+
+  // Create a mapping for different possible source values
+  const sourceMapping = {
+    "SMT - Printer": ["SMT - Printer", "SMT-Printer", "SMT_Printer", "Printer"],
+    "SMT - Gắp linh kiện": [
+      "SMT - Gắp linh kiện",
+      "SMT-Gắp linh kiện",
+      "SMT_Gắp linh kiện",
+      "Gắp linh kiện",
+    ],
+    "SMT - Lò Reflow": [
+      "SMT - Lò Reflow",
+      "SMT-Lò Reflow",
+      "SMT_Lò Reflow",
+      "Lò Reflow",
+      "Reflow",
+    ],
+    IPQCSMT: ["IPQCSMT", "IPQC SMT", "IPQC-SMT"],
+    AOI: ["AOI"],
+    Test1: ["Test1", "Test 1", "Test-1"],
+    Test2: ["Test2", "Test 2", "Test-2"],
+    IPQC: ["IPQC"],
+    BoxBuild: ["BoxBuild", "Box Build", "Box-Build"],
+    "Tẩm phủ": ["Tẩm phủ", "Conformal Coating", "ConformalCoating"],
+    OQC: ["OQC"],
+  };
+
+  // Get manufacture details for quantity multipliers
+  const manufactureData = manufactureDetails.value;
+  const data = Array.isArray(manufactureData) ? manufactureData[0] : manufactureData;
+
+  // Define quantity multipliers for each process step
+  const quantityMultipliers = {
+    "SMT - Printer": data?.Quantity || 1,
+    "SMT - Gắp linh kiện": data?.Quantity || 1,
+    "SMT - Lò Reflow": data?.Quantity || 1,
+    "IPQCSMT": data?.Quantity_IPQCSMT || 1,
+    "AOI": data?.Quantity_AOI || 1,
+    "Test1": data?.Quantity_Test1 || 1,
+    "Test2": data?.Quantity_Test2 || 1,
+    "IPQC": data?.Quantity_IPQC || 1,
+    "BoxBuild": data?.Quantity_BoxBuild || 1,
+    "Tẩm phủ": data?.Quantity_ConformalCoating || 1,
+    "OQC": data?.Quantity_OQC || 1,
+  };
+
+  // Initialize counters for each process step
+  const processCounts = {};
+  processSteps.forEach((step) => {
+    processCounts[step] = { ok: 0, error: 0 };
+  });
+
+  // Count OK and error items for each process step
+  historyPart.value.forEach((item) => {
+    if (item.Source) {
+      // Find the matching process step
+      let matchedStep = null;
+      for (const [step, variations] of Object.entries(sourceMapping)) {
+        if (
+          variations.some(
+            (variation) =>
+              item.Source.toLowerCase().includes(variation.toLowerCase()) ||
+              variation.toLowerCase().includes(item.Source.toLowerCase())
+          )
+        ) {
+          matchedStep = step;
+          break;
+        }
+      }
+
+      if (matchedStep && processCounts[matchedStep]) {
+        const status = item.Status?.toLowerCase();
+        if (status === "ok" || status === "success" || status === "pass") {
+          processCounts[matchedStep].ok++;
+        } else if (
+          status === "error" ||
+          status === "fail" ||
+          status === "failed"
+        ) {
+          processCounts[matchedStep].error++;
+        }
+      }
+    }
+  });
+
+  // Prepare data for chart with quantity multiplication
+  const labels = [];
+  const okData = [];
+  const errorData = [];
+
+  processSteps.forEach((step) => {
+    const counts = processCounts[step];
+    const multiplier = quantityMultipliers[step] || 1;
+    
+    if (counts.ok > 0 || counts.error > 0) {
+      labels.push(step);
+      okData.push(counts.ok * multiplier);
+      errorData.push(counts.error * multiplier);
+    }
+  });
+
+  return {
+    labels,
+    datasets: [
+      {
+        label: "OK",
+        data: okData,
+        backgroundColor: "rgba(76, 175, 80, 0.8)",
+        borderColor: "rgba(76, 175, 80, 1)",
+        borderWidth: 1,
+      },
+      {
+        label: "Lỗi",
+        data: errorData,
+        backgroundColor: "rgba(244, 67, 54, 0.8)",
+        borderColor: "rgba(244, 67, 54, 1)",
+        borderWidth: 1,
+      },
+    ],
+  };
+});
+
+// Detail table data computed property
+const chartDetailData = computed(() => {
+  if (!historyPart.value || !Array.isArray(historyPart.value)) {
+    return [];
+  }
+
+  // Define the process steps we want to track with possible variations
+  const processSteps = [
+    "SMT - Printer",
+    "SMT - Gắp linh kiện",
+    "SMT - Lò Reflow",
+    "IPQCSMT",
+    "AOI",
+    "Test1",
+    "Test2",
+    "IPQC",
+    "BoxBuild",
+    "Tẩm phủ",
+    "OQC",
+  ];
+
+  // Create a mapping for different possible source values
+  const sourceMapping = {
+    "SMT - Printer": ["SMT - Printer", "SMT-Printer", "SMT_Printer", "Printer"],
+    "SMT - Gắp linh kiện": [
+      "SMT - Gắp linh kiện",
+      "SMT-Gắp linh kiện",
+      "SMT_Gắp linh kiện",
+      "Gắp linh kiện",
+    ],
+    "SMT - Lò Reflow": [
+      "SMT - Lò Reflow",
+      "SMT-Lò Reflow",
+      "SMT_Lò Reflow",
+      "Lò Reflow",
+      "Reflow",
+    ],
+    IPQCSMT: ["IPQCSMT", "IPQC SMT", "IPQC-SMT"],
+    AOI: ["AOI"],
+    Test1: ["Test1", "Test 1", "Test-1"],
+    Test2: ["Test2", "Test 2", "Test-2"],
+    IPQC: ["IPQC"],
+    BoxBuild: ["BoxBuild", "Box Build", "Box-Build"],
+    "Tẩm phủ": ["Tẩm phủ", "Conformal Coating", "ConformalCoating"],
+    OQC: ["OQC"],
+  };
+
+  // Get manufacture details for quantity multipliers
+  const manufactureData = manufactureDetails.value;
+  const data = Array.isArray(manufactureData) ? manufactureData[0] : manufactureData;
+
+  // Define quantity multipliers for each process step
+  const quantityMultipliers = {
+    "SMT - Printer": data?.Quantity || 1,
+    "SMT - Gắp linh kiện": data?.Quantity || 1,
+    "SMT - Lò Reflow": data?.Quantity || 1,
+    "IPQCSMT": data?.Quantity_IPQCSMT || 1,
+    "AOI": data?.Quantity_AOI || 1,
+    "Test1": data?.Quantity_Test1 || 1,
+    "Test2": data?.Quantity_Test2 || 1,
+    "IPQC": data?.Quantity_IPQC || 1,
+    "BoxBuild": data?.Quantity_BoxBuild || 1,
+    "Tẩm phủ": data?.Quantity_ConformalCoating || 1,
+    "OQC": data?.Quantity_OQC || 1,
+  };
+
+  // Initialize counters for each process step
+  const processCounts = {};
+  processSteps.forEach((step) => {
+    processCounts[step] = { ok: 0, error: 0 };
+  });
+
+  // Count OK and error items for each process step
+  historyPart.value.forEach((item) => {
+    if (item.Source) {
+      // Find the matching process step
+      let matchedStep = null;
+      for (const [step, variations] of Object.entries(sourceMapping)) {
+        if (
+          variations.some(
+            (variation) =>
+              item.Source.toLowerCase().includes(variation.toLowerCase()) ||
+              variation.toLowerCase().includes(item.Source.toLowerCase())
+          )
+        ) {
+          matchedStep = step;
+          break;
+        }
+      }
+
+      if (matchedStep && processCounts[matchedStep]) {
+        const status = item.Status?.toLowerCase();
+        if (status === "ok" || status === "success" || status === "pass") {
+          processCounts[matchedStep].ok++;
+        } else if (
+          status === "error" ||
+          status === "fail" ||
+          status === "failed"
+        ) {
+          processCounts[matchedStep].error++;
+        }
+      }
+    }
+  });
+
+  // Prepare data for detail table with quantity multiplication
+  const detailData = [];
+  processSteps.forEach((step) => {
+    const counts = processCounts[step];
+    const multiplier = quantityMultipliers[step] || 1;
+    const total = counts.ok + counts.error;
+    
+    if (total > 0) {
+      const okQuantity = counts.ok * multiplier;
+      const errorQuantity = counts.error * multiplier;
+      const totalQuantity = total * multiplier;
+      const rate = totalQuantity > 0 ? Math.round((okQuantity / totalQuantity) * 100) : 0;
+      
+      detailData.push({
+        process: step,
+        ok: okQuantity,
+        error: errorQuantity,
+        total: totalQuantity,
+        rate: rate,
+        multiplier: multiplier
+      });
+    }
+  });
+
+  // Sort by total quantity descending
+  return detailData.sort((a, b) => b.total - a.total);
+});
+
+// Summary statistics computed properties
+const totalChartOK = computed(() => {
+  return chartDetailData.value.reduce((sum, item) => sum + item.ok, 0);
+});
+
+const totalChartError = computed(() => {
+  return chartDetailData.value.reduce((sum, item) => sum + item.error, 0);
+});
+
+const overallRate = computed(() => {
+  const total = totalChartOK.value + totalChartError.value;
+  return total > 0 ? Math.round((totalChartOK.value / total) * 100) : 0;
 });
 
 // ===== && CycleTime
@@ -1294,11 +1743,11 @@ const SaveEditSettingSMT = async () => {
     Quantity_IPQCSMT: Quantity_IPQCSMT_Edit.value,
     Quantity_IPQC: Quantity_IPQC_Edit.value,
     Quantity_Assembly: Quantity_Assembly_Edit.value,
-    Quantity_BoxBuild:  Quantity_BoxBuild_Edit.value,
+    Quantity_BoxBuild: Quantity_BoxBuild_Edit.value,
     Quantity_ConformalCoating: Quantity_ConformalCoating_Edit.value,
     Quantity_Test1: Quantity_Test1_Edit.value,
     Quantity_Test2: Quantity_Test2_Edit.value,
-    Quantity_OQC: Quantity_OQC_Edit.value
+    Quantity_OQC: Quantity_OQC_Edit.value,
   });
   try {
     const response = await axios.put(
@@ -1411,11 +1860,122 @@ async function fetchProductionData() {
   }
 }
 
+// Chart functions
+const initializeChart = () => {
+  if (!historyChart.value) return;
+
+  // Destroy existing chart if it exists
+  if (chartInstance.value) {
+    chartInstance.value.destroy();
+  }
+
+  const ctx = historyChart.value.getContext("2d");
+
+  chartInstance.value = new Chart(ctx, {
+    type: "bar",
+    data: chartData.value,
+    options: {
+      indexAxis: "y", // This makes it horizontal
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        title: {
+          display: true,
+          text: "Thống kê OK/Lỗi theo công đoạn sản xuất",
+          font: {
+            size: 16,
+            weight: "bold",
+          },
+        },
+        legend: {
+          display: true,
+          position: "top",
+        },
+        tooltip: {
+          mode: "index",
+          intersect: false,
+          callbacks: {
+            label: function (context) {
+              const label = context.dataset.label || "";
+              const value = context.parsed.x || 0;
+              return `${label}: ${value} sản phẩm`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          stacked: true,
+          title: {
+            display: true,
+            text: "Số lượng sản phẩm",
+          },
+          ticks: {
+            stepSize: 1,
+          },
+        },
+        y: {
+          stacked: true,
+          title: {
+            display: true,
+            text: "Công đoạn",
+          },
+        },
+      },
+      interaction: {
+        mode: "nearest",
+        axis: "x",
+        intersect: false,
+      },
+    },
+  });
+};
+
+const updateChart = () => {
+  if (chartInstance.value) {
+    chartInstance.value.data = chartData.value;
+    chartInstance.value.update();
+  }
+};
+
 // Add watcher for history changes
 watch(
   history,
   (newHistory) => {
     console.log("History data updated:", newHistory);
+  },
+  { deep: true }
+);
+
+// Add watcher for historyPart changes to update chart
+watch(
+  historyPart,
+  (newHistoryPart) => {
+    console.log("HistoryPart data updated:", newHistoryPart);
+    // Debug: Log first few items to understand data structure
+    if (newHistoryPart && newHistoryPart.length > 0) {
+      console.log("First 3 historyPart items:", newHistoryPart.slice(0, 3));
+      console.log("Available Source values:", [
+        ...new Set(newHistoryPart.map((item) => item.Source)),
+      ]);
+      console.log("Available Status values:", [
+        ...new Set(newHistoryPart.map((item) => item.Status)),
+      ]);
+    }
+    if (chartInstance.value) {
+      updateChart();
+    }
+  },
+  { deep: true }
+);
+
+// Add watcher for chartData changes
+watch(
+  chartData,
+  (newChartData) => {
+    if (chartInstance.value && newChartData.labels.length > 0) {
+      updateChart();
+    }
   },
   { deep: true }
 );
@@ -1507,5 +2067,85 @@ export default {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+/* Chart styles */
+.chart-container {
+  position: relative;
+  height: 400px;
+  width: 100%;
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.chart-container canvas {
+  max-height: 100%;
+  max-width: 100%;
+}
+
+/* Detail table styles */
+.detail-table-container {
+  height: 400px;
+  overflow-y: auto;
+  padding: 8px;
+  background: white;
+  border-radius: 8px;
+}
+
+.detail-table-container .v-table {
+  font-size: 0.75rem;
+}
+
+.detail-table-container .v-table th {
+  font-weight: 600;
+  color: #1976d2;
+  background-color: #f5f5f5;
+}
+
+.detail-table-container .v-table td {
+  padding: 8px 4px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.detail-table-container .v-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* Custom scrollbar for detail table */
+.detail-table-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.detail-table-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.detail-table-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.detail-table-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Card height alignment */
+.h-100 {
+  height: 100%;
+}
+
+/* Ensure cards have same height in row */
+.v-row .v-col .v-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.v-row .v-col .v-card .v-card-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 </style>

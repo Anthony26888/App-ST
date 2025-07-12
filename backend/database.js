@@ -239,6 +239,15 @@ db.serialize(() => {
       Total INTEGER,
       DelaySMT INTEGER,
       Quantity INTEGER,
+      Quantity_AOI INTEGER,
+      Quantity_IPQCSMT INTEGER,
+      Quantity_IPQC INTEGER,
+      Quantity_Assembly INTEGER,
+      Quantity_BoxBuild INTEGER,
+      Quantity_ConformalCoating INTEGER,
+      Quantity_OQC INTEGER,
+      Quantity_Test1 INTEGER,
+      Quantity_Test2 INTEGER,
       Level INTEGER,
       Date TEXT,
       Note TEXT,
@@ -257,6 +266,7 @@ db.serialize(() => {
       Status TEXT,
       PlanID INTEGER,
       Note TEXT,
+      Source TEXT,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
     )
   `);

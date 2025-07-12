@@ -7,9 +7,9 @@
 #define EEPROM_SIZE 100
 
 // ===================== CẤU HÌNH =====================
-const char* ssid = "[ST]-INTERNAL";
-const char* password = "NoiBoST@2023";
-const char* SERVER_HOST = "http://192.168.100.76:3000";  // ✅ Đặt URL server tại đây
+const char* ssid = "KTNM2023";
+const char* password = "Sthuat@2023KTNM";
+const char* SERVER_HOST = "http://192.168.2.248:3000";  // ✅ Đặt URL server tại đây
 // ====================================================
 
 WebServer server(80);
@@ -21,7 +21,7 @@ unsigned long lastSentTime = 0;
 bool waitingForLow = false;
 int lastSensorValue = LOW;
 
-// ----- EEPROM functions giữ nguyên -----
+// ----------------- EEPROM Functions -----------------
 void saveProjectID(String projectID) {
   for (int i = 0; i < projectID.length(); i++) {
     EEPROM.write(i, projectID[i]);
@@ -40,6 +40,24 @@ String readProjectID() {
   return String(projectID);
 }
 
+void savePlanID(String planID) {
+  for (int i = 0; i < planID.length(); i++) {
+    EEPROM.write(52 + i, planID[i]);
+  }
+  EEPROM.write(52 + planID.length(), '\0');
+  EEPROM.commit();
+  Serial.println("📥 Saved plan_id: " + planID);
+}
+
+String readPlanID() {
+  char planID[48];
+  for (int i = 0; i < 48; i++) {
+    planID[i] = EEPROM.read(52 + i);
+    if (planID[i] == '\0') break;
+  }
+  return String(planID);
+}
+
 void saveDelay(int delayVal) {
   EEPROM.write(50, (delayVal >> 8) & 0xFF);  // High byte
   EEPROM.write(51, delayVal & 0xFF);         // Low byte
@@ -53,15 +71,19 @@ int readDelay() {
   return (high << 8) | low;
 }
 
-// ----- API gửi dữ liệu cảm biến -----
-void sendSensorData(String projectID) {
+// ----------------- API Gửi Dữ Liệu ------------------
+void sendSensorData(String projectID, String planID) {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
     http.setTimeout(3000);
-    http.begin(String(SERVER_HOST) + "/api/sensor");  // ✅ sử dụng biến IP
+    http.begin(String(SERVER_HOST) + "/api/sensor");
     http.addHeader("Content-Type", "application/json");
 
-    String postData = "{\"input_value\":1,\"project_id\":\"" + projectID + "\",\"source\":\"source_1\"}";
+    String postData = "{\"input_value\":1,"
+                      "\"project_id\":\"" + projectID + "\","
+                      "\"plan_id\":\"" + planID + "\","
+                      "\"source\":\"source_1\"}";
+
     Serial.println("📤 Sending: " + postData);
     int code = http.POST(postData);
     Serial.printf("✅ Sensor data sent. Code: %d\n", code);
@@ -73,7 +95,7 @@ void sendHeartbeat() {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
     http.setTimeout(3000);
-    http.begin(String(SERVER_HOST) + "/api/heartbeat");  // ✅ sử dụng biến IP
+    http.begin(String(SERVER_HOST) + "/api/heartbeat");
     http.addHeader("Content-Type", "application/json");
 
     String postData = "{\"device_id\":\"esp32-001\",\"status\":\"online\"}";
@@ -83,7 +105,7 @@ void sendHeartbeat() {
   }
 }
 
-// ----- Nhận API cấu hình project_id + delay -----
+// ------------- API Nhận Cấu Hình POST ---------------
 void handleSetProjectAndDelay() {
   if (server.hasArg("plain")) {
     String body = server.arg("plain");
@@ -99,6 +121,10 @@ void handleSetProjectAndDelay() {
       saveProjectID(doc["project_id"].as<String>());
     }
 
+    if (doc.containsKey("plan_id")) {
+      savePlanID(doc["plan_id"].as<String>());
+    }
+
     if (doc.containsKey("delay")) {
       saveDelay(doc["delay"].as<int>());
     }
@@ -109,7 +135,19 @@ void handleSetProjectAndDelay() {
   }
 }
 
-// ----- Setup chính -----
+// ------------- API Xem Cấu Hình GET -----------------
+void handleGetConfig() {
+  DynamicJsonDocument doc(256);
+  doc["project_id"] = readProjectID();
+  doc["plan_id"] = readPlanID();
+  doc["delay"] = readDelay();
+
+  String response;
+  serializeJson(doc, response);
+  server.send(200, "application/json", response);
+}
+
+// ----------------- Setup Chính ----------------------
 void setup() {
   Serial.begin(115200);
   EEPROM.begin(EEPROM_SIZE);
@@ -123,15 +161,19 @@ void setup() {
   }
   WiFi.setSleep(false);
   Serial.println("\n✅ WiFi connected");
-  Serial.print("📡 ESP32 IP Address: ");
-  Serial.println(WiFi.localIP());
+
+  for (int i = 0; i < 3; i++) {
+    Serial.println("📡 ESP32 IP Address: " + WiFi.localIP().toString());
+    delay(5000);
+  }
 
   server.on("/set-project-delay", HTTP_POST, handleSetProjectAndDelay);
+  server.on("/get-config", HTTP_GET, handleGetConfig);
   server.begin();
   Serial.println("🌐 WebServer started");
 }
 
-// ----- Loop chính -----
+// ----------------- Loop Chính -----------------------
 void loop() {
   server.handleClient();
 
@@ -163,10 +205,10 @@ void loop() {
 
   if (!waitingForLow && currentSensorValue == HIGH && lastSensorValue == LOW) {
     if (now - lastSentTime >= debounceDelay) {
-      delay(20); // chống nhiễu nhanh
+      delay(20);
       if (digitalRead(sensorPin) == HIGH) {
         Serial.println("🚨 Detected object!");
-        sendSensorData(readProjectID());
+        sendSensorData(readProjectID(), readPlanID());
         lastSentTime = now;
         waitingForLow = true;
       }
