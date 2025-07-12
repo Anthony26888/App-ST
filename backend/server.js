@@ -27,7 +27,7 @@ const processingRequests = new Set();
 
 const ESP32_IP = "http://192.168.100.80"; // IP ESP32 (phải đổi đúng IP của bạn)
 
-const GROQ_API_KEY = "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";
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const sessions = {}; // lưu theo socket.id
 // Khởi tạo Express và Socket.IO
 const PORT = 3000;
@@ -3470,21 +3470,17 @@ app.put("/DetailOrders/Update", async (req, res) => {
     Input_Hao_Phi_Thuc_Te,
     Ma_Kho,
     Ma_Kho_Misa,
-    SL_Ton_Kho,
-    SL_Ton_Kho_Misa,
     PartNumber_1,
     PO,
   } = req.body;
   // Insert data into SQLite database
-  const query = `UPDATE DetailOrders SET Hao_Phi_Thuc_Te = ?, Ma_Kho = ?, Ma_Kho_Misa = ?, SL_Tồn_Kho = ?, SL_Tồn_Kho_Misa = ? WHERE PartNumber_1 = ? AND PO = ?`;
+  const query = `UPDATE DetailOrders SET Hao_Phi_Thuc_Te = ?, Ma_Kho = ?, Ma_Kho_Misa = ? WHERE PartNumber_1 = ? AND PO = ?`;
   db.run(
     query,
     [
       Input_Hao_Phi_Thuc_Te,
       Ma_Kho,
       Ma_Kho_Misa,
-      SL_Ton_Kho,
-      SL_Ton_Kho_Misa,
       PartNumber_1,
       PO,
     ],

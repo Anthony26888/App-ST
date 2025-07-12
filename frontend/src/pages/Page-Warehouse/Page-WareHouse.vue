@@ -298,6 +298,7 @@
         <InputField label="Ghi chú" v-model="Note_Edit" />
         <InputField label="Ghi chú xuất" v-model="Note_Output_Edit" />
         <InputSelect
+          ref="transactionTypeSelect"
           label="Loại giao dịch"
           :items="['Nhập', 'Xuất']"
           v-model="TransactionType_Edit"
@@ -680,6 +681,9 @@ const tokenType = ref(null);
 const expires_in = ref(null);
 const ResultSearch = ref(null);
 
+// ===== COMPONENT REFS =====
+const transactionTypeSelect = ref(null);
+
 // ===== User Information =====
 const LevelUser = localStorage.getItem("LevelUser");
 onMounted(() => {
@@ -741,22 +745,19 @@ const inventory = computed(() => {
  * Updates inventory count based on input and output values
  * @param {Event} event - The input event containing the new value
  */
-// function updateInventoryOnOutput(event) {
-//   const outputValue = parseInt(event.target.value) || 0;
-//   const inputValue = parseInt(Input_Edit.value) || 0;
-//   if (!Output_Edit.value) {
-//     inventory_Edit.value = inputValue;
-//   } else if (inputValue - outputValue > 0) {
-//     inventory_Edit.value = inputValue - outputValue;
-//   } else {
-//     inventory_Edit.value = 0;
-//   }
-// }
 
 /**
  * Saves edited item data to the server
  */
 const SaveEdit = async () => {
+  // Trigger validation on the InputSelect component
+  if (transactionTypeSelect.value) {
+    const isValid = await transactionTypeSelect.value.validate();
+    if (!isValid) {
+      return;
+    }
+  }
+  
   if (!TransactionType_Edit.value) {
     MessageErrorDialog.value = "Vui lòng chọn loại giao dịch";
     DialogFailed.value = true;

@@ -86,7 +86,7 @@
       </v-card>
     </v-card-text>
   </v-card>
-  <v-dialog v-model="DialogEdit" width="400" scrollable>
+  <v-dialog v-model="DialogEdit" width="600" scrollable>
     <v-card class="overflow-y-auto">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
@@ -440,8 +440,6 @@ const SaveEdit = async () => {
   DialogLoading.value = true;
   const formData = {
     Input_Hao_Phi_Thuc_Te: ActualCost.value,
-    SL_Ton_Kho: SL_Ton_Kho.value,
-    SL_Ton_Kho_Misa: SL_Ton_Kho_Misa.value,
     Ma_Kho: Ma_Kho.value,
     Ma_Kho_Misa: Ma_Kho_Misa.value,
     PartNumber_1: PartNumber_1.value,

@@ -1,5 +1,6 @@
 <template>
   <v-select
+    ref="vSelectRef"
     variant="outlined"
     v-model="selectedValue"
     :items="items"
@@ -84,6 +85,7 @@ export default {
   emits: ["update:modelValue", "change"],
   setup(props, { emit }) {
     const selectedValue = ref(props.modelValue);
+    const vSelectRef = ref(null);
 
     watch(
       () => props.modelValue,
@@ -100,9 +102,18 @@ export default {
       emit("change", value);
     };
 
+    const validate = () => {
+      if (vSelectRef.value) {
+        return vSelectRef.value.validate();
+      }
+      return Promise.resolve(true);
+    };
+
     return {
       selectedValue,
+      vSelectRef,
       emitChangeEvent,
+      validate,
     };
   },
 };
