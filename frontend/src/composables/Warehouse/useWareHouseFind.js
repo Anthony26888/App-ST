@@ -1,11 +1,14 @@
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import { io } from "socket.io-client";
+import { getSocketUrl } from "@/utils/getSocketUrl";
 
 export function useWareHouseFind(id) {
   const WareHouseFind = ref([]);
   const WareHouseFindError = ref([]);
   const SOCKET_URL = import.meta.env.VITE_SOCKET_URL; // Lấy URL từ .env
-  const socket = io(SOCKET_URL);
+  const socket = io(getSocketUrl(), {
+    withCredentials: true
+  });
 
   const fetchData = (partNumber) => {
     if (partNumber) {

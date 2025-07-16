@@ -1,12 +1,15 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { io } from "socket.io-client";
+import { getSocketUrl } from "@/utils/getSocketUrl";
 
 export function useManufactureDetailsTable(id) {
   const manufactureDetailsTable = ref([]);
   const manufactureDetailsTableError = ref([]);
   const connectionStatus = ref("Đang kết nối...");
   const SOCKET_URL = import.meta.env.VITE_SOCKET_URL; // Lấy URL từ .env
-  const socket = io(SOCKET_URL);
+  const socket = io(getSocketUrl(), {
+    withCredentials: true
+  });
 
   onMounted(() => {
     socket.emit("getManufactureDetailsTable", id);

@@ -1,16 +1,20 @@
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import { io } from "socket.io-client";
 import axios from "axios";
+import { getSocketUrl } from "@/utils/getSocketUrl";
 
 export function useHistory(id) {
   const history = ref([]);
   const historyError = ref(null);
   const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
   const API_URL = import.meta.env.VITE_API_URL;
-  const socket = io(SOCKET_URL, {
-    reconnection: true,
-    reconnectionAttempts: 5,
-    reconnectionDelay: 1000
+  // const socket = io(SOCKET_URL, {
+  //   reconnection: true,
+  //   reconnectionAttempts: 5,
+  //   reconnectionDelay: 1000
+  // });
+  const socket = io(getSocketUrl(), {
+    withCredentials: true
   });
 
   // Function to fetch data via REST API as fallback

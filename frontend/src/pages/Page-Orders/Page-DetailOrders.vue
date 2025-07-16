@@ -274,7 +274,7 @@ const UserInfo = ref("");
 const ActualCost = ref("");
 const GetDigikey = ref("");
 const search = ref("");
-const itemsPerPage = ref(12);
+const itemsPerPage = ref(15);
 const page = ref(1);
 
 // ===== MESSAGE DIALOG =====

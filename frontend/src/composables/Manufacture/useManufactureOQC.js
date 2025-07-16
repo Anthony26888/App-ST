@@ -1,11 +1,14 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { io } from "socket.io-client";
+import { getSocketUrl } from "@/utils/getSocketUrl";
 
 export function useManufactureOQC(id) {
   const manufactureOQC = ref([]);  // Initialize as empty array
   const manufactureOQCError = ref(null);
   const SOCKET_URL = import.meta.env.VITE_SOCKET_URL; // Lấy URL từ .env
-  const socket = io(SOCKET_URL);
+  const socket = io(getSocketUrl(), {
+    withCredentials: true
+  });
 
   const fetchData = () => {
     if (id) {

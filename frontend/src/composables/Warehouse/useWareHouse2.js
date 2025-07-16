@@ -1,11 +1,14 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { io } from "socket.io-client";
+import { getSocketUrl } from "@/utils/getSocketUrl";
 
 export function useWareHouse2() {
   const warehouse2 = ref([]);
   const warehouse2Error = ref([]);
   const SOCKET_URL = import.meta.env.VITE_SOCKET_URL; // Lấy URL từ .env
-  const socket = io(SOCKET_URL);
+  const socket = io(getSocketUrl(), {
+    withCredentials: true
+  });
   onMounted(() => {
     socket.emit("getWareHouse2");
     socket.on("WareHouse2Data", (data) => {

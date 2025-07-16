@@ -1498,15 +1498,21 @@ const chartData = computed(() => {
         label: "OK",
         data: okData,
         backgroundColor: "rgba(76, 175, 80, 0.8)",
-        borderColor: "rgba(76, 175, 80, 1)",
+        borderColor: "#4CAF50",
         borderWidth: 1,
+        borderRadius: 4,
+        barPercentage: 0.8,
+        categoryPercentage: 0.9,
       },
       {
         label: "Lỗi",
         data: errorData,
         backgroundColor: "rgba(244, 67, 54, 0.8)",
-        borderColor: "rgba(244, 67, 54, 1)",
+        borderColor: "#F44336",
         borderWidth: 1,
+        borderRadius: 4,
+        barPercentage: 0.8,
+        categoryPercentage: 0.9,
       },
     ],
   };
@@ -1875,57 +1881,96 @@ const initializeChart = () => {
     type: "bar",
     data: chartData.value,
     options: {
-      indexAxis: "y", // This makes it horizontal
+      indexAxis: 'y', // This makes it horizontal
       responsive: true,
       maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: "index",
+      },
       plugins: {
+        legend: {
+          position: "top",
+          labels: {
+            usePointStyle: true,
+            padding: 20,
+          },
+        },
         title: {
           display: true,
-          text: "Thống kê OK/Lỗi theo công đoạn sản xuất",
+          text: "Thống kê theo công đoạn sản xuất",
           font: {
             size: 16,
             weight: "bold",
           },
-        },
-        legend: {
-          display: true,
-          position: "top",
+          padding: {
+            top: 10,
+            bottom: 20,
+          },
         },
         tooltip: {
-          mode: "index",
-          intersect: false,
           callbacks: {
-            label: function (context) {
-              const label = context.dataset.label || "";
-              const value = context.parsed.x || 0;
-              return `${label}: ${value} sản phẩm`;
+            title: function (tooltipItems) {
+              const process = tooltipItems[0].label;
+              const okValue = tooltipItems[0].dataset.data[tooltipItems[0].dataIndex];
+              const errorValue = tooltipItems[1].dataset.data[tooltipItems[0].dataIndex];
+              const totalValue = okValue + errorValue;
+              const percentage = totalValue > 0 ? ((okValue / totalValue) * 100).toFixed(1) : 0;
+
+              return [
+                `Công đoạn: ${process}`,
+                `OK: ${new Intl.NumberFormat("vi-VN").format(okValue)} sản phẩm`,
+                `Lỗi: ${new Intl.NumberFormat("vi-VN").format(errorValue)} sản phẩm`,
+                `Tổng: ${new Intl.NumberFormat("vi-VN").format(totalValue)} sản phẩm`,
+                `Tỷ lệ thành công: ${percentage}%`,
+              ];
             },
           },
         },
       },
       scales: {
         x: {
-          stacked: true,
+          beginAtZero: true,
+          stacked: false,
           title: {
             display: true,
             text: "Số lượng sản phẩm",
+            font: {
+              weight: "bold",
+            },
           },
           ticks: {
-            stepSize: 1,
+            callback: function (value) {
+              return new Intl.NumberFormat("vi-VN").format(value);
+            },
+          },
+          grid: {
+            color: "rgba(0, 0, 0, 0.1)",
           },
         },
         y: {
-          stacked: true,
+          stacked: false,
           title: {
             display: true,
             text: "Công đoạn",
+            font: {
+              weight: "bold",
+            },
+          },
+          grid: {
+            display: false,
+          },
+          ticks: {
+            display: true,
+            autoSkip: true,
+            maxTicksLimit: 10,
           },
         },
       },
-      interaction: {
-        mode: "nearest",
-        axis: "x",
-        intersect: false,
+      layout: {
+        padding: {
+          left: 20,
+        },
       },
     },
   });

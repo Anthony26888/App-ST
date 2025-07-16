@@ -458,6 +458,7 @@ function initializeChart() {
     type: "bar",
     data: chartData,
     options: {
+      indexAxis: 'y', // This makes it horizontal
       responsive: true,
       maintainAspectRatio: false,
       interaction: {
@@ -509,7 +510,7 @@ function initializeChart() {
         },
       },
       scales: {
-        y: {
+        x: {
           beginAtZero: true,
           stacked: false,
           title: {
@@ -528,7 +529,7 @@ function initializeChart() {
             color: "rgba(0, 0, 0, 0.1)",
           },
         },
-        x: {
+        y: {
           stacked: false,
           title: {
             display: true,
@@ -542,8 +543,6 @@ function initializeChart() {
           },
           ticks: {
             display: true,
-            maxRotation: 45,
-            minRotation: 0,
             autoSkip: true,
             maxTicksLimit: 10,
           },
@@ -551,7 +550,7 @@ function initializeChart() {
       },
       layout: {
         padding: {
-          bottom: 20,
+          left: 20,
         },
       },
     },

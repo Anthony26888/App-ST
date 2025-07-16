@@ -1,12 +1,15 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { io } from "socket.io-client";
+import { getSocketUrl } from "@/utils/getSocketUrl";
 
 export function useHistoryPart(id) {
   const historyPart = ref([]);
   const historyPartError = ref([]);
   const connectionStatus = ref("Đang kết nối...");
   const SOCKET_URL = import.meta.env.VITE_SOCKET_URL; // Lấy URL từ .env
-  const socket = io(SOCKET_URL);
+  const socket = io(getSocketUrl(), {
+    withCredentials: true
+  });
 
   onMounted(() => {
     socket.emit("getHistoryPart", id);

@@ -1,5 +1,6 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { io } from "socket.io-client";
+import { getSocketUrl } from "@/utils/getSocketUrl";
 
 export function useManufacture() {
   const manufacture = ref([]);
@@ -15,9 +16,12 @@ export function useManufacture() {
     return { manufacture, manufactureFound, manufactureError, isConnected };
   }
 
-  const socket = io(SOCKET_URL, {
-    reconnectionAttempts: 5,
-    timeout: 10000,
+  // const socket = io(SOCKET_URL, {
+  //   reconnectionAttempts: 5,
+  //   timeout: 10000,
+  // });
+  const socket = io(getSocketUrl(), {
+    withCredentials: true
   });
   
   onMounted(() => {

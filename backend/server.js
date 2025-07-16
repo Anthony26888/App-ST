@@ -20,6 +20,8 @@ const fs = require("fs");
 const sqlite3 = require("sqlite3");
 const sqlite = require("sqlite");
 const { createParser } = require("eventsource-parser");
+const { handleQuery } = require('./Ollama-AI/queryEngine.js');
+const fetch = require('node-fetch');
 // const https = require("https"); // XÓA: không dùng SSL nữa
 
 // Add processing flags at the top of the file
@@ -33,17 +35,21 @@ const PORT = 3000;
 // const HTTPS_PORT = 3443; // XÓA: không dùng HTTPS
 
 const allowedOrigins = new Set([
-  "http://localhost:8080",
-  "https://localhost:8080",
-  "http://localhost:3000",
-  "https://localhost:3000",
-  "http://127.0.0.1:8080",
-  "http://127.0.0.1:3000",
-  "http://192.168.100.210:3000",
-  "http://192.168.1.10:3000",
-  "http://192.168.2.248:3000",
-  "http://erp.sieuthuat.com:3000"
+  // Local dev
+  "http://localhost:8080", "https://localhost:8080",
+  "http://localhost:3000", "https://localhost:3000",
+  "http://127.0.0.1:8080", "http://127.0.0.1:3000",
+
+  // LAN
+  "http://192.168.100.210:3000", "http://192.168.1.10:3000", "http://192.168.2.248:3000",
+
+  // Production domain – **đầy đủ biến thể**
+  "http://erp.sieuthuat.com",
+  "https://erp.sieuthuat.com",
+  "http://erp.sieuthuat.com:3000",
+  "https://erp.sieuthuat.com:3000"
 ]);
+
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -1037,33 +1043,33 @@ io.on("connection", (socket) => {
                         a.Time_Plan,
                         a.Created_At,
                         CASE
-                          WHEN a.Type = 'SMT' THEN IFNULL(b.SMT, 0)
-                          WHEN a.Type = 'AOI' THEN IFNULL(c.AOI, 0)
-                          WHEN a.Type = 'Assembly' THEN IFNULL(f.Assembly, 0)
-                          WHEN a.Type = 'IPQC' THEN IFNULL(e.IPQC, 0)
-                          WHEN a.Type = 'OQC' THEN IFNULL(g.OQC, 0)
-                          WHEN a.Type = 'IPQC (SMT)' THEN IFNULL(h.IPQCSMT, 0)
-                          WHEN a.Type = 'Test 1' THEN IFNULL(j.Test1, 0)
-                          WHEN a.Type = 'Test 2' THEN IFNULL(k.Test2, 0)
-                          WHEN a.Type = 'Box Build' THEN IFNULL(m.BoxBuild, 0)
-                          WHEN a.Type = 'Tẩm phủ' THEN IFNULL(l.ConformalCoating, 0)
+                          WHEN a.Type = 'SMT' THEN IFNULL(b.SMT, 0) * z.Quantity
+                          WHEN a.Type = 'AOI' THEN IFNULL(c.AOI, 0) * z.Quantity_AOI
+                          WHEN a.Type = 'Assembly' THEN IFNULL(f.Assembly, 0) * z.Quantity_Assembly
+                          WHEN a.Type = 'IPQC' THEN IFNULL(e.IPQC, 0) * z.Quantity_IPQC
+                          WHEN a.Type = 'OQC' THEN IFNULL(g.OQC, 0) * z.Quantity_OQC
+                          WHEN a.Type = 'IPQC (SMT)' THEN IFNULL(h.IPQCSMT, 0) * z.Quantity_IPQCSMT
+                          WHEN a.Type = 'Test 1' THEN IFNULL(j.Test1, 0) * z.Quantity_Test1
+                          WHEN a.Type = 'Test 2' THEN IFNULL(k.Test2, 0) * z.Quantity_Test2
+                          WHEN a.Type = 'Box Build' THEN IFNULL(m.BoxBuild, 0) * z.Quantity_BoxBuild
+                          WHEN a.Type = 'Tẩm phủ' THEN IFNULL(l.ConformalCoating, 0) * z.Quantity_ConformalCoating
                           WHEN a.Type = 'Nhập kho' THEN IFNULL(n.Warehouse, 0)
                           ELSE 0
                         END AS Quantity_Real,
                         CASE 
                           WHEN a.Quantity_Plan > 0 THEN 
                             CASE
-                              WHEN a.Type = 'SMT' THEN (IFNULL(b.SMT, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'AOI' THEN (IFNULL(c.AOI, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'Assembly' THEN (IFNULL(f.Assembly, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'IPQC' THEN (IFNULL(e.IPQC, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'OQC' THEN (IFNULL(g.OQC, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'IPQC (SMT)' THEN (IFNULL(h.IPQCSMT, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'Test 1' THEN (IFNULL(j.Test1, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'Test 2' THEN (IFNULL(k.Test2, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'Box Build' THEN (IFNULL(m.BoxBuild, 0) * 100.0) / a.Quantity_Plan
+                              WHEN a.Type = 'SMT' THEN (IFNULL(b.SMT, 0) * Quantity * 100.0) / a.Quantity_Plan
+                              WHEN a.Type = 'AOI' THEN (IFNULL(c.AOI, 0) * Quantity_AOI * 100.0) / a.Quantity_Plan
+                              WHEN a.Type = 'Assembly' THEN (IFNULL(f.Assembly, 0) * Quantity_Assembly * 100.0) / a.Quantity_Plan
+                              WHEN a.Type = 'IPQC' THEN (IFNULL(e.IPQC, 0) * Quantity_IPQC * 100.0) / a.Quantity_Plan
+                              WHEN a.Type = 'OQC' THEN (IFNULL(g.OQC, 0) * Quantity_OQC * 100.0) / a.Quantity_Plan
+                              WHEN a.Type = 'IPQC (SMT)' THEN (IFNULL(h.IPQCSMT, 0) * Quantity_IPQCSMT * 100.0) / a.Quantity_Plan
+                              WHEN a.Type = 'Test 1' THEN (IFNULL(j.Test1, 0) * Quantity_Test1 * 100.0) / a.Quantity_Plan
+                              WHEN a.Type = 'Test 2' THEN (IFNULL(k.Test2, 0) * Quantity_Test2 * 100.0) / a.Quantity_Plan
+                              WHEN a.Type = 'Box Build' THEN (IFNULL(m.BoxBuild, 0) * Quantity_BoxBuild * 100.0) / a.Quantity_Plan
                               WHEN a.Type = 'Nhập kho' THEN (IFNULL(n.Warehouse, 0) * 100.0) / a.Quantity_Plan
-                              WHEN a.Type = 'Tẩm phủ' THEN (IFNULL(l.ConformalCoating, 0) * 100.0) / a.Quantity_Plan
+                              WHEN a.Type = 'Tẩm phủ' THEN (IFNULL(l.ConformalCoating, 0) * Quantity_ConformalCoating * 100.0) / a.Quantity_Plan
                               ELSE 0
                             END
                           ELSE 0
@@ -1087,7 +1093,20 @@ io.on("connection", (socket) => {
                         ) AS Total_Fixed
                       FROM Summary a
                       LEFT JOIN (
-                        SELECT id, Name_Order FROM PlanManufacture
+                        SELECT 
+                          id, 
+                          Name_Order, 
+                          Quantity, 
+                          Quantity_AOI, 
+                          Quantity_Assembly,
+                          Quantity_BoxBuild,  
+                          Quantity_ConformalCoating,
+                          Quantity_IPQC,
+                          Quantity_IPQCSMT,
+                          Quantity_OQC,
+                          Quantity_Test1,
+                          Quantity_Test2
+                        FROM PlanManufacture
                       ) z ON a.PlanID = z.id
                       LEFT JOIN (
                         SELECT HistoryID, COUNT(id) AS SMT 
@@ -1493,6 +1512,17 @@ io.on("connection", (socket) => {
         socket.emit("HistoryPartError", error);
       }
     }),
+    socket.on('ask', async ({ question, session_id }) => {
+      try {
+        for await (const chunk of handleQuery(question, session_id)) {
+          socket.emit('token', chunk);
+        }
+        socket.emit('done');
+      } catch (err) {
+        socket.emit('token', JSON.stringify({ type: 'error', message: err.message }));
+        socket.emit('done');
+      }
+    });
     socket.on("user_message", async (msg) => {
       const history = sessions[socket.id];
 
@@ -2113,6 +2143,7 @@ io.on("connection", (socket) => {
         }
       }
     });
+    
 
   socket.on("disconnect", () => {
     console.log("🔌 Client disconnected");

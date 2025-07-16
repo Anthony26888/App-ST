@@ -1,6 +1,10 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { io } from "socket.io-client";
-const socket = io(`${import.meta.env.VITE_SOCKET_URL}`);
+import { getSocketUrl } from "@/utils/getSocketUrl";
+
+const socket = io(getSocketUrl(), {
+  withCredentials: true
+});
 export function useDeviceStatusSocket(deviceId = 'esp32-001') {
   const status = ref('Offline');
 
