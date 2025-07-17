@@ -118,7 +118,7 @@
 
 <script setup>
 import { ref, nextTick, watch, onMounted } from "vue";
-import { useChat } from "@/composables/AI-Chat/AI-chat";
+import { useChat } from "@/composables/AI-Chat/useChat";
 
 const props = defineProps({
   tableNames: { type: Array, default: () => [] },

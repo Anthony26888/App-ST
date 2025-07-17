@@ -288,13 +288,13 @@ const menuItems = computed(() => [
     to: "/Bao-tri",
     disabled: StatusOption_6.value,
   },
-  {
-    icon: "mdi-robot-confused-outline",
-    title: "Trợ lí ứng dụng",
-    value: "AI",
-    to: "/AI-Chatbox",
-    disabled: StatusOption_10.value,
-  },
+  // {
+  //   icon: "mdi-robot-confused-outline",
+  //   title: "Trợ lí ứng dụng",
+  //   value: "AI",
+  //   to: "/AI-Chatbox",
+  //   disabled: StatusOption_10.value,
+  // },
   {
     icon: "mdi-cog",
     title: "Cài đặt",

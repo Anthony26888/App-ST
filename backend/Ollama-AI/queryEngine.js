@@ -1,142 +1,84 @@
-const sqlite3 = require('sqlite3');
-const fetch = require('node-fetch');
-const { queryMap } = require('./queryMap');
+// // queryEngine.js
+// const path = require("path");
+// const sqlite3 = require("sqlite3");
+// const { ChatOllama } = require("@langchain/community/chat_models/ollama");
+// const { SqlDatabase } = require("langchain/sql_db");
+// const { SqliteToolkit } = require("langchain/agents/toolkits/sql");
+// const { createSqlAgent } = require("langchain/agents");
 
-const db = new sqlite3.Database('./database.db');
+// // Load optional keyword-to-query map
+// const queryMap = require("./queryMap"); // { "đơn hàng hôm nay": "SELECT ..." }
 
-db.run(`
-  CREATE TABLE IF NOT EXISTS ChatHistory (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    session_id TEXT,
-    role TEXT,
-    content TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )
-`);
+// // ===== Khởi tạo LLM và Database =====
+// const dbPath = path.join(__dirname, "./database.db"); // <-- sửa tên file
+// const model = new ChatOllama({
+//   model: "gemma:2b", // hoặc "llama3", "mistral", tùy Ollama bạn cài
+//   temperature: 0.2,
+//   baseUrl: "http://localhost:11434",
+// });
 
-function saveMessage(session_id, role, content) {
-  return new Promise((resolve, reject) => {
-    db.run(
-      `INSERT INTO ChatHistory (session_id, role, content) VALUES (?, ?, ?)`,
-      [session_id, role, content],
-      function (err) {
-        if (err) return reject(err);
-        resolve();
-      }
-    );
-  });
-}
+// // ===== Tạo hàm truy vấn qua LangChain Agent =====
+// let executor;
 
-function getChatHistory(session_id) {
-  return new Promise((resolve, reject) => {
-    db.all(
-      `SELECT role, content FROM ChatHistory WHERE session_id = ? ORDER BY id`,
-      [session_id],
-      (err, rows) => {
-        if (err) return reject(err);
-        resolve(rows);
-      }
-    );
-  });
-}
+// async function initAgent() {
+//   const db = await SqlDatabase.fromDataSourceParams({
+//     appDataSource: {
+//       type: "sqlite",
+//       database: dbPath,
+//     },
+//   });
 
-function matchKeyword(prompt) {
-  return Object.entries(queryMap).find(([k]) =>
-    prompt.toLowerCase().includes(k.toLowerCase())
-  )?.[1] || null;
-}
+//   const toolkit = new SqliteToolkit(db, model);
+//   executor = await createSqlAgent({ llm: model, toolkit });
+//   console.log("[✅] LangChain agent đã sẵn sàng.");
+// }
 
-function runQuery(sql) {
-  return new Promise((resolve, reject) => {
-    const rows = [];
-    db.each(sql, (err, row) => {
-      if (err) return reject(new Error(err.message));
-      rows.push(row);
-    }, (err) => {
-      if (err) return reject(new Error(err.message));
-      resolve(rows);
-    });
-  });
-}
+// async function queryWithLangChain(question) {
+//   if (!executor) {
+//     await initAgent();
+//   }
 
-function summarizeResult(results) {
-  if (!results?.length) return 'Không có kết quả.';
-  const keys = Object.keys(results[0]);
-  return results.slice(0, 5).map((r, i) =>
-    `${i + 1}. ` + keys.map(k => `${k}: ${r[k]}`).join(', ')
-  ).join('\n');
-}
+//   try {
+//     const result = await executor.invoke({ input: question });
+//     console.log("[LangChain Result]", result.output);
+//     return result.output || "Không tìm thấy dữ liệu.";
+//   } catch (err) {
+//     console.error("[❌ Lỗi truy vấn LangChain]:", err);
+//     return "Đã xảy ra lỗi khi xử lý truy vấn.";
+//   }
+// }
 
-async function callOllamaSQL(prompt, session_id) {
-  const history = await getChatHistory(session_id);
-  // Lọc bỏ các message assistant có nội dung là bảng hoặc summary dạng bảng
-  const filteredHistory = history.filter(h => {
-    if (h.role !== 'assistant') return true;
-    // Loại bỏ nếu là bảng markdown hoặc có nhiều dấu |
-    if (/^\s*\|/.test(h.content) || (h.content.match(/\|/g) || []).length > 5) return false;
-    // Loại bỏ nếu là summary dạng bảng
-    if (/^Dữ liệu kết quả gồm/.test(h.content)) return false;
-    return true;
-  });
-  const messages = filteredHistory.map(h => ({ role: h.role, content: h.content }));
-  messages.push({ role: 'user', content: prompt });
+// // ===== Xử lý truy vấn bằng từ khóa định sẵn =====
+// function queryWithMap(keyword, dbClient) {
+//   const sql = queryMap[keyword];
+//   if (!sql) return Promise.resolve("Câu hỏi chưa được hỗ trợ.");
 
-  const res = await fetch('http://localhost:11434/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'gemma:2b', messages, stream: false })
-  });
+//   return new Promise((resolve, reject) => {
+//     dbClient.all(sql, [], (err, rows) => {
+//       if (err) {
+//         console.error("[❌ SQL Error]", err);
+//         return reject("Lỗi SQL.");
+//       }
+//       if (!rows || rows.length === 0) return resolve("Không có dữ liệu.");
+//       resolve(JSON.stringify(rows, null, 2));
+//     });
+//   });
+// }
 
-  const json = await res.json();
-  const raw = json.message?.content?.trim() || '';
-  const cleaned = raw.replace(/\*\*SQL:\*\*/gi, '').replace(/```sql/gi, '').replace(/```/g, '').trim();
+// // ===== Hàm chính để xử lý từ frontend =====
+// async function queryEngine(question) {
+//   const keyword = question.trim().toLowerCase();
 
-  await saveMessage(session_id, 'assistant', cleaned);
-  return cleaned;
-}
+//   // Nếu nằm trong queryMap
+//   if (queryMap[keyword]) {
+//     const dbClient = new sqlite3.Database(dbPath);
+//     return queryWithMap(keyword, dbClient);
+//   }
 
-async function* handleQuery(prompt, session_id) {
-  try {
-    await saveMessage(session_id, 'user', prompt);
+//   // Nếu không có trong keyword → dùng LangChain
+//   return await queryWithLangChain(question);
+// }
 
-    const matched = matchKeyword(prompt);
-    if (matched) {
-      const results = await runQuery(matched.sql);
-      // Tạo prompt cho Ollama dựa trên kết quả SQL
-      const summary = summarizeResult(results);
-      const promptOllama = `Dựa vào dữ liệu sau, hãy tóm tắt và trả lời cho người dùng bằng tiếng Việt thân thiện, dễ hiểu, không liệt kê bảng, chỉ nêu ý chính và nhận xét nếu có.\nDữ liệu ví dụ:\n${summary}\n\nYêu cầu: ${matched.description || prompt}`;
-      // Lấy lịch sử chat
-      const history = await getChatHistory(session_id);
-      const messages = history.map(h => ({ role: h.role, content: h.content }));
-      messages.push({ role: 'user', content: promptOllama });
-      // Gọi Ollama
-      const res = await fetch('http://localhost:11434/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'gemma:2b', messages, stream: false })
-      });
-      const json = await res.json();
-      const answer = json.message?.content?.trim() || '';
-      await saveMessage(session_id, 'assistant', answer);
-      yield JSON.stringify({ type: 'answer', data: answer });
-      return;
-    }
-
-    const aiSQL = await callOllamaSQL(prompt, session_id);
-
-    if (!aiSQL.toLowerCase().startsWith('select')) {
-      // Nếu Ollama trả về câu trả lời tự nhiên, trả về type: 'answer' thay vì 'error'
-      yield JSON.stringify({ type: 'answer', data: aiSQL });
-      return;
-    }
-
-    const results = await runQuery(aiSQL);
-    const summary = `Dữ liệu kết quả gồm ${results.length} dòng. Ví dụ:\n` + summarizeResult(results);
-    await saveMessage(session_id, 'assistant', summary);
-    yield JSON.stringify({ type: 'result', data: results });
-  } catch (err) {
-    yield JSON.stringify({ type: 'error', message: err.message || err });
-  }
-}
-
-module.exports = { handleQuery };
+// module.exports = {
+//   queryEngine,
+// };
