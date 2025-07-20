@@ -1,36 +1,27 @@
-# Build stage
+# build stage
 FROM node:18 as build-stage
 
 WORKDIR /app
 
-# Install yarn
-RUN npm install -g yarn
+# Nhận biến môi trường từ docker-compose
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
 
-# Copy package files
 COPY package*.json ./
+RUN npm install
 
-# Install dependencies
-RUN yarn install
-
-# Copy project files
 COPY . .
 
-# Set environment variables
-ENV NODE_ENV=production
-ENV VITE_APP_TITLE=App-ST
+# Inject biến môi trường vào Vite build
+RUN npm run build
 
-# Build the app
-RUN yarn build
-
-# Production stage
+# production stage
 FROM nginx:stable-alpine as production-stage
 
-# Copy built files from build stage
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration
+# Replace default nginx config if needed
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"] 
+CMD ["nginx", "-g", "daemon off;"]

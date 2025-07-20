@@ -83,6 +83,8 @@ import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import InputField from "@/components/Input-Field.vue";
 import Loading from "@/components/Loading.vue";
+// import { useInforUser } from "@/composables/Settings/useInforUser";
+
 
 const router = useRouter();
 const Url = import.meta.env.VITE_API_URL;
@@ -93,12 +95,16 @@ const TextError = ref("");
 const rememberMe = ref(false);
 const showPassword = ref(false);
 
+
+
 const login = async () => {
   DialogLoading.value = true;
   const formData = {
     Username: Username.value,
     Password: Password.value,
   };
+  const API_URL = import.meta.env.VITE_API_URL; // phải log được /api
+  console.log("API_URL:", API_URL); // KIỂM TRA: phải in ra "/api"
   try {
     const res = await axios.post(`${Url}/Users/login`, formData);
     localStorage.setItem("token", res.data.token);

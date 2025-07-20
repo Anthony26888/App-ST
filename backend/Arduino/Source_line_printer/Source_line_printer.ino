@@ -9,7 +9,7 @@
 // ===================== CẤU HÌNH =====================
 const char* ssid = "KTNM2023";
 const char* password = "Sthuat@2023KTNM";
-const char* SERVER_HOST = "http://192.168.2.248:3000";  // ✅ Đặt URL server tại đây
+const char* SERVER_HOST = "http://192.168.2.59:3000";  // ✅ Đặt URL server tại đây
 // ====================================================
 
 WebServer server(80);

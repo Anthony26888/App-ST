@@ -41,9 +41,10 @@ const allowedOrigins = new Set([
   "http://localhost:8080", "https://localhost:8080",
   "http://localhost:3000", "https://localhost:3000",
   "http://127.0.0.1:8080", "http://127.0.0.1:3000",
+  "http://localhost",
 
   // LAN
-  "http://192.168.100.210:3000", "http://192.168.1.10:3000", "http://192.168.2.248:3000",
+  "http://192.168.100.210:3000", "http://192.168.1.10:3000", "http://192.168.2.248:3000", "http://192.168.100.76:3000",  "http://192.168.100.200:3000",
 
   // Production domain – **đầy đủ biến thể**
   "http://erp.sieuthuat.com",
@@ -77,15 +78,7 @@ app.options("*", cors());
 const server = require("http").createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.has(origin)) {
-        return callback(null, true);
-      } else {
-        return callback(new Error("Socket origin not allowed by CORS"));
-      }
-    },
-    credentials: true,
+    origin: "*", // hoặc http://192.168.100.76
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
   }
 });
@@ -116,17 +109,28 @@ const userProjects = new Map();
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
   if (!sessions[socket.id]) sessions[socket.id] = [];
-  socket.on("getCompare", async (id) => {
-    try {
-      const query = await getCompareWareHouse(id);
-      db.all(query, [id], (err, rows) => {
-        if (err) return socket.emit("compareError", err);
-        socket.emit("compareData", rows);
-      });
-    } catch (error) {
-      socket.emit("compareError", error);
-    }
-  }),
+    socket.on("getInforUser", async (id) => {
+      try {
+        const query = `SSELECT * FROM Users WHERE Username = ?`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("InforUserError", err);
+          socket.emit("InforUserData", rows);
+        });
+      } catch (error) {
+        socket.emit("InforUserError", error);
+      }
+    }),
+    socket.on("getCompare", async (id) => {
+      try {
+        const query = await getCompareWareHouse(id);
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("compareError", err);
+          socket.emit("compareData", rows);
+        });
+      } catch (error) {
+        socket.emit("compareError", error);
+      }
+    }),
     socket.on("getCheckBOM", async (id) => {
       try {
         const query = await getPivotQuery(id);
@@ -1894,6 +1898,19 @@ app.post("/insert-compare-inventory/:id", async (req, res) => {
   } finally {
     // Remove from processing set
     processingRequests.delete(id);
+  }
+});
+
+// Router to get detail user
+app.get("/api/All-Users/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    db.all(`SELECT * FROM Users WHERE Username = ?`, [id], (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

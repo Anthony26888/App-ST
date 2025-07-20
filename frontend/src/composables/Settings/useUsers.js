@@ -6,9 +6,12 @@ export function useUsers() {
   const users = ref([]);
   const usersError = ref([]);
   const SOCKET_URL = import.meta.env.VITE_SOCKET_URL; // Lấy URL từ .env
-  const socket = io(getSocketUrl(), {
-    withCredentials: true
-  });
+  const socket = io(SOCKET_URL) // chỉnh lại nếu deploy
+  // const socket = io(getSocketUrl(), {
+  //   transports: ["websocket"],        // ✅ Rất quan trọng!
+  //   withCredentials: true,            // ✅ Nếu backend yêu cầu
+  //   path: "/socket.io",               // ✅ Nếu backend (hoặc nginx) cần path cụ thể
+  // });
   onMounted(() => {
     socket.emit("getUsers");
     socket.on("usersData", (data) => {

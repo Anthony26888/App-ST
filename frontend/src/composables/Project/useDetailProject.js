@@ -6,9 +6,12 @@ export function useDetailProject(id) {
   const detailProject = ref([]);
   const detailProjectError = ref([]);
   const SOCKET_URL = import.meta.env.VITE_SOCKET_URL; // Lấy URL từ .env
-  const socket = io(getSocketUrl(), {
-    withCredentials: true
-  });
+  const socket = io(SOCKET_URL) // chỉnh lại nếu deploy
+  // const socket = io(getSocketUrl(), {
+  //   transports: ["websocket"],      // ✅ ưu tiên websocket
+  //   withCredentials: true,          // ✅ gửi cookie nếu có auth
+  //   path: "/socket.io",             // ✅ khớp với backend nếu thay đổi path
+  // });
   onMounted(() => {
     socket.emit("getDetailProject", id);
     socket.on("DetailProjectData", (data) => {

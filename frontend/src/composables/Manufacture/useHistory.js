@@ -8,14 +8,17 @@ export function useHistory(id) {
   const historyError = ref(null);
   const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
   const API_URL = import.meta.env.VITE_API_URL;
+  const socket = io(SOCKET_URL) // chỉnh lại nếu deploy
   // const socket = io(SOCKET_URL, {
   //   reconnection: true,
   //   reconnectionAttempts: 5,
   //   reconnectionDelay: 1000
   // });
-  const socket = io(getSocketUrl(), {
-    withCredentials: true
-  });
+  // const socket = io(getSocketUrl(), {
+  //   transports: ["websocket"],      // ✅ ưu tiên websocket
+  //   withCredentials: true,          // ✅ gửi cookie nếu có auth
+  //   path: "/socket.io",             // ✅ khớp với backend nếu thay đổi path
+  // });
 
   // Function to fetch data via REST API as fallback
   const fetchDataViaAPI = async () => {

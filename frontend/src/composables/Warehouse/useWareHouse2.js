@@ -6,9 +6,12 @@ export function useWareHouse2() {
   const warehouse2 = ref([]);
   const warehouse2Error = ref([]);
   const SOCKET_URL = import.meta.env.VITE_SOCKET_URL; // Lấy URL từ .env
-  const socket = io(getSocketUrl(), {
-    withCredentials: true
-  });
+  const socket = io(SOCKET_URL) // chỉnh lại nếu deploy
+  // const socket = io(getSocketUrl(), {
+  //   transports: ["websocket"],      // ✅ ưu tiên websocket
+  //   withCredentials: true,          // ✅ gửi cookie nếu có auth
+  //   path: "/socket.io",             // ✅ khớp với backend nếu thay đổi path
+  // });
   onMounted(() => {
     socket.emit("getWareHouse2");
     socket.on("WareHouse2Data", (data) => {

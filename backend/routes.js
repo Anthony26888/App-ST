@@ -432,7 +432,7 @@ app.get("/Project-Detail/download/:id", async (req, res) => {
 });
 
 // Router login user
-app.post("/Users/login", (req, res) => {
+app.post("/api/Users/login", (req, res) => {
   const { Username, Password } = req.body;
 
   db.get(`SELECT * FROM Users WHERE Username = ?`, [Username], (err, user) => {
@@ -466,18 +466,18 @@ app.get("/All-Users", async (req, res) => {
   }
 });
 
-// Router to get detail user
-app.get("/All-Users/:id", async (req, res) => {
-  const { id } = req.params;
-  try {
-    db.all(`SELECT * FROM Users WHERE Username = ?`, [id], (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json(rows);
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+// // Router to get detail user
+// app.get("/All-Users/:id", async (req, res) => {
+//   const { id } = req.params;
+//   try {
+//     db.all(`SELECT * FROM Users WHERE Username = ?`, [id], (err, rows) => {
+//       if (err) return res.status(500).json({ error: err.message });
+//       res.json(rows);
+//     });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// });
 
 // Route to fetch Project
 app.get("/Project", async (req, res) => {

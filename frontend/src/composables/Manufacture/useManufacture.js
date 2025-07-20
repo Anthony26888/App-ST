@@ -8,6 +8,7 @@ export function useManufacture() {
   const manufactureError = ref(null); // Changed to null as initial value
   const isConnected = ref(false); // Add connection status
   const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
+  const socket = io(SOCKET_URL) // chỉnh lại nếu deploy
 
   // Validate SOCKET_URL
   if (!SOCKET_URL) {
@@ -20,9 +21,11 @@ export function useManufacture() {
   //   reconnectionAttempts: 5,
   //   timeout: 10000,
   // });
-  const socket = io(getSocketUrl(), {
-    withCredentials: true
-  });
+  // const socket = io(getSocketUrl(), {
+  //   transports: ["websocket"],      // ✅ ưu tiên websocket
+  //   withCredentials: true,          // ✅ gửi cookie nếu có auth
+  //   path: "/socket.io",             // ✅ khớp với backend nếu thay đổi path
+  // });
   
   onMounted(() => {
     console.log("Initializing socket connection to:", SOCKET_URL);
