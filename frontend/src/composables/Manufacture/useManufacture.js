@@ -7,15 +7,8 @@ export function useManufacture() {
   const manufactureFound = ref(null); // Changed to null as initial value
   const manufactureError = ref(null); // Changed to null as initial value
   const isConnected = ref(false); // Add connection status
-  const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
+  const SOCKET_URL = import.meta.env.VITE_SOCKET_URL; // Lấy URL từ .env
   const socket = io(SOCKET_URL) // chỉnh lại nếu deploy
-
-  // Validate SOCKET_URL
-  if (!SOCKET_URL) {
-    console.error("VITE_SOCKET_URL is not defined in environment variables");
-    manufactureError.value = "Socket URL is not configured";
-    return { manufacture, manufactureFound, manufactureError, isConnected };
-  }
 
   // const socket = io(SOCKET_URL, {
   //   reconnectionAttempts: 5,

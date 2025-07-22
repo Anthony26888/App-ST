@@ -338,7 +338,18 @@ const DelaySMT_Edit = ref(0);
 const Date_Edit = ref("");
 const Note_Edit = ref("");
 const Level_Edit = ref("");
-const Quantity_Edit = ref(0);
+const Quantity_Edit = ref(1);
+const Quantity_IPQCSMT_Edit = ref(1);
+const Quantity_IPQC_Edit = ref(1);
+const Quantity_AOI_Edit = ref(1);
+const Quantity_Assembly_Edit = ref(1);
+const Quantity_BoxBuild_Edit = ref(1);
+const Quantity_Test1_Edit = ref(1);
+const Quantity_Test2_Edit = ref(1);
+const Quantity_ConformalCoating_Edit = ref(1);
+const Quantity_OQC_Edit = ref(1);
+
+
 
 
 // Khởi tạo các biến ref cho form thêm mới
@@ -420,6 +431,16 @@ function GetItem(value) {
   Quantity_Edit.value = found.Quantity;
   Date_Edit.value = found.Date;
   Note_Edit.value = found.Note;
+  Quantity_IPQCSMT_Edit = found.Quantity_IPQCSMT;
+  Quantity_IPQC_Edit = found.Quantity_IPQC;
+  Quantity_AOI_Edit = ref(1);
+  Quantity_Assembly_Edit = ref(1);
+  Quantity_BoxBuild_Edit = ref(1);
+  Quantity_Test1_Edit = ref(1);
+  Quantity_Test2_Edit = ref(1);
+  Quantity_ConformalCoating_Edit = ref(1);
+  Quantity_OQC_Edit = ref(1);
+
 }
 
 // Hàm lưu thông tin chỉnh sửa
@@ -431,9 +452,17 @@ const SaveEdit = async () => {
     Creater: UserInfo.value,
     Note: Note_Edit.value,
     Total: Total_Edit.value,
-    DelaySMT: 50,
+    DelaySMT: DelaySMT_Edit.value,
     Level: Level_Edit.value,
-    Quantity: 1,
+    Quantity: Quantity_Edit.value,
+    Quantity_IPQC : Quantity_IPQC_Edit.value,
+    Quantity_AOI : Quantity_AOI_Edit.value,
+    Quantity_Assembly : Quantity_Assembly_Edit.value,
+    Quantity_BoxBuild : Quantity_BoxBuild_Edit.value,
+    Quantity_Test1 : Quantity_Test1_Edit.value,
+    Quantity_Test2 : Quantity_Test2_Edit.value,
+    Quantity_ConformalCoating : Quantity_ConformalCoating_Edit.value,
+    Quantity_OQC : Quantity_OQC_Edit.value
   });
   try {
     const response = await axios.put(

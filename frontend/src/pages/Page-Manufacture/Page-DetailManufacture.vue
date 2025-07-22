@@ -575,7 +575,7 @@
                 class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
               >
                 <v-icon icon="mdi-chart-bar" class="me-2"></v-icon>
-                Thống kê theo công đoạn
+                Thống kê theo công đoạn sản xuất
               </v-card-title>
               <v-card-text class="pa-4">
                 <div
@@ -1383,6 +1383,7 @@ const chartData = computed(() => {
     "SMT - Lò Reflow",
     "IPQCSMT",
     "AOI",
+    "Assembly",
     "Test1",
     "Test2",
     "IPQC",
@@ -1409,6 +1410,7 @@ const chartData = computed(() => {
     ],
     IPQCSMT: ["IPQCSMT", "IPQC SMT", "IPQC-SMT"],
     AOI: ["AOI"],
+    Assembly: ["Assembly", "assembly", "Lắp ráp"],
     Test1: ["Test1", "Test 1", "Test-1"],
     Test2: ["Test2", "Test 2", "Test-2"],
     IPQC: ["IPQC"],
@@ -1428,6 +1430,7 @@ const chartData = computed(() => {
     "SMT - Lò Reflow": data?.Quantity || 1,
     "IPQCSMT": data?.Quantity_IPQCSMT || 1,
     "AOI": data?.Quantity_AOI || 1,
+    "Assembly": data?.Quantity_Assembly || 1,
     "Test1": data?.Quantity_Test1 || 1,
     "Test2": data?.Quantity_Test2 || 1,
     "IPQC": data?.Quantity_IPQC || 1,
@@ -1447,16 +1450,30 @@ const chartData = computed(() => {
     if (item.Source) {
       // Find the matching process step
       let matchedStep = null;
+
+      // First pass for exact match
       for (const [step, variations] of Object.entries(sourceMapping)) {
         if (
-          variations.some(
-            (variation) =>
-              item.Source.toLowerCase().includes(variation.toLowerCase()) ||
-              variation.toLowerCase().includes(item.Source.toLowerCase())
-          )
+          variations.some((v) => v.toLowerCase() === item.Source.toLowerCase())
         ) {
           matchedStep = step;
           break;
+        }
+      }
+
+      // Second pass for containment match if no exact match
+      if (!matchedStep) {
+        for (const [step, variations] of Object.entries(sourceMapping)) {
+          if (
+            variations.some(
+              (variation) =>
+                item.Source.toLowerCase().includes(variation.toLowerCase()) ||
+                variation.toLowerCase().includes(item.Source.toLowerCase())
+            )
+          ) {
+            matchedStep = step;
+            break;
+          }
         }
       }
 
@@ -1531,6 +1548,7 @@ const chartDetailData = computed(() => {
     "SMT - Lò Reflow",
     "IPQCSMT",
     "AOI",
+    "Assembly",
     "Test1",
     "Test2",
     "IPQC",
@@ -1557,6 +1575,7 @@ const chartDetailData = computed(() => {
     ],
     IPQCSMT: ["IPQCSMT", "IPQC SMT", "IPQC-SMT"],
     AOI: ["AOI"],
+    Assembly: ["Assembly", "assembly", "Lắp ráp"],
     Test1: ["Test1", "Test 1", "Test-1"],
     Test2: ["Test2", "Test 2", "Test-2"],
     IPQC: ["IPQC"],
@@ -1576,6 +1595,7 @@ const chartDetailData = computed(() => {
     "SMT - Lò Reflow": data?.Quantity || 1,
     "IPQCSMT": data?.Quantity_IPQCSMT || 1,
     "AOI": data?.Quantity_AOI || 1,
+    "Assembly": data?.Quantity_Assembly || 1,
     "Test1": data?.Quantity_Test1 || 1,
     "Test2": data?.Quantity_Test2 || 1,
     "IPQC": data?.Quantity_IPQC || 1,
@@ -1595,16 +1615,30 @@ const chartDetailData = computed(() => {
     if (item.Source) {
       // Find the matching process step
       let matchedStep = null;
+
+      // First pass for exact match
       for (const [step, variations] of Object.entries(sourceMapping)) {
         if (
-          variations.some(
-            (variation) =>
-              item.Source.toLowerCase().includes(variation.toLowerCase()) ||
-              variation.toLowerCase().includes(item.Source.toLowerCase())
-          )
+          variations.some((v) => v.toLowerCase() === item.Source.toLowerCase())
         ) {
           matchedStep = step;
           break;
+        }
+      }
+
+      // Second pass for containment match if no exact match
+      if (!matchedStep) {
+        for (const [step, variations] of Object.entries(sourceMapping)) {
+          if (
+            variations.some(
+              (variation) =>
+                item.Source.toLowerCase().includes(variation.toLowerCase()) ||
+                variation.toLowerCase().includes(item.Source.toLowerCase())
+            )
+          ) {
+            matchedStep = step;
+            break;
+          }
         }
       }
 

@@ -300,7 +300,7 @@
         <InputSelect
           ref="transactionTypeSelect"
           label="Loại giao dịch"
-          :items="['Nhập', 'Xuất']"
+          :items="['Nhập', 'Xuất','Thay đổi thông tin']"
           v-model="TransactionType_Edit"
           :rules="[(v) => !!v || 'Vui lòng chọn loại giao dịch']"
           required
@@ -1025,36 +1025,37 @@ const DownloadWareHouse = async () => {
  * Gets access token from DigiKey API
  * @param {string} value - The ID of the item to search
  */
-const getAccessToken = async (value) => {
+ const getAccessToken = async (value) => {
   DialogLoading.value = true;
   const found = warehouse.value.find((v) => v.id === value);
   GetDigikey.value = found.PartNumber_1;
-  const authString = Buffer.from(
-    `${clientId}:${clientSecret}`,
-    "utf-8"
-  ).toString("base64");
+
   const tokenUrl = "https://api.digikey.com/v1/oauth2/token";
   const params = new URLSearchParams();
   params.append("grant_type", "client_credentials");
+  params.append("client_id", clientId);           // <-- Bổ sung
+  params.append("client_secret", clientSecret);   // <-- Bổ sung
 
   try {
     const response = await axios.post(tokenUrl, params.toString(), {
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        Authorization: `Basic ${authString}`,
       },
     });
+
     accessToken.value = response.data.access_token;
     tokenType.value = response.data.token_type;
     expires_in.value = response.data.expires_in;
+
+    console.log("Đã lấy access token thành công:", accessToken.value);
+
     if (accessToken.value && tokenType.value && GetDigikey.value) {
-      return searchProduct();
+      return await searchProduct();
     }
-    console.log("Đã lấy access token thành công:", accessToken);
+
     return true;
   } catch (error) {
     console.error(
-      Error(),
       "Lỗi khi lấy access token:",
       error.response ? error.response.data : error.message
     );
@@ -1062,6 +1063,7 @@ const getAccessToken = async (value) => {
     return false;
   }
 };
+
 
 /**
  * Searches for product details using DigiKey API

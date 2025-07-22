@@ -13,7 +13,7 @@
       <v-list-item
         class="ms-2"
         lines="two"
-        prepend-avatar="@/assets/z6789719219807_0f949e3d7cde44d40c0dcac3476ef513.jpg"
+        prepend-avatar="@/assets/avatar-ST.jpg"
       >
         <template v-slot:title>
           <p class="text-h6 font-weight-medium ms-3 text-white">

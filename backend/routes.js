@@ -12,15 +12,6 @@ const app = express.Router();
 
 const SECRET_KEY = process.env.JWT_SECRET || "default_secret_key";
 
-// Test route để kiểm tra kết nối
-app.get("/test", (req, res) => {
-  res.json({ 
-    message: "Backend is working!", 
-    timestamp: new Date().toISOString(),
-    cors: "CORS is configured correctly"
-  });
-});
-
 // Configure Multer for file storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -32,7 +23,12 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB
+  },
+});
 
 app.post("/upload", upload.single("file"), (req, res) => {
   if (!req.file) return res.status(400).send("No file uploaded.");
@@ -74,80 +70,8 @@ app.post("/upload", upload.single("file"), (req, res) => {
 });
 
 
-
-// Upload file và đặt câu hỏi
-
-
-
-
-// Route to fetch all check boms
-app.get("/CheckBom/:id", async (req, res) => {
-  const { id } = req.params;
-  try {
-    const query = await getPivotQuery(id);
-    db.all(query, [id], (err, rows) => {
-      if (err) {
-        res.status(500).json({ error: err.message });
-      } else {
-        res.json(rows);
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ error: "Không tìm thấy dữ liệu" });
-  }
-});
-
-// Route to fetch all check boms
-app.get("/CheckBom/Bom", async (req, res) => {
-  try {
-    db.all(
-      `SELECT DISTINCT 
-      PO AS Tên_dự_án, 
-      Bom AS Tên_Bom,  
-      COUNT(Bom) AS Số_Lượng_LK, 
-      SL_Board AS Số_Lượng_Board 
-      FROM CheckBOM 
-      GROUP BY PO, Bom`,
-      [id],
-      (err, rows) => {
-        if (err) {
-          res.status(500).json({ error: err.message });
-        } else {
-          res.json(rows);
-        }
-      }
-    );
-  } catch (error) {
-    res.status(500).json({ error: "Không tìm thấy dữ liệu" });
-  }
-});
-
-// Route to fetch Detail Bom
-app.get("/CheckBom/Detail/:id", async (req, res) => {
-  const { id } = req.params;
-  try {
-    db.all(
-      `
-      SELECT DISTINCT  PO, Bom, SL_Board 
-      FROM CheckBOM 
-      WHERE id = ? 
-      GROUP BY PO, Bom`,
-      [id],
-      (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
-      }
-    );
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-
-
-
 // Router delete all Inventory
-app.delete("/WareHouse/delete-all", async (req, res) => {
+app.delete("/api/WareHouse/delete-all", async (req, res) => {
   // Delete data into SQLite database
   const query = `DELETE FROM WareHouse`;
   db.run(query, [], function (err) {
@@ -160,7 +84,7 @@ app.delete("/WareHouse/delete-all", async (req, res) => {
 });
 
 // Router delete all Inventory
-app.delete("/WareHouse2/delete-all", async (req, res) => {
+app.delete("/api/WareHouse2/delete-all", async (req, res) => {
   // Delete data into SQLite database
   const query = `DELETE FROM WareHouse2`;
   db.run(query, [], function (err) {
@@ -173,7 +97,7 @@ app.delete("/WareHouse2/delete-all", async (req, res) => {
 });
 
 // Router delete all item in CheckBOM table
-app.delete("/CheckBOM/delete-all", async (req, res) => {
+app.delete("/api/CheckBOM/delete-all", async (req, res) => {
   // Delete data into SQLite database
   const query = `DELETE FROM CheckBOM`;
   db.run(query, [], function (err) {
@@ -187,7 +111,7 @@ app.delete("/CheckBOM/delete-all", async (req, res) => {
 
 
 // 📥 API to Download WareHouse as XLSX
-app.get("/Ware-House/download", async (req, res) => {
+app.get("/api/Ware-House/download", async (req, res) => {
   try {
     const query = "SELECT * FROM WareHouse";
     db.all(query, [], (err, rows) => {
@@ -215,7 +139,7 @@ app.get("/Ware-House/download", async (req, res) => {
 });
 
 // 📥 API to Download WareHouse2 as XLSX
-app.get("/Ware-House2/download", async (req, res) => {
+app.get("/api/Ware-House2/download", async (req, res) => {
   try {
     const query = "SELECT * FROM WareHouse2";
     db.all(query, [], (err, rows) => {
@@ -243,7 +167,7 @@ app.get("/Ware-House2/download", async (req, res) => {
 });
 
 // 📥 API to Download -Order as XLSX
-app.get("/Download-Order/:id", async (req, res) => {
+app.get("/api/Download-Order/:id", async (req, res) => {
   const { id } = req.params;
   try {
     const query = await getCompareInventory(id);
@@ -272,7 +196,7 @@ app.get("/Download-Order/:id", async (req, res) => {
 });
 
 // 📥 API to Download Project as XLSX
-app.get("/Project/download", async (req, res) => {
+app.get("/api/Project/download", async (req, res) => {
   try {
     const query = `
       SELECT 
@@ -354,7 +278,7 @@ app.get("/Project/download", async (req, res) => {
 
 
 // 📥 API to Download Project detail as XLSX
-app.get("/Project-Detail/download/:id", async (req, res) => {
+app.get("/api/Project-Detail/download/:id", async (req, res) => {
   const { id } = req.params;
   try {
     const query = `
@@ -454,40 +378,12 @@ app.post("/api/Users/login", (req, res) => {
   });
 });
 
-// Router to fetch all users
-app.get("/All-Users", async (req, res) => {
-  try {
-    db.all(`SELECT * FROM Users ORDER BY Username DESC`, [], (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json(rows);
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
-// // Router to get detail user
-// app.get("/All-Users/:id", async (req, res) => {
-//   const { id } = req.params;
-//   try {
-//     db.all(`SELECT * FROM Users WHERE Username = ?`, [id], (err, rows) => {
-//       if (err) return res.status(500).json({ error: err.message });
-//       res.json(rows);
-//     });
-//   } catch (error) {
-//     res.status(500).json({ error: error.message });
-//   }
-// });
-
-// Route to fetch Project
-app.get("/Project", async (req, res) => {
+// Router to get detail user
+app.get("/api/All-Users/:id", async (req, res) => {
+  const { id } = req.params;
   try {
-    const query = `
-      SELECT * 
-      FROM Project 
-      ORDER BY Customers ASC
-    `;
-    db.all(query, [], (err, rows) => {
+    db.all(`SELECT * FROM Users WHERE Username = ?`, [id], (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json(rows);
     });
@@ -497,7 +393,7 @@ app.get("/Project", async (req, res) => {
 });
 
 // 📥 API to Download PO as XLSX
-app.get("/Project/Customer/Orders/Download/:id", async (req, res) => {
+app.get("/api/Project/Customer/Orders/Download/:id", async (req, res) => {
   const { id } = req.params;
   const NameExcel = req.query.filename;
   try {
@@ -529,7 +425,7 @@ app.get("/Project/Customer/Orders/Download/:id", async (req, res) => {
   }
 });
 // Router delete all item in Customers table
-app.delete("/Project/delete-all", async (req, res) => {
+app.delete("/api/Project/delete-all", async (req, res) => {
   // Delete data into SQLite database
   const query = `DELETE FROM Customers`;
   db.run(query, [], function (err) {
@@ -540,88 +436,8 @@ app.delete("/Project/delete-all", async (req, res) => {
     res.json({ message: "Item inserted successfully" });
   });
 });
-
-// // Router upload file xlsx to WareHouse table
-// app.post("/WareHouse/Upload", upload.single("file"), async (req, res) => {
-//   if (!req.file) return res.status(400).send("No file uploaded.");
-
-//   // Read Excel file
-//   const filePath = path.join(__dirname, req.file.path);
-//   const workbook = xlsx.readFile(filePath);
-//   const sheetName = workbook.SheetNames[0];
-//   const sheet = workbook.Sheets[sheetName];
-
-//   // Convert sheet data to JSON
-//   const data = xlsx.utils.sheet_to_json(sheet);
-
-//   try {
-//     // Process each row sequentially
-//     for (const row of data) {
-//       // Check if PartNumber_1 exists first
-//       const existingRow = await new Promise((resolve, reject) => {
-//         db.get(
-//           "SELECT * FROM WareHouse WHERE PartNumber_1 = ?",
-//           [row.PartNumber_1],
-//           (err, result) => {
-//             if (err) reject(err);
-//             else resolve(result);
-//           }
-//         );
-//       });
-
-//       if (existingRow) {
-//         // Update existing row
-//         await new Promise((resolve, reject) => {
-//           const updateStmt = db.prepare(
-//             "UPDATE WareHouse SET Input = Input + ?, Inventory = Inventory + ? WHERE PartNumber_1 = ?"
-//           );
-//           updateStmt.run(
-//             row.Input || 0,
-//             row.Inventory || 0,
-//             row.PartNumber_1,
-//             (err) => {
-//               updateStmt.finalize();
-//               if (err) reject(err);
-//               else resolve();
-//             }
-//           );
-//         });
-//       } else {
-//         // Insert new row
-//         await new Promise((resolve, reject) => {
-//           const insertStmt = db.prepare(
-//             "INSERT INTO WareHouse (Description, PartNumber_1, PartNumber_2, Input, Output, Inventory, Customer, Location, Note, Note_Output) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-//           );
-//           insertStmt.run(
-//             row.Description || '',
-//             row.PartNumber_1,
-//             row.PartNumber_2 || '',
-//             row.Input || 0,
-//             row.Output || 0,
-//             row.Inventory || 0,
-//             row.Customer || '',
-//             row.Location || '',
-//             row.Note || '',
-//             row.Note_Output || '',
-//             (err) => {
-//               insertStmt.finalize();
-//               if (err) reject(err);
-//               else resolve();
-//             }
-//           );
-//         });
-//       }
-//     }
-
-//     res.send("File processed successfully.");
-//   } catch (error) {
-//     console.error("Error processing file:", error);
-//     res.status(500).send("Error processing file: " + error.message);
-//   }
-// });
-
 // 📥 API to Download AOI data as XLSX
-app.get("/Download-AOI/:id", async (req, res) => {
+app.get("/api/Download-AOI/:id", async (req, res) => {
   const { id } = req.params;
   try {
     const query = "SELECT * FROM AOIDetails WHERE ManufactureID = ?";

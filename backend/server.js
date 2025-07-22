@@ -44,7 +44,13 @@ const allowedOrigins = new Set([
   "http://localhost",
 
   // LAN
-  "http://192.168.100.210:3000", "http://192.168.1.10:3000", "http://192.168.2.248:3000", "http://192.168.100.76:3000",  "http://192.168.100.200:3000",
+  "http://192.168.100.210:3000", 
+  "http://192.168.1.10:3000", 
+  "http://192.168.2.248:3000", 
+  "http://192.168.100.76:3000",  
+  "http://192.168.100.200:3000",
+  "http://192.168.100.76",  
+  "http://192.168.100.20",
 
   // Production domain – **đầy đủ biến thể**
   "http://erp.sieuthuat.com",
@@ -71,6 +77,8 @@ app.use(cors({
 
 app.use(bodyParser.json());
 app.use("/", routes);
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 // BẮT BUỘC CÓ để xử lý preflight OPTIONS
 app.options("*", cors());
 
@@ -102,7 +110,12 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB
+  },
+});
 
 const userProjects = new Map();
 // Khi client kết nối
@@ -387,7 +400,7 @@ io.on("connection", (socket) => {
                 FROM PurchaseOrders
                 GROUP BY CustomerID
               ) c ON a.id = c.CustomerID
-              ORDER BY Status DESC, Years DESC
+              ORDER BY Status DESC, CustomerName ASC
         `;
         db.all(query, [], (err, rows) => {
           if (err) return socket.emit("ProjectError", err);
@@ -445,7 +458,7 @@ io.on("connection", (socket) => {
           LEFT JOIN ProductDetails o ON p.id = o.POID 
           WHERE p.CustomerID = ? 
           GROUP BY p.PONumber 
-          ORDER BY Status ASC, Date_Created ASC
+          ORDER BY Date_Created DESC
         `;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("DetailProjectError", err);
@@ -493,7 +506,7 @@ io.on("connection", (socket) => {
                         ) b ON z.id = b.PlanID
                       ) c ON o.id = c.ProjectID
                       WHERE o.POID = ?
-                      ORDER BY Status ASC, Product_Detail ASC`;
+                      ORDER BY Status DESC, Product_Detail ASC`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("DetailProjectPOError", err);
           socket.emit("DetailProjectPOData", rows);
@@ -1507,6 +1520,10 @@ io.on("connection", (socket) => {
                         SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'IPQCSMT' FROM ManufactureIPQCSMT
                         UNION ALL
                         SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'OQC' FROM ManufactureOQC
+                        UNION ALL
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Assembly' FROM ManufactureAssembly
+                        UNION ALL
+                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Nhập kho' FROM ManufactureWarehouse
                       ) 
                       WHERE PlanID = ?
                       ORDER BY Timestamp DESC`;
@@ -1734,7 +1751,7 @@ const getCompareWareHouse = async (id) => {
 };
 
 // 📥 API to Download PO as XLSX
-app.get("/Download-PO/:id", async (req, res) => {
+app.get("/api/Download-PO/:id", async (req, res) => {
   const { id } = req.params;
   try {
     const query = await getPivotQuery(id);
@@ -1762,7 +1779,7 @@ app.get("/Download-PO/:id", async (req, res) => {
   }
 });
 
-app.post("/insert-compare-inventory/:id", async (req, res) => {
+app.post("/api/insert-compare-inventory/:id", async (req, res) => {
   const id = req.params.id;
   console.log("Processing insert-compare-inventory for PO:", id);
 
@@ -1901,21 +1918,9 @@ app.post("/insert-compare-inventory/:id", async (req, res) => {
   }
 });
 
-// Router to get detail user
-app.get("/api/All-Users/:id", async (req, res) => {
-  const { id } = req.params;
-  try {
-    db.all(`SELECT * FROM Users WHERE Username = ?`, [id], (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json(rows);
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
 // Router register user
-app.post("/Users/register", (req, res) => {
+app.post("/api/Users/register", (req, res) => {
   const { Username, FullName, Password, Email, Level, Date } = req.body;
 
   bcrypt.hash(Password, 10, (err, hash) => {
@@ -1937,7 +1942,7 @@ app.post("/Users/register", (req, res) => {
 });
 
 // Router delete user in Users table
-app.delete("/Users/delete-user/:id", async (req, res) => {
+app.delete("/api/Users/delete-user/:id", async (req, res) => {
   const { id } = req.params;
   // Delete data into SQLite database
   const query = `DELETE FROM Users WHERE id = ?`;
@@ -1952,7 +1957,7 @@ app.delete("/Users/delete-user/:id", async (req, res) => {
 });
 
 // Router edit user in Users table
-app.put("/Users/Edit-User/:id", async (req, res) => {
+app.put("/api/Users/Edit-User/:id", async (req, res) => {
   const { Username, FullName, Email, Level } = req.body;
   const { id } = req.params;
   // Delete data into SQLite database
@@ -1972,7 +1977,7 @@ app.put("/Users/Edit-User/:id", async (req, res) => {
 });
 
 // Router upload file xlsx to WareHouse table
-app.post("/WareHouse/Upload", upload.single("file"), async (req, res) => {
+app.post("/api/WareHouse/Upload", upload.single("file"), async (req, res) => {
   if (!req.file) return res.status(400).send("No file uploaded.");
 
   // Read Excel file
@@ -2055,7 +2060,7 @@ app.post("/WareHouse/Upload", upload.single("file"), async (req, res) => {
 });
 
 // Router update item WareHouse table
-app.put("/WareHouse/update-item/:id", async (req, res) => {
+app.put("/api/WareHouse/update-item/:id", async (req, res) => {
   const {
     PartNumber1_Edit,
     PartNumber2_Edit,
@@ -2102,7 +2107,7 @@ app.put("/WareHouse/update-item/:id", async (req, res) => {
 });
 
 // Router delete item in WareHouse table
-app.delete("/WareHouse/delete-item/:id", async (req, res) => {
+app.delete("/api/WareHouse/delete-item/:id", async (req, res) => {
   const { id } = req.params;
   // Delete data into SQLite database
   const query = `DELETE FROM WareHouse WHERE id = ?`;
@@ -2118,7 +2123,7 @@ app.delete("/WareHouse/delete-item/:id", async (req, res) => {
 });
 
 //Router post new item in WareHouse table
-app.post("/WareHouse/upload-new-item", (req, res) => {
+app.post("/api/WareHouse/upload-new-item", (req, res) => {
   const {
     PartNumber_1,
     PartNumber_2,
@@ -2160,7 +2165,7 @@ app.post("/WareHouse/upload-new-item", (req, res) => {
 });
 
 // Router upload file xlsx to WareHouse2 table
-app.post("/WareHouse2/Upload", upload.single("file"), async (req, res) => {
+app.post("/api/WareHouse2/Upload", upload.single("file"), async (req, res) => {
   if (!req.file) return res.status(400).send("No file uploaded.");
 
   // Read Excel file
@@ -2242,7 +2247,7 @@ app.post("/WareHouse2/Upload", upload.single("file"), async (req, res) => {
 });
 
 // Router update item WareHouse2 table
-app.put("/WareHouse2/update-item/:id", async (req, res) => {
+app.put("/api/WareHouse2/update-item/:id", async (req, res) => {
   const {
     PartNumber1_Edit,
     PartNumber2_Edit,
@@ -2287,7 +2292,7 @@ app.put("/WareHouse2/update-item/:id", async (req, res) => {
   );
 });
 // Router delete item in WareHouse2 table
-app.delete("/WareHouse2/delete-item/:id", async (req, res) => {
+app.delete("/api/WareHouse2/delete-item/:id", async (req, res) => {
   const { id } = req.params;
   // Delete data into SQLite database
   const query = `DELETE FROM WareHouse2 WHERE id = ?`;
@@ -2302,7 +2307,7 @@ app.delete("/WareHouse2/delete-item/:id", async (req, res) => {
 });
 
 //Router post new item in WareHouse2 table
-app.post("/WareHouse2/upload-new-item", (req, res) => {
+app.post("/api/WareHouse2/upload-new-item", (req, res) => {
   const {
     PartNumber_1,
     PartNumber_2,
@@ -2344,36 +2349,50 @@ app.post("/WareHouse2/upload-new-item", (req, res) => {
 });
 
 // Router update WareHouse accept
-app.put("/WareHouse/update-Inventory-CheckBom/:id", async (req, res) => {
+app.put("/api/WareHouse/update-Inventory-CheckBom/:id", async (req, res) => {
   const { id } = req.params;
   const poNumber = id;
-  // Insert data into SQLite database
+
   const query = `
     UPDATE WareHouse
     SET Output = 
       CASE 
-        WHEN Input > (SELECT SUM(cb.So_Luong * cb.SL_Board + IFNULL(cb.Hao_Phi_Thuc_Te, 0))
-                          FROM DetailOrders cb
-                          WHERE cb.PartNumber_1 = WareHouse.PartNumber_1 AND cb.PO = ?)
-        THEN Output + (SELECT SUM(cb.So_Luong * cb.SL_Board + IFNULL(cb.Hao_Phi_Thuc_Te, 0))
-                          FROM DetailOrders cb
-                          WHERE cb.PartNumber_1 = WareHouse.PartNumber_1 AND cb.PO = ?)
+        WHEN Input > (
+          SELECT SUM(cb.So_Luong * cb.SL_Board + IFNULL(cb.Hao_Phi_Thuc_Te, 0))
+          FROM DetailOrders cb
+          WHERE cb.PartNumber_1 = WareHouse.PartNumber_1 AND cb.PO = ?
+        )
+        THEN Output + (
+          SELECT SUM(cb.So_Luong * cb.SL_Board + IFNULL(cb.Hao_Phi_Thuc_Te, 0))
+          FROM DetailOrders cb
+          WHERE cb.PartNumber_1 = WareHouse.PartNumber_1 AND cb.PO = ?
+        )
+        WHEN Input < (
+          SELECT SUM(cb.So_Luong * cb.SL_Board + IFNULL(cb.Hao_Phi_Thuc_Te, 0))
+          FROM DetailOrders cb
+          WHERE cb.PartNumber_1 = WareHouse.PartNumber_1 AND cb.PO = ?
+        )
+        THEN Input
         ELSE 0
       END
-    WHERE PartNumber_1 IN (SELECT PartNumber_1 FROM DetailOrders WHERE PO = ?)
+    WHERE PartNumber_1 IN (
+      SELECT PartNumber_1 FROM DetailOrders WHERE PO = ?
+    )
   `;
-  db.all(query, [poNumber, poNumber, poNumber], function (err) {
+
+  db.all(query, [poNumber, poNumber, poNumber, poNumber], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      return res.status(500).json({ error: err.message });
     }
     io.emit("updateCompare");
     io.emit("WareHouseUpdate");
-    // Broadcast the new message to all clients
-    res.json({ message: "Item inserted successfully" });
+    res.json({ message: "Inventory updated successfully." });
   });
 });
 
-app.put("/WareHouse2/update-Inventory-CheckBom/:id", async (req, res) => {
+
+app.put("/api/WareHouse2/update-Inventory-CheckBom/:id", async (req, res) => {
   const { id } = req.params;
   const poNumber = id;
   // Insert data into SQLite database
@@ -2403,7 +2422,7 @@ app.put("/WareHouse2/update-Inventory-CheckBom/:id", async (req, res) => {
 });
 
 // Router upload file xlsx to WareHouse table
-app.put("/Temporary_WareHouse/Update-File", async (req, res) => {
+app.put("/api/Temporary_WareHouse/Update-File", async (req, res) => {
   try {
     // Lấy tất cả dữ liệu từ Temporary_WareHouse
     db.all(
@@ -2450,7 +2469,7 @@ app.put("/Temporary_WareHouse/Update-File", async (req, res) => {
 });
 
 // Router delete item in Temporary WareHouse table
-app.delete("/Temporary-WareHouse/delete-item/:id", async (req, res) => {
+app.delete("/api/Temporary-WareHouse/delete-item/:id", async (req, res) => {
   const { id } = req.params;
   // Delete data into SQLite database
   const query = `DELETE FROM Temporary_WareHouse WHERE id = ?`;
@@ -2465,7 +2484,7 @@ app.delete("/Temporary-WareHouse/delete-item/:id", async (req, res) => {
 });
 
 // Router delete all in Temporary WareHouse table when already update WareHouse table
-app.delete("/Temporary-WareHouse/delete-all", async (req, res) => {
+app.delete("/api/Temporary-WareHouse/delete-all", async (req, res) => {
   const { id } = req.params;
   // Delete data into SQLite database
   const query = `DELETE FROM Temporary_WareHouse`;
@@ -2478,7 +2497,9 @@ app.delete("/Temporary-WareHouse/delete-all", async (req, res) => {
     res.json({ message: "Item inserted successfully" });
   });
 });
-app.post("/Temporary_WareHouse/Upload", upload.single("file"), (req, res) => {
+
+// Router upload item in Temporary WareHouse table from xlsx
+app.post("/api/Temporary_WareHouse/Upload", upload.single("file"), (req, res) => {
   if (!req.file) return res.status(400).send("No file uploaded.");
   // Read Excel file
   const filePath = path.join(__dirname, req.file.path);
@@ -2507,7 +2528,8 @@ app.post("/Temporary_WareHouse/Upload", upload.single("file"), (req, res) => {
   res.send("File processed successfully.");
 });
 
-app.post("/Temporary_WareHouse_2/Upload", upload.single("file"), (req, res) => {
+// Router upload item in Temporary WareHouse 2 table from xlsx
+app.post("/api/Temporary_WareHouse_2/Upload", upload.single("file"), (req, res) => {
   if (!req.file) return res.status(400).send("No file uploaded.");
   // Read Excel file
   const filePath = path.join(__dirname, req.file.path);
@@ -2537,7 +2559,7 @@ app.post("/Temporary_WareHouse_2/Upload", upload.single("file"), (req, res) => {
 });
 
 // Router upload file xlsx to WareHouse table
-app.put("/Temporary_WareHouse_2/Update-File", async (req, res) => {
+app.put("/api/Temporary_WareHouse_2/Update-File", async (req, res) => {
   try {
     // Lấy tất cả dữ liệu từ Temporary_WareHouse
     db.all(
@@ -2584,7 +2606,7 @@ app.put("/Temporary_WareHouse_2/Update-File", async (req, res) => {
 });
 
 // Router delete item in Temporary WareHouse table
-app.delete("/Temporary-WareHouse_2/delete-item/:id", async (req, res) => {
+app.delete("/api/Temporary-WareHouse_2/delete-item/:id", async (req, res) => {
   const { id } = req.params;
   // Delete data into SQLite database
   const query = `DELETE FROM Temporary_WareHouse_2 WHERE id = ?`;
@@ -2599,7 +2621,7 @@ app.delete("/Temporary-WareHouse_2/delete-item/:id", async (req, res) => {
 });
 
 // Router delete all in Temporary WareHouse table when already update WareHouse table
-app.delete("/Temporary-WareHouse_2/delete-all", async (req, res) => {
+app.delete("/api/Temporary-WareHouse_2/delete-all", async (req, res) => {
   const { id } = req.params;
   // Delete data into SQLite database
   const query = `DELETE FROM Temporary_WareHouse_2`;
@@ -2614,7 +2636,7 @@ app.delete("/Temporary-WareHouse_2/delete-all", async (req, res) => {
 });
 
 // Route to post item into warehouse log
-app.post("/WareHouse/Log/add-new-item", async (req, res) => {
+app.post("/api/WareHouse/Log/add-new-item", async (req, res) => {
   const {
     ActionType,
     PartNumber,
@@ -2651,7 +2673,7 @@ app.post("/WareHouse/Log/add-new-item", async (req, res) => {
 
 //Router to post all item into WareHouseLog table
 app.post(
-  "/WarHouseLog/Upload-File-Export",
+  "/api/WarHouseLog/Upload-File-Export",
   upload.single("file"),
   (req, res) => {
     if (!req.file) return res.status(400).send("No file uploaded.");
@@ -2688,7 +2710,7 @@ app.post(
 
 //Router to post all item into WareHouseLog table
 app.post(
-  "/WarHouseLog/Upload-File-Import",
+  "/api/WarHouseLog/Upload-File-Import",
   upload.single("file"),
   (req, res) => {
     if (!req.file) return res.status(400).send("No file uploaded.");
@@ -2725,7 +2747,7 @@ app.post(
 );
 
 // Router insert item in WareHouseLog table from Orders table
-app.post("/insert-log/:po", async (req, res) => {
+app.post("/api/insert-log/:po", async (req, res) => {
   const poNumber = req.params.po;
   const {
     Updated_by,
@@ -2778,7 +2800,7 @@ app.post("/insert-log/:po", async (req, res) => {
 });
 
 // Route to post item into warehouse2 log
-app.post("/WareHouse2/Log/add-new-item", async (req, res) => {
+app.post("/api/WareHouse2/Log/add-new-item", async (req, res) => {
   const {
     ActionType,
     PartNumber,
@@ -2814,7 +2836,7 @@ app.post("/WareHouse2/Log/add-new-item", async (req, res) => {
 });
 
 // Router delete item in Orders
-app.delete("/Orders/delete-item/:id", async (req, res) => {
+app.delete("/api/Orders/delete-item/:id", async (req, res) => {
   const { id } = req.params;
   // Delete data into SQLite database
   const query = `DELETE FROM Orders WHERE id = ?`;
@@ -2829,7 +2851,7 @@ app.delete("/Orders/delete-item/:id", async (req, res) => {
 });
 
 // Router delete item in CheckBom table
-app.delete("/CheckBom/Delete-Item/:id", async (req, res) => {
+app.delete("/api/CheckBom/Delete-Item/:id", async (req, res) => {
   const { id } = req.params;
   // Delete data into SQLite database
   const query = `DELETE FROM CheckBOM WHERE Bom = ?`;
@@ -2844,7 +2866,7 @@ app.delete("/CheckBom/Delete-Item/:id", async (req, res) => {
 });
 
 // Route to post item into list PO
-app.post("/ListPO/upload-new-PO", async (req, res) => {
+app.post("/api/ListPO/upload-new-PO", async (req, res) => {
   const { Name_PO, Quantity_Type, Quantity_Items, Status, Date, Creater } =
     req.body;
   // Insert data into SQLite database
@@ -2864,7 +2886,7 @@ app.post("/ListPO/upload-new-PO", async (req, res) => {
   );
 });
 // Router update Hao_Phi in CheckBom table
-app.put("/CheckBom/Update-Hao-Phi", async (req, res) => {
+app.put("/api/CheckBom/Update-Hao-Phi", async (req, res) => {
   const { Input_Hao_Phi, Name_Item, PO } = req.body;
   // Insert data into SQLite database
   const query = `UPDATE CheckBOM SET Du_Toan_Hao_Phi = ? WHERE PartNumber_1 = ? AND PO = ?`;
@@ -2879,7 +2901,7 @@ app.put("/CheckBom/Update-Hao-Phi", async (req, res) => {
 });
 
 // Router update Hao_Phi_Thuc_Te in CheckBom table
-app.put("/DetailOrders/Update", async (req, res) => {
+app.put("/api/DetailOrders/Update", async (req, res) => {
   const {
     Input_Hao_Phi_Thuc_Te,
     Ma_Kho,
@@ -2910,7 +2932,7 @@ app.put("/DetailOrders/Update", async (req, res) => {
 });
 
 // Router update item in CheckBom table
-app.put("/CheckBom/Edit-Item/:id", async (req, res) => {
+app.put("/api/CheckBom/Edit-Item/:id", async (req, res) => {
   const { PO, SL_Board } = req.body;
   const { id } = req.params;
   // Insert data into SQLite database
@@ -2926,7 +2948,7 @@ app.put("/CheckBom/Edit-Item/:id", async (req, res) => {
 });
 
 // Router update WareHouse accept
-app.put("/Orders/WareHouse-Accept/:id", async (req, res) => {
+app.put("/api/Orders/WareHouse-Accept/:id", async (req, res) => {
   const { id } = req.params;
   // Insert data into SQLite database
   const query = `UPDATE Orders SET Status = 1 WHERE Name_PO = ?`;
@@ -2942,7 +2964,7 @@ app.put("/Orders/WareHouse-Accept/:id", async (req, res) => {
 });
 
 // Router upload file xlsx to Project table
-app.post("/Project/upload", upload.single("file"), async (req, res) => {
+app.post("/api/Project/upload", upload.single("file"), async (req, res) => {
   if (!req.file) {
     return res.status(400).send("No file uploaded.");
   }
@@ -3056,7 +3078,7 @@ app.post("/Project/upload", upload.single("file"), async (req, res) => {
 });
 
 // Router update item in ProductDetails table
-app.put("/Project/Customer/Edit-Item/:id", async (req, res) => {
+app.put("/api/Project/Customer/Edit-Item/:id", async (req, res) => {
   const {
     Product_Detail,
     Quantity_Product,
@@ -3094,7 +3116,7 @@ app.put("/Project/Customer/Edit-Item/:id", async (req, res) => {
 });
 
 // Router add new item in ProductDetails table
-app.post("/Project/Customer/Add-Item", async (req, res) => {
+app.post("/api/Project/Customer/Add-Item", async (req, res) => {
   const {
     Product_Detail,
     Quantity_Product,
@@ -3132,7 +3154,7 @@ app.post("/Project/Customer/Add-Item", async (req, res) => {
 });
 
 // Router delete item in ProductDetails table
-app.delete("/Project/Customer/Delete-Item/:id", async (req, res) => {
+app.delete("/api/Project/Customer/Delete-Item/:id", async (req, res) => {
   const { id } = req.params;
   // Insert data into SQLite database
   const query = `
@@ -3150,7 +3172,7 @@ app.delete("/Project/Customer/Delete-Item/:id", async (req, res) => {
 });
 
 // Router update orders in PurchaseDetails table
-app.put("/Project/Customer/Edit-Orders/:id", async (req, res) => {
+app.put("/api/Project/Customer/Edit-Orders/:id", async (req, res) => {
   const { PONumber, DateCreated, DateDelivery, Note, CustomerID } = req.body;
   const { id } = req.params;
   // Insert data into SQLite database
@@ -3175,7 +3197,7 @@ app.put("/Project/Customer/Edit-Orders/:id", async (req, res) => {
 });
 
 // Router add new orders in PurchaseDetails table
-app.post("/Project/Customer/Add-Orders", async (req, res) => {
+app.post("/api/Project/Customer/Add-Orders", async (req, res) => {
   const { PONumber, DateCreated, DateDelivery, Note, CustomerID } = req.body;
   // Insert data into SQLite database
   const query = `
@@ -3199,7 +3221,7 @@ app.post("/Project/Customer/Add-Orders", async (req, res) => {
 });
 
 // Router delete orders in PurchaseDetails table
-app.delete("/Project/Customer/Delete-Orders/:id", async (req, res) => {
+app.delete("/api/Project/Customer/Delete-Orders/:id", async (req, res) => {
   const { id } = req.params;
   // Insert data into SQLite database
   const query = `
@@ -3217,7 +3239,7 @@ app.delete("/Project/Customer/Delete-Orders/:id", async (req, res) => {
 });
 
 // Router update customer in Customers table
-app.put("/Project/Customer/Edit-Customer/:id", async (req, res) => {
+app.put("/api/Project/Customer/Edit-Customer/:id", async (req, res) => {
   const { CustomerName, Years } = req.body;
   const { id } = req.params;
   // Insert data into SQLite database
@@ -3238,7 +3260,7 @@ app.put("/Project/Customer/Edit-Customer/:id", async (req, res) => {
 });
 
 // Router add new orders in PurchaseDetails table
-app.post("/Project/Customer/Add-Customer", async (req, res) => {
+app.post("/api/Project/Customer/Add-Customer", async (req, res) => {
   const { CustomerName, Years } = req.body;
   // Insert data into SQLite database
   const query = `
@@ -3258,7 +3280,7 @@ app.post("/Project/Customer/Add-Customer", async (req, res) => {
 });
 
 // Router delete orders in PurchaseDetails table
-app.delete("/Project/Customer/Delete-Customer/:id", async (req, res) => {
+app.delete("/api/Project/Customer/Delete-Customer/:id", async (req, res) => {
   const { id } = req.params;
   // Insert data into SQLite database
   const query = `
@@ -3276,7 +3298,7 @@ app.delete("/Project/Customer/Delete-Customer/:id", async (req, res) => {
 });
 
 // Router add new item in Maintenance table
-app.post("/Machine/Add", async (req, res) => {
+app.post("/api/Machine/Add", async (req, res) => {
   const { TenThietBi, LoaiThietBi, NhaSanXuat, NgayMua, ViTri, MoTa } =
     req.body;
   // Insert data into SQLite database
@@ -3301,7 +3323,7 @@ app.post("/Machine/Add", async (req, res) => {
 });
 
 // Router update item in Machine table
-app.put("/Machine/Edit/:id", async (req, res) => {
+app.put("/api/Machine/Edit/:id", async (req, res) => {
   const { id } = req.params;
   const { TenThietBi, LoaiThietBi, NhaSanXuat, NgayMua, ViTri, MoTa } =
     req.body;
@@ -3327,7 +3349,7 @@ app.put("/Machine/Edit/:id", async (req, res) => {
 });
 
 // Router delete item in Machine table
-app.delete("/Machine/Delete/:id", async (req, res) => {
+app.delete("/api/Machine/Delete/:id", async (req, res) => {
   const { id } = req.params;
 
   // Start a transaction
@@ -3363,7 +3385,7 @@ app.delete("/Machine/Delete/:id", async (req, res) => {
 });
 
 // Router add new item in Maintenance table
-app.post("/Maintenance/Add", async (req, res) => {
+app.post("/api/Maintenance/Add", async (req, res) => {
   try {
     const {
       MaThietBi,
@@ -3440,7 +3462,7 @@ app.post("/Maintenance/Add", async (req, res) => {
 });
 
 // Router update item in Maintenance table
-app.put("/Maintenance/Edit/:id", async (req, res) => {
+app.put("/api/Maintenance/Edit/:id", async (req, res) => {
   const { id } = req.params;
   const {
     MaThietBi,
@@ -3492,7 +3514,7 @@ app.put("/Maintenance/Edit/:id", async (req, res) => {
 });
 
 // Router delete item in Maintenance table
-app.delete("/Maintenance/Delete/:id", async (req, res) => {
+app.delete("/api/Maintenance/Delete/:id", async (req, res) => {
   const { id } = req.params;
   // Insert data into SQLite database
   const query = `
@@ -3510,7 +3532,7 @@ app.delete("/Maintenance/Delete/:id", async (req, res) => {
 });
 
 // Router add new item in MaintenanceSchedule table
-app.post("/MaintenanceSchedule/Add", async (req, res) => {
+app.post("/api/MaintenanceSchedule/Add", async (req, res) => {
   const {
     MaThietBi,
     LoaiBaoTri,
@@ -3549,7 +3571,7 @@ app.post("/MaintenanceSchedule/Add", async (req, res) => {
 });
 
 // Router update item in MaintenanceSchedule table
-app.put("/MaintenanceSchedule/Edit/:id", async (req, res) => {
+app.put("/api/MaintenanceSchedule/Edit/:id", async (req, res) => {
   const { id } = req.params;
   const {
     MaThietBi,
@@ -3591,7 +3613,7 @@ app.put("/MaintenanceSchedule/Edit/:id", async (req, res) => {
 });
 
 // Router delete item in MaintenanceSchedule table
-app.delete("/MaintenanceSchedule/Delete/:id", async (req, res) => {
+app.delete("/api/MaintenanceSchedule/Delete/:id", async (req, res) => {
   const { id } = req.params;
   // Insert data into SQLite database
   const query = `
@@ -3609,7 +3631,7 @@ app.delete("/MaintenanceSchedule/Delete/:id", async (req, res) => {
 });
 
 // Router add new item in SparePartUsage table
-app.post("/SparePartUsage/Add", async (req, res) => {
+app.post("/api/SparePartUsage/Add", async (req, res) => {
   const { MaBaoTri, MaThietBi, TenPhuTung, SoLuongSuDung, DonVi, GhiChu } =
     req.body;
   // Insert data into SQLite database
@@ -3633,7 +3655,7 @@ app.post("/SparePartUsage/Add", async (req, res) => {
 });
 
 // Router update item in SparePartUsage table
-app.put("/SparePartUsage/Edit/:id", async (req, res) => {
+app.put("/api/SparePartUsage/Edit/:id", async (req, res) => {
   const { id } = req.params;
   const { MaBaoTri, MaThietBi, TenPhuTung, SoLuongSuDung, DonVi, GhiChu } =
     req.body;
@@ -3659,7 +3681,7 @@ app.put("/SparePartUsage/Edit/:id", async (req, res) => {
 });
 
 // Router delete item in SparePartUsage table
-app.delete("/SparePartUsage/Delete/:id", async (req, res) => {
+app.delete("/api/SparePartUsage/Delete/:id", async (req, res) => {
   const { id } = req.params;
   // Insert data into SQLite database
   const query = `
@@ -3677,7 +3699,7 @@ app.delete("/SparePartUsage/Delete/:id", async (req, res) => {
 });
 
 // Router add new item in PlanManufacture table
-app.post("/PlanManufacture/Add", async (req, res) => {
+app.post("/api/PlanManufacture/Add", async (req, res) => {
   const {
     Name,
     Name_Order,
@@ -3747,7 +3769,7 @@ app.post("/PlanManufacture/Add", async (req, res) => {
 });
 
 // Router update item in PlanManufacture table
-app.put("/PlanManufacture/Edit/:id", async (req, res) => {
+app.put("/api/PlanManufacture/Edit/:id", async (req, res) => {
   const { id } = req.params;
   const {
     Name,
@@ -3827,7 +3849,7 @@ app.put("/PlanManufacture/Edit/:id", async (req, res) => {
 });
 
 // Router update item in PlanManufacture table for setting SMT
-app.put("/PlanManufacture/Edit-Line/:id", async (req, res) => {
+app.put("/api/PlanManufacture/Edit-Line/:id", async (req, res) => {
   const { id } = req.params;
   const {
     DelaySMT,
@@ -3890,7 +3912,7 @@ app.put("/PlanManufacture/Edit-Line/:id", async (req, res) => {
 });
 
 // Router delete item in PlanManufacture table
-app.delete("/PlanManufacture/Delete/:id", async (req, res) => {
+app.delete("/api/PlanManufacture/Delete/:id", async (req, res) => {
   const { id } = req.params;
   // Insert data into SQLite database
   const query = `
@@ -3977,7 +3999,7 @@ app.post("/api/sensor", (req, res) => {
   stmt.finalize();
 });
 
-app.delete("/reset-data/:id", (req, res) => {
+app.delete("/api/reset-data/:id", (req, res) => {
   const { id } = req.params;
   const query = `
     DELETE FROM ManufactureSMT WHERE PlanID = ?
@@ -4048,7 +4070,7 @@ app.get("/api/devices", (req, res) => {
 });
 
 // Post value in table ManufactureAOI
-app.post("/Manufacture/AOI", (req, res) => {
+app.post("/api/Manufacture/AOI", (req, res) => {
   const { PartNumber, HistoryID, Timestamp, Status, Note, PlanID } = req.body;
 
   db.run(
@@ -4068,7 +4090,7 @@ app.post("/Manufacture/AOI", (req, res) => {
 });
 
 // Post value in table ManufactureRW
-app.post("/Manufacture/RW", (req, res) => {
+app.post("/api/Manufacture/RW", (req, res) => {
   const { PartNumber, HistoryID, Timestamp, Status } = req.body;
 
   db.run(
@@ -4088,7 +4110,7 @@ app.post("/Manufacture/RW", (req, res) => {
 });
 
 // Post value in table ManufactureIPQC
-app.post("/Manufacture/IPQC", (req, res) => {
+app.post("/api/Manufacture/IPQC", (req, res) => {
   const { PartNumber, HistoryID, Timestamp, Status, Note, PlanID } = req.body;
 
   db.run(
@@ -4108,7 +4130,7 @@ app.post("/Manufacture/IPQC", (req, res) => {
 });
 
 // Post value in table ManufactureAssembly
-app.post("/Manufacture/Assembly", (req, res) => {
+app.post("/api/Manufacture/Assembly", (req, res) => {
   const { PartNumber, HistoryID, Timestamp, Status, PlanID } = req.body;
 
   db.run(
@@ -4128,7 +4150,7 @@ app.post("/Manufacture/Assembly", (req, res) => {
 });
 
 // Post value in table ManufactureOQC
-app.post("/Manufacture/OQC", (req, res) => {
+app.post("/api/Manufacture/OQC", (req, res) => {
   const { PartNumber, HistoryID, Timestamp, Status, Note, PlanID } = req.body;
 
   db.run(
@@ -4148,7 +4170,7 @@ app.post("/Manufacture/OQC", (req, res) => {
 });
 
 // Post value in table ManufactureIPQCSMT
-app.post("/Manufacture/IPQC-SMT", (req, res) => {
+app.post("/api/Manufacture/IPQC-SMT", (req, res) => {
   const { PartNumber, HistoryID, Timestamp, Status, Note, PlanID } = req.body;
 
   db.run(
@@ -4167,7 +4189,7 @@ app.post("/Manufacture/IPQC-SMT", (req, res) => {
   );
 });
 // Post value in table ManufactureBoxBuild
-app.post("/Manufacture/BoxBuild", (req, res) => {
+app.post("/api/Manufacture/BoxBuild", (req, res) => {
   const { PartNumber, HistoryID, Timestamp, Status, PlanID } = req.body;
 
   db.run(
@@ -4186,7 +4208,7 @@ app.post("/Manufacture/BoxBuild", (req, res) => {
   );
 });
 // Post value in table ManufactureBoxBuild
-app.post("/Manufacture/Conformal-Coating", (req, res) => {
+app.post("/api/Manufacture/Conformal-Coating", (req, res) => {
   const { PartNumber, HistoryID, Timestamp, Status, PlanID } = req.body;
 
   db.run(
@@ -4205,7 +4227,7 @@ app.post("/Manufacture/Conformal-Coating", (req, res) => {
   );
 });
 // Post value in table ManufactureTest1
-app.post("/Manufacture/Test1", (req, res) => {
+app.post("/api/Manufacture/Test1", (req, res) => {
   const { PartNumber, HistoryID, Timestamp, Status, Note, PlanID } = req.body;
 
   db.run(
@@ -4224,7 +4246,7 @@ app.post("/Manufacture/Test1", (req, res) => {
   );
 });
 // Post value in table ManufactureTest2
-app.post("/Manufacture/Test2", (req, res) => {
+app.post("/api/Manufacture/Test2", (req, res) => {
   const { PartNumber, HistoryID, Timestamp, Status, Note, PlanID } = req.body;
 
   db.run(
@@ -4243,7 +4265,7 @@ app.post("/Manufacture/Test2", (req, res) => {
   );
 });
 // Post value in table ManufactureWarehouse
-app.post("/Manufacture/Warehouse", (req, res) => {
+app.post("/api/Manufacture/Warehouse", (req, res) => {
   const { PartNumber, HistoryID, Timestamp, Status, PlanID } = req.body;
 
   db.run(
@@ -4263,7 +4285,7 @@ app.post("/Manufacture/Warehouse", (req, res) => {
 });
 
 // Router update item in IPQC SMT table for Status
-app.put("/Manufacture/IPQC-SMT/Edit-status/:id", async (req, res) => {
+app.put("/api/Manufacture/IPQC-SMT/Edit-status/:id", async (req, res) => {
   const { id } = req.params;
   const { Status } = req.body;
   // Insert data into SQLite database
@@ -4288,7 +4310,7 @@ app.put("/Manufacture/IPQC-SMT/Edit-status/:id", async (req, res) => {
 });
 
 // Router update item in IPQC table for Status
-app.put("/Manufacture/IPQC/Edit-status/:id", async (req, res) => {
+app.put("/api/Manufacture/IPQC/Edit-status/:id", async (req, res) => {
   const { id } = req.params;
   const { Status } = req.body;
   // Insert data into SQLite database
@@ -4313,7 +4335,7 @@ app.put("/Manufacture/IPQC/Edit-status/:id", async (req, res) => {
 });
 
 // Router update item in Test 1 table for Status
-app.put("/Manufacture/Test1/Edit-status/:id", async (req, res) => {
+app.put("/api/Manufacture/Test1/Edit-status/:id", async (req, res) => {
   const { id } = req.params;
   const { Status } = req.body;
   // Insert data into SQLite database
@@ -4338,7 +4360,7 @@ app.put("/Manufacture/Test1/Edit-status/:id", async (req, res) => {
 });
 
 // Router update item in Test 2 table for Status
-app.put("/Manufacture/Test2/Edit-status/:id", async (req, res) => {
+app.put("/api/Manufacture/Test2/Edit-status/:id", async (req, res) => {
   const { id } = req.params;
   const { Status } = req.body;
   // Insert data into SQLite database
@@ -4363,7 +4385,7 @@ app.put("/Manufacture/Test2/Edit-status/:id", async (req, res) => {
 });
 
 // Router update item in OQC table for Status
-app.put("/Manufacture/OQC/Edit-status/:id", async (req, res) => {
+app.put("/api/Manufacture/OQC/Edit-status/:id", async (req, res) => {
   const { id } = req.params;
   const { Status } = req.body;
   // Insert data into SQLite database
@@ -4388,7 +4410,7 @@ app.put("/Manufacture/OQC/Edit-status/:id", async (req, res) => {
 });
 
 // Router update item in AOI table for Status
-app.put("/Manufacture/AOI/Edit-status/:id", async (req, res) => {
+app.put("/api/Manufacture/AOI/Edit-status/:id", async (req, res) => {
   const { id } = req.params;
   const { Status } = req.body;
   // Insert data into SQLite database
@@ -4413,7 +4435,7 @@ app.put("/Manufacture/AOI/Edit-status/:id", async (req, res) => {
 });
 
 // Update value in table AOI Status
-app.put("/Manufacture/AOI-Fixed/Edit-status/:id", (req, res) => {
+app.put("/api/Manufacture/AOI-Fixed/Edit-status/:id", (req, res) => {
   const { Status, RWID, TimestampRW } = req.body;
   const { id } = req.params;
   db.run(
@@ -4434,7 +4456,7 @@ app.put("/Manufacture/AOI-Fixed/Edit-status/:id", (req, res) => {
 });
 
 // Update value in table IPQC Status
-app.put("/Manufacture/IPQC-Fixed/Edit-status/:id", (req, res) => {
+app.put("/api/Manufacture/IPQC-Fixed/Edit-status/:id", (req, res) => {
   const { Status, RWID, TimestampRW } = req.body;
   const { id } = req.params;
   db.run(
@@ -4455,7 +4477,7 @@ app.put("/Manufacture/IPQC-Fixed/Edit-status/:id", (req, res) => {
 });
 
 // Update value in table IPQC-SMT Status
-app.put("/Manufacture/IPQC-SMT-Fixed/Edit-status/:id", (req, res) => {
+app.put("/api/Manufacture/IPQC-SMT-Fixed/Edit-status/:id", (req, res) => {
   const { Status, RWID, TimestampRW } = req.body;
   const { id } = req.params;
   db.run(
@@ -4476,7 +4498,7 @@ app.put("/Manufacture/IPQC-SMT-Fixed/Edit-status/:id", (req, res) => {
 });
 
 // Update value in table Test1 Status
-app.put("/Manufacture/Test1-Fixed/Edit-status/:id", (req, res) => {
+app.put("/api/Manufacture/Test1-Fixed/Edit-status/:id", (req, res) => {
   const { Status, RWID, TimestampRW } = req.body;
   const { id } = req.params;
   db.run(
@@ -4497,7 +4519,7 @@ app.put("/Manufacture/Test1-Fixed/Edit-status/:id", (req, res) => {
 });
 
 // Update value in table Test2 Status
-app.put("/Manufacture/Test2-Fixed/Edit-status/:id", (req, res) => {
+app.put("/api/Manufacture/Test2-Fixed/Edit-status/:id", (req, res) => {
   const { Status, RWID, TimestampRW } = req.body;
   const { id } = req.params;
   db.run(
@@ -4518,7 +4540,7 @@ app.put("/Manufacture/Test2-Fixed/Edit-status/:id", (req, res) => {
 });
 
 // Update value in table OQC Status
-app.put("/Manufacture/OQC-Fixed/Edit-status/:id", (req, res) => {
+app.put("/api/Manufacture/OQC-Fixed/Edit-status/:id", (req, res) => {
   const { Status, RWID, TimestampRW } = req.body;
   const { id } = req.params;
   db.run(
@@ -4539,7 +4561,7 @@ app.put("/Manufacture/OQC-Fixed/Edit-status/:id", (req, res) => {
 });
 
 // Post value in table Summary
-app.post("/Summary/Add-item", (req, res) => {
+app.post("/api/Summary/Add-item", (req, res) => {
   const {
     Type,
     PlanID,
@@ -4580,7 +4602,7 @@ app.post("/Summary/Add-item", (req, res) => {
 });
 
 // Update value in table Summary
-app.put("/Summary/Edit-item/:id", (req, res) => {
+app.put("/api/Summary/Edit-item/:id", (req, res) => {
   const {
     Type,
     PONumber,
@@ -4617,7 +4639,7 @@ app.put("/Summary/Edit-item/:id", (req, res) => {
 });
 
 // Router delete item in Summary table
-app.delete("/Summary/Delete-item/:id", async (req, res) => {
+app.delete("/api/Summary/Delete-item/:id", async (req, res) => {
   const { id } = req.params;
   // Insert data into SQLite database
   const query = `
