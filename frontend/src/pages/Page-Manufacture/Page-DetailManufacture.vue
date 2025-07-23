@@ -572,9 +572,9 @@
           <v-col cols="12" md="8">
             <v-card class="rounded-lg h-100" elevation="2">
               <v-card-title
-                class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
+                class="d-flex align-center pa-4 bg-grey-lighten-2 rounded-t-lg"
               >
-                <v-icon icon="mdi-chart-bar" class="me-2"></v-icon>
+                <v-icon icon="mdi-chart-bar" color="primary" class="me-2"></v-icon>
                 Thống kê theo công đoạn sản xuất
               </v-card-title>
               <v-card-text class="pa-4">
@@ -592,9 +592,9 @@
           <v-col cols="12" md="4">
             <v-card class="rounded-lg h-100" elevation="2">
               <v-card-title
-                class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
+                class="d-flex align-center pa-4 bg-grey-lighten-2 rounded-t-lg"
               >
-                <v-icon icon="mdi-table" class="me-2"></v-icon>
+                <v-icon icon="mdi-table" class="me-2" color="primary"></v-icon>
                 Chi tiết theo công đoạn
               </v-card-title>
               <v-card-text class="pa-4">
@@ -1390,6 +1390,7 @@ const chartData = computed(() => {
     "BoxBuild",
     "Tẩm phủ",
     "OQC",
+    "Nhập kho", // Add warehouse entry step
   ];
 
   // Create a mapping for different possible source values
@@ -1417,6 +1418,7 @@ const chartData = computed(() => {
     BoxBuild: ["BoxBuild", "Box Build", "Box-Build"],
     "Tẩm phủ": ["Tẩm phủ", "Conformal Coating", "ConformalCoating"],
     OQC: ["OQC"],
+    "Nhập kho": ["Nhập kho", "Warehouse", "warehouse", "Kho", "kho", "Warehouse Entry", "warehouse entry"], // Add warehouse entry mapping
   };
 
   // Get manufacture details for quantity multipliers
@@ -1437,6 +1439,7 @@ const chartData = computed(() => {
     "BoxBuild": data?.Quantity_BoxBuild || 1,
     "Tẩm phủ": data?.Quantity_ConformalCoating || 1,
     "OQC": data?.Quantity_OQC || 1,
+    "Nhập kho": data?.Quantity_Warehouse || data?.Warehouse || 1, // Add warehouse quantity multiplier
   };
 
   // Initialize counters for each process step
@@ -1555,6 +1558,7 @@ const chartDetailData = computed(() => {
     "BoxBuild",
     "Tẩm phủ",
     "OQC",
+    "Nhập kho", // Add warehouse entry step
   ];
 
   // Create a mapping for different possible source values
@@ -1582,6 +1586,7 @@ const chartDetailData = computed(() => {
     BoxBuild: ["BoxBuild", "Box Build", "Box-Build"],
     "Tẩm phủ": ["Tẩm phủ", "Conformal Coating", "ConformalCoating"],
     OQC: ["OQC"],
+    "Nhập kho": ["Nhập kho", "Warehouse", "warehouse", "Kho", "kho", "Warehouse Entry", "warehouse entry"], // Add warehouse entry mapping
   };
 
   // Get manufacture details for quantity multipliers
@@ -1602,6 +1607,7 @@ const chartDetailData = computed(() => {
     "BoxBuild": data?.Quantity_BoxBuild || 1,
     "Tẩm phủ": data?.Quantity_ConformalCoating || 1,
     "OQC": data?.Quantity_OQC || 1,
+    "Nhập kho": data?.Quantity_Warehouse || data?.Warehouse || 1, // Add warehouse quantity multiplier
   };
 
   // Initialize counters for each process step
@@ -1903,6 +1909,22 @@ async function fetchProductionData() {
 // Chart functions
 const initializeChart = () => {
   if (!historyChart.value) return;
+  // Kiểm tra dữ liệu chartData trước khi khởi tạo chart
+  if (
+    !chartData.value ||
+    !Array.isArray(chartData.value.labels) ||
+    !Array.isArray(chartData.value.datasets) ||
+    chartData.value.labels.length === 0 ||
+    chartData.value.datasets.length === 0
+  ) {
+    console.warn("Chart data invalid, skipping chart initialization", chartData.value);
+    // Nếu đã có chartInstance thì destroy để tránh lỗi
+    if (chartInstance.value) {
+      chartInstance.value.destroy();
+      chartInstance.value = null;
+    }
+    return;
+  }
 
   // Destroy existing chart if it exists
   if (chartInstance.value) {
@@ -1924,6 +1946,7 @@ const initializeChart = () => {
       },
       plugins: {
         legend: {
+          display: true,
           position: "top",
           labels: {
             usePointStyle: true,
@@ -1947,7 +1970,7 @@ const initializeChart = () => {
             title: function (tooltipItems) {
               const process = tooltipItems[0].label;
               const okValue = tooltipItems[0].dataset.data[tooltipItems[0].dataIndex];
-              const errorValue = tooltipItems[1].dataset.data[tooltipItems[0].dataIndex];
+              const errorValue = tooltipItems[1]?.dataset?.data[tooltipItems[0].dataIndex] || 0;
               const totalValue = okValue + errorValue;
               const percentage = totalValue > 0 ? ((okValue / totalValue) * 100).toFixed(1) : 0;
 

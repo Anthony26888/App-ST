@@ -88,22 +88,22 @@
       <!-- Charts -->
       <v-row>
         <v-col cols="12" md="7">
-          <v-card class="mb-4 rounded-xl" elevation="2" height="400px">
+          <v-card class="mb-4 rounded-xl" elevation="2" height="600px">
             <v-card-title class="d-flex align-center">
               <span>Biểu đồ so sánh kế hoạch và thực tế theo hạng mục</span>
             </v-card-title>
             <v-card-text>
-              <canvas ref="summaryChart" height="300"></canvas>
+              <canvas ref="summaryChart" height="500"></canvas>
             </v-card-text>
           </v-card>
         </v-col>
         <v-col cols="12" md="5">
-          <v-card class="mb-4 rounded-xl" elevation="2" height="400px">
+          <v-card class="mb-4 rounded-xl" elevation="2" height="600px">
             <v-card-title class="d-flex align-center">
               <span>Phân bố theo loại</span>
             </v-card-title>
             <v-card-text>
-              <canvas ref="pieChart" height="300"></canvas>
+              <canvas ref="pieChart" height="500"></canvas>
             </v-card-text>
           </v-card>
         </v-col>
@@ -117,6 +117,18 @@
         :group-by="[{ key: 'Type' }]"
         class="mt-3"
         fixed-header
+        :header-props="{
+          sortByText: 'Sắp xếp theo',
+          sortDescText: 'Giảm dần',
+          sortAscText: 'Tăng dần',
+        }"
+        :loading="DialogLoading"
+        loading-text="Đang tải dữ liệu..."
+        no-data-text="Không có dữ liệu"
+        no-results-text="Không tìm thấy kết quả"
+        :hover="true"
+        :dense="false"
+        :fixed-header="true"
       >
         <template v-slot:top>
           <v-toolbar flat dense>
@@ -170,15 +182,9 @@
       <v-data-table-virtual
         :headers="HeadersError"
         :items="summary"
-        :search="search"
+        :group-by="[{ key: 'Name_Order' }]"
+        class="mt-5"
         fixed-header
-        :items-per-page="itemsPerPage"
-        v-model:page="page"
-        class="elevation-1 mt-5"
-        :footer-props="{
-          'items-per-page-options': [10, 20, 50, 100],
-          'items-per-page-text': 'Số hàng mỗi trang',
-        }"
         :header-props="{
           sortByText: 'Sắp xếp theo',
           sortDescText: 'Giảm dần',
@@ -204,6 +210,20 @@
               Tỷ lệ lỗi trong đơn hàng
             </v-toolbar-title>
           </v-toolbar>
+        </template>
+
+        <template v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }">
+          <tr>
+            <td :colspan="columns.length">
+              <v-btn
+                variant="text"
+                :icon="isGroupOpen ? 'mdi-chevron-down' : 'mdi-chevron-up'"
+                @click="toggleGroup(item)"
+                class="me-2"
+              ></v-btn>
+              <span class="font-weight-bold text-primary">{{ item.value }}</span>
+            </td>
+          </tr>
         </template>
 
         <template #[`item.Quantity_Error`]="{ item }">
@@ -316,11 +336,10 @@ const Headers = ref([
 ]);
 
 const HeadersError = ref([
-  { key: "PONumber", title: "Dự án", width: "150" },
-  { key: "Name_Order", title: "Đơn hàng", width: "150" },
-  { key: "Quantity_Error", title: "Tổng / Lỗi", width: "150" },
-  { key: "Quantity_Real", title: "Tỷ lệ lỗi", width: "100" },
-  { key: "Note", title: "Ghi chú lỗi", width: "200" },
+  { key: "PONumber", title: "Dự án" },
+  { key: "Type", title: "Công đoạn"},
+  { key: "Quantity_Error", title: "Tổng / Lỗi" },
+  { key: "Quantity_Real", title: "Tỷ lệ lỗi" },
 ]);
 
 // ===== COMPUTED =======
@@ -543,8 +562,8 @@ function initializeChart() {
           },
           ticks: {
             display: true,
-            autoSkip: true,
-            maxTicksLimit: 10,
+            autoSkip: false, // Luôn hiển thị tất cả nhãn
+            maxTicksLimit: 50, // Hoặc bỏ dòng này đi, hoặc set lớn hơn số hạng mục tối đa
           },
         },
       },
@@ -599,32 +618,42 @@ function initializePieChart() {
       return acc;
     }, {});
 
-  // Create new chart
+  // Sinh màu động đủ cho tất cả hạng mục
+  const colorPalette = [
+    "rgba(25, 118, 210, 0.8)",
+    "rgba(76, 175, 80, 0.8)",
+    "rgba(255, 152, 0, 0.8)",
+    "rgba(233, 30, 99, 0.8)",
+    "rgba(156, 39, 176, 0.8)",
+    "rgba(0, 150, 136, 0.8)",
+    "rgba(255, 87, 34, 0.8)",
+    "rgba(63, 81, 181, 0.8)",
+    "rgba(0, 188, 212, 0.8)",
+    "rgba(205, 220, 57, 0.8)",
+    "rgba(121, 85, 72, 0.8)",
+    "rgba(139, 195, 74, 0.8)",
+    "rgba(255, 193, 7, 0.8)",
+    "rgba(233, 30, 99, 0.8)",
+    "rgba(103, 58, 183, 0.8)",
+    "rgba(0, 150, 136, 0.8)",
+  ];
+  const borderPalette = colorPalette.map(c => c.replace('0.8', '1'));
+
+  const labels = Object.keys(sortedTypes);
+  const backgroundColor = labels.map((_, i) => colorPalette[i % colorPalette.length]);
+  const borderColor = labels.map((_, i) => borderPalette[i % borderPalette.length]);
+
+  // Create new chart (doughnut chart)
   pieChartInstance = new Chart(ctx, {
-    type: "pie",
+    type: "doughnut",
     data: {
-      labels: Object.keys(sortedTypes),
+      labels,
       datasets: [
         {
-          data: Object.values(sortedTypes).map((item) =>
-            parseFloat(item.percentage)
-          ),
-          backgroundColor: [
-            "rgba(25, 118, 210, 0.8)",
-            "rgba(76, 175, 80, 0.8)",
-            "rgba(255, 152, 0, 0.8)",
-            "rgba(233, 30, 99, 0.8)",
-            "rgba(156, 39, 176, 0.8)",
-            "rgba(0, 150, 136, 0.8)",
-          ],
-          borderColor: [
-            "#1976D2",
-            "#4CAF50",
-            "#FF9800",
-            "#E91E63",
-            "#9C27B0",
-            "#009688",
-          ],
+          label: "Tỷ lệ (%)",
+          data: Object.values(sortedTypes).map((item) => parseFloat(item.percentage)),
+          backgroundColor,
+          borderColor,
           borderWidth: 1,
         },
       ],
@@ -668,9 +697,7 @@ function initializePieChart() {
               const typeData = sortedTypes[label];
               return [
                 `${label}: ${value}%`,
-                `Số lượng: ${new Intl.NumberFormat("vi-VN").format(
-                  typeData.quantity
-                )}`,
+                `Số lượng: ${new Intl.NumberFormat("vi-VN").format(typeData.quantity)}`,
                 `Số hạng mục: ${typeData.count}`,
               ];
             },
@@ -761,11 +788,38 @@ watch(
             return acc;
           }, {});
 
+        // Sinh màu động đủ cho tất cả hạng mục
+        const colorPalette = [
+          "rgba(25, 118, 210, 0.8)",
+          "rgba(76, 175, 80, 0.8)",
+          "rgba(255, 152, 0, 0.8)",
+          "rgba(233, 30, 99, 0.8)",
+          "rgba(156, 39, 176, 0.8)",
+          "rgba(0, 150, 136, 0.8)",
+          "rgba(255, 87, 34, 0.8)",
+          "rgba(63, 81, 181, 0.8)",
+          "rgba(0, 188, 212, 0.8)",
+          "rgba(205, 220, 57, 0.8)",
+          "rgba(121, 85, 72, 0.8)",
+          "rgba(139, 195, 74, 0.8)",
+          "rgba(255, 193, 7, 0.8)",
+          "rgba(233, 30, 99, 0.8)",
+          "rgba(103, 58, 183, 0.8)",
+          "rgba(0, 150, 136, 0.8)",
+        ];
+        const borderPalette = colorPalette.map(c => c.replace('0.8', '1'));
+
+        const labels = Object.keys(sortedTypes);
+        const backgroundColor = labels.map((_, i) => colorPalette[i % colorPalette.length]);
+        const borderColor = labels.map((_, i) => borderPalette[i % borderPalette.length]);
+
         // Update chart data
-        pieChartInstance.data.labels = Object.keys(sortedTypes);
+        pieChartInstance.data.labels = labels;
         pieChartInstance.data.datasets[0].data = Object.values(sortedTypes).map(
           (item) => parseFloat(item.percentage)
         );
+        pieChartInstance.data.datasets[0].backgroundColor = backgroundColor;
+        pieChartInstance.data.datasets[0].borderColor = borderColor;
 
         // Force chart update with animation
         pieChartInstance.update("active");

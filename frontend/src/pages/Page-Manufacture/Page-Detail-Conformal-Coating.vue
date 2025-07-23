@@ -36,7 +36,7 @@
             <v-card class="rounded-lg" color="success" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra</div>
-                <div class="text-h4 font-weight-bold" v-if="Quantity_ConformalCoating">
+                <div class="text-h4 font-weight-bold" v-if="Quantity_ConformalCoating > 1">
                   {{ totalOutput }} / {{ totalOutput * Quantity_ConformalCoating }}
                 </div>
                 <div class="text-h4 font-weight-bold" v-else>

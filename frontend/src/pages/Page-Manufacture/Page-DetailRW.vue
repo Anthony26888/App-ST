@@ -386,12 +386,12 @@ const FixedError = async () => {
       formData
     );
     console.log(response.data.message);
-    MessageDialog.value = response.data.message;
+    MessageDialog.value = "Sữa lỗi thành công";
     // Refresh data after successful update
     Reset();
   } catch (error) {
     console.log(error);
-    MessageErrorDialog.value = error.response.data.message;
+    MessageErrorDialog.value = "Lỗi hệ thống";
     Error();
   }
 };

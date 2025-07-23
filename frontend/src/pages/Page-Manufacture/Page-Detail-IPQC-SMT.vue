@@ -163,6 +163,12 @@
                 </v-btn>
               </div>
             </template>
+            <template #item.TimestampRW="{ item }">
+              <div class="text-primary">{{ item.TimestampRW }}</div>
+            </template>
+            <template #item.Note="{ item }">
+              <div style="white-space: pre-line">{{ item.Note }}</div>
+            </template>
             <template #[`bottom`]>
               <div class="text-center pt-2">
                 <v-pagination
@@ -244,6 +250,7 @@ const Headers = [
   { title: "Trạng thái", key: "Status", sortable: true },
   { title: "Ghi chú lỗi", key: "Note", sortable: true },
   { title: "Thời gian", key: "Timestamp", sortable: true },
+  { title: "Thời gian RW", key: "TimestampRW", sortable: true },
 ];
 
 // ===== Composables & Data Management =====

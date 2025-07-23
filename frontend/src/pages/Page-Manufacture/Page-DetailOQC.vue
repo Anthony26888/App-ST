@@ -163,6 +163,12 @@
                 Sửa lỗi
               </v-btn>
             </template>
+            <template #item.TimestampRW="{ item }">
+              <div class="text-primary">{{ item.TimestampRW }}</div>
+            </template>
+            <template #item.Note="{ item }">
+              <div style="white-space: pre-line">{{ item.Note }}</div>
+            </template>
             <template #[`bottom`]>
               <div class="text-center pt-2">
                 <v-pagination
@@ -241,6 +247,7 @@ const Headers = [
   { title: "STT", key: "id", sortable: true },
   { title: "Mã sản phẩm", key: "PartNumber", sortable: true },
   { title: "Trạng thái", key: "Status", sortable: true },
+  { title: "Ghi chú lỗi", key: "Note", sortable: true },
   { title: "Thời gian", key: "Timestamp", sortable: true },
 ];
 
@@ -265,6 +272,7 @@ const itemsPerPage = ref(10);
 
 // Input/Output State
 const Input = ref("");
+const ErrorLog = ref("");
 const isSubmitting = ref(false);
 const submitting = ref(false);
 const isError = ref(false);
@@ -353,8 +361,8 @@ const submitBarcode = async () => {
 
   DialogLoading.value = true;
   const formData = reactive({
-    PartNumber: Input.value,
-    Status: isError.value ? "error" : "ok",
+    HistoryID: id,
+    PartNumber: Input.value.trim(),
     Timestamp: new Date().toLocaleString("en-GB", {
       day: "2-digit",
       month: "2-digit",
@@ -364,9 +372,11 @@ const submitBarcode = async () => {
       second: "2-digit",
       hour12: false,
     }),
-    HistoryID: id,
-    PlanID: PlanID.value
+    Status: isError.value ? "error" : "ok",
+    Note: ErrorLog.value,
+    PlanID: PlanID.value,
   });
+
   try {
     const response = await axios.post(`${Url}/Manufacture/OQC`, formData);
     console.log(response.data);

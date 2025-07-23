@@ -21,7 +21,7 @@ const sqlite3 = require("sqlite3");
 const sqlite = require("sqlite");
 const { createParser } = require("eventsource-parser");
 // const {queryWithLangChain } = require("./Ollama-AI/queryEngine.js");
-const queryMap = require("./Ollama-AI/queryMap")
+// const queryMap = require("./Ollama-AI/queryMap")
 const fetch = require('node-fetch');
 
 // const https = require("https"); // XÓA: không dùng SSL nữa
@@ -604,7 +604,18 @@ io.on("connection", (socket) => {
                         z.Level,
                         z.Date,
                         z.Note,
-                        z.Creater
+                        z.Creater,
+                        z.DelaySMT,
+                        z.Quantity,
+                        z.Quantity_AOI,
+                        z.Quantity_IPQCSMT,
+                        z.Quantity_IPQC,
+                        z.Quantity_Assembly,
+                        z.Quantity_BoxBuild,
+                        z.Quantity_ConformalCoating,
+                        z.Quantity_OQC,
+                        z.Quantity_Test1,
+                        z.Quantity_Test2
                       FROM PlanManufacture z
                       LEFT JOIN (
                         SELECT 
@@ -1553,13 +1564,13 @@ io.on("connection", (socket) => {
   });
 });
 
-// 🧠 Hàm tách tên bảng từ prompt
-function extractTableName(prompt) {
-  const match =
-    prompt.match(/\bbảng\s+([A-Za-z0-9_]+)/i) ||
-    prompt.match(/\bfrom\s+([A-Za-z0-9_]+)/i);
-  return match?.[1] || null;
-}
+// // 🧠 Hàm tách tên bảng từ prompt
+// function extractTableName(prompt) {
+//   const match =
+//     prompt.match(/\bbảng\s+([A-Za-z0-9_]+)/i) ||
+//     prompt.match(/\bfrom\s+([A-Za-z0-9_]+)/i);
+//   return match?.[1] || null;
+// }
 const getPivotQuery = async (id) => {
   return new Promise((resolve, reject) => {
     db.all(
@@ -3707,7 +3718,7 @@ app.post("/api/PlanManufacture/Add", async (req, res) => {
     Creater,
     Note,
     Total,
-    DelaySMT = 0, // default value if undefined
+    DelaySMT = 50, // default value if undefined
     Level,
     Quantity,
     ProjectID,
@@ -4089,26 +4100,6 @@ app.post("/api/Manufacture/AOI", (req, res) => {
   );
 });
 
-// Post value in table ManufactureRW
-app.post("/api/Manufacture/RW", (req, res) => {
-  const { PartNumber, HistoryID, Timestamp, Status } = req.body;
-
-  db.run(
-    `INSERT INTO ManufactureRW (HistoryID, PartNumber, Timestamp, Status)
-     VALUES (?, ?, ?, ?)`,
-    [HistoryID, PartNumber, Timestamp, Status],
-    (err) => {
-      if (err) return res.status(500).json({ error: "Database error" });
-      io.emit("UpdateManufactureRW");
-      io.emit("updateManufactureDetails");
-      io.emit("UpdateHistory");
-      io.emit("updateHistoryPart");
-      io.emit("UpdateSummary");
-      res.json({ message: "ManufactureRW received" });
-    }
-  );
-});
-
 // Post value in table ManufactureIPQC
 app.post("/api/Manufacture/IPQC", (req, res) => {
   const { PartNumber, HistoryID, Timestamp, Status, Note, PlanID } = req.body;
@@ -4270,7 +4261,7 @@ app.post("/api/Manufacture/Warehouse", (req, res) => {
 
   db.run(
     `INSERT INTO ManufactureWarehouse (HistoryID, PartNumber, Timestamp, Status, PlanID)
-     VALUES (?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?)`,
     [HistoryID, PartNumber, Timestamp, Status, PlanID],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
@@ -4305,6 +4296,7 @@ app.put("/api/Manufacture/IPQC-SMT/Edit-status/:id", async (req, res) => {
     io.emit("UpdateHistory");
     io.emit("updateHistoryPart");
     io.emit("UpdateSummary");
+    io.emit("UpdateManufactureRW");
     res.json({ message: "ManufactureIPQCSMT received" });
   });
 });
@@ -4330,6 +4322,7 @@ app.put("/api/Manufacture/IPQC/Edit-status/:id", async (req, res) => {
     io.emit("UpdateHistory");
     io.emit("updateHistoryPart");
     io.emit("UpdateSummary");
+    io.emit("UpdateManufactureRW");
     res.json({ message: "ManufactureIPQC received" });
   });
 });
@@ -4355,6 +4348,7 @@ app.put("/api/Manufacture/Test1/Edit-status/:id", async (req, res) => {
     io.emit("UpdateHistory");
     io.emit("updateHistoryPart");
     io.emit("UpdateSummary");
+    io.emit("UpdateManufactureRW");
     res.json({ message: "ManufactureTest1 received" });
   });
 });
@@ -4380,6 +4374,7 @@ app.put("/api/Manufacture/Test2/Edit-status/:id", async (req, res) => {
     io.emit("UpdateHistory");
     io.emit("updateHistoryPart");
     io.emit("UpdateSummary");
+    io.emit("UpdateManufactureRW");
     res.json({ message: "ManufactureTest2 received" });
   });
 });
@@ -4405,6 +4400,7 @@ app.put("/api/Manufacture/OQC/Edit-status/:id", async (req, res) => {
     io.emit("UpdateHistory");
     io.emit("updateHistoryPart");
     io.emit("UpdateSummary");
+    io.emit("UpdateManufactureRW");
     res.json({ message: "ManufactureOQC received" });
   });
 });
@@ -4426,6 +4422,7 @@ app.put("/api/Manufacture/AOI/Edit-status/:id", async (req, res) => {
         .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
     }
     io.emit("UpdateManufactureAOI");
+    io.emit("UpdateManufactureRW");
     io.emit("updateManufactureDetails");
     io.emit("UpdateHistory");
     io.emit("updateHistoryPart");
@@ -4450,6 +4447,7 @@ app.put("/api/Manufacture/AOI-Fixed/Edit-status/:id", (req, res) => {
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
+      io.emit("UpdateManufactureRW");
       res.json({ message: "Summary received" });
     }
   );
@@ -4471,6 +4469,7 @@ app.put("/api/Manufacture/IPQC-Fixed/Edit-status/:id", (req, res) => {
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
+      io.emit("UpdateManufactureRW");
       res.json({ message: "Summary received" });
     }
   );
@@ -4492,6 +4491,7 @@ app.put("/api/Manufacture/IPQC-SMT-Fixed/Edit-status/:id", (req, res) => {
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
+      io.emit("UpdateManufactureRW");
       res.json({ message: "IPQCSMT received" });
     }
   );
@@ -4513,6 +4513,7 @@ app.put("/api/Manufacture/Test1-Fixed/Edit-status/:id", (req, res) => {
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
+      io.emit("UpdateManufactureRW");
       res.json({ message: "Summary received" });
     }
   );
@@ -4534,6 +4535,7 @@ app.put("/api/Manufacture/Test2-Fixed/Edit-status/:id", (req, res) => {
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
+      io.emit("UpdateManufactureRW");
       res.json({ message: "Summary received" });
     }
   );
@@ -4555,6 +4557,7 @@ app.put("/api/Manufacture/OQC-Fixed/Edit-status/:id", (req, res) => {
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
+      io.emit("UpdateManufactureRW");
       res.json({ message: "Summary received" });
     }
   );

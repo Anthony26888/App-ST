@@ -142,10 +142,10 @@
               'Test 1',
               'Test 2',
               'Box Build',
+              'Tẩm phủ',
               'OQC',
               'RW',
-              'Nhập kho',
-              'Tẩm phủ'
+              'Nhập kho' 
             ]"
             multiple
             chips
@@ -424,22 +424,23 @@ function GetItem(value) {
   DialogEdit.value = true;
   GetID.value = value;
   const found = manufacture.value.find((v) => v.id === value);
+  console.log(found);
   Name_Edit.value = found.Name;
   Total_Edit.value = found.Total;
-  DelaySMT_Edit.value = found.DelaySMT;
   Level_Edit.value = (found.Level).split('-');
-  Quantity_Edit.value = found.Quantity;
   Date_Edit.value = found.Date;
   Note_Edit.value = found.Note;
-  Quantity_IPQCSMT_Edit = found.Quantity_IPQCSMT;
-  Quantity_IPQC_Edit = found.Quantity_IPQC;
-  Quantity_AOI_Edit = ref(1);
-  Quantity_Assembly_Edit = ref(1);
-  Quantity_BoxBuild_Edit = ref(1);
-  Quantity_Test1_Edit = ref(1);
-  Quantity_Test2_Edit = ref(1);
-  Quantity_ConformalCoating_Edit = ref(1);
-  Quantity_OQC_Edit = ref(1);
+  DelaySMT_Edit.value = found.DelaySMT;
+  Quantity_Edit.value = found.Quantity;
+  Quantity_IPQCSMT_Edit.value = found.Quantity_IPQCSMT;
+  Quantity_IPQC_Edit.value = found.Quantity_IPQC;
+  Quantity_AOI_Edit.value = found.Quantity_AOI;
+  Quantity_Assembly_Edit.value = found.Quantity_Assembly;
+  Quantity_BoxBuild_Edit.value = found.Quantity_BoxBuild;
+  Quantity_Test1_Edit.value = found.Quantity_Test1;
+  Quantity_Test2_Edit.value = found.Quantity_Test2;
+  Quantity_ConformalCoating_Edit.value = found.Quantity_ConformalCoating;
+  Quantity_OQC_Edit.value = found.Quantity_OQC;
 
 }
 
@@ -448,7 +449,7 @@ const SaveEdit = async () => {
   DialogLoading.value = true;
   const formData = reactive({
     Name: Name_Edit.value,
-    Date: formattedSelectedDate.value,
+    Date: Date_Edit.value,
     Creater: UserInfo.value,
     Note: Note_Edit.value,
     Total: Total_Edit.value,
@@ -456,6 +457,7 @@ const SaveEdit = async () => {
     Level: Level_Edit.value,
     Quantity: Quantity_Edit.value,
     Quantity_IPQC : Quantity_IPQC_Edit.value,
+    Quantity_IPQCSMT : Quantity_IPQCSMT_Edit.value,
     Quantity_AOI : Quantity_AOI_Edit.value,
     Quantity_Assembly : Quantity_Assembly_Edit.value,
     Quantity_BoxBuild : Quantity_BoxBuild_Edit.value,
