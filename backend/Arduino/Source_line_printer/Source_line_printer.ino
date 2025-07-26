@@ -7,10 +7,17 @@
 #define EEPROM_SIZE 100
 
 // ===================== CẤU HÌNH =====================
-const char* ssid = "KTNM2023";
-const char* password = "Sthuat@2023KTNM";
-const char* SERVER_HOST = "http://192.168.2.59:3000";  // ✅ Đặt URL server tại đây
+const char* ssid = "[ST]-INTERNAL";
+const char* password = "NoiBoST@2023";
+const char* SERVER_HOST = "http://192.168.100.200:3000";  // ✅ Đặt URL server tại đây
 // ====================================================
+
+// ⚙️ IP tĩnh cấu hình
+IPAddress local_IP(192, 168, 100, 82);
+IPAddress gateway(192, 168, 100, 1);
+IPAddress subnet(255, 255, 255, 0);
+IPAddress primaryDNS(8, 8, 8, 8);
+IPAddress secondaryDNS(8, 8, 4, 4);
 
 WebServer server(80);
 const int sensorPin = 18;
@@ -151,7 +158,14 @@ void handleGetConfig() {
 void setup() {
   Serial.begin(115200);
   EEPROM.begin(EEPROM_SIZE);
-  pinMode(sensorPin, INPUT);
+
+  pinMode(sensorPin, INPUT_PULLDOWN);
+  delay(1000);  // Cho cảm biến ổn định
+
+  // ⚙️ Gán IP tĩnh trước khi kết nối WiFi
+  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
+    Serial.println("⚠️ Không thể cấu hình IP tĩnh");
+  }
 
   WiFi.begin(ssid, password);
   Serial.print("🔌 Connecting to WiFi");
@@ -165,6 +179,12 @@ void setup() {
   for (int i = 0; i < 3; i++) {
     Serial.println("📡 ESP32 IP Address: " + WiFi.localIP().toString());
     delay(5000);
+  }
+
+  lastSensorValue = digitalRead(sensorPin);
+  if (lastSensorValue == HIGH) {
+    waitingForLow = true;
+    Serial.println("🕒 Initial sensor HIGH. Waiting for LOW...");
   }
 
   server.on("/set-project-delay", HTTP_POST, handleSetProjectAndDelay);

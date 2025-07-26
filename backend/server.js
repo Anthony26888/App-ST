@@ -29,7 +29,8 @@ const fetch = require('node-fetch');
 // Add processing flags at the top of the file
 const processingRequests = new Set();
 
-const ESP32_IP = "http://192.168.2.241"; // IP ESP32 (phải đổi đúng IP của bạn)
+const ESP32_IP = "http://192.168.100.82"; // IP ESP32 (phải đổi đúng IP của bạn)
+
 
 const sessions = {}; // lưu theo socket.id
 // Khởi tạo Express và Socket.IO
@@ -1544,6 +1545,73 @@ io.on("connection", (socket) => {
         });
       } catch (error) {
         socket.emit("HistoryPartError", error);
+      }
+    }),
+
+    socket.on("getActived", async (id) => {
+      try {
+        const query = `WITH AllData AS (
+                          SELECT Timestamp, RWID, TimestampRW, 'SMT - Printer' AS Source, 'Cảm biến Printer' AS Device FROM ManufactureSMT WHERE Source = 'source_3'
+                          UNION ALL
+                          SELECT Timestamp, RWID, TimestampRW, 'SMT - Gắp linh kiện' AS Source, 'Cảm biến Gắp linh kiện' AS Device FROM ManufactureSMT WHERE Source = 'source_2'
+                          UNION ALL
+                          SELECT Timestamp, RWID, TimestampRW, 'SMT - Lò Reflow' AS Source, 'Cảm biến Reflow' AS Device FROM ManufactureSMT WHERE Source = 'source_1'
+                          UNION ALL
+                          SELECT Timestamp, RWID, TimestampRW, 'AOI' AS Source, 'Súng barcode AOI' AS Device FROM ManufactureAOI
+                          UNION ALL
+                          SELECT Timestamp, RWID, TimestampRW, 'Tẩm phủ' AS Source, 'Súng barcode Tẩm phủ' AS Device FROM ManufactureConformalCoating
+                          UNION ALL
+                          SELECT Timestamp, RWID, TimestampRW, 'Test1' AS Source, 'Súng barcode Test1' AS Device FROM ManufactureTest1
+                          UNION ALL
+                          SELECT Timestamp, RWID, TimestampRW, 'Test2' AS Source, 'Súng barcode Test2' AS Device FROM ManufactureTest2
+                          UNION ALL
+                          SELECT Timestamp, RWID, TimestampRW, 'BoxBuild' AS Source, 'Súng barcode BoxBuild' AS Device FROM ManufactureBoxBuild
+                          UNION ALL
+                          SELECT Timestamp, RWID, TimestampRW, 'IPQC' AS Source, 'Súng barcode IPQC' AS Device FROM ManufactureIPQC
+                          UNION ALL
+                          SELECT Timestamp, RWID, TimestampRW, 'IPQCSMT' AS Source, 'Súng barcode IPQCSMT' AS Device FROM ManufactureIPQCSMT
+                          UNION ALL
+                          SELECT Timestamp, RWID, TimestampRW, 'OQC' AS Source, 'Súng barcode OQC' AS Device FROM ManufactureOQC
+                          UNION ALL
+                          SELECT Timestamp, RWID, TimestampRW, 'Assembly' AS Source, 'Súng barcode Assembly' AS Device FROM ManufactureAssembly
+                          UNION ALL
+                          SELECT Timestamp, RWID, TimestampRW, 'Nhập kho' AS Source, 'Súng barcode Nhập kho' AS Device FROM ManufactureWarehouse
+                      ),
+                      Sources(SourceName, SortOrder, DeviceName) AS (
+                          VALUES 
+                              ('SMT - Printer', 1, 'Cảm biến Printer'),
+                              ('SMT - Gắp linh kiện', 2, 'Cảm biến Gắp linh kiện'),
+                              ('SMT - Lò Reflow', 3, 'Cảm biến Reflow'),
+                              ('AOI', 4, 'Súng barcode AOI'),
+                              ('Tẩm phủ', 5, 'Súng barcode Tẩm phủ'),
+                              ('Test1', 6, 'Súng barcode Test1'),
+                              ('Test2', 7, 'Súng barcode Test2'),
+                              ('BoxBuild', 8, 'Súng barcode BoxBuild'),
+                              ('IPQC', 9, 'Súng barcode IPQC'),
+                              ('IPQCSMT', 10, 'Súng barcode IPQCSMT'),
+                              ('OQC', 11, 'Súng barcode OQC'),
+                              ('Assembly', 12, 'Súng barcode Assembly'),
+                              ('Nhập kho', 13, 'Súng barcode Nhập kho')
+                      ),
+                      LatestPerSource AS (
+                          SELECT Source, MAX(Timestamp) AS LatestTimestamp
+                          FROM AllData
+                          GROUP BY Source
+                      )
+                      SELECT 
+                          S.SourceName AS Source,
+                          S.DeviceName AS Device,
+                          L.LatestTimestamp
+                      FROM Sources S
+                      LEFT JOIN LatestPerSource L ON S.SourceName = L.Source
+                      ORDER BY S.SortOrder;`
+                      ;
+      db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("ActivedError", err);
+          socket.emit("ActivedData", rows);
+        });
+      } catch (error) {
+        socket.emit("ActivedError", error);
       }
     }),
     // socket.on("ask", async (message) => {

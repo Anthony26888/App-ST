@@ -67,6 +67,9 @@
               ></v-chip>
             </div>
           </template>
+          <template v-slot:item.GhiChu="{ item }">
+            <div style="white-space: pre-line">{{ item.GhiChu }}</div>
+          </template>
           <template v-slot:item.id="{ item }">
             <ButtonEdit @edit="GetItem(item)" />
           </template>

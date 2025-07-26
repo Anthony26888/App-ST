@@ -88,22 +88,22 @@
       <!-- Charts -->
       <v-row>
         <v-col cols="12" md="7">
-          <v-card class="mb-4 rounded-xl" elevation="2" height="600px">
+          <v-card class="mb-4 rounded-xl" elevation="2" height="500px">
             <v-card-title class="d-flex align-center">
               <span>Biểu đồ so sánh kế hoạch và thực tế theo hạng mục</span>
             </v-card-title>
             <v-card-text>
-              <canvas ref="summaryChart" height="500"></canvas>
+              <canvas ref="summaryChart" height="400"></canvas>
             </v-card-text>
           </v-card>
         </v-col>
         <v-col cols="12" md="5">
-          <v-card class="mb-4 rounded-xl" elevation="2" height="600px">
+          <v-card class="mb-4 rounded-xl" elevation="2" height="500px">
             <v-card-title class="d-flex align-center">
               <span>Phân bố theo loại</span>
             </v-card-title>
             <v-card-text>
-              <canvas ref="pieChart" height="500"></canvas>
+              <canvas ref="pieChart" height="400"></canvas>
             </v-card-text>
           </v-card>
         </v-col>
@@ -257,6 +257,47 @@
           </v-progress-linear>
         </template>
       </v-data-table-virtual>
+
+      <!-- Bảng dữ liệu hoạt động các công đoạn -->
+      <v-data-table-virtual
+        :items="status"
+        :headers="HeadersActived"
+        item-value="device_id"
+        class="mt-5"
+        fixed-header
+        :header-props="{
+          sortByText: 'Sắp xếp theo',
+          sortDescText: 'Giảm dần',
+          sortAscText: 'Tăng dần',
+        }"
+        :loading="DialogLoading"
+        loading-text="Đang tải dữ liệu..."
+        no-data-text="Không có dữ liệu"
+        no-results-text="Không tìm thấy kết quả"
+        :hover="true"
+        :dense="false"
+        :fixed-header="true"
+      >
+        <template v-slot:top>
+          <v-toolbar flat dense>
+            <v-toolbar-title>
+              <v-icon
+                color="medium-primay"
+                icon="mdi-book-multiple"
+                size="x-small"
+                start
+              ></v-icon>
+              Hoạt động các công đoạn
+            </v-toolbar-title>
+          </v-toolbar>
+        </template>
+        <template #item.status="{ item }">
+          <v-chip :color="item.status === 'online' ? 'green' : 'red'" dark>
+            <v-icon left>{{ item.status === 'online' ? 'mdi-check-circle' : 'mdi-close-circle' }}</v-icon>
+            {{ item.status === 'online' ? 'Đang hoạt động' : 'Ngắt kết nối' }}
+          </v-chip>
+        </template>
+      </v-data-table-virtual>
     </v-card-text>
   </v-card>
 
@@ -287,6 +328,7 @@ import Loading from "@/components/Loading.vue";
 
 // Composables
 import { useSummary } from "@/composables/Summary/useSummary";
+import { useActived } from "@/composables/Summary/useActived"
 
 // ===== STATE MANAGEMENT =====
 // API Configuration
@@ -342,6 +384,14 @@ const HeadersError = ref([
   { key: "Quantity_Real", title: "Tỷ lệ lỗi" },
 ]);
 
+
+const HeadersActived = [
+  { title: 'ID thiết bị', key: 'Device' },
+  { title: 'Tên thiết bị', key: 'Source' },
+  { title: 'Trạng thái', key: 'status' },
+  { title: 'Lần cuối online', key: 'LatestTimestamp' }
+]
+
 // ===== COMPUTED =======
 const dateMenu = ref(false);
 const selectedDate = ref(new Date().toLocaleDateString("sv")); // Returns YYYY-MM-DD in local time
@@ -379,8 +429,10 @@ const formattedWeekDate = computed(() => {
   return `Tuần ${weekNumber} - ${weekday}`;
 });
 
+
 // Pass the computed ref to useSummary
 const { summary, summaryError } = useSummary(formattedSelectedDate);
+const  { status,  statusError, } = useActived()
 
 // Watch for errors
 watch(summaryError, (error) => {

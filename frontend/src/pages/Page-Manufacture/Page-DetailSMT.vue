@@ -39,7 +39,7 @@
           {{ status }}
         </v-chip>
 
-        <!-- Nhập thời gian delay -->
+        <!-- Thời gian delay -->
         <v-chip
           prepend-icon="mdi-clock-outline"
           color="orange"
@@ -261,6 +261,9 @@
                 {{ item.Source }}
               </v-chip>
             </template>
+            <template #[`item.PartNumber`]="{ item }">
+              <p v-if="item.PartNumber == 1">{{ Name_Order }}</p>
+            </template>
             <template #[`bottom`]>
               <div class="text-center pt-2">
                 <v-pagination
@@ -408,19 +411,13 @@ watch(
   (newData) => {
     console.log("History data:", newData);
     if (newData?.value && Array.isArray(newData.value)) {
-      const filteredHistory = newData.value.filter(
-        (item) => item.Type === "SMT"
-      );
-      totalInput.value = filteredHistory.reduce(
-        (sum, item) => sum + (Number(item.Quantity_Plan) || 0),
-        0
-      );
       const data = newData.value[0];
       Name_Order.value = data?.Name_Order;
       NameManufacture.value = data?.PONumber;
       Delay.value = data?.DelaySMT;
       QuantityBoard.value = data?.Quantity;
       PlanID.value = data?.PlanID;
+      totalInput.value = data?.Quantity_Plan;
     }
   },
   { immediate: true, deep: true }
@@ -492,7 +489,7 @@ const connectArduino = () => {
  */
 const resetData = () => {
   axios
-    .delete(`${Url}/reset-data/${id}`)
+    .delete(`${Url}/reset-data/${route.params.id}`)
     .then(function (response) {
       console.log(response.data);
       MessageDialog.value = "Xoá dữ liệu thành công";

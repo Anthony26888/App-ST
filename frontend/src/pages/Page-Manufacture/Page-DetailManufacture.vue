@@ -720,7 +720,7 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="calc(100vh - 600px)"
+            height="calc(100vh - 200px)"
           >
             <template v-slot:top>
               <v-toolbar flat dense class="rounded-t-lg">
@@ -759,6 +759,9 @@
                     : "OK"
                 }}
               </v-chip>
+            </template>
+            <template #[`item.PartNumber`]="{ item }">
+              <p v-if="item.PartNumber == 1">{{ NameOrder }}</p>
             </template>
             <template #item.Note="{ item }">
               <div style="white-space: pre-line" class="text-error">
