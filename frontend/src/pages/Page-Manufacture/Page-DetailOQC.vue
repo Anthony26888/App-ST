@@ -111,7 +111,7 @@
             :items="manufactureOQC"
             :search="search"
             :items-per-page="itemsPerPage"
-            v-model="page"
+            v-model:page="page"
             class="elevation-1 mt-4"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
@@ -268,7 +268,7 @@ const MessageDialog = ref("");
 // Table
 const search = ref("");
 const page = ref(1);
-const itemsPerPage = ref(10);
+const itemsPerPage = ref(15);
 
 // Input/Output State
 const Input = ref("");

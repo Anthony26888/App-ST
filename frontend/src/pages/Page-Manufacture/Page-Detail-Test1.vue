@@ -118,7 +118,7 @@
             :items="manufactureTest1"
             :search="search"
             :items-per-page="itemsPerPage"
-            v-model="page"
+            v-model:page="page"
             class="elevation-1 mt-4"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
@@ -272,7 +272,7 @@ const { manufactureTest1, manufactureTest1Error } = useManufactureTest1(id);
 
 const search = ref("");
 const page = ref(1);
-const itemsPerPage = ref(10);
+const itemsPerPage = ref(15);
 
 // Dialog
 const DialogLoading = ref(false);

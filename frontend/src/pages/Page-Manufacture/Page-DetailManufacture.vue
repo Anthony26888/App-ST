@@ -700,13 +700,13 @@
 
         <!-- Lịch sử sản xuất -->
         <v-card class="rounded-lg mt-5" elevation="2">
-          <v-data-table-virtual
+          <v-data-table
             :headers="HeadersHistoryPart"
             :items="historyPart"
             :search="searchHistory"
             fixed-header
             :items-per-page="itemsPerPage"
-            v-model="page"
+            v-model:page="page"
             class="elevation-0"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
@@ -766,6 +766,7 @@
             </template>
             <template #[`item.PartNumber`]="{ item }">
               <p v-if="item.PartNumber == 1">{{ NameOrder }}</p>
+              <p v-else>{{ item.PartNumber }}</p>
             </template>
             <template #item.Note="{ item }">
               <div style="white-space: pre-line" class="text-error">
@@ -781,58 +782,87 @@
                 @click="GetItemHistory(item)"
               ></v-btn>
             </template>
-          </v-data-table-virtual>
+            <template #[`bottom`]>
+              <div class="text-center pt-2">
+                <v-pagination
+                  v-model="page"
+                  :length="Math.ceil(historyPart.length / itemsPerPage)"
+                ></v-pagination>
+              </div>
+            </template>
+          </v-data-table>
         </v-card>
       </v-card-text>
     </v-card>
 
     <!-- Dialog Add -->
-    <v-dialog v-model="DialogAdd" width="500" scrollable>
-      <v-card max-width="500" class="overflow-y-auto">
+    <v-dialog v-model="DialogAdd" width="700" scrollable>
+      <v-card max-width="600" class="overflow-y-auto">
         <v-card-title class="d-flex align-center pa-4">
           <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
           Thêm dữ liệu kế hoạch
         </v-card-title>
-        <v-card-text>
-          <v-row>
-            <v-col col="12" md="6">
-              <InputField disabled label="Số PO" v-model="PONumber_Add" />
-            </v-col>
-            <v-col col="12" md="6">
-              <InputField disabled label="Đơn hàng" v-model="Name_Order_Add" />
-            </v-col>
-          </v-row>
-          <InputSelect
-            label="Công đoạn"
-            :items="LevelSelectAdd"
-            hint="Lựa chọn công đoạn phù hợp"
-            v-model="Type_Add"
-          />
-          <InputField label="Hạng mục" v-model="Category_Add" />
 
-          <v-row>
-            <v-col cols="12" sm="4">
-              <InputField
-                label="Số lượng (pcs)"
-                type="number"
-                v-model="Quantity_Plan_Add"
-              />
-            </v-col>
-            <v-col cols="12" sm="4">
-              <InputField
-                label="Vòng lặp (giây)"
-                type="number"
-                v-model="CycleTime_Add"
-              />
-            </v-col>
-            <v-col cols="12" sm="4">
-              <InputField
-                label="Thời gian (giờ)"
-                type="number"
-                v-model="Time_Add"
-              />
-            </v-col>
-          </v-row>
+        <v-card-text>
+          <v-form ref="formRef" v-model="isFormValid">
+            <v-row>
+              <v-col col="12" md="6">
+                <InputField disabled label="Số PO" v-model="PONumber_Add" />
+              </v-col>
+              <v-col col="12" md="6">
+                <InputField
+                  disabled
+                  label="Đơn hàng"
+                  v-model="Name_Order_Add"
+                />
+              </v-col>
+            </v-row>
+            <InputSelect
+              label="Công đoạn"
+              :items="LevelSelectAdd"
+              hint="Lựa chọn công đoạn phù hợp"
+              v-model="Type_Add"
+              :rules="requiredRule"
+            />
+            <InputField
+              label="Hạng mục"
+              v-model="Category_Add"
+              :rules="requiredRule"
+            />
+
+            <v-row>
+              <v-col cols="12" sm="4">
+                <InputField
+                  label="Số lượng (pcs)"
+                  type="number"
+                  v-model="Quantity_Plan_Add"
+                  :rules="requiredRule"
+                />
+              </v-col>
+              <v-col cols="12" sm="4">
+                <InputField
+                  label="Vòng lặp (giây)"
+                  type="number"
+                  v-model="CycleTime_Add"
+                  :rules="requiredRule"
+                />
+              </v-col>
+              <v-col cols="12" sm="4">
+                <InputField
+                  label="Thời gian (giờ)"
+                  type="number"
+                  v-model="Time_Add"
+                />
+              </v-col>
+            </v-row>
+
+            <InputField
+              label="Ngày tạo"
+              type="date"
+              v-model="Date_DetailManufacture_Add"
+              :rules="requiredRule"
+            />
+          </v-form>
           <InputTextarea label="Ghi chú" v-model="Note_Add" />
         </v-card-text>
         <v-card-actions>
@@ -843,8 +873,8 @@
     </v-dialog>
 
     <!-- Dialog Edit -->
-    <v-dialog v-model="DialogEdit" width="500" scrollable>
-      <v-card max-width="500" class="overflow-y-auto">
+    <v-dialog v-model="DialogEdit" width="700" scrollable>
+      <v-card max-width="600" class="overflow-y-auto">
         <v-card-title class="d-flex align-center pa-4">
           <v-icon icon="mdi-pencil" color="primary" class="me-2"></v-icon>
           Sửa dữ liệu kế hoạch
@@ -908,7 +938,9 @@
           <v-icon icon="mdi-trash-can" color="error" class="me-2"></v-icon>
           Xoá dữ liệu kế hoạch
         </v-card-title>
-        <v-card-text>Bạn có chắc chắn muốn xóa dự án này?</v-card-text>
+        <v-card-text
+          >Bạn có chắc chắn muốn xóa dữ liệu kế hoạch này?</v-card-text
+        >
         <v-card-actions>
           <v-spacer />
           <ButtonCancel @cancel="DialogRemove = false" />
@@ -1159,6 +1191,7 @@ const Category_Add = ref("");
 const Quantity_Plan_Add = ref("");
 const CycleTime_Add = ref("");
 const Note_Add = ref("");
+const Date_DetailManufacture_Add = ref("");
 
 // ===== FORM EDIT =====
 const Type_Edit = ref("");
@@ -1185,7 +1218,7 @@ const Quantity_OQC_Edit = ref(1);
 // Table
 const searchHistory = ref("");
 const page = ref(1);
-const itemsPerPage = ref(10);
+const itemsPerPage = ref(15);
 
 // Chart
 const historyChart = ref(null);
@@ -1210,6 +1243,11 @@ const HeadersHistoryPart = [
   { title: "Thời gian RW", key: "TimestampRW", sortable: true },
   { title: "Thao tác", key: "id", sortable: true },
 ];
+
+// =============== Rules ============
+const formRef = ref(null);
+const isFormValid = ref(true);
+const requiredRule = [(v) => !!v || "Dữ liệu này không được bỏ trống"];
 
 // Watch for manufactureFound changes to update levels
 watch(
@@ -1368,7 +1406,7 @@ onUnmounted(() => {
 
 // ====== COMPUTED ======
 const formattedSelectedDate = computed(() => {
-  const date = new Date();
+  const date = new Date(Date_DetailManufacture_Add.value);
   return date.toLocaleDateString("vi-VN", {
     day: "2-digit",
     month: "2-digit",
@@ -1376,6 +1414,7 @@ const formattedSelectedDate = computed(() => {
     timeZone: "Asia/Bangkok",
   });
 });
+
 // Computed percent Input and Output
 const percent = computed(() => {
   if (totalInput.value === 0 || totalWarehouse.value === 0) {
@@ -1805,16 +1844,20 @@ const GetItem = (item) => {
 const GetItemHistory = (item) => {
   DialogRemoveHistory.value = true;
   GetIDHistory.value = item.id;
-  if(item.Source == 'SMT - Printer' || item.Source == 'SMT - Gắn linh kiện' || item.Source == 'SMT - Lò Reflow'){
-    GetSourceHistory.value = 'ManufactureSMT'
-  }else if(item.Source == 'Tẩm phủ'){
-    GetSourceHistory.value = 'ManufactureConformalCoating'
-  }else if(item.Source == 'Nhập kho'){
-    GetSourceHistory.value = 'ManufactureWareHouse'
-  }else{
-    GetSourceHistory.value = `Manufacture${item.Source}`
+  if (
+    item.Source == "SMT - Printer" ||
+    item.Source == "SMT - Gắn linh kiện" ||
+    item.Source == "SMT - Lò Reflow"
+  ) {
+    GetSourceHistory.value = "ManufactureSMT";
+  } else if (item.Source == "Tẩm phủ") {
+    GetSourceHistory.value = "ManufactureConformalCoating";
+  } else if (item.Source == "Nhập kho") {
+    GetSourceHistory.value = "ManufactureWareHouse";
+  } else {
+    GetSourceHistory.value = `Manufacture${item.Source}`;
   }
-  console.log(GetSourceHistory.value)
+  console.log(GetSourceHistory.value);
 };
 
 const SaveEdit = async () => {
@@ -1883,6 +1926,13 @@ const SaveEditSettingSMT = async () => {
  */
 
 const SaveAdd = async () => {
+  const result = await formRef.value.validate();
+
+  if (!result.valid) {
+    MessageErrorDialog.value = "Vui lòng điền đầy đủ thông tin!";
+    DialogFailed.value = true; // hoặc hiển thị dialog báo lỗi
+    return;
+  }
   DialogLoading.value = true;
   const formData = reactive({
     Type: Type_Add.value,

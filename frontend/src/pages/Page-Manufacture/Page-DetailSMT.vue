@@ -140,6 +140,7 @@
                   <div class="text-h6 font-weight-bold mb-1 mt-2">Printer</div>
                   <div class="text-h4 font-weight-bold mb-1">
                     <span>{{
+                      QuantityBoard *
                       manufactureSMT.filter(
                         (item) => item.Source === "Máy printer"
                       ).length || 0
@@ -167,6 +168,7 @@
                   </div>
                   <div class="text-h4 font-weight-bold mb-1">
                     <span>{{
+                      QuantityBoard *
                       manufactureSMT.filter(
                         (item) => item.Source === "Máy gắp linh kiện"
                       ).length || 0
@@ -188,6 +190,7 @@
                   </div>
                   <div class="text-h4 font-weight-bold mb-1">
                     <span>{{
+                      QuantityBoard *
                       manufactureSMT.filter(
                         (item) => item.Source === "Máy Reflow"
                       ).length || 0
@@ -211,7 +214,7 @@
             :items="manufactureSMT"
             :search="search"
             :items-per-page="itemsPerPage"
-            v-model="page"
+            v-model:page="page"
             class="elevation-1 mt-4"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
@@ -263,7 +266,7 @@
                 <v-pagination
                   v-model="page"
                   :length="
-                    Math.ceil((manufactureSMT?.length || 0) / itemsPerPage)
+                    Math.ceil(manufactureSMT.length / itemsPerPage)
                   "
                 ></v-pagination>
               </div>
@@ -341,7 +344,7 @@ const MessageErrorDialog = ref("");
 // Trạng thái bảng dữ liệu
 const search = ref("");
 const page = ref(1);
-const itemsPerPage = ref(10);
+const itemsPerPage = ref(15);
 
 // Trạng thái sản xuất
 const totalInput = ref(0);
@@ -492,7 +495,7 @@ const updateAction = (newAction) => {
   };
 
   return axios
-    .put(`${Url}/PlanManuafacture/Edit-Action/${manufactureId.value}`, formData)
+    .put(`${Url}/PlanManufacture/Edit-Action/${manufactureId.value}`, formData)
     .then(function (response) {
       console.log("Action update response:", response.data);
       Action.value = newAction;

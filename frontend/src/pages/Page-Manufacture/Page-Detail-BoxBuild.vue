@@ -80,7 +80,7 @@
             :items="manufactureBoxBuild"
             :search="search"
             :items-per-page="itemsPerPage"
-            v-model="page"
+            v-model:page="page"
             class="elevation-1 mt-4"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
@@ -160,7 +160,7 @@ const Headers = [
 ]
 const search = ref("");
 const page = ref(1);
-const itemsPerPage = ref(10);
+const itemsPerPage = ref(15);
 // ===== Composables & Data Management =====
 // Initialize composables for data fetching
 const { history, historyError } = useHistory(back);

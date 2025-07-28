@@ -4012,7 +4012,7 @@ app.delete("/api/PlanManufacture/Delete/:id", async (req, res) => {
 });
 
 // Router delete item in PlanManufacture table
-app.delete("/api/PlanManufacture/Edit-Action/:id", async (req, res) => {
+app.put("/api/PlanManufacture/Edit-Action/:id", async (req, res) => {
   const { id } = req.params;
   const { Action } = req.body;
   // Insert data into SQLite database

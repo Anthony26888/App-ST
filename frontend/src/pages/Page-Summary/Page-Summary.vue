@@ -100,10 +100,17 @@
         <v-col cols="12" md="5">
           <!-- Thay thế pie chart bằng bảng chi tiết công đoạn -->
           <v-card class="mb-4 rounded-xl" elevation="2" height="500px">
-            <v-card-title class="d-flex align-center pa-4 bg-grey-lighten-2 rounded-t-lg">
-              <v-icon icon="mdi-table" class="me-2" color="primary"></v-icon>
-              Chi tiết theo loại
-            </v-card-title>
+            <v-toolbar flat dense>
+            <v-toolbar-title>
+              <v-icon
+                color="primary"
+                icon="mdi-book-multiple"
+                size="x-small"
+                start
+              ></v-icon>
+              Chi tiết theo công đoạn
+            </v-toolbar-title>
+          </v-toolbar>
             <v-card-text class="pa-4">
               <div class="detail-table-container">
                 <v-table density="compact" class="elevation-1 rounded">
@@ -358,7 +365,6 @@
               Hoạt động các công đoạn 
               
             </v-toolbar-title>
-            <p class="me-5">{{ formattedDateActived }}</p>
           </v-toolbar>
         </template>
         <template #item.status="{ item }">
@@ -461,8 +467,8 @@ const HeadersError = ref([
 ]);
 
 const HeadersActived = [
-  { title: "ID thiết bị", key: "Device" },
-  { title: "Tên thiết bị", key: "Source" },
+  { title: "Tên thiết bị", key: "Device" },
+  { title: "Công đoạn", key: "Source" },
   { title: "Trạng thái", key: "status" },
   { title: "Lần cuối online", key: "LatestTimestamp" },
 ];

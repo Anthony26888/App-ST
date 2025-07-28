@@ -42,35 +42,6 @@
           </v-col>
         </v-row>
 
-        <!-- Input Section -->
-        <!-- <v-card class="mb-4 rounded-lg" elevation="2">
-          <v-card-text>
-            <v-row>
-              <v-col cols="12" md="8">
-                <InputField
-                  label="Nhập mã sản phẩm"
-                  v-model="Input"
-                  @keydown.enter="submitBarcode"
-                  ref="barcodeInput"
-                  autofocus
-                  hide-details
-                  variant="outlined"
-                  density="comfortable"
-                />
-              </v-col>
-              <v-col cols="12" md="4">
-                <v-checkbox
-                  v-model="isError"
-                  label="Đánh dấu lỗi"
-                  color="warning"
-                  hide-details
-                  class="mt-2"
-                ></v-checkbox>
-              </v-col>
-            </v-row>
-          </v-card-text>
-        </v-card> -->
-
         <!-- Table -->
         <v-card class="mt-4 rounded-lg" variant="text">
           <v-card-title class="d-flex align-center">
@@ -83,7 +54,7 @@
             :items="manufactureRW"
             :search="search"
             :items-per-page="itemsPerPage"
-            v-model="page"
+            v-model:page="page"
             class="elevation-1 mt-4"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
@@ -247,7 +218,7 @@ const ConditionType = ref("");
 // Table
 const search = ref("");
 const page = ref(1);
-const itemsPerPage = ref(10);
+const itemsPerPage = ref(15);
 
 // Input/Output State
 const Input = ref("");
