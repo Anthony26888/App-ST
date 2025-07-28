@@ -54,20 +54,14 @@
         <!-- Các nút điều khiển -->
         <v-btn
           class="text-caption ms-2"
+          variant="tonal"
           @click="connectArduino"
-          :color="isBegin ? 'error' : 'success'"
+          :color="isRunning ? 'warning' : 'success'"
           :loading="isConnecting"
         >
-          <v-icon :icon="isBegin ? 'mdi-stop' : 'mdi-play'"></v-icon>
+          <v-icon :icon="isRunning ? 'mdi-stop' : 'mdi-play'"></v-icon>
           &nbsp;
-          {{ isBegin ? "Dừng" : "Bắt đầu" }}
-        </v-btn>
-        <v-btn
-          @click="DialogRemove = true"
-          color="error"
-          class="ms-2 text-caption"
-        >
-          Reset dữ liệu
+          {{ isRunning ? "Dừng" : "Bắt đầu" }}
         </v-btn>
       </v-card-title>
 
@@ -280,16 +274,7 @@
     </v-card>
 
     <!-- Các dialog và thông báo -->
-    <!-- Dialog xác nhận xóa dữ liệu -->
-    <v-dialog v-model="DialogRemove" width="400">
-      <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
-        <v-card-text> Bạn có chắc chắn muốn xoá dữ liệu ? </v-card-text>
-        <template v-slot:actions>
-          <ButtonCancel @cancel="DialogRemove = false" />
-          <ButtonDelete @delete="resetData()" />
-        </template>
-      </v-card>
-    </v-dialog>
+
 
     <!-- Các component thông báo -->
     <Loading v-model="DialogLoading" />
@@ -366,6 +351,7 @@ const Name_Order = ref("");
 const QuantityBoard = ref(0);
 const Delay = ref(0);
 const PlanID = ref("");
+const Action = ref("");
 
 // Trạng thái kết nối Arduino
 const isBegin = ref(false);
@@ -376,6 +362,9 @@ const manufactureId = ref(null);
 
 // Thêm biến totalSMT để dùng cho progress SMT
 const totalSMT = computed(() => manufactureSMT.length);
+
+// Computed property để xác định trạng thái dựa trên Action
+const isRunning = computed(() => Action.value === 'running');
 
 // ===== Lifecycle Hooks =====
 onMounted(() => {
@@ -418,6 +407,7 @@ watch(
       QuantityBoard.value = data?.Quantity;
       PlanID.value = data?.PlanID;
       totalInput.value = data?.Quantity_Plan;
+      Action.value = data?.Action
     }
   },
   { immediate: true, deep: true }
@@ -452,28 +442,30 @@ const connectArduino = () => {
   });
   isConnecting.value = true;
 
+  // Xác định action mới dựa trên trạng thái hiện tại
+  const newAction = isRunning.value ? "stopped" : "running";
+  
+  // Gửi cấu hình Arduino trước
   axios
     .post(`${Url}/api/esp-config`, formData)
     .then(function (response) {
       console.log("Arduino config response:", response.data);
-      isBegin.value = !isBegin.value;
+      
+      // Chỉ khi cấu hình Arduino thành công mới cập nhật Action
+      return updateAction(newAction);
+    })
+    .then(function (actionResponse) {
+      console.log("Action update response:", actionResponse.data);
 
-      // Cập nhật localStorage dựa trên trạng thái mới
-      if (isBegin.value) {
-        localStorage.setItem("isRunning", route.params.id);
-      } else {
-        localStorage.removeItem("isRunning");
-      }
-
-      MessageDialog.value = isBegin.value
+      MessageDialog.value = newAction === "running"
         ? `Đã bắt đầu sản xuất với độ trễ ${delaySMT}ms`
         : "Đã dừng sản xuất";
       DialogSuccess.value = true;
     })
     .catch(function (error) {
-      console.error("Arduino config error:", error);
+      console.error("Operation error:", error);
       MessageErrorDialog.value =
-        error.response?.data?.message || "Có lỗi xảy ra khi gửi đến Esp32";
+        error.response?.data?.message || "Có lỗi xảy ra khi gửi dữ liệu đến cảm biến";
       DialogFailed.value = true;
     })
     .finally(() => {
@@ -482,29 +474,37 @@ const connectArduino = () => {
 };
 
 /**
- * Reset toàn bộ dữ liệu sản xuất
- * - Xóa dữ liệu từ server
- * - Cập nhật trạng thái UI
- * - Reset các biến đếm
+ * Cập nhật trạng thái Action của manufacture
+ * - Gửi yêu cầu PUT đến /PlanManuafacture/Edit-Action/:id
+ * - Cập nhật Action thành "running" hoặc "stopped"
+ * - Xử lý lỗi nếu có
  */
-const resetData = () => {
-  axios
-    .delete(`${Url}/reset-data/${route.params.id}`)
+const updateAction = (newAction) => {
+  if (!manufactureId.value) {
+    console.error("Manufacture ID not available");
+    MessageErrorDialog.value = "Không thể lấy ID sản xuất";
+    DialogFailed.value = true;
+    return Promise.reject("Manufacture ID not available");
+  }
+
+  const formData = {
+    Action: newAction
+  };
+
+  return axios
+    .put(`${Url}/PlanManuafacture/Edit-Action/${manufactureId.value}`, formData)
     .then(function (response) {
-      console.log(response.data);
-      MessageDialog.value = "Xoá dữ liệu thành công";
-      DialogSuccess.value = true;
-      isBegin.value = false;
-      localStorage.removeItem("isRunning");
-      totalInput.value = 0;
-      totalOutput.value = 0;
-      DialogRemove.value = false;
+      console.log("Action update response:", response.data);
+      Action.value = newAction;
+      return response;
     })
     .catch(function (error) {
-      console.log(error);
-      MessageErrorDialog.value = "Xoá dữ liệu thất bại";
+      console.error("Action update error:", error);
+      MessageErrorDialog.value =
+        error.response?.data?.message || "Có lỗi xảy ra khi cập nhật trạng thái";
       DialogFailed.value = true;
-      DialogRemove.value = false;
+      throw error;
     });
 };
+
 </script>

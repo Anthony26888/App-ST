@@ -566,7 +566,7 @@
           </v-data-table-virtual>
         </v-card>
 
-        <!-- Horizontal Bar Chart Section -->
+        <!-- Chart thống kê công đoạn -->
         <v-row class="mb-6 mt-5">
           <!-- Chart Card -->
           <v-col cols="12" md="8">
@@ -574,7 +574,11 @@
               <v-card-title
                 class="d-flex align-center pa-4 bg-grey-lighten-2 rounded-t-lg"
               >
-                <v-icon icon="mdi-chart-bar" color="primary" class="me-2"></v-icon>
+                <v-icon
+                  icon="mdi-chart-bar"
+                  color="primary"
+                  class="me-2"
+                ></v-icon>
                 Thống kê theo công đoạn sản xuất
               </v-card-title>
               <v-card-text class="pa-4">
@@ -588,7 +592,7 @@
             </v-card>
           </v-col>
 
-          <!-- Detail Table Card -->
+          <!-- Chart chi tiết công đoạn -->
           <v-col cols="12" md="4">
             <v-card class="rounded-lg h-100" elevation="2">
               <v-card-title
@@ -694,7 +698,7 @@
           </v-col>
         </v-row>
 
-        <!-- Data Table Section -->
+        <!-- Lịch sử sản xuất -->
         <v-card class="rounded-lg mt-5" elevation="2">
           <v-data-table-virtual
             :headers="HeadersHistoryPart"
@@ -767,6 +771,15 @@
               <div style="white-space: pre-line" class="text-error">
                 {{ item.Note }}
               </div>
+            </template>
+            <template #item.id="{ item }">
+              <v-btn
+                size="small"
+                variant="text"
+                color="error"
+                icon="mdi-trash-can"
+                @click="GetItemHistory(item)"
+              ></v-btn>
             </template>
           </v-data-table-virtual>
         </v-card>
@@ -1006,6 +1019,17 @@
       </v-card>
     </v-dialog>
 
+    <!-- Dialog xác nhận xóa dữ liệu lịch sử sản xuất -->
+    <v-dialog v-model="DialogRemoveHistory" width="400">
+      <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
+        <v-card-text> Bạn có chắc chắn muốn xoá dữ liệu ? </v-card-text>
+        <template v-slot:actions>
+          <ButtonCancel @cancel="DialogRemoveHistory = false" />
+          <ButtonDelete @delete="RemoveItemHistory()" />
+        </template>
+      </v-card>
+    </v-dialog>
+
     <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
     <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
     <Loading v-model="DialogLoading" />
@@ -1061,7 +1085,6 @@ const { manufacture, manufactureFound, manufactureError, isConnected } =
   useManufacture();
 const { history, historyError, refresh } = useHistory(id);
 const { historyPart, historyPartError } = useHistoryPart(id);
-console.log(manufactureDetails);
 // Dialog
 const DialogSuccess = ref(false);
 const DialogLoading = ref(false);
@@ -1069,6 +1092,8 @@ const DialogFailed = ref(false);
 const DialogAdd = ref(false);
 const DialogEdit = ref(false);
 const DialogRemove = ref(false);
+const DialogRemoveHistory = ref(false);
+
 const DialogSettingSMT = ref(false);
 const MessageDialog = ref("");
 const MessageErrorDialog = ref("");
@@ -1077,6 +1102,8 @@ const MessageErrorDialog = ref("");
 const NameManufacture = localStorage.getItem("ProductName");
 const NameOrder = ref(null);
 const GetID = ref(null);
+const GetIDHistory = ref(null);
+const GetSourceHistory = ref(null);
 
 // Production statistics
 const totalInput = ref(0);
@@ -1181,6 +1208,7 @@ const HeadersHistoryPart = [
   { title: "Thời gian", key: "Timestamp", sortable: true },
   { title: "Ghi chú lỗi", key: "Note", sortable: true },
   { title: "Thời gian RW", key: "TimestampRW", sortable: true },
+  { title: "Thao tác", key: "id", sortable: true },
 ];
 
 // Watch for manufactureFound changes to update levels
@@ -1421,27 +1449,37 @@ const chartData = computed(() => {
     BoxBuild: ["BoxBuild", "Box Build", "Box-Build"],
     "Tẩm phủ": ["Tẩm phủ", "Conformal Coating", "ConformalCoating"],
     OQC: ["OQC"],
-    "Nhập kho": ["Nhập kho", "Warehouse", "warehouse", "Kho", "kho", "Warehouse Entry", "warehouse entry"], // Add warehouse entry mapping
+    "Nhập kho": [
+      "Nhập kho",
+      "Warehouse",
+      "warehouse",
+      "Kho",
+      "kho",
+      "Warehouse Entry",
+      "warehouse entry",
+    ], // Add warehouse entry mapping
   };
 
   // Get manufacture details for quantity multipliers
   const manufactureData = manufactureDetails.value;
-  const data = Array.isArray(manufactureData) ? manufactureData[0] : manufactureData;
+  const data = Array.isArray(manufactureData)
+    ? manufactureData[0]
+    : manufactureData;
 
   // Define quantity multipliers for each process step
   const quantityMultipliers = {
     "SMT - Printer": data?.Quantity || 1,
     "SMT - Gắp linh kiện": data?.Quantity || 1,
     "SMT - Lò Reflow": data?.Quantity || 1,
-    "IPQCSMT": data?.Quantity_IPQCSMT || 1,
-    "AOI": data?.Quantity_AOI || 1,
-    "Assembly": data?.Quantity_Assembly || 1,
-    "Test1": data?.Quantity_Test1 || 1,
-    "Test2": data?.Quantity_Test2 || 1,
-    "IPQC": data?.Quantity_IPQC || 1,
-    "BoxBuild": data?.Quantity_BoxBuild || 1,
+    IPQCSMT: data?.Quantity_IPQCSMT || 1,
+    AOI: data?.Quantity_AOI || 1,
+    Assembly: data?.Quantity_Assembly || 1,
+    Test1: data?.Quantity_Test1 || 1,
+    Test2: data?.Quantity_Test2 || 1,
+    IPQC: data?.Quantity_IPQC || 1,
+    BoxBuild: data?.Quantity_BoxBuild || 1,
     "Tẩm phủ": data?.Quantity_ConformalCoating || 1,
-    "OQC": data?.Quantity_OQC || 1,
+    OQC: data?.Quantity_OQC || 1,
     "Nhập kho": data?.Quantity_Warehouse || data?.Warehouse || 1, // Add warehouse quantity multiplier
   };
 
@@ -1506,7 +1544,7 @@ const chartData = computed(() => {
   processSteps.forEach((step) => {
     const counts = processCounts[step];
     const multiplier = quantityMultipliers[step] || 1;
-    
+
     if (counts.ok > 0 || counts.error > 0) {
       labels.push(step);
       okData.push(counts.ok * multiplier);
@@ -1589,27 +1627,37 @@ const chartDetailData = computed(() => {
     BoxBuild: ["BoxBuild", "Box Build", "Box-Build"],
     "Tẩm phủ": ["Tẩm phủ", "Conformal Coating", "ConformalCoating"],
     OQC: ["OQC"],
-    "Nhập kho": ["Nhập kho", "Warehouse", "warehouse", "Kho", "kho", "Warehouse Entry", "warehouse entry"], // Add warehouse entry mapping
+    "Nhập kho": [
+      "Nhập kho",
+      "Warehouse",
+      "warehouse",
+      "Kho",
+      "kho",
+      "Warehouse Entry",
+      "warehouse entry",
+    ], // Add warehouse entry mapping
   };
 
   // Get manufacture details for quantity multipliers
   const manufactureData = manufactureDetails.value;
-  const data = Array.isArray(manufactureData) ? manufactureData[0] : manufactureData;
+  const data = Array.isArray(manufactureData)
+    ? manufactureData[0]
+    : manufactureData;
 
   // Define quantity multipliers for each process step
   const quantityMultipliers = {
     "SMT - Printer": data?.Quantity || 1,
     "SMT - Gắp linh kiện": data?.Quantity || 1,
     "SMT - Lò Reflow": data?.Quantity || 1,
-    "IPQCSMT": data?.Quantity_IPQCSMT || 1,
-    "AOI": data?.Quantity_AOI || 1,
-    "Assembly": data?.Quantity_Assembly || 1,
-    "Test1": data?.Quantity_Test1 || 1,
-    "Test2": data?.Quantity_Test2 || 1,
-    "IPQC": data?.Quantity_IPQC || 1,
-    "BoxBuild": data?.Quantity_BoxBuild || 1,
+    IPQCSMT: data?.Quantity_IPQCSMT || 1,
+    AOI: data?.Quantity_AOI || 1,
+    Assembly: data?.Quantity_Assembly || 1,
+    Test1: data?.Quantity_Test1 || 1,
+    Test2: data?.Quantity_Test2 || 1,
+    IPQC: data?.Quantity_IPQC || 1,
+    BoxBuild: data?.Quantity_BoxBuild || 1,
     "Tẩm phủ": data?.Quantity_ConformalCoating || 1,
-    "OQC": data?.Quantity_OQC || 1,
+    OQC: data?.Quantity_OQC || 1,
     "Nhập kho": data?.Quantity_Warehouse || data?.Warehouse || 1, // Add warehouse quantity multiplier
   };
 
@@ -1672,20 +1720,21 @@ const chartDetailData = computed(() => {
     const counts = processCounts[step];
     const multiplier = quantityMultipliers[step] || 1;
     const total = counts.ok + counts.error;
-    
+
     if (total > 0) {
       const okQuantity = counts.ok * multiplier;
       const errorQuantity = counts.error * multiplier;
       const totalQuantity = total * multiplier;
-      const rate = totalQuantity > 0 ? Math.round((okQuantity / totalQuantity) * 100) : 0;
-      
+      const rate =
+        totalQuantity > 0 ? Math.round((okQuantity / totalQuantity) * 100) : 0;
+
       detailData.push({
         process: step,
         ok: okQuantity,
         error: errorQuantity,
         total: totalQuantity,
         rate: rate,
-        multiplier: multiplier
+        multiplier: multiplier,
       });
     }
   });
@@ -1751,6 +1800,21 @@ const GetItem = (item) => {
   Time_Edit.value = item.Time_Plan;
   Note_Edit.value = item.Note;
   GetID.value = item.id;
+};
+
+const GetItemHistory = (item) => {
+  DialogRemoveHistory.value = true;
+  GetIDHistory.value = item.id;
+  if(item.Source == 'SMT - Printer' || item.Source == 'SMT - Gắn linh kiện' || item.Source == 'SMT - Lò Reflow'){
+    GetSourceHistory.value = 'ManufactureSMT'
+  }else if(item.Source == 'Tẩm phủ'){
+    GetSourceHistory.value = 'ManufactureConformalCoating'
+  }else if(item.Source == 'Nhập kho'){
+    GetSourceHistory.value = 'ManufactureWareHouse'
+  }else{
+    GetSourceHistory.value = `Manufacture${item.Source}`
+  }
+  console.log(GetSourceHistory.value)
 };
 
 const SaveEdit = async () => {
@@ -1861,6 +1925,23 @@ const RemoveItem = async () => {
   }
 };
 
+// Hàm xóa item lịch sử sản xuất
+const RemoveItemHistory = async () => {
+  DialogLoading.value = true;
+  try {
+    const response = await axios.delete(
+      `${Url}/Manufacture/Delete-item-history/${GetIDHistory.value}?table=${GetSourceHistory.value}`
+    );
+    console.log(response.data.message);
+    MessageDialog.value = "Xoá dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Xoá dữ liệu thất bạị";
+    Error();
+  }
+};
+
 function Reset() {
   DialogRemove.value = false;
   DialogSuccess.value = true;
@@ -1870,6 +1951,7 @@ function Reset() {
   DialogFailed.value = false;
   DialogRemove.value = false;
   DialogSettingSMT.value = false;
+  DialogRemoveHistory.value = false;
   Type_Add.value = "";
   Category_Add.value = "";
   Quantity_Plan_Add.value = "";
@@ -1889,6 +1971,7 @@ function Error() {
   DialogEdit.value = false;
   DialogAdd.value = false;
   DialogSettingSMT.value = false;
+  DialogRemoveHistory.value = false;
   Type_Add.value = "";
   Category_Add.value = "";
   Quantity_Plan_Add.value = "";
@@ -1920,7 +2003,10 @@ const initializeChart = () => {
     chartData.value.labels.length === 0 ||
     chartData.value.datasets.length === 0
   ) {
-    console.warn("Chart data invalid, skipping chart initialization", chartData.value);
+    console.warn(
+      "Chart data invalid, skipping chart initialization",
+      chartData.value
+    );
     // Nếu đã có chartInstance thì destroy để tránh lỗi
     if (chartInstance.value) {
       chartInstance.value.destroy();
@@ -1940,7 +2026,7 @@ const initializeChart = () => {
     type: "bar",
     data: chartData.value,
     options: {
-      indexAxis: 'y', // This makes it horizontal
+      indexAxis: "y", // This makes it horizontal
       responsive: true,
       maintainAspectRatio: false,
       interaction: {
@@ -1972,16 +2058,25 @@ const initializeChart = () => {
           callbacks: {
             title: function (tooltipItems) {
               const process = tooltipItems[0].label;
-              const okValue = tooltipItems[0].dataset.data[tooltipItems[0].dataIndex];
-              const errorValue = tooltipItems[1]?.dataset?.data[tooltipItems[0].dataIndex] || 0;
+              const okValue =
+                tooltipItems[0].dataset.data[tooltipItems[0].dataIndex];
+              const errorValue =
+                tooltipItems[1]?.dataset?.data[tooltipItems[0].dataIndex] || 0;
               const totalValue = okValue + errorValue;
-              const percentage = totalValue > 0 ? ((okValue / totalValue) * 100).toFixed(1) : 0;
+              const percentage =
+                totalValue > 0 ? ((okValue / totalValue) * 100).toFixed(1) : 0;
 
               return [
                 `Công đoạn: ${process}`,
-                `OK: ${new Intl.NumberFormat("vi-VN").format(okValue)} sản phẩm`,
-                `Lỗi: ${new Intl.NumberFormat("vi-VN").format(errorValue)} sản phẩm`,
-                `Tổng: ${new Intl.NumberFormat("vi-VN").format(totalValue)} sản phẩm`,
+                `OK: ${new Intl.NumberFormat("vi-VN").format(
+                  okValue
+                )} sản phẩm`,
+                `Lỗi: ${new Intl.NumberFormat("vi-VN").format(
+                  errorValue
+                )} sản phẩm`,
+                `Tổng: ${new Intl.NumberFormat("vi-VN").format(
+                  totalValue
+                )} sản phẩm`,
                 `Tỷ lệ thành công: ${percentage}%`,
               ];
             },

@@ -98,12 +98,75 @@
           </v-card>
         </v-col>
         <v-col cols="12" md="5">
+          <!-- Thay thế pie chart bằng bảng chi tiết công đoạn -->
           <v-card class="mb-4 rounded-xl" elevation="2" height="500px">
-            <v-card-title class="d-flex align-center">
-              <span>Phân bố theo loại</span>
+            <v-card-title class="d-flex align-center pa-4 bg-grey-lighten-2 rounded-t-lg">
+              <v-icon icon="mdi-table" class="me-2" color="primary"></v-icon>
+              Chi tiết theo loại
             </v-card-title>
-            <v-card-text>
-              <canvas ref="pieChart" height="400"></canvas>
+            <v-card-text class="pa-4">
+              <div class="detail-table-container">
+                <v-table density="compact" class="elevation-1 rounded">
+                  <thead>
+                    <tr>
+                      <th class="text-left text-caption">Loại</th>
+                      <th class="text-center text-caption">Tổng OK</th>
+                      <th class="text-center text-caption">Tổng Lỗi</th>
+                      <th class="text-center text-caption">Tỷ lệ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(item, index) in summaryDetailByType" :key="index">
+                      <td class="text-caption font-weight-medium">{{ item.type }}</td>
+                      <td class="text-center">
+                        <v-chip size="x-small" color="success" variant="tonal">
+                          {{ item.ok }}
+                        </v-chip>
+                      </td>
+                      <td class="text-center">
+                        <v-chip size="x-small" color="error" variant="tonal">
+                          {{ item.error }}
+                        </v-chip>
+                      </td>
+                      <td class="text-center">
+                        <v-chip
+                          size="x-small"
+                          :color="item.rate >= 95 ? 'success' : item.rate >= 80 ? 'warning' : 'error'"
+                          variant="tonal"
+                        >
+                          {{ item.rate }}%
+                        </v-chip>
+                      </td>
+                    </tr>
+                  </tbody>
+                </v-table>
+                <!-- Summary Stats -->
+                <div class="mt-4">
+                  <v-divider class="mb-3"></v-divider>
+                  <div class="d-flex justify-space-between align-center mb-2">
+                    <span class="text-caption">Tổng OK:</span>
+                    <v-chip size="small" color="success" variant="tonal">
+                      {{ totalSummaryOK }}
+                    </v-chip>
+                  </div>
+                  <div class="d-flex justify-space-between align-center mb-2">
+                    <span class="text-caption">Tổng Lỗi:</span>
+                    <v-chip size="small" color="error" variant="tonal">
+                      {{ totalSummaryError }}
+                    </v-chip>
+                  </div>
+                  <div class="d-flex justify-space-between align-center">
+                    <span class="text-caption">Tỷ lệ chung:</span>
+                    <v-chip
+                      size="small"
+                      :color="overallSummaryRate >= 95 ? 'success' : overallSummaryRate >= 80 ? 'warning' : 'error'"
+                      variant="tonal"
+                    >
+                      {{ overallSummaryRate }}%
+                    </v-chip>
+                  </div>
+                </div>
+              </div>
             </v-card-text>
           </v-card>
         </v-col>
@@ -134,7 +197,7 @@
           <v-toolbar flat dense>
             <v-toolbar-title>
               <v-icon
-                color="medium-primay"
+                color="primary"
                 icon="mdi-book-multiple"
                 size="x-small"
                 start
@@ -202,7 +265,7 @@
           <v-toolbar flat dense>
             <v-toolbar-title>
               <v-icon
-                color="medium-primay"
+                color="primary"
                 icon="mdi-book-multiple"
                 size="x-small"
                 start
@@ -212,7 +275,9 @@
           </v-toolbar>
         </template>
 
-        <template v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }">
+        <template
+          v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }"
+        >
           <tr>
             <td :colspan="columns.length">
               <v-btn
@@ -221,7 +286,9 @@
                 @click="toggleGroup(item)"
                 class="me-2"
               ></v-btn>
-              <span class="font-weight-bold text-primary">{{ item.value }}</span>
+              <span class="font-weight-bold text-primary">{{
+                item.value
+              }}</span>
             </td>
           </tr>
         </template>
@@ -262,6 +329,7 @@
       <v-data-table-virtual
         :items="status"
         :headers="HeadersActived"
+        :key="now"
         item-value="device_id"
         class="mt-5"
         fixed-header
@@ -282,19 +350,27 @@
           <v-toolbar flat dense>
             <v-toolbar-title>
               <v-icon
-                color="medium-primay"
+                color="primary"
                 icon="mdi-book-multiple"
                 size="x-small"
                 start
               ></v-icon>
-              Hoạt động các công đoạn
+              Hoạt động các công đoạn 
+              
             </v-toolbar-title>
+            <p class="me-5">{{ formattedDateActived }}</p>
           </v-toolbar>
         </template>
         <template #item.status="{ item }">
-          <v-chip :color="item.status === 'online' ? 'green' : 'red'" dark>
-            <v-icon left>{{ item.status === 'online' ? 'mdi-check-circle' : 'mdi-close-circle' }}</v-icon>
-            {{ item.status === 'online' ? 'Đang hoạt động' : 'Ngắt kết nối' }}
+          <v-chip
+            :color="getTimeDifference(item.LatestTimestamp) < 600 ? 'green' : 'red'"
+            dark
+          >
+            <v-icon left>
+              {{ getTimeDifference(item.LatestTimestamp) < 600 ? "mdi-check-circle" : "mdi-close-circle" }}
+            </v-icon>
+            {{ getTimeDifference(item.LatestTimestamp) < 600 ? "Đang hoạt động" : "Ngắt kết nối" }}
+            <!-- Debug: {{ getTimeDifference(item.LatestTimestamp) }} -->
           </v-chip>
         </template>
       </v-data-table-virtual>
@@ -310,7 +386,7 @@
 // Core dependencies
 import axios from "axios";
 import { useRouter } from "vue-router";
-import { ref, reactive, computed, watch, onMounted, nextTick } from "vue";
+import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import Chart from "chart.js/auto";
 
 // Components
@@ -328,7 +404,7 @@ import Loading from "@/components/Loading.vue";
 
 // Composables
 import { useSummary } from "@/composables/Summary/useSummary";
-import { useActived } from "@/composables/Summary/useActived"
+import { useActived } from "@/composables/Summary/useActived";
 
 // ===== STATE MANAGEMENT =====
 // API Configuration
@@ -379,22 +455,85 @@ const Headers = ref([
 
 const HeadersError = ref([
   { key: "PONumber", title: "Dự án" },
-  { key: "Type", title: "Công đoạn"},
+  { key: "Type", title: "Công đoạn" },
   { key: "Quantity_Error", title: "Tổng / Lỗi" },
   { key: "Quantity_Real", title: "Tỷ lệ lỗi" },
 ]);
 
-
 const HeadersActived = [
-  { title: 'ID thiết bị', key: 'Device' },
-  { title: 'Tên thiết bị', key: 'Source' },
-  { title: 'Trạng thái', key: 'status' },
-  { title: 'Lần cuối online', key: 'LatestTimestamp' }
-]
+  { title: "ID thiết bị", key: "Device" },
+  { title: "Tên thiết bị", key: "Source" },
+  { title: "Trạng thái", key: "status" },
+  { title: "Lần cuối online", key: "LatestTimestamp" },
+];
 
 // ===== COMPUTED =======
 const dateMenu = ref(false);
 const selectedDate = ref(new Date().toLocaleDateString("sv")); // Returns YYYY-MM-DD in local time
+
+// Thời gian thực để trigger cập nhật
+const now = ref(Date.now());
+
+// Cập nhật thời gian thực mỗi giây
+let timer = null;
+onMounted(() => {
+  timer = setInterval(() => {
+    now.value = Date.now();
+  }, 1000);
+  nextTick(() => {
+    initializeChart();
+    initializePieChart();
+  });
+});
+onUnmounted(() => {
+  if (timer) clearInterval(timer);
+});
+
+// formattedDateActived sẽ tự động cập nhật mỗi giây
+const formattedDateActived = computed(() => {
+  const date = new Date(now.value).toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  return date;
+});
+
+// Tổng hợp dữ liệu summary theo Type (loại)
+const summaryDetailByType = computed(() => {
+  if (!summary.value || !Array.isArray(summary.value)) return [];
+  // Giả sử Quantity_Real là OK, Quantity_Error là lỗi (nếu có)
+  // Nếu không có Quantity_Error, sẽ lấy 0
+  const grouped = {};
+  summary.value.forEach((item) => {
+    const type = item.Type || "Không phân loại";
+    if (!grouped[type]) {
+      grouped[type] = { ok: 0, error: 0 };
+    }
+    grouped[type].ok += Number(item.Quantity_Real) || 0;
+    grouped[type].error += Number(item.Quantity_Error) || 0;
+  });
+  return Object.entries(grouped).map(([type, { ok, error }]) => {
+    const total = ok + error;
+    const rate = total > 0 ? Math.round((ok / total) * 100) : 0;
+    return { type, ok, error, rate };
+  });
+});
+
+const totalSummaryOK = computed(() => {
+  return summaryDetailByType.value.reduce((sum, item) => sum + item.ok, 0);
+});
+const totalSummaryError = computed(() => {
+  return summaryDetailByType.value.reduce((sum, item) => sum + item.error, 0);
+});
+const overallSummaryRate = computed(() => {
+  const total = totalSummaryOK.value + totalSummaryError.value;
+  return total > 0 ? Math.round((totalSummaryOK.value / total) * 100) : 0;
+});
 
 const formattedSelectedDate = computed(() => {
   const date = new Date(selectedDate.value);
@@ -429,10 +568,21 @@ const formattedWeekDate = computed(() => {
   return `Tuần ${weekNumber} - ${weekday}`;
 });
 
-
 // Pass the computed ref to useSummary
 const { summary, summaryError } = useSummary(formattedSelectedDate);
-const  { status,  statusError, } = useActived()
+const { status, statusError } = useActived();
+
+// Hàm tính số giây chênh lệch giữa hiện tại và timestamp dạng dd/MM/yyyy HH:mm:ss
+const getTimeDifference = (timestamp) => {
+  if (!timestamp) return Infinity;
+  const now = new Date();
+  // Nếu timestamp là dạng "26/07/2025 14:08:39"
+  const [datePart, timePart] = timestamp.split(" ");
+  const [day, month, year] = datePart.split("/").map(Number);
+  const [hour, minute, second] = timePart.split(":").map(Number);
+  const itemTime = new Date(year, month - 1, day, hour, minute, second);
+  return Math.abs((now - itemTime) / 1000);
+};
 
 // Watch for errors
 watch(summaryError, (error) => {
@@ -458,12 +608,12 @@ let chart = null;
 let pieChartInstance = null;
 
 // Initialize charts
-onMounted(() => {
-  nextTick(() => {
-    initializeChart();
-    initializePieChart();
-  });
-});
+// onMounted(() => {
+//   nextTick(() => {
+//     initializeChart();
+//     initializePieChart();
+//   });
+// });
 
 function initializeChart() {
   if (!summaryChart.value) return;
@@ -529,7 +679,7 @@ function initializeChart() {
     type: "bar",
     data: chartData,
     options: {
-      indexAxis: 'y', // This makes it horizontal
+      indexAxis: "y", // This makes it horizontal
       responsive: true,
       maintainAspectRatio: false,
       interaction: {
@@ -689,11 +839,15 @@ function initializePieChart() {
     "rgba(103, 58, 183, 0.8)",
     "rgba(0, 150, 136, 0.8)",
   ];
-  const borderPalette = colorPalette.map(c => c.replace('0.8', '1'));
+  const borderPalette = colorPalette.map((c) => c.replace("0.8", "1"));
 
   const labels = Object.keys(sortedTypes);
-  const backgroundColor = labels.map((_, i) => colorPalette[i % colorPalette.length]);
-  const borderColor = labels.map((_, i) => borderPalette[i % borderPalette.length]);
+  const backgroundColor = labels.map(
+    (_, i) => colorPalette[i % colorPalette.length]
+  );
+  const borderColor = labels.map(
+    (_, i) => borderPalette[i % borderPalette.length]
+  );
 
   // Create new chart (doughnut chart)
   pieChartInstance = new Chart(ctx, {
@@ -703,7 +857,9 @@ function initializePieChart() {
       datasets: [
         {
           label: "Tỷ lệ (%)",
-          data: Object.values(sortedTypes).map((item) => parseFloat(item.percentage)),
+          data: Object.values(sortedTypes).map((item) =>
+            parseFloat(item.percentage)
+          ),
           backgroundColor,
           borderColor,
           borderWidth: 1,
@@ -749,7 +905,9 @@ function initializePieChart() {
               const typeData = sortedTypes[label];
               return [
                 `${label}: ${value}%`,
-                `Số lượng: ${new Intl.NumberFormat("vi-VN").format(typeData.quantity)}`,
+                `Số lượng: ${new Intl.NumberFormat("vi-VN").format(
+                  typeData.quantity
+                )}`,
                 `Số hạng mục: ${typeData.count}`,
               ];
             },
@@ -859,11 +1017,15 @@ watch(
           "rgba(103, 58, 183, 0.8)",
           "rgba(0, 150, 136, 0.8)",
         ];
-        const borderPalette = colorPalette.map(c => c.replace('0.8', '1'));
+        const borderPalette = colorPalette.map((c) => c.replace("0.8", "1"));
 
         const labels = Object.keys(sortedTypes);
-        const backgroundColor = labels.map((_, i) => colorPalette[i % colorPalette.length]);
-        const borderColor = labels.map((_, i) => borderPalette[i % borderPalette.length]);
+        const backgroundColor = labels.map(
+          (_, i) => colorPalette[i % colorPalette.length]
+        );
+        const borderColor = labels.map(
+          (_, i) => borderPalette[i % borderPalette.length]
+        );
 
         // Update chart data
         pieChartInstance.data.labels = labels;

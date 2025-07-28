@@ -52,6 +52,7 @@ const allowedOrigins = new Set([
   "http://192.168.100.200:3000",
   "http://192.168.100.76",  
   "http://192.168.100.20",
+  "http://192.168.100.200",
 
   // Production domain – **đầy đủ biến thể**
   "http://erp.sieuthuat.com",
@@ -1305,6 +1306,7 @@ io.on("connection", (socket) => {
                         z.Quantity_OQC,
                         z.Quantity_Test1,
                         z.Quantity_Test2,
+						            z.Action,
                         a.Category,
                         a.Quantity_Plan,
                         a.CycleTime_Plan,
@@ -1356,7 +1358,8 @@ io.on("connection", (socket) => {
                             Quantity_ConformalCoating,
                             Quantity_OQC,
                             Quantity_Test1,
-                            Quantity_Test2 
+                            Quantity_Test2 ,
+							              Action
                           FROM PlanManufacture
                         ) z ON a.PlanID = z.id
                         LEFT JOIN (
@@ -1511,31 +1514,31 @@ io.on("connection", (socket) => {
         const query = `
                       SELECT * 
                       FROM (
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'SMT - Printer' AS Source FROM ManufactureSMT WHERE Source = 'source_3'
+                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'SMT - Printer' AS Source FROM ManufactureSMT WHERE Source = 'source_3'
                         UNION ALL
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'SMT - Gắp linh kiện' AS Source FROM ManufactureSMT WHERE Source = 'source_2'
+                        SELECT id,PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'SMT - Gắp linh kiện' AS Source FROM ManufactureSMT WHERE Source = 'source_2'
                         UNION ALL
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'SMT - Lò Reflow' AS Source FROM ManufactureSMT WHERE Source = 'source_1'
+                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'SMT - Lò Reflow' AS Source FROM ManufactureSMT WHERE Source = 'source_1'
                         UNION ALL
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'AOI' AS Source FROM ManufactureAOI
+                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'AOI' AS Source FROM ManufactureAOI
                         UNION ALL
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Tẩm phủ' FROM ManufactureConformalCoating
+                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Tẩm phủ' FROM ManufactureConformalCoating
                         UNION ALL
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Test1' FROM ManufactureTest1
+                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Test1' FROM ManufactureTest1
                         UNION ALL
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Test2' FROM ManufactureTest2
+                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Test2' FROM ManufactureTest2
                         UNION ALL
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'BoxBuild' FROM ManufactureBoxBuild
+                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'BoxBuild' FROM ManufactureBoxBuild
                         UNION ALL
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'IPQC' FROM ManufactureIPQC
+                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'IPQC' FROM ManufactureIPQC
                         UNION ALL
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'IPQCSMT' FROM ManufactureIPQCSMT
+                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'IPQCSMT' FROM ManufactureIPQCSMT
                         UNION ALL
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'OQC' FROM ManufactureOQC
+                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'OQC' FROM ManufactureOQC
                         UNION ALL
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Assembly' FROM ManufactureAssembly
+                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Assembly' FROM ManufactureAssembly
                         UNION ALL
-                        SELECT PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Nhập kho' FROM ManufactureWarehouse
+                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Nhập kho' FROM ManufactureWarehouse
                       ) 
                       WHERE PlanID = ?
                       ORDER BY Timestamp DESC`;
@@ -4008,6 +4011,31 @@ app.delete("/api/PlanManufacture/Delete/:id", async (req, res) => {
   });
 });
 
+// Router delete item in PlanManufacture table
+app.delete("/api/PlanManufacture/Edit-Action/:id", async (req, res) => {
+  const { id } = req.params;
+  const { Action } = req.body;
+  // Insert data into SQLite database
+  const query = `
+    UPDATE PlanManufacture 
+      SET Action = ?
+    WHERE id = ?
+  `;
+  db.run(query, [Action, id], function (err) {
+    if (err) {
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi cập nhật dữ liệu Action" });
+    }
+    io.emit("UpdateManufactureSMT");
+    io.emit("updateManufactureDetails");
+    io.emit("UpdateHistory");
+    io.emit("updateHistoryPart");
+    io.emit("UpdateSummary");
+    res.json({ message: "Đã cập nhật dữ liệu Action thành công" });
+  });
+});
+
 app.post("/api/esp-config", async (req, res) => {
   const { project_id, delay, plan_id } = req.body;
   try {
@@ -4073,27 +4101,10 @@ app.post("/api/sensor", (req, res) => {
     io.emit("UpdateHistory");
     io.emit("updateHistoryPart");
     io.emit("UpdateSummary");
+    io.emit("ActivedUpdate");
     res.json({ success: true, id: this.lastID });
   });
   stmt.finalize();
-});
-
-app.delete("/api/reset-data/:id", (req, res) => {
-  const { id } = req.params;
-  const query = `
-    DELETE FROM ManufactureSMT WHERE PlanID = ?
-  `;
-  db.run(query, [id], function (err) {
-    if (err) {
-      return res
-        .status(500)
-        .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
-    }
-    io.emit("UpdateManufactureSMT");
-    io.emit("updateManufactureDetails");
-    io.emit("updateHistoryPart");
-    res.json({ message: "Đã xoá dữ liệu sản xuất thành công" });
-  });
 });
 
 app.post("/api/heartbeat", (req, res) => {
@@ -4163,6 +4174,7 @@ app.post("/api/Manufacture/AOI", (req, res) => {
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
+      io.emit("ActivedUpdate");
       res.json({ message: "ManufactureAOI received" });
     }
   );
@@ -4183,6 +4195,7 @@ app.post("/api/Manufacture/IPQC", (req, res) => {
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
+      io.emit("ActivedUpdate");
       res.json({ message: "ManufactureIPQC received" });
     }
   );
@@ -4203,6 +4216,7 @@ app.post("/api/Manufacture/Assembly", (req, res) => {
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
+      io.emit("ActivedUpdate");
       res.json({ message: "ManufactureTest received" });
     }
   );
@@ -4223,6 +4237,7 @@ app.post("/api/Manufacture/OQC", (req, res) => {
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
+      io.emit("ActivedUpdate");
       res.json({ message: "ManufactureOQC received" });
     }
   );
@@ -4243,6 +4258,7 @@ app.post("/api/Manufacture/IPQC-SMT", (req, res) => {
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
+      io.emit("ActivedUpdate");
       res.json({ message: "ManufactureIPQCSMT received" });
     }
   );
@@ -4262,6 +4278,7 @@ app.post("/api/Manufacture/BoxBuild", (req, res) => {
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
+      io.emit("ActivedUpdate");
       res.json({ message: "ManufactureBoxBuild received" });
     }
   );
@@ -4281,6 +4298,7 @@ app.post("/api/Manufacture/Conformal-Coating", (req, res) => {
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
+      io.emit("ActivedUpdate");
       res.json({ message: "ManufactureConformalCoating received" });
     }
   );
@@ -4300,6 +4318,7 @@ app.post("/api/Manufacture/Test1", (req, res) => {
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
+      io.emit("ActivedUpdate");
       res.json({ message: "ManufactureOQC received" });
     }
   );
@@ -4319,6 +4338,7 @@ app.post("/api/Manufacture/Test2", (req, res) => {
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
+      io.emit("ActivedUpdate");
       res.json({ message: "ManufactureOQC received" });
     }
   );
@@ -4338,6 +4358,7 @@ app.post("/api/Manufacture/Warehouse", (req, res) => {
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
+      io.emit("ActivedUpdate");
       res.json({ message: "ManufactureOQC received" });
     }
   );
@@ -4365,6 +4386,7 @@ app.put("/api/Manufacture/IPQC-SMT/Edit-status/:id", async (req, res) => {
     io.emit("updateHistoryPart");
     io.emit("UpdateSummary");
     io.emit("UpdateManufactureRW");
+    io.emit("ActivedUpdate");
     res.json({ message: "ManufactureIPQCSMT received" });
   });
 });
@@ -4391,6 +4413,7 @@ app.put("/api/Manufacture/IPQC/Edit-status/:id", async (req, res) => {
     io.emit("updateHistoryPart");
     io.emit("UpdateSummary");
     io.emit("UpdateManufactureRW");
+    io.emit("ActivedUpdate");
     res.json({ message: "ManufactureIPQC received" });
   });
 });
@@ -4417,6 +4440,7 @@ app.put("/api/Manufacture/Test1/Edit-status/:id", async (req, res) => {
     io.emit("updateHistoryPart");
     io.emit("UpdateSummary");
     io.emit("UpdateManufactureRW");
+    io.emit("ActivedUpdate");
     res.json({ message: "ManufactureTest1 received" });
   });
 });
@@ -4443,6 +4467,7 @@ app.put("/api/Manufacture/Test2/Edit-status/:id", async (req, res) => {
     io.emit("updateHistoryPart");
     io.emit("UpdateSummary");
     io.emit("UpdateManufactureRW");
+    io.emit("ActivedUpdate");
     res.json({ message: "ManufactureTest2 received" });
   });
 });
@@ -4469,6 +4494,7 @@ app.put("/api/Manufacture/OQC/Edit-status/:id", async (req, res) => {
     io.emit("updateHistoryPart");
     io.emit("UpdateSummary");
     io.emit("UpdateManufactureRW");
+    io.emit("ActivedUpdate");
     res.json({ message: "ManufactureOQC received" });
   });
 });
@@ -4495,6 +4521,7 @@ app.put("/api/Manufacture/AOI/Edit-status/:id", async (req, res) => {
     io.emit("UpdateHistory");
     io.emit("updateHistoryPart");
     io.emit("UpdateSummary");
+    io.emit("ActivedUpdate");
     res.json({ message: "ManufactureAOI received" });
   });
 });
@@ -4516,6 +4543,7 @@ app.put("/api/Manufacture/AOI-Fixed/Edit-status/:id", (req, res) => {
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
       io.emit("UpdateManufactureRW");
+      io.emit("ActivedUpdate");
       res.json({ message: "Summary received" });
     }
   );
@@ -4538,6 +4566,7 @@ app.put("/api/Manufacture/IPQC-Fixed/Edit-status/:id", (req, res) => {
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
       io.emit("UpdateManufactureRW");
+      io.emit("ActivedUpdate");
       res.json({ message: "Summary received" });
     }
   );
@@ -4560,6 +4589,7 @@ app.put("/api/Manufacture/IPQC-SMT-Fixed/Edit-status/:id", (req, res) => {
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
       io.emit("UpdateManufactureRW");
+      io.emit("ActivedUpdate");
       res.json({ message: "IPQCSMT received" });
     }
   );
@@ -4582,6 +4612,7 @@ app.put("/api/Manufacture/Test1-Fixed/Edit-status/:id", (req, res) => {
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
       io.emit("UpdateManufactureRW");
+      io.emit("ActivedUpdate");
       res.json({ message: "Summary received" });
     }
   );
@@ -4604,6 +4635,7 @@ app.put("/api/Manufacture/Test2-Fixed/Edit-status/:id", (req, res) => {
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
       io.emit("UpdateManufactureRW");
+      io.emit("ActivedUpdate");
       res.json({ message: "Summary received" });
     }
   );
@@ -4626,9 +4658,41 @@ app.put("/api/Manufacture/OQC-Fixed/Edit-status/:id", (req, res) => {
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
       io.emit("UpdateManufactureRW");
+      io.emit("ActivedUpdate");
       res.json({ message: "Summary received" });
     }
   );
+});
+
+app.delete("/api/Manufacture/Delete-item-history/:id", (req, res) => {
+  const { id } = req.params;
+  const { table } = req.query;
+  const query = `
+    DELETE FROM ${table}
+    WHERE id = ?
+  `;
+  db.run(query, [id], function (err) {
+    if (err) {
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
+    }
+    io.emit("UpdateManufactureSMT");
+    io.emit("UpdateManufactureAOI");
+    io.emit("UpdateManufactureIPQCSMT");
+    io.emit("UpdateManufactureIPQC");
+    io.emit("UpdateManufactureAssembly");
+    io.emit("UpdateManufactureBoxBuild");
+    io.emit("UpdateManufactureOQC");
+    io.emit("UpdateManufactureWareHouse");
+    io.emit("UpdateManufactureTest1");
+    io.emit("UpdateManufactureTest2");
+    io.emit("UpdateManufactureCC");
+    io.emit("updateManufactureDetails");
+    io.emit("updateHistoryPart");
+    io.emit("ActivedUpdate");
+    res.json({ message: "Đã xoá dữ liệu sản xuất thành công" });
+  });
 });
 
 // Post value in table Summary
