@@ -79,8 +79,8 @@
             :headers="Headers"
             :items="manufactureCC"
             :search="search"
-            :items-per-page="itemsPerPage"
             v-model:page="page"
+            v-model:items-per-page="itemsPerPage"
             class="elevation-1 mt-4"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
@@ -100,6 +100,9 @@
             :fixed-header="true"
             height="calc(100vh - 300px)"
           >
+            <template v-slot:item.stt="{ index }">
+              {{ (page - 1) * itemsPerPage + index + 1 }}
+            </template>
             <template #[`item.Status`]="{ item }">
               <v-chip
                 :color="item.Status === 'error' ? 'warning' : 'success'"
@@ -154,7 +157,7 @@ const back = localStorage.getItem("ManufactureID");
 
 // Table configuration
 const Headers = [
-  { title: 'STT', key: 'id', sortable: true },
+  { title: "STT", key: "stt" },
   { title: 'Mã sản phẩm', key: 'PartNumber', sortable: true },
   { title: 'Trạng thái', key: 'Status', sortable: true },
   { title: 'Thời gian', key: 'Timestamp', sortable: true },
@@ -169,6 +172,11 @@ console.log(manufactureCC)
 // ===== Reactive State =====
 // UI State
 const DialogLoading = ref(false);
+const DialogFailed = ref(false);
+const DialogSuccess = ref(false);
+const MessageDialog = ref("");
+const MessageErrorDialog = ref("");
+const ErrorLog = ref("");
 
 // Table
 const search = ref("");
@@ -275,8 +283,14 @@ const submitBarcode = async () => {
     DialogLoading.value = false;
     Input.value = '';
     isError.value = false;
+    DialogSuccess.value = true;
+    MessageDialog.value = "Sản phẩm đã được nhập thành công";
   } catch (error) {
-    console.log(error);
+    DialogLoading.value = false;
+    Input.value = "";
+    ErrorLog.value ="";
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Lỗi khi nhập mã sản phẩm";
   }
     finally {
     DialogLoading.value = false;

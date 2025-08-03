@@ -141,9 +141,9 @@
                   <div class="text-h4 font-weight-bold mb-1">
                     <span>{{
                       QuantityBoard *
-                      manufactureSMT.filter(
-                        (item) => item.Source === "Máy printer"
-                      ).length || 0
+                        manufactureSMT.filter(
+                          (item) => item.Source === "Máy printer"
+                        ).length || 0
                     }}</span>
                   </div>
                 </v-card>
@@ -169,9 +169,9 @@
                   <div class="text-h4 font-weight-bold mb-1">
                     <span>{{
                       QuantityBoard *
-                      manufactureSMT.filter(
-                        (item) => item.Source === "Máy gắp linh kiện"
-                      ).length || 0
+                        manufactureSMT.filter(
+                          (item) => item.Source === "Máy gắp linh kiện"
+                        ).length || 0
                     }}</span>
                   </div>
                 </v-card>
@@ -191,9 +191,9 @@
                   <div class="text-h4 font-weight-bold mb-1">
                     <span>{{
                       QuantityBoard *
-                      manufactureSMT.filter(
-                        (item) => item.Source === "Máy Reflow"
-                      ).length || 0
+                        manufactureSMT.filter(
+                          (item) => item.Source === "Máy Reflow"
+                        ).length || 0
                     }}</span>
                   </div>
                 </v-card>
@@ -213,8 +213,8 @@
             :headers="Headers"
             :items="manufactureSMT"
             :search="search"
-            :items-per-page="itemsPerPage"
             v-model:page="page"
+            v-model:items-per-page="itemsPerPage"
             class="elevation-1 mt-4"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
@@ -234,6 +234,9 @@
             :fixed-header="true"
             height="calc(100vh - 300px)"
           >
+            <template v-slot:item.stt="{ index }">
+              {{ (page - 1) * itemsPerPage + index + 1 }}
+            </template>
             <template #[`item.Status`]="{ item }">
               <v-chip
                 :color="item.Status === 'ok' ? 'success' : 'error'"
@@ -265,9 +268,7 @@
               <div class="text-center pt-2">
                 <v-pagination
                   v-model="page"
-                  :length="
-                    Math.ceil(manufactureSMT.length / itemsPerPage)
-                  "
+                  :length="Math.ceil(manufactureSMT.length / itemsPerPage)"
                 ></v-pagination>
               </div>
             </template>
@@ -277,7 +278,6 @@
     </v-card>
 
     <!-- Các dialog và thông báo -->
-
 
     <!-- Các component thông báo -->
     <Loading v-model="DialogLoading" />
@@ -319,6 +319,7 @@ const LevelUser = localStorage.getItem("LevelUser");
 
 // Cấu hình cột cho bảng dữ liệu
 const Headers = [
+  { title: "STT", key: "stt" },
   { title: "Mã sản phẩm", key: "PartNumber" },
   { title: "Trạng thái", key: "Status" },
   { title: "Vị trí", key: "Source" },
@@ -330,7 +331,6 @@ const { manufactureSMT, manufactureSMTError } = useManufactureSMT(id);
 const { manufacture, manufactureFound, manufactureError } = useManufacture();
 const { history, historyError } = useHistory(back);
 const { status } = useDeviceStatusSocket("esp32-001");
-console.log(manufactureFound)
 
 // ===== Khai báo các biến reactive =====
 // Trạng thái UI
@@ -367,35 +367,9 @@ const manufactureId = ref(null);
 const totalSMT = computed(() => manufactureSMT.length);
 
 // Computed property để xác định trạng thái dựa trên Action
-const isRunning = computed(() => Action.value === 'running');
-
-// ===== Lifecycle Hooks =====
-onMounted(() => {
-  // Kiểm tra trạng thái sản xuất đang chạy
-  if (localStorage.getItem("isRunning") === id) {
-    isBegin.value = true;
-  } else {
-    isBegin.value = false;
-    localStorage.removeItem("isRunning");
-  }
-});
+const isRunning = computed(() => Action.value === "running");
 
 // ===== Watchers =====
-
-// Thêm watch để theo dõi manufactureFound
-watch(
-  manufactureFound,
-  (newValue) => {
-    if (newValue) {
-      console.log("Manufacture data updated:", newValue);
-      // Lấy ID từ manufactureFound
-      manufactureId.value = newValue.id;
-      console.log("Manufacture ID:", manufactureId.value);
-      // Có thể thêm xử lý khác nếu cần
-    }
-  },
-  { immediate: true }
-);
 
 // Watch for changes in manufacture details to calculate total input
 watch(
@@ -410,7 +384,7 @@ watch(
       QuantityBoard.value = data?.Quantity;
       PlanID.value = data?.PlanID;
       totalInput.value = data?.Quantity_Plan;
-      Action.value = data?.Action
+      Action.value = data?.Action;
     }
   },
   { immediate: true, deep: true }
@@ -441,34 +415,36 @@ const connectArduino = () => {
   const formData = reactive({
     project_id: isBegin.value ? "" : route.params.id,
     delay: delaySMT, // Sử dụng DelaySMT từ manufactureFound
-    plan_id: manufactureId.value
+    plan_id: localStorage.getItem("ManufactureID"),
   });
   isConnecting.value = true;
 
   // Xác định action mới dựa trên trạng thái hiện tại
   const newAction = isRunning.value ? "stopped" : "running";
-  
+
   // Gửi cấu hình Arduino trước
   axios
-    .post(`${Url}/api/esp-config`, formData)
+    .post(`${Url}/esp-config`, formData)
     .then(function (response) {
       console.log("Arduino config response:", response.data);
-      
+
       // Chỉ khi cấu hình Arduino thành công mới cập nhật Action
       return updateAction(newAction);
     })
     .then(function (actionResponse) {
       console.log("Action update response:", actionResponse.data);
 
-      MessageDialog.value = newAction === "running"
-        ? `Đã bắt đầu sản xuất với độ trễ ${delaySMT}ms`
-        : "Đã dừng sản xuất";
+      MessageDialog.value =
+        newAction === "running"
+          ? `Đã bắt đầu sản xuất với độ trễ ${delaySMT}ms`
+          : "Đã dừng sản xuất";
       DialogSuccess.value = true;
     })
     .catch(function (error) {
       console.error("Operation error:", error);
       MessageErrorDialog.value =
-        error.response?.data?.message || "Có lỗi xảy ra khi gửi dữ liệu đến cảm biến";
+        error.response?.data?.message ||
+        "Có lỗi xảy ra khi gửi dữ liệu đến cảm biến";
       DialogFailed.value = true;
     })
     .finally(() => {
@@ -482,20 +458,36 @@ const connectArduino = () => {
  * - Cập nhật Action thành "running" hoặc "stopped"
  * - Xử lý lỗi nếu có
  */
-const updateAction = (newAction) => {
-  if (!manufactureId.value) {
-    console.error("Manufacture ID not available");
-    MessageErrorDialog.value = "Không thể lấy ID sản xuất";
-    DialogFailed.value = true;
-    return Promise.reject("Manufacture ID not available");
-  }
+const updateActionStopped = (newAction) => {
+  return axios
+    .put(`${Url}/Summary/Edit-item-action-stopped`)
+    .then(function (response) {
+      console.log("Action update response:", response.data);
+      updateAction(newAction);
+      return response;
+    })
+    .catch(function (error) {
+      console.error("Action update error:", error);
+      MessageErrorDialog.value =
+        error.response?.data?.message ||
+        "Có lỗi xảy ra khi cập nhật trạng thái";
+      DialogFailed.value = true;
+      throw error;
+    });
+};
 
+const updateAction = (newAction) => {
   const formData = {
-    Action: newAction
+    Action: newAction,
   };
 
   return axios
-    .put(`${Url}/PlanManufacture/Edit-Action/${manufactureId.value}`, formData)
+    .put(
+      `${Url}/Summary/Edit-item-action/${localStorage.getItem(
+        "ManufactureID"
+      )}`,
+      formData
+    )
     .then(function (response) {
       console.log("Action update response:", response.data);
       Action.value = newAction;
@@ -504,10 +496,10 @@ const updateAction = (newAction) => {
     .catch(function (error) {
       console.error("Action update error:", error);
       MessageErrorDialog.value =
-        error.response?.data?.message || "Có lỗi xảy ra khi cập nhật trạng thái";
+        error.response?.data?.message ||
+        "Có lỗi xảy ra khi cập nhật trạng thái";
       DialogFailed.value = true;
       throw error;
     });
 };
-
 </script>

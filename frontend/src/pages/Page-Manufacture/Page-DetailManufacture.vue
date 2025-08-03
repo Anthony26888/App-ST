@@ -705,8 +705,8 @@
             :items="historyPart"
             :search="searchHistory"
             fixed-header
-            :items-per-page="itemsPerPage"
             v-model:page="page"
+            v-model:items-per-page="itemsPerPage"
             class="elevation-0"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
@@ -742,6 +742,9 @@
 
                 <InputSearch v-model="searchHistory" class="mr-2" />
               </v-toolbar>
+            </template>
+            <template v-slot:item.stt="{ index }">
+              {{ (page - 1) * itemsPerPage + index + 1 }}
             </template>
             <template #[`item.Status`]="{ item }">
               <v-chip
@@ -1201,6 +1204,7 @@ const Category_Edit = ref("");
 const Quantity_Plan_Edit = ref("");
 const CycleTime_Edit = ref("");
 const Note_Edit = ref("");
+const Date_DetailManufacture_Edit = ref("");
 
 // ===== FORM SETTING SMT =====
 const DelaySMT_Edit = ref(50);
@@ -1235,6 +1239,7 @@ const HeadersHistory = [
   { title: "Thao tác", key: "id", sortable: false },
 ];
 const HeadersHistoryPart = [
+  { title: "STT", key: "stt" },
   { title: "Mã hàng", key: "PartNumber", sortable: true },
   { title: "Vị trí", key: "Source", sortable: true },
   { title: "Trạng thái", key: "Status", sortable: true },
@@ -1261,7 +1266,7 @@ watch(
 
         Level_SMT.value = DataManufacture.value.includes("SMT");
         Level_AOI.value = DataManufacture.value.includes("AOI");
-        Level_IPQC.value = DataManufacture.value.includes("IPQC");
+        Level_IPQC.value = DataManufacture.value.includes("IPQC") && !DataManufacture.value.includes("IPQC (SMT)");
         Level_Assembly.value = DataManufacture.value.includes("Assembly");
         Level_OQC.value = DataManufacture.value.includes("OQC");
         Level_IPQCSMT.value = DataManufacture.value.includes("IPQC (SMT)");
@@ -1838,6 +1843,7 @@ const GetItem = (item) => {
   CycleTime_Edit.value = item.CycleTime_Plan;
   Time_Edit.value = item.Time_Plan;
   Note_Edit.value = item.Note;
+  Date_DetailManufacture_Edit.value = item.Created_At
   GetID.value = item.id;
 };
 
@@ -1871,7 +1877,7 @@ const SaveEdit = async () => {
     CycleTime_Plan: CycleTime_Edit.value,
     Time_Plan: Time_Edit.value,
     Note: Note_Edit.value,
-    Created_At: formattedSelectedDate.value,
+    Created_At: Date_DetailManufacture_Edit.value
   });
 
   try {

@@ -22,7 +22,7 @@ const sqlite = require("sqlite");
 const { createParser } = require("eventsource-parser");
 // const {queryWithLangChain } = require("./Ollama-AI/queryEngine.js");
 // const queryMap = require("./Ollama-AI/queryMap")
-const fetch = require('node-fetch');
+const fetch = require("node-fetch");
 
 // const https = require("https"); // XÓA: không dùng SSL nữa
 
@@ -31,7 +31,6 @@ const processingRequests = new Set();
 
 const ESP32_IP = "http://192.168.100.82"; // IP ESP32 (phải đổi đúng IP của bạn)
 
-
 const sessions = {}; // lưu theo socket.id
 // Khởi tạo Express và Socket.IO
 const PORT = 3000;
@@ -39,18 +38,21 @@ const PORT = 3000;
 
 const allowedOrigins = new Set([
   // Local dev
-  "http://localhost:8080", "https://localhost:8080",
-  "http://localhost:3000", "https://localhost:3000",
-  "http://127.0.0.1:8080", "http://127.0.0.1:3000",
+  "http://localhost:8080",
+  "https://localhost:8080",
+  "http://localhost:3000",
+  "https://localhost:3000",
+  "http://127.0.0.1:8080",
+  "http://127.0.0.1:3000",
   "http://localhost",
 
   // LAN
-  "http://192.168.100.210:3000", 
-  "http://192.168.1.10:3000", 
-  "http://192.168.2.248:3000", 
-  "http://192.168.100.76:3000",  
+  "http://192.168.100.210:3000",
+  "http://192.168.1.10:3000",
+  "http://192.168.2.248:3000",
+  "http://192.168.100.76:3000",
   "http://192.168.100.200:3000",
-  "http://192.168.100.76",  
+  "http://192.168.100.76",
   "http://192.168.100.20",
   "http://192.168.100.200",
 
@@ -58,29 +60,34 @@ const allowedOrigins = new Set([
   "http://erp.sieuthuat.com",
   "https://erp.sieuthuat.com",
   "http://erp.sieuthuat.com:3000",
-  "https://erp.sieuthuat.com:3000"
+  "https://erp.sieuthuat.com:3000",
+  "http://erpapp.hopto.org",
+  "https://erpapp.hopto.org",
+  "http://erpapp.hopto.org:3000",
+  "https://erpapp.hopto.org:3000",
 ]);
 
-
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true); // Cho phép postman hoặc curl
-    if (allowedOrigins.has(origin)) {
-      return callback(null, true);
-    } else {
-      console.log("❌ Blocked origin:", origin);
-      return callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true); // Cho phép postman hoặc curl
+      if (allowedOrigins.has(origin)) {
+        return callback(null, true);
+      } else {
+        console.log("❌ Blocked origin:", origin);
+        return callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  })
+);
 
 app.use(bodyParser.json());
 app.use("/", routes);
-app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+app.use(express.json({ limit: "100mb" }));
+app.use(express.urlencoded({ extended: true, limit: "100mb" }));
 // BẮT BUỘC CÓ để xử lý preflight OPTIONS
 app.options("*", cors());
 
@@ -89,10 +96,9 @@ const server = require("http").createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "*", // hoặc http://192.168.100.76
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-  }
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  },
 });
-
 
 // GIỮ LẠI CHỈ HTTP
 io.on("connection", (socket) => {
@@ -124,17 +130,17 @@ const userProjects = new Map();
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
   if (!sessions[socket.id]) sessions[socket.id] = [];
-    socket.on("getInforUser", async (id) => {
-      try {
-        const query = `SSELECT * FROM Users WHERE Username = ?`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("InforUserError", err);
-          socket.emit("InforUserData", rows);
-        });
-      } catch (error) {
-        socket.emit("InforUserError", error);
-      }
-    }),
+  socket.on("getInforUser", async (id) => {
+    try {
+      const query = `SSELECT * FROM Users WHERE Username = ?`;
+      db.all(query, [id], (err, rows) => {
+        if (err) return socket.emit("InforUserError", err);
+        socket.emit("InforUserData", rows);
+      });
+    } catch (error) {
+      socket.emit("InforUserError", error);
+    }
+  }),
     socket.on("getCompare", async (id) => {
       try {
         const query = await getCompareWareHouse(id);
@@ -1294,6 +1300,7 @@ io.on("connection", (socket) => {
                         a.Type,
                         a.PONumber,
                         a.PlanID,
+						 a.Action,
                         z.Name_Order,
                         z.DelaySMT,
 						            z.Quantity,
@@ -1306,7 +1313,7 @@ io.on("connection", (socket) => {
                         z.Quantity_OQC,
                         z.Quantity_Test1,
                         z.Quantity_Test2,
-						            z.Action,
+						
                         a.Category,
                         a.Quantity_Plan,
                         a.CycleTime_Plan,
@@ -1358,8 +1365,7 @@ io.on("connection", (socket) => {
                             Quantity_ConformalCoating,
                             Quantity_OQC,
                             Quantity_Test1,
-                            Quantity_Test2 ,
-							              Action
+                            Quantity_Test2 
                           FROM PlanManufacture
                         ) z ON a.PlanID = z.id
                         LEFT JOIN (
@@ -1550,7 +1556,6 @@ io.on("connection", (socket) => {
         socket.emit("HistoryPartError", error);
       }
     }),
-
     socket.on("getActived", async (id) => {
       try {
         const query = `WITH AllData AS (
@@ -1607,9 +1612,8 @@ io.on("connection", (socket) => {
                           L.LatestTimestamp
                       FROM Sources S
                       LEFT JOIN LatestPerSource L ON S.SourceName = L.Source
-                      ORDER BY S.SortOrder;`
-                      ;
-      db.all(query, [id], (err, rows) => {
+                      ORDER BY S.SortOrder;`;
+        db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("ActivedError", err);
           socket.emit("ActivedData", rows);
         });
@@ -1626,9 +1630,9 @@ io.on("connection", (socket) => {
     //   }
     // });
 
-  socket.on("disconnect", () => {
-    console.log("🔌 Client disconnected");
-  });
+    socket.on("disconnect", () => {
+      console.log("🔌 Client disconnected");
+    });
 
   socket.on("disconnect", () => {
     console.log("Client disconnected:", socket.id);
@@ -1999,7 +2003,6 @@ app.post("/api/insert-compare-inventory/:id", async (req, res) => {
     processingRequests.delete(id);
   }
 });
-
 
 // Router register user
 app.post("/api/Users/register", (req, res) => {
@@ -2473,7 +2476,6 @@ app.put("/api/WareHouse/update-Inventory-CheckBom/:id", async (req, res) => {
   });
 });
 
-
 app.put("/api/WareHouse2/update-Inventory-CheckBom/:id", async (req, res) => {
   const { id } = req.params;
   const poNumber = id;
@@ -2581,64 +2583,72 @@ app.delete("/api/Temporary-WareHouse/delete-all", async (req, res) => {
 });
 
 // Router upload item in Temporary WareHouse table from xlsx
-app.post("/api/Temporary_WareHouse/Upload", upload.single("file"), (req, res) => {
-  if (!req.file) return res.status(400).send("No file uploaded.");
-  // Read Excel file
-  const filePath = path.join(__dirname, req.file.path);
-  const workbook = xlsx.readFile(filePath);
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  // Convert sheet data to JSON
-  const data = xlsx.utils.sheet_to_json(sheet);
+app.post(
+  "/api/Temporary_WareHouse/Upload",
+  upload.single("file"),
+  (req, res) => {
+    if (!req.file) return res.status(400).send("No file uploaded.");
+    // Read Excel file
+    const filePath = path.join(__dirname, req.file.path);
+    const workbook = xlsx.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    // Convert sheet data to JSON
+    const data = xlsx.utils.sheet_to_json(sheet);
 
-  // Insert data into SQLite database
-  const stmt = db.prepare(
-    `INSERT INTO Temporary_WareHouse (Description, PartNumber_1, Input, Location, Note) VALUES (?, ?, ?, ?, ?)`
-  );
-  data.forEach((row) => {
-    stmt.run(
-      row.Description,
-      row.PartNumber_1,
-      row.Input,
-      row.Location,
-      row.Note
+    // Insert data into SQLite database
+    const stmt = db.prepare(
+      `INSERT INTO Temporary_WareHouse (Description, PartNumber_1, Input, Location, Note) VALUES (?, ?, ?, ?, ?)`
     );
-  });
+    data.forEach((row) => {
+      stmt.run(
+        row.Description,
+        row.PartNumber_1,
+        row.Input,
+        row.Location,
+        row.Note
+      );
+    });
 
-  stmt.finalize();
-  io.emit("TemporaryWareHouseUpdate");
-  res.send("File processed successfully.");
-});
+    stmt.finalize();
+    io.emit("TemporaryWareHouseUpdate");
+    res.send("File processed successfully.");
+  }
+);
 
 // Router upload item in Temporary WareHouse 2 table from xlsx
-app.post("/api/Temporary_WareHouse_2/Upload", upload.single("file"), (req, res) => {
-  if (!req.file) return res.status(400).send("No file uploaded.");
-  // Read Excel file
-  const filePath = path.join(__dirname, req.file.path);
-  const workbook = xlsx.readFile(filePath);
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  // Convert sheet data to JSON
-  const data = xlsx.utils.sheet_to_json(sheet);
+app.post(
+  "/api/Temporary_WareHouse_2/Upload",
+  upload.single("file"),
+  (req, res) => {
+    if (!req.file) return res.status(400).send("No file uploaded.");
+    // Read Excel file
+    const filePath = path.join(__dirname, req.file.path);
+    const workbook = xlsx.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    // Convert sheet data to JSON
+    const data = xlsx.utils.sheet_to_json(sheet);
 
-  // Insert data into SQLite database
-  const stmt = db.prepare(
-    `INSERT INTO Temporary_WareHouse_2 (Description, PartNumber_1, Input, Location, Note) VALUES (?, ?, ?, ?, ?)`
-  );
-  data.forEach((row) => {
-    stmt.run(
-      row.Description,
-      row.PartNumber_1,
-      row.Input,
-      row.Location,
-      row.Note
+    // Insert data into SQLite database
+    const stmt = db.prepare(
+      `INSERT INTO Temporary_WareHouse_2 (Description, PartNumber_1, Input, Location, Note) VALUES (?, ?, ?, ?, ?)`
     );
-  });
+    data.forEach((row) => {
+      stmt.run(
+        row.Description,
+        row.PartNumber_1,
+        row.Input,
+        row.Location,
+        row.Note
+      );
+    });
 
-  stmt.finalize();
-  io.emit("WareHouse2Update");
-  res.send("File processed successfully.");
-});
+    stmt.finalize();
+    io.emit("WareHouse2Update");
+    res.send("File processed successfully.");
+  }
+);
 
 // Router upload file xlsx to WareHouse table
 app.put("/api/Temporary_WareHouse_2/Update-File", async (req, res) => {
@@ -2831,10 +2841,7 @@ app.post(
 // Router insert item in WareHouseLog table from Orders table
 app.post("/api/insert-log/:po", async (req, res) => {
   const poNumber = req.params.po;
-  const {
-    Updated_by,
-    Created_at
-  } = req.body;
+  const { Updated_by, Created_at } = req.body;
 
   const selectQuery = `SELECT * FROM DetailOrders WHERE PO = ?`;
   const insertQuery = `
@@ -2850,7 +2857,9 @@ app.post("/api/insert-log/:po", async (req, res) => {
     }
 
     if (rows.length === 0) {
-      return res.status(200).json({ message: "No DetailOrders found for this PO" });
+      return res
+        .status(200)
+        .json({ message: "No DetailOrders found for this PO" });
     }
 
     let pending = rows.length;
@@ -2860,12 +2869,12 @@ app.post("/api/insert-log/:po", async (req, res) => {
       db.run(
         insertQuery,
         [
-          'Xuất',
+          "Xuất",
           row.PartNumber_1,
           quantity,
           row.Ma_Kho,
           Updated_by,
-          Created_at
+          Created_at,
         ],
         (err) => {
           if (err) {
@@ -2984,24 +2993,13 @@ app.put("/api/CheckBom/Update-Hao-Phi", async (req, res) => {
 
 // Router update Hao_Phi_Thuc_Te in CheckBom table
 app.put("/api/DetailOrders/Update", async (req, res) => {
-  const {
-    Input_Hao_Phi_Thuc_Te,
-    Ma_Kho,
-    Ma_Kho_Misa,
-    PartNumber_1,
-    PO,
-  } = req.body;
+  const { Input_Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, PartNumber_1, PO } =
+    req.body;
   // Insert data into SQLite database
   const query = `UPDATE DetailOrders SET Hao_Phi_Thuc_Te = ?, Ma_Kho = ?, Ma_Kho_Misa = ? WHERE PartNumber_1 = ? AND PO = ?`;
   db.run(
     query,
-    [
-      Input_Hao_Phi_Thuc_Te,
-      Ma_Kho,
-      Ma_Kho_Misa,
-      PartNumber_1,
-      PO,
-    ],
+    [Input_Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, PartNumber_1, PO],
     function (err) {
       if (err) {
         return console.error(err.message);
@@ -4023,9 +4021,7 @@ app.put("/api/PlanManufacture/Edit-Action/:id", async (req, res) => {
   `;
   db.run(query, [Action, id], function (err) {
     if (err) {
-      return res
-        .status(500)
-        .json({ error: "Lỗi khi cập nhật dữ liệu Action" });
+      return res.status(500).json({ error: "Lỗi khi cập nhật dữ liệu Action" });
     }
     io.emit("UpdateManufactureSMT");
     io.emit("updateManufactureDetails");
@@ -4736,6 +4732,39 @@ app.post("/api/Summary/Add-item", (req, res) => {
   );
 });
 
+// Update value active stopped in table Summary
+app.put("/api/Summary/Edit-item-action-stopped", (req, res) => {
+  db.run(
+    `UPDATE Summary
+      SET Action='stopped'
+    `,
+    (err) => {
+      if (err) return res.status(500).json({ error: "Database error" });
+      io.emit("UpdateSummary");
+      io.emit("UpdateHistory");
+      res.json({ message: "Summary received" });
+    }
+  );
+});
+
+// Update value active in table Summary
+app.put("/api/Summary/Edit-item-action/:id", (req, res) => {
+  const { Action } = req.body;
+  const { id } = req.params;
+  db.run(
+    `UPDATE Summary
+      SET Action=?
+      WHERE id=?`,
+    [Action, id],
+    (err) => {
+      if (err) return res.status(500).json({ error: "Database error" });
+      io.emit("UpdateSummary");
+      io.emit("UpdateHistory");
+      res.json({ message: "Summary received" });
+    }
+  );
+});
+
 // Update value in table Summary
 app.put("/api/Summary/Edit-item/:id", (req, res) => {
   const {
@@ -4833,6 +4862,7 @@ function readSQLite(dbPath) {
     );
   });
 }
+
 
 // Serve static files from frontend/dist
 app.use(express.static(path.join(__dirname, "../frontend/dist")));

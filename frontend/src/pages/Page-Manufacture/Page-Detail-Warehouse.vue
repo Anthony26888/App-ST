@@ -78,8 +78,8 @@
             :headers="Headers"
             :items="manufactureWarehouse"
             :search="search"
-            :items-per-page="itemsPerPage"
             v-model:page="page"
+            v-model:items-per-page="itemsPerPage"
             class="elevation-1 mt-4"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
@@ -99,6 +99,9 @@
             :fixed-header="true"
             height="calc(100vh - 300px)"
           >
+            <template v-slot:item.stt="{ index }">
+              {{ (page - 1) * itemsPerPage + index + 1 }}
+            </template>
             <template #[`item.Status`]="{ item }">
               <v-chip
                 :color="item.Status === 'error' ? 'warning' : 'success'"
@@ -152,7 +155,7 @@ const back = localStorage.getItem("ManufactureID");
 
 // Table configuration
 const Headers = [
-  { title: 'STT', key: 'id', sortable: true },
+  { title: "STT", key: "stt" },
   { title: 'Mã sản phẩm', key: 'PartNumber', sortable: true },
   { title: 'Trạng thái', key: 'Status', sortable: true },
   { title: 'Thời gian', key: 'Timestamp', sortable: true },

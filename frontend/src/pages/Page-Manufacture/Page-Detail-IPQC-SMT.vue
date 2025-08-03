@@ -2,13 +2,19 @@
   <div>
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <v-card-title class="text-h4 font-weight-light">
-        <ButtonBack v-if="isGoBackListWork" :to="`/Danh-sach-cong-viec`" @click="removeGoBackListWork" />
+        <ButtonBack
+          v-if="isGoBackListWork"
+          :to="`/Danh-sach-cong-viec`"
+          @click="removeGoBackListWork"
+        />
         <ButtonBack v-else :to="`/San-xuat/Chi-tiet/${back}`" />
         Theo dõi sản xuất IPQC (SMT)</v-card-title
       >
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
-        <v-breadcrumbs :items="[`${NameManufacture}`, `${Name_Order}`, `${Name_Category}`]">
+        <v-breadcrumbs
+          :items="[`${NameManufacture}`, `${Name_Order}`, `${Name_Category}`]"
+        >
           <template v-slot:divider>
             <v-icon icon="mdi-chevron-right"></v-icon>
           </template>
@@ -33,13 +39,18 @@
             <v-card class="rounded-lg" color="success" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra</div>
-                <div class="text-h4 font-weight-bold" v-if="Quantity_IPQCSMT > 1">
+                <div
+                  class="text-h4 font-weight-bold"
+                  v-if="Quantity_IPQCSMT > 1"
+                >
                   {{ totalOutput }} / {{ totalOutput * Quantity_IPQCSMT }}
                 </div>
                 <div class="text-h4 font-weight-bold" v-else>
                   {{ totalOutput }}
                 </div>
-                <div class="text-caption">Tổng số lượng đầu ra ( {{ Quantity_IPQCSMT }} pcs/ panel)</div>
+                <div class="text-caption">
+                  Tổng số lượng đầu ra ( {{ Quantity_IPQCSMT }} pcs/ panel)
+                </div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -93,7 +104,10 @@
                 ></v-checkbox>
               </v-col>
             </v-row>
-            <InputTextarea label="Ghi chú lỗi" v-model="ErrorLog"></InputTextarea>
+            <InputTextarea
+              label="Ghi chú lỗi"
+              v-model="ErrorLog"
+            ></InputTextarea>
           </v-card-text>
         </v-card>
 
@@ -101,15 +115,44 @@
         <v-card class="mt-4 rounded-lg" variant="text">
           <v-card-title class="d-flex align-center">
             <span class="text-h6">Bảng chi tiết sản xuất</span>
+
+            <!-- Filter Select -->
+            <v-select
+              v-model="selectedFilter"
+              :items="filterOptions"
+              item-title="label"
+              item-value="value"
+              label="Lọc theo trạng thái"
+              variant="outlined"
+              density="compact"
+              prepend-inner-icon="mdi-filter"
+              :color="getFilterColor(selectedFilter)"
+              @update:model-value="handleFilterChange"
+              class="ml-3 mt-5"
+              style="min-width: 150px; max-width: 180px"
+            >
+              <template v-slot:item="{ item, props }">
+                <v-list-item v-bind="props">
+                  <template v-slot:prepend>
+                    <v-icon
+                      :icon="item.raw.icon"
+                      :color="getFilterColor(item.raw.value)"
+                      size="small"
+                    ></v-icon>
+                  </template>
+                </v-list-item>
+              </template>
+            </v-select>
             <v-spacer></v-spacer>
-            <InputSearch v-model="search" />
+            <!-- Search Input -->
+            <InputSearch v-model="searchText" placeholder="Tìm kiếm..." />
           </v-card-title>
           <v-data-table
             :headers="Headers"
             :items="manufactureIPQCSMT"
-            :search="search"
-            :items-per-page="itemsPerPage"
+            :search="combinedSearch"
             v-model:page="page"
+            v-model:items-per-page="itemsPerPage"
             class="elevation-1 mt-4"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
@@ -129,6 +172,9 @@
             :fixed-header="true"
             height="calc(100vh - 300px)"
           >
+            <template v-slot:item.stt="{ index }">
+              {{ (page - 1) * itemsPerPage + index + 1 }}
+            </template>
             <template #[`item.Status`]="{ item }">
               <div class="d-flex align-center">
                 <v-chip
@@ -167,7 +213,9 @@
               <div class="text-primary">{{ item.TimestampRW }}</div>
             </template>
             <template #item.Note="{ item }">
-              <div style="white-space: pre-line">{{ item.Note }}</div>
+              <div style="white-space: pre-line" class="text-error">
+                {{ item.Note }}
+              </div>
             </template>
             <template #[`bottom`]>
               <div class="text-center pt-2">
@@ -245,7 +293,7 @@ const GetID = ref("");
 
 // Table configuration
 const Headers = [
-  { title: "STT", key: "id", sortable: true },
+  { title: "STT", key: "stt" },
   { title: "Mã sản phẩm", key: "PartNumber", sortable: true },
   { title: "Trạng thái", key: "Status", sortable: true },
   { title: "Ghi chú lỗi", key: "Note", sortable: true },
@@ -269,7 +317,8 @@ const MessageErrorDialog = ref("");
 const MessageDialog = ref("");
 
 // Table
-const search = ref("");
+const searchText = ref("");
+const selectedFilter = ref("");
 const page = ref(1);
 const itemsPerPage = ref(15);
 
@@ -288,7 +337,7 @@ const NameManufacture = ref("");
 const Name_Order = ref("");
 const Name_Category = ref("");
 const PlanID = ref("");
-const Quantity_IPQCSMT =ref(1);
+const Quantity_IPQCSMT = ref(1);
 // ===== Watchers =====
 // Watch for manufactureIPQCSMT changes and log updates
 watch(
@@ -298,7 +347,9 @@ watch(
     totalErrors.value = newValue.filter(
       (item) => item.Status === "error"
     ).length;
-    totalFixed.value = newValue.filter((item) => item.Status === "fixed").length;
+    totalFixed.value = newValue.filter(
+      (item) => item.Status === "fixed"
+    ).length;
     totalOutput.value = newValue.filter((item) => item.Status === "ok").length;
   },
   { deep: true }
@@ -376,16 +427,23 @@ const submitBarcode = async () => {
     }),
     HistoryID: id,
     Note: ErrorLog.value,
-    PlanID: PlanID.value
+    PlanID: PlanID.value,
   });
   try {
     const response = await axios.post(`${Url}/Manufacture/IPQC-SMT`, formData);
     console.log(response.data);
     DialogLoading.value = false;
     Input.value = "";
+    ErrorLog.value ="";
     isError.value = false;
+    DialogSuccess.value = true;
+    MessageDialog.value = "Sản phẩm đã được nhập thành công";
   } catch (error) {
-    console.log(error);
+    DialogLoading.value = false;
+    Input.value = "";
+    ErrorLog.value ="";
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Lỗi khi nhập mã sản phẩm";
   } finally {
     DialogLoading.value = false;
     submitting.value = false;
@@ -410,7 +468,6 @@ const markAsFixed = async () => {
         Status: "ok",
       }
     );
-    console.log("Item marked as fixed:", response.data);
     // Refresh the data after successful update
     DialogFixed.value = false;
     DialogLoading.value = true;
@@ -427,10 +484,147 @@ const markAsFixed = async () => {
   }
 };
 const isGoBackListWork = computed(() => {
-  return localStorage.getItem('Go-Back-List-Work') === 'true';
+  return localStorage.getItem("Go-Back-List-Work") === "true";
 });
 
+// ===== Filter Methods =====
+const combinedSearch = computed(() => {
+  // If search text is provided, use it for searching
+  if (searchText.value) {
+    return searchText.value;
+  }
+  // If filter is selected, use it for filtering
+  if (selectedFilter.value) {
+    return selectedFilter.value;
+  }
+  // No filter or search
+  return "";
+});
+
+const filterOptions = computed(() => [
+  {
+    label: "Tất cả",
+    value: "",
+    icon: "mdi-view-list"
+  },
+  {
+    label: "Lỗi",
+    value: "error",
+    icon: "mdi-alert-circle"
+  },
+  {
+    label: "Đã sửa",
+    value: "fixed",
+    icon: "mdi-wrench"
+  },
+  {
+    label: "OK",
+    value: "ok",
+    icon: "mdi-check-circle"
+  },
+]);
+
+const getFilterColor = (filterValue) => {
+  switch (filterValue) {
+    case "error":
+      return "warning";
+    case "fixed":
+      return "info";
+    case "ok":
+      return "success";
+    default:
+      return "primary";
+  }
+};
+
+const getFilterIcon = (filterValue) => {
+  switch (filterValue) {
+    case "error":
+      return "mdi-alert-circle";
+    case "fixed":
+      return "mdi-wrench";
+    case "ok":
+      return "mdi-check-circle";
+    default:
+      return "mdi-view-list";
+  }
+};
+
+const getFilterLabel = (filterValue) => {
+  switch (filterValue) {
+    case "error":
+      return "Lỗi";
+    case "fixed":
+      return "Đã sửa";
+    case "ok":
+      return "OK";
+    default:
+      return "Tất cả";
+  }
+};
+
+const handleFilterChange = (value) => {
+  selectedFilter.value = value;
+  // Clear search text when filter changes
+  searchText.value = "";
+};
+
 const removeGoBackListWork = () => {
-  localStorage.removeItem('Go-Back-List-Work');
+  localStorage.removeItem("Go-Back-List-Work");
 };
 </script>
+
+<style scoped>
+/* Filter section styling */
+.mb-3 {
+  margin-bottom: 0.75rem;
+}
+
+/* Filter select styling */
+.v-select {
+  transition: all 0.3s ease;
+}
+
+.v-select:hover {
+  transform: translateY(-1px);
+}
+
+/* Chip styling for active filters */
+.v-chip {
+  transition: all 0.2s ease;
+}
+
+.v-chip:hover {
+  transform: scale(1.05);
+}
+
+/* Gap utility for flex items */
+.gap-2 {
+  gap: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .v-card-title {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .v-select {
+    margin-bottom: 8px;
+    margin-right: 0 !important;
+    min-width: 100% !important;
+    max-width: none !important;
+  }
+
+  .d-flex.flex-wrap {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .gap-2 {
+    gap: 4px;
+  }
+}
+</style>
