@@ -138,7 +138,7 @@
               </template>
             </v-select>
             <v-spacer></v-spacer>
-            <InputSearch v-model="search" />
+            <InputSearch v-model="searchText" placeholder="Tìm kiếm..." />
           </v-card-title>
           <v-data-table
             :headers="Headers"
@@ -430,7 +430,6 @@ const submitBarcode = async () => {
   });
   try {
     const response = await axios.post(`${Url}/Manufacture/Test1`, formData);
-    console.log(response.data);
     DialogLoading.value = false;
     Input.value = "";
     ErrorLog.value ="";
@@ -497,22 +496,22 @@ const filterOptions = computed(() => [
   {
     label: "Tất cả",
     value: "",
-    icon: "mdi-view-list",
+    icon: "mdi-view-list"
   },
   {
     label: "Lỗi",
     value: "error",
-    icon: "mdi-alert-circle",
+    icon: "mdi-alert-circle"
   },
   {
     label: "Đã sửa",
     value: "fixed",
-    icon: "mdi-wrench",
+    icon: "mdi-wrench"
   },
   {
     label: "OK",
     value: "ok",
-    icon: "mdi-check-circle",
+    icon: "mdi-check-circle"
   },
 ]);
 

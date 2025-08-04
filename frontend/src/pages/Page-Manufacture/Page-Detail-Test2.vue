@@ -135,7 +135,7 @@
               </template>
             </v-select>
             <v-spacer></v-spacer>
-            <InputSearch v-model="search" />
+            <InputSearch v-model="searchText" placeholder="Tìm kiếm..." />
           </v-card-title>
           <v-data-table
             :headers="Headers"
@@ -162,7 +162,7 @@
             :fixed-header="true"
             height="calc(100vh - 300px)"
           >
-            <template v-slot:item.id="{ index }">
+            <template v-slot:item.stt="{ index }">
               {{ (page - 1) * itemsPerPage + index + 1 }}
             </template>
             <template #[`item.Status`]="{ item }">
@@ -419,7 +419,6 @@ const submitBarcode = async () => {
   });
   try {
     const response = await axios.post(`${Url}/Manufacture/Test2`, formData);
-    console.log(response.data);
     DialogLoading.value = false;
     Input.value = "";
     isError.value = false;

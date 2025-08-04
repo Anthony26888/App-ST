@@ -123,6 +123,16 @@
         </v-card>
       </v-card-text>
     </v-card>
+    <SnackbarSuccess
+      :model-value="DialogSuccess"
+      @update:model-value="DialogSuccess = $event"
+      :message="MessageDialog"
+    />
+    <SnackbarFailed
+      :model-value="DialogFailed"
+      @update:model-value="DialogFailed = $event"
+      :message="MessageErrorDialog"
+    />
     <Loading v-model="DialogLoading" />
   </div>
 
@@ -169,6 +179,12 @@ const { manufactureWarehouse, manufactureWarehouseError } = useManufactureWareho
 // ===== Reactive State =====
 // UI State
 const DialogLoading = ref(false);
+const DialogSuccess = ref(false);
+const DialogFailed = ref(false);
+const MessageErrorDialog = ref("");
+const MessageDialog = ref("");
+
+// Tables
 const search = ref("");
 const page = ref(1);
 const itemsPerPage = ref(15);
@@ -279,12 +295,16 @@ watch(
   });
   try {
     const response = await axios.post(`${Url}/Manufacture/Warehouse`, formData);
-    console.log(response.data);
     DialogLoading.value = false;
-    Input.value = '';
+    Input.value = "";
     isError.value = false;
+    DialogSuccess.value = true;
+    MessageDialog.value = "Sản phẩm đã được nhập thành công";
   } catch (error) {
-    console.log(error);
+    DialogLoading.value = false;
+    Input.value = "";
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Lỗi khi nhập mã sản phẩm";
   }
     finally {
     DialogLoading.value = false;

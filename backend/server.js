@@ -20,6 +20,8 @@ const fs = require("fs");
 const sqlite3 = require("sqlite3");
 const sqlite = require("sqlite");
 const { createParser } = require("eventsource-parser");
+const https = require('https');
+const http = require('http');
 // const {queryWithLangChain } = require("./Ollama-AI/queryEngine.js");
 // const queryMap = require("./Ollama-AI/queryMap")
 const fetch = require("node-fetch");
@@ -99,6 +101,26 @@ const io = new Server(server, {
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   },
 });
+
+// const sslOptions = {
+//   key: fs.readFileSync('D:/code/cert/erpapp.hopto.org/erpapp.hopto.org-key.pem'),
+//   cert: fs.readFileSync('D:/code/cert/erpapp.hopto.org/erpapp.hopto.org-crt.pem'),
+//   ca: fs.readFileSync('D:/code/cert/erpapp.hopto.org/erpapp.hopto.org-chain.pem') // Optional nhưng nên có
+// };
+
+// // Route test
+// app.get('/', (req, res) => {
+//   res.send('✅ HTTPS chạy thành công!');
+// });
+
+// // Khởi chạy HTTPS server
+// https.createServer(sslOptions, app).listen(443, () => {
+//   console.log('HTTPS server chạy tại: https://erp.sieuthuat.com');
+// });
+// http.createServer((req, res) => {
+//   res.writeHead(301, { Location: 'https://' + req.headers.host + req.url });
+//   res.end();
+// }).listen(80);
 
 // GIỮ LẠI CHỈ HTTP
 io.on("connection", (socket) => {

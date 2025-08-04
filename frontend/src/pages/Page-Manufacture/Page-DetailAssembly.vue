@@ -78,8 +78,8 @@
             :headers="Headers"
             :items="manufactureAssembly"
             :search="search"
-            :items-per-page="itemsPerPage"
             v-model:page="page"
+            v-model:items-per-page="itemsPerPage"
             class="elevation-1 mt-4"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
@@ -99,6 +99,9 @@
             :fixed-header="true"
             height="calc(100vh - 300px)"
           >
+            <template v-slot:item.stt="{ index }">
+              {{ (page - 1) * itemsPerPage + index + 1 }}
+            </template>
             <template #[`item.Status`]="{ item }">
               <v-chip
                 :color="item.Status === 'error' ? 'warning' : 'success'"
@@ -122,6 +125,16 @@
         </v-card>
       </v-card-text>
     </v-card>
+    <SnackbarSuccess
+      :model-value="DialogSuccess"
+      @update:model-value="DialogSuccess = $event"
+      :message="MessageDialog"
+    />
+    <SnackbarFailed
+      :model-value="DialogFailed"
+      @update:model-value="DialogFailed = $event"
+      :message="MessageErrorDialog"
+    />
     <Loading v-model="DialogLoading" />
   </div>
 </template>
@@ -152,7 +165,7 @@ const id = route.params.id;
 const back = localStorage.getItem("ManufactureID");
 // Table configuration
 const Headers = [
-  { title: "STT", key: "id", sortable: true },
+  { title: "STT", key: "stt" },
   { title: "Mã sản phẩm", key: "PartNumber", sortable: true },
   { title: "Trạng thái", key: "Status", sortable: true },
   { title: "Thời gian", key: "Timestamp", sortable: true },
@@ -167,6 +180,12 @@ const { manufactureAssembly, manufactureAssemblyError } =
 // ===== Reactive State =====
 // UI State
 const DialogLoading = ref(false);
+const DialogSuccess = ref(false);
+const DialogFailed = ref(false);
+const MessageErrorDialog = ref("");
+const MessageDialog = ref("");
+
+// Tables
 const search = ref("");
 const page = ref(1);
 const itemsPerPage = ref(15);
@@ -280,12 +299,16 @@ const submitBarcode = async () => {
   });
   try {
     const response = await axios.post(`${Url}/Manufacture/Assembly`, formData);
-    console.log(response.data);
     DialogLoading.value = false;
     Input.value = "";
     isError.value = false;
+    DialogSuccess.value = true;
+    MessageDialog.value = "Sản phẩm đã được nhập thành công";
   } catch (error) {
-    console.log(error);
+    DialogLoading.value = false;
+    Input.value = "";
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Lỗi khi nhập mã sản phẩm";
   } finally {
     DialogLoading.value = false;
     submitting.value = false;
