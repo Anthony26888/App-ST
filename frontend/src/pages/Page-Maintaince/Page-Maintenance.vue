@@ -254,7 +254,6 @@ const router = useRouter();
 
 // Initialize composables
 const { machine } = useMachine();
-console.log(machine)
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs

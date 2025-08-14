@@ -323,8 +323,8 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
-  <SnackbarSuccess v-model="DialogSuccess" />
-  <SnackbarFailed v-model="DialogFailed" />
+  <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
+  <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
 </template>
 <script setup>
@@ -361,6 +361,9 @@ const DialogFailed = ref(false);
 const DialogRemove = ref(false);
 const DialogAdd = ref(false);
 const DialogLoading = ref(false);
+const MessageDialog = ref("");
+const MessageErrorDialog = ref("");
+
 const GetID = ref("");
 
 // Edit form fields
@@ -490,6 +493,7 @@ const SaveAdd = async () => {
     const response = await axios.post(`${Url}/Maintenance/Add`, formData);
     console.log(response.data);
     Reset();
+    MessageDialog.value = "Thêm dữ liệu dự án thành công"
   } catch (error) {
     console.error("Error adding maintenance record:", error);
     Error();

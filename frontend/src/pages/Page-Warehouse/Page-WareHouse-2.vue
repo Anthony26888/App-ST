@@ -858,6 +858,7 @@ function Reset() {
  * Handles error states and resets loading
  */
 function Error() {
+  DialogEdit.value = false;
   DialogLoading.value = false;
   DialogSuccess.value = false;
   DialogFailed.value = true;

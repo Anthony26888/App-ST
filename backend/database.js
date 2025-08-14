@@ -36,7 +36,6 @@ db.serialize(() => {
       TimeStamp TEXT
     )`);
 
-
   db.run(`CREATE TABLE IF NOT EXISTS DetailOrders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       Description TEXT,
@@ -432,12 +431,51 @@ db.serialize(() => {
     )
   `);
 
+  // Bảng FilterBom
+  db.run(`
+    CREATE TABLE IF NOT EXISTS FilterBom (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_name TEXT,
+      created_at TEXT,
+      note TEXT
+    )
+  `);
+
+  // Bảng Bom
+  db.run(`
+    CREATE TABLE IF NOT EXISTS Bom (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      part_number TEXT,
+      description TEXT,
+      quantity INTEGER,
+      value TEXT,
+      footprint TEXT,
+      project_id INTERGER,
+      FOREIGN KEY (project_id) REFERENCES FilterBom(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Bảng Pick & Place
+  db.run(`
+    CREATE TABLE IF NOT EXISTS Pickplace (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ref TEXT,
+      value TEXT,
+      footprint TEXT,
+      x REAL,
+      y REAL,
+      rotation REAL,
+      side TEXT,
+      project_id INTERGER,
+      FOREIGN KEY (project_id) REFERENCES FilterBom(id) ON DELETE CASCADE
+    )
+  `);
+
   db.run(`
     CREATE TABLE IF NOT EXISTS heartbeats (
       device_id TEXT PRIMARY KEY,
       last_seen INTEGER
     )
   `);
-
 });
 module.exports = db;

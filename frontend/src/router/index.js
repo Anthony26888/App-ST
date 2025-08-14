@@ -3,6 +3,8 @@ import { createRouter, createWebHistory } from "vue-router";
 import App from "@/layouts/default.vue"
 import Login from "@/layouts/login.vue"
 import PageCheck from "@/pages/Page-Check/Page-Check.vue"
+import PageListProject from "@/pages/Page-Check/Page-List-Project.vue";
+import PageCheckPnP from "@/pages/Page-Check/Page-Check-PnP.vue"
 import PageWareHouse from "@/pages/Page-Warehouse/Page-WareHouse.vue";
 import PageWareHouse2 from "@/pages/Page-Warehouse/Page-WareHouse-2.vue";
 import PageOrders from "@/pages/Page-Orders/Page-Orders.vue";
@@ -30,7 +32,6 @@ import PageDetailOQC from "@/pages/Page-Manufacture/Page-DetailOQC.vue";
 import PageSummary from "@/pages/Page-Summary/Page-Summary.vue"
 import PageDetailIPQCSMT from "@/pages/Page-Manufacture/Page-Detail-IPQC-SMT.vue";
 import PageDetailBoxBuild from "@/pages/Page-Manufacture/Page-Detail-BoxBuild.vue";
-import PageConformalCoating from "@/pages/Page-Manufacture/Page-Detail-Conformal-Coating.vue";
 import PageDetailWarehouse from "@/pages/Page-Manufacture/Page-Detail-Warehouse.vue";
 import PageDetailTest1 from "@/pages/Page-Manufacture/Page-Detail-Test1.vue";
 import PageDetailTest2 from "@/pages/Page-Manufacture/Page-Detail-Test2.vue";
@@ -73,6 +74,18 @@ const routes = [
         name: "EditCheck",
         meta: { requiresAuth: true },
         component: PageEditBom,
+      },
+      {
+        path: "/Danh-sach-pnp",
+        name: "ListPnP",
+        meta: { requiresAuth: true },
+        component: PageListProject,
+      },
+      {
+        path: "/Kiem-tra-so-lieu-pnp/:id",
+        name: "CheckPnP",
+        meta: { requiresAuth: true },
+        component: PageCheckPnP,
       },
       {
         path: "/Ton-kho",

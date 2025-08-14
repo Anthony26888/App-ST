@@ -22,6 +22,7 @@ const sqlite = require("sqlite");
 const { createParser } = require("eventsource-parser");
 const https = require('https');
 const http = require('http');
+const parse = require("csv-parse").parse; // đảm bảo lấy đúng hàm parse
 // const {queryWithLangChain } = require("./Ollama-AI/queryEngine.js");
 // const queryMap = require("./Ollama-AI/queryMap")
 const fetch = require("node-fetch");
@@ -31,7 +32,7 @@ const fetch = require("node-fetch");
 // Add processing flags at the top of the file
 const processingRequests = new Set();
 
-const ESP32_IP = "http://192.168.100.82"; // IP ESP32 (phải đổi đúng IP của bạn)
+const ESP32_IP = "http://192.168.1.82"; // IP ESP32 (phải đổi đúng IP của bạn)
 
 const sessions = {}; // lưu theo socket.id
 // Khởi tạo Express và Socket.IO
@@ -1641,6 +1642,20 @@ io.on("connection", (socket) => {
         });
       } catch (error) {
         socket.emit("ActivedError", error);
+      }
+    }),
+
+    socket.on("getFilterBom", async (id) => {
+      try {
+        const query = `SELECT *
+                      FROM FilterBom
+                      ORDER BY created_at DESC`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("FilterBomError", err);
+          socket.emit("FilterBomData", rows);
+        });
+      } catch (error) {
+        socket.emit("FiterBomError", error);
       }
     }),
     // socket.on("ask", async (message) => {
@@ -4031,28 +4046,7 @@ app.delete("/api/PlanManufacture/Delete/:id", async (req, res) => {
   });
 });
 
-// Router delete item in PlanManufacture table
-app.put("/api/PlanManufacture/Edit-Action/:id", async (req, res) => {
-  const { id } = req.params;
-  const { Action } = req.body;
-  // Insert data into SQLite database
-  const query = `
-    UPDATE PlanManufacture 
-      SET Action = ?
-    WHERE id = ?
-  `;
-  db.run(query, [Action, id], function (err) {
-    if (err) {
-      return res.status(500).json({ error: "Lỗi khi cập nhật dữ liệu Action" });
-    }
-    io.emit("UpdateManufactureSMT");
-    io.emit("updateManufactureDetails");
-    io.emit("UpdateHistory");
-    io.emit("updateHistoryPart");
-    io.emit("UpdateSummary");
-    res.json({ message: "Đã cập nhật dữ liệu Action thành công" });
-  });
-});
+
 
 app.post("/api/esp-config", async (req, res) => {
   const { project_id, delay, plan_id } = req.body;
@@ -4844,47 +4838,179 @@ app.delete("/api/Summary/Delete-item/:id", async (req, res) => {
   });
 });
 
-// 🎯 Hàm đọc toàn bộ file PDF trong folder ./data
-async function readPDFs(folderPath) {
-  const files = fs.readdirSync(folderPath).filter((f) => f.endsWith(".pdf"));
-  let text = "";
-
-  for (const file of files) {
-    const buffer = fs.readFileSync(path.join(folderPath, file));
-    const data = await pdfParse(buffer);
-    text += `--- ${file} ---\n${data.text}\n\n`;
-  }
-
-  return text;
-}
-
-// 🎯 Hàm đọc toàn bộ bảng từ erp.db
-function readSQLite(dbPath) {
-  return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(dbPath);
-    db.all(
-      `SELECT name FROM sqlite_master WHERE type='table'`,
-      [],
-      async (err, tables) => {
-        if (err) return reject(err);
-        const result = {};
-
-        for (const table of tables.map((t) => t.name)) {
-          result[table] = await new Promise((res, rej) => {
-            db.all(`SELECT * FROM ${table} LIMIT 10`, [], (err, rows) => {
-              if (err) res([]);
-              else res(rows);
-            });
-          });
-        }
-
-        db.close();
-        resolve(result);
-      }
-    );
+// Router delete item in Summary table
+app.put("/api/Summary/Edit-item-action-stopped", async (req, res) => {
+  const query = `
+    UPDATE Summary SET Action = "stopped"
+  `;
+  db.run(query, [], function (err) {
+    if (err) {
+      return res.status(500).json({ error: "Lỗi khi cập nhật dữ liệu Action" });
+    }
+    io.emit("UpdateManufactureSMT");
+    io.emit("updateManufactureDetails");
+    io.emit("UpdateHistory");
+    io.emit("updateHistoryPart");
+    io.emit("UpdateSummary");
+    res.json({ message: "Đã cập nhật dữ liệu Action thành công" });
   });
+});
+
+// Router delete item in PlanManufacture table
+app.put("/api/Summary/Edit-item-action/:id", async (req, res) => {
+  const { id } = req.params;
+  const { Action } = req.body;
+  // Insert data into SQLite database
+  const query = `
+    UPDATE PlanManufacture 
+      SET Action = ?
+    WHERE id = ?
+  `;
+  db.run(query, [Action, id], function (err) {
+    if (err) {
+      return res.status(500).json({ error: "Lỗi khi cập nhật dữ liệu Action" });
+    }
+    io.emit("UpdateManufactureSMT");
+    io.emit("updateManufactureDetails");
+    io.emit("UpdateHistory");
+    io.emit("updateHistoryPart");
+    io.emit("UpdateSummary");
+    res.json({ message: "Đã cập nhật dữ liệu Action thành công" });
+  });
+});
+
+
+// Bom , Pick&Place table
+
+// Post value in table Summary
+app.post("/api/FilterBom/Add-item", (req, res) => {
+  const {
+    project_name,
+    created_at,
+    note
+  } = req.body;
+  db.run(
+    `INSERT INTO FilterBom (project_name, created_at, note)
+     VALUES (?, ?, ?)`,
+    [
+      project_name,
+      created_at,
+      note
+    ],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("UpdateFilterBom");
+      res.json({ message: "Summary received" });
+    }
+  );
+});
+
+
+function normalizeHeader(header) {
+  return header
+    .replace(/\uFEFF/g, "") // Xóa BOM UTF-8
+    .replace(/"/g, "")      // Xóa dấu "
+    .replace(/\(mm\)/gi, "")// Xóa (mm)
+    .trim();
 }
 
+function cleanValue(value) {
+  if (typeof value !== "string") return value;
+  return value
+    .replace(/mm/gi, "") // Xóa mm
+    .replace(/"/g, "")   // Xóa dấu "
+    .trim();
+}
+
+app.post("/api/upload-bom-pickplace-gerber/:id", upload.fields([
+  { name: "bom" },
+  { name: "pickplace" }
+]), async (req, res) => {
+  const { id } = req.params;
+  try {
+    const bomFile = req.files["bom"]?.[0];
+    const ppFile = req.files["pickplace"]?.[0];
+
+    if (!bomFile || !ppFile) {
+      return res.status(400).json({ error: "Thiếu file BOM hoặc Pick&Place" });
+    }
+
+    async function parseCSV(filePath) {
+      return new Promise((resolve, reject) => {
+        const rows = [];
+        fs.createReadStream(filePath)
+          .pipe(parse({
+            columns: header => header.map(normalizeHeader), // Chuẩn hóa tên cột
+            skip_empty_lines: true,
+            relax_column_count: true,
+            trim: true
+          }))
+          .on("data", (row) => {
+            const cleaned = {};
+            for (let key in row) {
+              cleaned[key] = cleanValue(row[key]); // Chuẩn hóa giá trị
+            }
+            rows.push(cleaned);
+          })
+          .on("end", () => resolve(rows))
+          .on("error", (err) => reject(err));
+      });
+    }
+
+    const bomData = await parseCSV(bomFile.path);
+    const ppData = await parseCSV(ppFile.path);
+
+    // Lưu BOM
+    const bomStmt = db.prepare(`
+      INSERT INTO Bom (comment, description, designator, quantity, project_id)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    bomData.forEach(row => {
+      bomStmt.run(
+        row["Comment"] || "",
+        row["Description"] || "",
+        row["Designator"] || "",
+        parseInt(row["Quantity"] || "0", 10),
+        id
+      );
+    });
+    bomStmt.finalize();
+
+    // Lưu Pick&Place
+    const ppStmt = db.prepare(`
+      INSERT INTO Pickplace (designator, comment, layer, x, y, rotation, description, project_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    ppData.forEach(row => {
+      ppStmt.run(
+        row["Designator"] || "",
+        row["Comment"] || "",
+        row["Layer"] || "",
+        parseFloat(row["Center-X"] || "0"), // Sau normalize header
+        parseFloat(row["Center-Y"] || "0"),
+        parseFloat(row["Rotation"] || "0"),
+        row["Description"] || "",
+        id
+      );
+    });
+    ppStmt.finalize();
+
+    // Xóa file tạm
+    if (fs.existsSync(bomFile.path)) fs.unlinkSync(bomFile.path);
+    if (fs.existsSync(ppFile.path)) fs.unlinkSync(ppFile.path);
+
+    res.json({ message: "Upload & lưu dữ liệu thành công", projectId: id });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Lỗi xử lý file" });
+  }
+});
 
 // Serve static files from frontend/dist
 app.use(express.static(path.join(__dirname, "../frontend/dist")));

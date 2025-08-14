@@ -233,6 +233,13 @@ const menuItems = computed(() => [
     disabled: StatusOption_1.value,
   },
   {
+    icon: "mdi-file-cog",
+    title: "Pick & Place",
+    value: "CheckPnP",
+    to: "/Danh-sach-pnp",
+    disabled: StatusOption_1.value,
+  },
+  {
     icon: "mdi-warehouse",
     title: "Tồn Kho",
     value: "WareHouse",
