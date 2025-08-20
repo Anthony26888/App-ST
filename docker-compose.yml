@@ -20,6 +20,7 @@ services:
       - app-network
     env_file:
       - ./.env
+    restart: always
 
   backend:
     build:
@@ -37,6 +38,7 @@ services:
       # - ./cert:/app/cert
     networks:
       - app-network
+    restart: always
 
   # nginx:
   #   image: nginx:alpine

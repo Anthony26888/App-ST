@@ -445,11 +445,10 @@ db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS Bom (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      part_number TEXT,
       description TEXT,
+      mpn TEXT,
+      designator TEXT,
       quantity INTEGER,
-      value TEXT,
-      footprint TEXT,
       project_id INTERGER,
       FOREIGN KEY (project_id) REFERENCES FilterBom(id) ON DELETE CASCADE
     )
@@ -459,17 +458,30 @@ db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS Pickplace (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      ref TEXT,
-      value TEXT,
-      footprint TEXT,
+      designator TEXT,
+      comment TEXT,
+      layer TEXT,
       x REAL,
       y REAL,
       rotation REAL,
-      side TEXT,
+      description TEXT,
       project_id INTERGER,
       FOREIGN KEY (project_id) REFERENCES FilterBom(id) ON DELETE CASCADE
     )
   `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS GerberData (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT,
+      x REAL,
+      y REAL,
+      layer TEXT,
+      raw TEXT,
+      project_id INTERGER,
+      FOREIGN KEY (project_id) REFERENCES FilterBom(id) ON DELETE CASCADE
+    )
+  `);
+
 
   db.run(`
     CREATE TABLE IF NOT EXISTS heartbeats (

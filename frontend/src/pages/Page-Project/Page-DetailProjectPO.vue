@@ -474,7 +474,7 @@ const SaveAddManufacture = async () => {
     Total: Total_Manufacture_Add.value,
     Note: Note_Manufacture_Add.value,
     Creater: UserInfo.value,
-    DelaySMT:50,
+    DelaySMT:5000,
     Quantity: 1,
     Level: Level_Manufacture_Add.value,
     ProjectID: GetIDManufacture.value
