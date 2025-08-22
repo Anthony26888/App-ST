@@ -355,6 +355,49 @@ app.get("/api/Project-Detail/download/:id", async (req, res) => {
   }
 });
 
+
+// 📥 API to Download -Order as XLSX
+app.get("/api/PickPlace/download/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const query = `
+                      SELECT 
+                          p.designator,
+                          b.mpn,
+                          p.layer,
+                          p.x,
+                          p.y,
+                          p.rotation 
+                      FROM Pickplace p
+                      LEFT JOIN Bom b
+                          ON p.designator = b.designator
+                        AND p.project_id = b.project_id
+                      WHERE p.project_id = ?`;
+
+    db.all(query, [id], (err, rows) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      // Convert data to worksheet
+      const ws = xlsx.utils.json_to_sheet(rows);
+      const wb = xlsx.utils.book_new();
+      xlsx.utils.book_append_sheet(wb, ws, `pickp&place`);
+
+      // Save the file temporarily
+      const filePath = path.join(__dirname, `pick&place.xlsx`);
+      xlsx.writeFile(wb, filePath);
+
+      // Send the file to the client
+      res.download(filePath, `pick&place.xlsx`, (err) => {
+        if (err) console.error("Error sending file:", err);
+        fs.unlinkSync(filePath); // Delete after sending
+      });
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Router login user
 app.post("/api/Users/login", (req, res) => {
   const { Username, Password } = req.body;

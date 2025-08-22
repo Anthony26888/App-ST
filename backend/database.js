@@ -472,11 +472,9 @@ db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS GerberData (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      type TEXT,
-      x REAL,
-      y REAL,
       layer TEXT,
-      raw TEXT,
+      svg TEXT,
+      filename TEXT,
       project_id INTERGER,
       FOREIGN KEY (project_id) REFERENCES FilterBom(id) ON DELETE CASCADE
     )

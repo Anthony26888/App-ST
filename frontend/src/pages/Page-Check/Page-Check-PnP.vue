@@ -8,6 +8,7 @@
       <ButtonAdd @add="DialogAddBom = true" label="Thêm file Bom" />
       <ButtonAdd @add="DialogAddPnP = true" label="Thêm file Pick&Place" />
       <ButtonAdd @add="DialogAddGerber = true" label="Thêm file Gerber" />
+      <ButtonDownload @download-file="DownloadPnP()" />
       <p class="text-subtitle-1 font-weight-thin text-subtitle-1 ms-2">
         {{ combineBom.length }} linh kiện
       </p>
@@ -54,7 +55,7 @@
         <template v-slot:item.id="{ value }">
           <div class="d-flex">
             <ButtonEdit @edit="GetItem(value)" />
-            <ButtonSearch @search="getAccessToken(value)" class="ms-2"/>
+            <ButtonSearch @search="getAccessToken(value)" class="ms-2" />
           </div>
         </template>
         <template v-slot:item.mount_type="{ value }">
@@ -124,7 +125,6 @@
         <template v-slot:item.id="{ value }">
           <div class="d-flex">
             <ButtonEdit @edit="GetItem(value)" />
-            
           </div>
         </template>
         <template v-slot:item.layer="{ value }">
@@ -137,17 +137,15 @@
           </v-chip>
         </template>
         <template v-slot:item.match_quality="{ value }">
-          <v-chip
-            :color="getMatchColor(value)"
-            size="small"
-            variant="tonal"
-          >
+          <v-chip :color="getMatchColor(value)" size="small" variant="tonal">
             {{ value }}
           </v-chip>
         </template>
       </v-data-table>
+      
     </v-card-text>
   </v-card>
+
   <v-dialog v-model="DialogAddBom" width="600" scrollable>
     <v-card class="overflow-y-auto">
       <v-card-title class="d-flex align-center pa-4">
@@ -221,14 +219,79 @@
   <v-dialog v-model="DialogEdit" width="400">
     <v-card max-width="400" prepend-icon="mdi-delete" title="Chỉnh sửa dữ liệu">
       <v-card-text>
-        <InputField label="Toạ độ X (mm)" v-model="PosX"/>
-        <InputField label="Toạ độ Y (mm)" v-model="PosY"/>
-        <InputField label="Rotation" v-model="Rotation"/>
+        <InputField label="Toạ độ X (mm)" v-model="PosX" />
+        <InputField label="Toạ độ Y (mm)" v-model="PosY" />
+        <InputField label="Rotation" v-model="Rotation" />
       </v-card-text>
       <template v-slot:actions>
         <ButtonCancel @cancel="DialogRemove = false" />
         <ButtonDelete @delete="RemoveItem()" />
       </template>
+    </v-card>
+  </v-dialog>
+  <v-dialog v-model="DialogInfo" width="800" scrollable>
+    <v-card class="overflow-y-auto">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon
+          icon="mdi-information-variant-circle"
+          color="primary"
+          class="me-2"
+        ></v-icon>
+        Thông số kỹ thuật
+        <v-spacer></v-spacer>
+        <v-btn
+          variant="text"
+          icon="mdi-close"
+          @click="DialogInfo = false"
+        ></v-btn>
+      </v-card-title>
+
+      <v-card-text class="pa-4">
+        <v-row>
+          <v-col>
+            <v-img :src="ResultSearch.Product.PhotoUrl"></v-img>
+          </v-col>
+          <v-col>
+            <v-list-item density="comfortable" lines="two">
+              <template v-slot:title>
+                <strong class="text-h6">
+                  {{ ResultSearch.Product.ManufacturerProductNumber }}
+                </strong>
+              </template>
+            </v-list-item>
+
+            <v-table class="text-caption" density="compact">
+              <tbody>
+                <tr>
+                  <td><strong>Datasheet</strong></td>
+                  <td>
+                    <v-btn
+                      size="small"
+                      prepend-icon="mdi-database-arrow-right"
+                      :href="ResultSearch.Product.DatasheetUrl"
+                      target="_blank"
+                      color="primary"
+                      variant="tonal"
+                      class="text-caption"
+                    >
+                      Datasheet
+                    </v-btn>
+                  </td>
+                </tr>
+                <tr
+                  v-for="item in ResultSearch.Product.Parameters"
+                  :key="item.name"
+                >
+                  <td>
+                    <strong>{{ item.ParameterText }}</strong>
+                  </td>
+                  <td>{{ item.ValueText }}</td>
+                </tr>
+              </tbody>
+            </v-table>
+          </v-col>
+        </v-row>
+      </v-card-text>
     </v-card>
   </v-dialog>
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
@@ -242,6 +305,8 @@ import { ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useCombineBom } from "@/composables/CheckBOM/useCombineBom";
 import { useCombineGerber } from "@/composables/CheckBOM/useCombineGerber";
+import { usePnPFile } from "@/composables/CheckBOM/usePnPFile";
+import { useGerberFile } from "@/composables/CheckBOM/useGerberFile";
 import ButtonBack from "@/components/Button-Back.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
@@ -263,6 +328,11 @@ const route = useRoute();
 const id = route.params.id;
 const { combineBom, combineBomErrror } = useCombineBom(id);
 const { combineGerber, combineGerberErrror } = useCombineGerber(id);
+const { detailPnP, detailPnPError } = usePnPFile(id);
+const { detailGerber, detailGerberError } = useGerberFile(id)
+console.log(detailPnP)
+console.log(detailGerber)
+
 
 // Dialog status
 const DialogEdit = ref(false);
@@ -271,10 +341,13 @@ const DialogAddPnP = ref(false);
 const DialogAddGerber = ref(false);
 const DialogRemove = ref(false);
 const DialogFailed = ref(false);
-const DialogLoading = ref(false);
+const DialogCaution = ref(false); // Warning notification
+const DialogLoading = ref(false); // Loading state
 const DialogSuccess = ref(false);
+const DialogInfo = ref(false);
 const MessageDialog = ref("");
 const MessageErrorDialog = ref("");
+const MessageCautionDialog = ref("");
 
 // Data page
 const FileBom = ref(null);
@@ -282,7 +355,10 @@ const FilePnP = ref(null);
 const FileGerber = ref(null);
 
 // Data search item in digikey
+const clientId = import.meta.env.VITE_DIGIKEY_CLIENT_ID;
+const clientSecret = import.meta.env.VITE_DIGIKEY_CLIENT_SECRET;
 const GetDigikey = ref("");
+const GetDigikeyList = ref("");
 const accessToken = ref(null);
 const tokenType = ref(null);
 const expires_in = ref(null);
@@ -298,7 +374,7 @@ const Headers = [
   { title: "Rotation", key: "rotation" },
   { title: "Layer", key: "layer" },
   { title: "Định dạng", key: "mount_type" },
-  { title: "Description", key: "description", width: "150px" },
+  { title: "Description", key: "description_bom", width: "150px" },
   { title: "Thao tác", key: "id", sortable: false },
 ];
 
@@ -332,8 +408,8 @@ const getMatchColor = (value) => {
   return "secondary";
 };
 // Function
-const GetItem = (item) =>{
-  DialogEdit.value = true
+const GetItem = (item) => {
+  DialogEdit.value = true;
 };
 
 const uploadBOM = async () => {
@@ -376,12 +452,10 @@ const uploadGerber = async () => {
     // Nếu Vuetify trả về mảng thì lấy phần tử đầu tiên
     formData.append(
       "FileGerber",
-      Array.isArray(FileGerber.value) ? FileGerber.value[0] : FileGerber.value
+      FileGerber.value
     );
 
-    await axios.post(`${Url}/upload-gerber/${id}`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    await axios.post(`${Url}/upload-gerber/${id}`, formData);
 
     DialogSuccess.value = true;
     MessageDialog.value = "Upload Gerber thành công";
@@ -395,13 +469,12 @@ const uploadGerber = async () => {
   }
 };
 
-
 // ===== DIGIKEY API OPERATIONS =====
 /**
  * Gets access token from DigiKey API
  * @param {string} value - The ID of the item to search
  */
- const getAccessToken = async (value) => {
+const getAccessToken = async (value) => {
   DialogLoading.value = true;
   const found = combineBom.value.find((v) => v.id === value);
   GetDigikey.value = found.mpn;
@@ -409,8 +482,8 @@ const uploadGerber = async () => {
   const tokenUrl = "https://api.digikey.com/v1/oauth2/token";
   const params = new URLSearchParams();
   params.append("grant_type", "client_credentials");
-  params.append("client_id", clientId);           // <-- Bổ sung
-  params.append("client_secret", clientSecret);   // <-- Bổ sung
+  params.append("client_id", clientId); // <-- Bổ sung
+  params.append("client_secret", clientSecret); // <-- Bổ sung
 
   try {
     const response = await axios.post(tokenUrl, params.toString(), {
@@ -440,7 +513,6 @@ const uploadGerber = async () => {
   }
 };
 
-
 /**
  * Searches for product details using DigiKey API
  */
@@ -461,9 +533,10 @@ const searchProduct = async () => {
       },
     });
     ResultSearch.value = response.data;
+    DialogSuccess.value = true;
     MessageDialog.value = "Tìm kiếm sản phẩm thành công";
     if (ResultSearch.value) {
-      return (DialogInfo.value = true), Reset();
+      return (DialogInfo.value = true), (DialogLoading.value = false);
     }
     return response.data;
   } catch (error) {
@@ -473,8 +546,33 @@ const searchProduct = async () => {
       (DialogCaution.value = true),
       (DialogLoading.value = false)
     );
+    DialogFailed.value = true;
+    DialogLoading.value = false;
     MessageErrorDialog.value = "Lỗi khi tìm kiếm sản phẩm";
     return null;
+  }
+};
+
+const DownloadPnP = async () => {
+  try {
+    const response = await fetch(`${Url}/PickPlace/download/${id}`);
+    if (!response.ok) throw new Error("Download failed");
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `PickPlace.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    MessageErrorDialog.value = "Tải file thất bại";
+    console.error("Error downloading file:", error);
+    Error();
   }
 };
 </script>
@@ -492,4 +590,5 @@ export default {
   },
 };
 </script>
-<style lang=""></style>
+<style scoped>
+</style>

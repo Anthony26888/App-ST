@@ -20,10 +20,11 @@ const fs = require("fs");
 const sqlite3 = require("sqlite3");
 const sqlite = require("sqlite");
 const { createParser } = require("eventsource-parser");
-const https = require('https');
-const http = require('http');
+const https = require("https");
+const http = require("http");
 const parse = require("csv-parse").parse; // đảm bảo lấy đúng hàm parse
 const parseGerber = require("gerber-parser");
+const gerberToSvg = require("gerber-to-svg");
 // const {queryWithLangChain } = require("./Ollama-AI/queryEngine.js");
 // const queryMap = require("./Ollama-AI/queryMap")
 const fetch = require("node-fetch");
@@ -33,7 +34,7 @@ const fetch = require("node-fetch");
 // Add processing flags at the top of the file
 const processingRequests = new Set();
 
-const ESP32_IP = "http://192.168.2.82"; // IP ESP32 (phải đổi đúng IP của bạn)
+const ESP32_IP = "http://192.168.1.82"; // IP ESP32 (phải đổi đúng IP của bạn)
 
 const sessions = {}; // lưu theo socket.id
 // Khởi tạo Express và Socket.IO
@@ -150,14 +151,26 @@ const upload = multer({
     fileSize: 100 * 1024 * 1024, // 100MB
   },
   fileFilter: (req, file, cb) => {
-    const allowedExt = ['.gbr', '.gtl', '.gbl', '.gts', '.gbs', '.drl', '.ger', '.xlsx', '.csv'];
+    const allowedExt = [
+      ".gbr",
+      ".gtl",
+      ".gbl",
+      ".gts",
+      ".gbs",
+      ".drl",
+      ".ger",
+      ".xlsx",
+      ".csv",
+      ".gtp",
+      ".gbp",
+    ];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowedExt.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error('Chỉ chấp nhận file xlsx, gerber, csv'));
+      cb(new Error("Chỉ chấp nhận file xlsx, gerber, csv"));
     }
-  }
+  },
 });
 
 const userProjects = new Map();
@@ -1656,7 +1669,6 @@ io.on("connection", (socket) => {
         socket.emit("ActivedError", error);
       }
     }),
-
     socket.on("getFilterBom", async (id) => {
       try {
         const query = `SELECT *
@@ -1670,12 +1682,12 @@ io.on("connection", (socket) => {
         socket.emit("FiterBomError", error);
       }
     }),
-
     socket.on("getCombineBom", async (id) => {
       try {
         const query = `SELECT 
                           p.*,
                           b.mpn,
+                          b.description AS description_bom,
                           CASE
                               WHEN b.description LIKE '%DIP%' 
                                 OR b.description LIKE '%Pin Header%'
@@ -1699,7 +1711,6 @@ io.on("connection", (socket) => {
         socket.emit("CombineBomError", error);
       }
     }),
-
     socket.on("getCombineGerber", async (id) => {
       try {
         const query = `WITH pickplace_bounds AS (
@@ -1876,6 +1887,46 @@ io.on("connection", (socket) => {
         });
       } catch (error) {
         socket.emit("CombineGerberError", error);
+      }
+    }),
+
+    socket.on("getFileGerber", async (id) => {
+      try {
+        const query = `SELECT *
+                      FROM GerberData
+                      WHERE project_id = ?`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("FilterBomError", err);
+          socket.emit("FilterBomData", rows);
+        });
+      } catch (error) {
+        socket.emit("FiterBomError", error);
+      }
+    }),
+    socket.on("getGerberFile", async (id) => {
+      try {
+        const query = `SELECT svg
+                      FROM GerberData
+                      WHERE project_id = ?`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("GerberFileError", err);
+          socket.emit("GerberFileData", rows);
+        });
+      } catch (error) {
+        socket.emit("GerberFileError", error);
+      }
+    }),
+    socket.on("getPnPFile", async (id) => {
+      try {
+        const query = `SELECT designator, x, y
+                      FROM PickPlace
+                      WHERE project_id = ?`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("PnPFileError", err);
+          socket.emit("PnPFilePData", rows);
+        });
+      } catch (error) {
+        socket.emit("PnPFileError", error);
       }
     }),
     // socket.on("ask", async (message) => {
@@ -4266,8 +4317,6 @@ app.delete("/api/PlanManufacture/Delete/:id", async (req, res) => {
   });
 });
 
-
-
 app.post("/api/esp-config", async (req, res) => {
   const { project_id, delay, plan_id } = req.body;
   try {
@@ -5099,24 +5148,15 @@ app.put("/api/Summary/Edit-item-action/:id", async (req, res) => {
   });
 });
 
-
 // Bom , Pick&Place table
 
 // Post value in table Summary
 app.post("/api/FilterBom/Add-item", (req, res) => {
-  const {
-    project_name,
-    created_at,
-    note
-  } = req.body;
+  const { project_name, created_at, note } = req.body;
   db.run(
     `INSERT INTO FilterBom (project_name, created_at, note)
      VALUES (?, ?, ?)`,
-    [
-      project_name,
-      created_at,
-      note
-    ],
+    [project_name, created_at, note],
     (err) => {
       if (err) {
         console.error("Database error:", err);
@@ -5130,225 +5170,295 @@ app.post("/api/FilterBom/Add-item", (req, res) => {
   );
 });
 
+app.post(
+  "/api/upload-bom/:project_id",
+  upload.single("FileBom"),
+  (req, res) => {
+    const projectId = req.params.project_id;
+    const filePath = path.join(__dirname, req.file.path);
 
-app.post("/api/upload-bom/:project_id", upload.single("FileBom"), (req, res) => {
-  const projectId = req.params.project_id;
-  const filePath = path.join(__dirname, req.file.path);
+    try {
+      const workbook = xlsx.readFile(filePath);
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = xlsx.utils.sheet_to_json(sheet);
 
-  try {
-    const workbook = xlsx.readFile(filePath);
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = xlsx.utils.sheet_to_json(sheet);
-
-    const stmt = db.prepare(`
+      const stmt = db.prepare(`
       INSERT INTO Bom (description, mpn, designator, quantity, project_id)
       VALUES (?, ?, ?, ?, ?)
     `);
 
-    // Dùng Set để lưu ref đã insert, tránh trùng
-    const insertedRefs = new Set();
+      // Dùng Set để lưu ref đã insert, tránh trùng
+      const insertedRefs = new Set();
 
-    rows.forEach(row => {
-      const refs = String(row["Reference(s)"] || row["Designator"] || "")
-        .split(",")
-        .map(r => r.trim())
-        .filter(r => r.length > 0);
+      rows.forEach((row) => {
+        const refs = String(row["Reference(s)"] || row["Designator"] || "")
+          .split(",")
+          .map((r) => r.trim())
+          .filter((r) => r.length > 0);
 
-      refs.forEach(ref => {
-        // Nếu chưa tồn tại thì mới insert
-        if (!insertedRefs.has(ref)) {
-          stmt.run(
-            row.Description || "",
-            row.MPN || row.Comment || "",
-            ref,
-            1, // mỗi reference 1
-            projectId
-          );
-          insertedRefs.add(ref);
-        }
+        refs.forEach((ref) => {
+          // Nếu chưa tồn tại thì mới insert
+          if (!insertedRefs.has(ref)) {
+            stmt.run(
+              row.Description || "",
+              row.MPN || row.Comment || "",
+              ref,
+              1, // mỗi reference 1
+              projectId
+            );
+            insertedRefs.add(ref);
+          }
+        });
       });
-    });
 
-    stmt.finalize();
-    fs.unlinkSync(filePath);
-    io.emit("CombineBomUpdate");
-    res.json({ message: "BOM uploaded & formatted successfully, duplicates removed" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Lỗi xử lý file BOM" });
+      stmt.finalize();
+      fs.unlinkSync(filePath);
+      io.emit("CombineBomUpdate");
+      res.json({
+        message: "BOM uploaded & formatted successfully, duplicates removed",
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Lỗi xử lý file BOM" });
+    }
   }
-});
+);
 
+app.post(
+  "/api/upload-pickplace/:id",
+  upload.single("FilePnP"),
+  async (req, res) => {
+    const { id } = req.params;
 
-app.post("/api/upload-pickplace/:id", upload.single("FilePnP"), async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const ppFile = req.file;
-    if (!ppFile) {
-      return res.status(400).json({ error: "Thiếu file Pick&Place" });
-    }
-
-    // Parse CSV
-    async function parseCSV(filePath) {
-      return new Promise((resolve, reject) => {
-        const rows = [];
-        fs.createReadStream(filePath)
-          .pipe(parse({
-            columns: true,
-            skip_empty_lines: true,
-            trim: true,
-            delimiter: ";",
-            relax_column_count: true
-          }))
-          .on("data", row => rows.push(row))
-          .on("end", () => resolve(rows))
-          .on("error", err => reject(err));
-      });
-    }
-
-    const ppData = await parseCSV(ppFile.path);
-
-    // Chuẩn hóa header & lọc trùng Ref
-    const uniqueRows = [];
-    const seenRefs = new Set();
-
-    for (const row of ppData) {
-      const ref = (row.Ref || row.Designator)?.trim();
-      if (!ref || seenRefs.has(ref)) continue;
-      seenRefs.add(ref);
-
-      // Map các cột
-      const valOrComment = row.Val || row.Comment || "";
-      const packageOrFootprint = row.Package || row.Footprint || "";
-      
-      // Chuyển PosX, PosY từ định dạng 10.131.500 -> 10131.5
-      // Hàm đổi PosX, PosY từ µm -> mm
-      function parsePos(str) {
-        const num = parseFloat((str || "0").toString().replace(/,/g, "."));
-        return isNaN(num) ? 0 : num;  // µm -> mm
+    try {
+      const ppFile = req.file;
+      if (!ppFile) {
+        return res.status(400).json({ error: "Thiếu file Pick&Place" });
       }
 
+      // Parse CSV
+      async function parseCSV(filePath) {
+        return new Promise((resolve, reject) => {
+          const rows = [];
+          fs.createReadStream(filePath)
+            .pipe(
+              parse({
+                columns: true,
+                skip_empty_lines: true,
+                trim: true,
+                delimiter: ";",
+                relax_column_count: true,
+              })
+            )
+            .on("data", (row) => rows.push(row))
+            .on("end", () => resolve(rows))
+            .on("error", (err) => reject(err));
+        });
+      }
 
-      uniqueRows.push({
-        ref,
-        val: valOrComment,
-        package: packageOrFootprint,
-        posX: parsePos(row.PosX),
-        posY: parsePos(row.PosY),
-        rot: parseFloat(row.Rot || "0"),
-        side: row.Side || row.Layer || "",
-        project_id: id
-      });
-    }
+      const ppData = await parseCSV(ppFile.path);
 
-    // Lưu vào DB
-    const stmt = db.prepare(`
+      // Chuẩn hóa header & lọc trùng Ref
+      const uniqueRows = [];
+      const seenRefs = new Set();
+
+      for (const row of ppData) {
+        const ref = (row.Ref || row.Designator)?.trim();
+        if (!ref || seenRefs.has(ref)) continue;
+        seenRefs.add(ref);
+
+        // Map các cột
+        const valOrComment = row.Val || row.Comment || "";
+        const packageOrFootprint = row.Package || row.Footprint || "";
+
+        // Chuyển PosX, PosY từ định dạng 10.131.500 -> 10131.5
+        // Hàm đổi PosX, PosY từ µm -> mm
+        function parsePos(str) {
+          const num = parseFloat((str || "0").toString().replace(/,/g, "."));
+          return isNaN(num) ? 0 : num; // µm -> mm
+        }
+
+        uniqueRows.push({
+          ref,
+          val: valOrComment,
+          package: packageOrFootprint,
+          posX: parsePos(row.PosX),
+          posY: parsePos(row.PosY),
+          rot: parseFloat(row.Rotation || "0"),
+          side: row.Side || row.Layer || "",
+          project_id: id,
+        });
+      }
+
+      // Lưu vào DB
+      const stmt = db.prepare(`
       INSERT INTO Pickplace (designator, comment, layer, x, y, rotation, description, project_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    for (const r of uniqueRows) {
-      stmt.run(r.ref, r.val, r.side, r.posX, r.posY, r.rot, r.package, r.project_id);
+      for (const r of uniqueRows) {
+        stmt.run(
+          r.ref,
+          r.val,
+          r.side,
+          r.posX,
+          r.posY,
+          r.rot,
+          r.package,
+          r.project_id
+        );
+      }
+      stmt.finalize();
+
+      // Xóa file tạm
+      fs.unlinkSync(ppFile.path);
+      io.emit("CombineBomUpdate");
+      res.json({
+        message: "Pick&Place đã upload & lưu thành công",
+        inserted: uniqueRows.length,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Lỗi xử lý file Pick&Place" });
     }
-    stmt.finalize();
-
-    // Xóa file tạm
-    fs.unlinkSync(ppFile.path);
-    io.emit("CombineBomUpdate");
-    res.json({
-      message: "Pick&Place đã upload & lưu thành công",
-      inserted: uniqueRows.length
-    });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Lỗi xử lý file Pick&Place" });
   }
-});
+);
 
+// Detect layer by file extension
+function detectLayer(filename) {
+  const ext = path.extname(filename).toLowerCase();
+  if (ext === ".gtp") return "Top";
+  if (ext === ".gbp") return "Bottom";
+  return "Unknown";
+}
 
-// Hàm convert inch sang mm
-const inchToMm = (val) => val * 25.4;
-
-app.post('/api/upload-gerber/:id', upload.single('FileGerber'), (req, res) => {
+// Upload Gerber
+app.post("/api/upload-gerber/:id", upload.single("FileGerber"), (req, res) => {
   const projectId = req.params.id;
   const filePath = req.file.path;
   const fileName = req.file.originalname;
+  const layer = detectLayer(fileName);
 
-  const allowedExtensions = [
-    '.gbr', '.ger',
-    '.gbl', '.gbs', '.gtl', '.gto', '.gts', '.gbo', '.gbp', '.gpt',
-    '.gm1', '.gm2', '.gm3', '.gm13', '.gm14', '.gm15',
-    '.gd1', '.gg1', '.gko', '.gml'
-  ];
+  const fileStream = fs.createReadStream(filePath);
+  const converter = gerberToSvg(fileStream);
 
-  const fileExt = path.extname(fileName).toLowerCase();
-  if (!allowedExtensions.includes(fileExt)) {
-    fs.unlinkSync(filePath);
-    return res.status(400).json({ error: 'Chỉ hỗ trợ file Gerber hợp lệ' });
-  }
+  let svgData = "";
+  converter.on("data", (d) => (svgData += d.toString()));
+  converter.on("end", () => {
+    db.run(
+      `INSERT INTO GerberData (layer, svg, filename, project_id) VALUES (?, ?, ?, ?)`,
+      [layer, svgData, fileName, projectId],
+      function (err) {
+        if (err) return res.status(500).json({ error: err.message });
 
-  // Map extension sang layer
-  const layerMap = {
-    '.gtl': 'Top',
-    '.gto': 'Top',
-    '.gts': 'Top',
-    '.gbl': 'Bottom',
-    '.gbo': 'Bottom',
-    '.gbs': 'Bottom'
-  };
-  const fileLayer = layerMap[fileExt] || 'Other';
-
-  const parser = parseGerber();
-  const results = [];
-
-  parser.on('data', (obj) => {
-    let x = obj.x ?? obj.coord?.x ?? null;
-    let y = obj.y ?? obj.coord?.y ?? null;
-
-    // Chỉ lưu nếu có cả x và y
-    if (x !== null && y !== null) {
-      // Convert inch sang mm nếu Gerber là MOIN
-      x = inchToMm(x);
-      y = inchToMm(y);
-
-      results.push({
-        type: obj.type || null,
-        x,
-        y,
-        layer: obj.layer || fileLayer,
-        raw: JSON.stringify(obj),
-        project_id: projectId
-      });
-    }
+        io.emit("gerber_uploaded", { id: this.lastID, layer, svg: svgData });
+        res.json({ id: this.lastID, layer });
+      }
+    );
+    fs.unlinkSync(filePath); // xóa file upload
   });
-
-  parser.on('end', () => {
-    db.serialize(() => {
-      const stmt = db.prepare(`
-        INSERT INTO GerberData (type, x, y, layer, raw, project_id)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `);
-
-      results.forEach(row => {
-        stmt.run(row.type, row.x, row.y, row.layer, row.raw, row.project_id);
-      });
-
-      stmt.finalize();
-    });
-    io.emit("CombineBomUpdate");
-    fs.unlinkSync(filePath);
-    res.json({ message: 'Upload & parse Gerber thành công', count: results.length });
-  });
-
-  fs.createReadStream(filePath).pipe(parser);
 });
 
 
+// // Hàm convert inch sang mm
+// const inchToMm = (val) => val * 25.4;
 
+// app.post("/api/upload-gerber/:id", upload.single("FileGerber"), (req, res) => {
+//   const projectId = req.params.id;
+//   const filePath = req.file.path;
+//   const fileName = req.file.originalname;
 
+//   const allowedExtensions = [
+//     ".gbr",
+//     ".ger",
+//     ".gbl",
+//     ".gbs",
+//     ".gtl",
+//     ".gto",
+//     ".gts",
+//     ".gbo",
+//     ".gbp",
+//     ".gpt",
+//     ".gm1",
+//     ".gm2",
+//     ".gm3",
+//     ".gm13",
+//     ".gm14",
+//     ".gm15",
+//     ".gd1",
+//     ".gg1",
+//     ".gko",
+//     ".gml",
+//     ".gtp",
+//     ".gbp",
+//   ];
 
+//   const fileExt = path.extname(fileName).toLowerCase();
+//   if (!allowedExtensions.includes(fileExt)) {
+//     fs.unlinkSync(filePath);
+//     return res.status(400).json({ error: "Chỉ hỗ trợ file Gerber hợp lệ" });
+//   }
+
+//   // Map extension sang layer
+//   const layerMap = {
+//     ".gtl": "Top",
+//     ".gto": "Top",
+//     ".gts": "Top",
+//     ".gtp": "Top",
+//     ".gbl": "Bottom",
+//     ".gbo": "Bottom",
+//     ".gbs": "Bottom",
+//     ".gbp": "Bottom",
+//   };
+//   const fileLayer = layerMap[fileExt] || "Other";
+
+//   const parser = parseGerber();
+//   const results = [];
+
+//   parser.on("data", (obj) => {
+//     let x = obj.x ?? obj.coord?.x ?? null;
+//     let y = obj.y ?? obj.coord?.y ?? null;
+
+//     // Chỉ lưu nếu có cả x và y
+//     if (x !== null && y !== null) {
+//       // Convert inch sang mm nếu Gerber là MOIN
+//       x = inchToMm(x);
+//       y = inchToMm(y);
+
+//       results.push({
+//         type: obj.type || null,
+//         x,
+//         y,
+//         layer: obj.layer || fileLayer,
+//         raw: JSON.stringify(obj),
+//         project_id: projectId,
+//       });
+//     }
+//   });
+
+//   parser.on("end", () => {
+//     db.serialize(() => {
+//       const stmt = db.prepare(`
+//         INSERT INTO GerberData (type, x, y, layer, raw, project_id)
+//         VALUES (?, ?, ?, ?, ?, ?)
+//       `);
+
+//       results.forEach((row) => {
+//         stmt.run(row.type, row.x, row.y, row.layer, row.raw, row.project_id);
+//       });
+
+//       stmt.finalize();
+//     });
+//     io.emit("CombineBomUpdate");
+//     fs.unlinkSync(filePath);
+//     res.json({
+//       message: "Upload & parse Gerber thành công",
+//       count: results.length,
+//     });
+//   });
+
+//   fs.createReadStream(filePath).pipe(parser);
+// });
 
 
 // Serve static files from frontend/dist
