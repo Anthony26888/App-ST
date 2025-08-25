@@ -480,6 +480,21 @@ db.serialize(() => {
     )
   `);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS SettingSVG (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      unit TEXT,
+      swapXY TEXT,
+      cx REAL,
+      cy REAL,
+      rotation INTERGER,
+      manualOffsetX REAL,
+      manualOffsetY REAL,
+      project_id INTERGER,
+      FOREIGN KEY (project_id) REFERENCES FilterBom(id) ON DELETE CASCADE
+    )
+  `);
+
 
   db.run(`
     CREATE TABLE IF NOT EXISTS heartbeats (

@@ -25,6 +25,8 @@ const http = require("http");
 const parse = require("csv-parse").parse; // đảm bảo lấy đúng hàm parse
 const parseGerber = require("gerber-parser");
 const gerberToSvg = require("gerber-to-svg");
+const SvgPath = require("svgpath");
+
 // const {queryWithLangChain } = require("./Ollama-AI/queryEngine.js");
 // const queryMap = require("./Ollama-AI/queryMap")
 const fetch = require("node-fetch");
@@ -1890,22 +1892,9 @@ io.on("connection", (socket) => {
       }
     }),
 
-    socket.on("getFileGerber", async (id) => {
-      try {
-        const query = `SELECT *
-                      FROM GerberData
-                      WHERE project_id = ?`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("FilterBomError", err);
-          socket.emit("FilterBomData", rows);
-        });
-      } catch (error) {
-        socket.emit("FiterBomError", error);
-      }
-    }),
     socket.on("getGerberFile", async (id) => {
       try {
-        const query = `SELECT svg
+        const query = `SELECT *
                       FROM GerberData
                       WHERE project_id = ?`;
         db.all(query, [id], (err, rows) => {
@@ -1918,15 +1907,30 @@ io.on("connection", (socket) => {
     }),
     socket.on("getPnPFile", async (id) => {
       try {
-        const query = `SELECT designator, x, y
+        const query = `SELECT designator, x, y, rotation
                       FROM PickPlace
                       WHERE project_id = ?`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("PnPFileError", err);
-          socket.emit("PnPFilePData", rows);
+          socket.emit("PnPFileData", rows);
         });
       } catch (error) {
         socket.emit("PnPFileError", error);
+      }
+    }),
+
+    socket.on("getSettingSVG", async (id) => {
+      try {
+        const query = `SELECT *
+                      FROM SettingSVG
+                      WHERE project_id = ?`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("SettingSVGError", err);
+          socket.emit("SettingSVGData", rows);
+
+        });
+      } catch (error) {
+        socket.emit("SettingSVGError", error);
       }
     }),
     // socket.on("ask", async (message) => {
@@ -5168,6 +5172,49 @@ app.post("/api/FilterBom/Add-item", (req, res) => {
       res.json({ message: "Summary received" });
     }
   );
+});
+
+// Put value in table Summary
+app.put("/api/FilterBom/Edit-item/:id", (req, res) => {
+  const { id } = req.params;
+  const { project_name, created_at, note } = req.body;
+  db.run(
+    `UPDATE FilterBom 
+    SET 
+      project_name = ?, 
+      created_at = ?, 
+      note = ?
+    WHERE id = ?`,
+    [project_name, created_at, note, id],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("UpdateFilterBom");
+      res.json({ message: "Summary received" });
+    }
+  );
+});
+
+// Router delete item in Summary table
+app.delete("/api/FilterBom/Delete-item/:id", async (req, res) => {
+  const { id } = req.params;
+  // Insert data into SQLite database
+  const query = `
+    DELETE FROM FilterBom WHERE id = ?
+  `;
+  db.run(query, [id], function (err) {
+    if (err) {
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
+    }
+    io.emit("UpdateFilterBom");
+    res.json({ message: "Đã xoá dữ liệu Bom thành công" });
+  });
 });
 
 app.post(

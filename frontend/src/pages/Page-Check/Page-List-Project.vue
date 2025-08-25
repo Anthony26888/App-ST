@@ -1,7 +1,6 @@
 <template lang="">
   <v-card variant="text" class="overflow-y-auto" height="100vh">
     <v-card-title class="d-flex">
-      <ButtonBack to="/Kiem-tra-so-lieu-pnp" />
       <p class="text-h4 font-weight-light ms-3">Chỉnh sửa số liệu</p>
     </v-card-title>
     <v-card-title class="d-flex align-center pe-2">
@@ -72,9 +71,28 @@
       </template>
     </v-card>
   </v-dialog>
+  <v-dialog v-model="DialogEdit" width="500" scrollable>
+    <v-card class="overflow-y-auto">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
+        Chỉnh sửa dự án
+      </v-card-title>
+      <v-card-text>
+        <InputField label="Tên dự án" v-model="FileName_Edit" />
+        <InputField label="Thời gian tạo" type="date" v-model="Created_at_Edit" />
+        <InputTextarea label="Ghi chú" v-model="Note_Edit" />
+      </v-card-text>
+      <template v-slot:actions>
+        <ButtonDelete @delete="DialogRemove = true" />
+        <v-spacer></v-spacer>
+        <ButtonCancel @cancel="DialogEdit = false" />
+        <ButtonSave @save="SaveEdit()" />
+      </template>
+    </v-card>
+  </v-dialog>
   <v-dialog v-model="DialogRemove" width="400">
     <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
-      <v-card-text> Bạn có chắc chắn muốn xoá Bom này ? </v-card-text>
+      <v-card-text> Bạn có chắc chắn muốn xoá dự án này ? </v-card-text>
       <template v-slot:actions>
         <ButtonCancel @cancel="DialogRemove = false" />
         <ButtonDelete @delete="RemoveItem()" />
@@ -89,6 +107,7 @@
 import axios from "axios";
 import { ref, watch } from "vue";
 import { useRouter } from "vue-router";
+
 import { useFilterBom } from "@/composables/CheckBOM/useFilterBom.js";
 import ButtonBack from "@/components/Button-Back.vue";
 import InputSearch from "@/components/Input-Search.vue";
@@ -116,6 +135,7 @@ const router = useRouter();
 
 // Dialog status
 const DialogAdd = ref(false);
+const DialogEdit = ref(false);
 const DialogRemove = ref(false);
 const DialogFailed = ref(false);
 const DialogLoading = ref(false);
@@ -128,6 +148,10 @@ const MessageErrorDialog = ref("");
 const FileName = ref("");
 const Created_at = ref("");
 const Note = ref("");
+
+const FileName_Edit = ref("");
+const Created_at_Edit = ref("");
+const Note_Edit = ref("");
 
 // Table status
 const Headers = [
@@ -143,6 +167,15 @@ const page =  ref(1);
 // Function
 function PushItem(value) {
   router.push(`/Kiem-tra-so-lieu-pnp/${value}`);
+}
+
+const GetItem = (value) => {
+  DialogEdit.value = true
+  GetID.value = value
+  const found = filterBom.value.find((v) => v.id === value);
+  FileName_Edit.value = found.project_name;
+  Created_at_Edit.value = found.created_at;
+  Note_Edit.value = found.note;
 }
 
 const SaveAdd = async () => {
@@ -166,12 +199,51 @@ const SaveAdd = async () => {
   }
 };
 
+const SaveEdit = async () => {
+  DialogLoading.value = true;
+  const formData = reactive({
+    project_name: FileName_Edit.value,
+    created_at: Created_at_Edit.value,
+    note: Note_Edit.value
+  });
+  try {
+    const response = await axios.put(`${Url}/FilterBom/Edit-item/${GetID.value}`, formData);
+    console.log(response.data);
+    Reset();
+    MessageDialog.value = "Thêm dữ liệu dự án thành công"
+  } catch (error) {
+    console.error("Error adding maintenance record:", error);
+    MessageErrorDialog.value = "Lỗi thêm dữ liệu dự án"
+    Error();
+  } finally {
+    DialogLoading.value = false;
+  }
+};
+
+const RemoveItem = async () => {
+  DialogLoading.value = true;
+  try {
+    const response = await axios.delete(`${Url}/FilterBom/Delete-item/${GetID.value}`);
+    console.log(response.data.message);
+    MessageDialog.value = "Xoá dữ liệu thành công";
+    Reset();
+  } catch (error) {
+    console.log(error);
+    MessageErrorDialog.value = "Xoá dữ liệu thất bại";
+    Error();
+  }
+};
+
 function Reset() {
   DialogAdd.value = false;
   DialogSuccess.value = true;
   DialogRemove.value = false;
   DialogLoading.value = false;
   DialogRemove.value = false;
+  DialogEdit.value = false;
+  FileName.value = "";
+  Created_at.value = "";
+  Note.value = "";
 }
 function Error() {
   DialogFailed.value = true;

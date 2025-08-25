@@ -1,17 +1,11 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { io } from "socket.io-client";
-import { getSocketUrl } from "@/utils/getSocketUrl";
 
 export function useGerberFile(id) {
   const detailGerber = ref([]);
   const detailGerberError = ref([]);
   const SOCKET_URL = import.meta.env.VITE_SOCKET_URL; // Lấy URL từ .env
   const socket = io(SOCKET_URL) // chỉnh lại nếu deploy
-  // const socket = io(getSocketUrl(), {
-  //   transports: ["websocket"],      // ✅ ưu tiên websocket
-  //   withCredentials: true,          // ✅ gửi cookie nếu có auth
-  //   path: "/socket.io",             // ✅ khớp với backend nếu thay đổi path
-  // });
   onMounted(() => {
     socket.emit("getGerberFile", id);
     socket.on("GerberFileData", (data) => {
@@ -19,7 +13,7 @@ export function useGerberFile(id) {
       detailGerber.value = data;
     });
     socket.on("GerberFileError", (message) => {
-      GerberFileError.value = message;
+      detailGerberError.value = message;
     });
     socket.on("GerberFileUpdate", () => {
       socket.emit("getGerberFile", id);
