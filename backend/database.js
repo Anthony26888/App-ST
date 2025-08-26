@@ -459,12 +459,11 @@ db.serialize(() => {
     CREATE TABLE IF NOT EXISTS Pickplace (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       designator TEXT,
-      comment TEXT,
       layer TEXT,
       x REAL,
       y REAL,
       rotation REAL,
-      description TEXT,
+      type TEXT,
       project_id INTERGER,
       FOREIGN KEY (project_id) REFERENCES FilterBom(id) ON DELETE CASCADE
     )
@@ -492,6 +491,19 @@ db.serialize(() => {
       manualOffsetY REAL,
       project_id INTERGER,
       FOREIGN KEY (project_id) REFERENCES FilterBom(id) ON DELETE CASCADE
+    )
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS Components (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      category TEXT,      
+      name TEXT,         
+      package TEXT,     
+      width REAL,         
+      length REAL,        
+      pitch REAL,        
+      pins INTEGER,      
+      notes TEXT
     )
   `);
 

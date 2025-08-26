@@ -1690,19 +1690,14 @@ io.on("connection", (socket) => {
                           p.*,
                           b.mpn,
                           b.description AS description_bom,
-                          CASE
-                              WHEN b.description LIKE '%DIP%' 
-                                OR b.description LIKE '%Pin Header%'
-                                OR b.description LIKE '%Connector%'
-                                OR p.comment LIKE '%THT%'
-                                OR p.comment LIKE '%Hole%'
-                              THEN 'Hand Solder'
-                              ELSE 'SMT'
-                          END AS mount_type
+                          c.width,
+                          c.length
                       FROM Pickplace p
                       LEFT JOIN Bom b
-                          ON p.designator = b.designator
+                        ON p.designator = b.designator
                         AND p.project_id = b.project_id
+                      LEFT JOIN Components c
+                        ON b.description = c.package
                       WHERE p.project_id = ?
                         `;
         db.all(query, [id], (err, rows) => {
@@ -1711,184 +1706,6 @@ io.on("connection", (socket) => {
         });
       } catch (error) {
         socket.emit("CombineBomError", error);
-      }
-    }),
-    socket.on("getCombineGerber", async (id) => {
-      try {
-        const query = `WITH pickplace_bounds AS (
-                            SELECT 
-                                MIN(x) AS min_x, MAX(x) AS max_x, MAX(x) - MIN(x) AS width,
-                                MIN(y) AS min_y, MAX(y) AS max_y, MAX(y) - MIN(y) AS height,
-                                COUNT(*) AS pick_count
-                            FROM Pickplace
-                        ),
-                        gerber_bounds AS (
-                            SELECT 
-                                MIN(x * 0.0254) AS min_x, MAX(x * 0.0254) AS max_x, (MAX(x) - MIN(x)) * 0.0254 AS width,
-                                MIN(y * 0.0254) AS min_y, MAX(y * 0.0254) AS max_y, (MAX(y) - MIN(y)) * 0.0254 AS height,
-                                COUNT(*) AS gerber_count
-                            FROM GerberData 
-                            WHERE layer = 'Top'
-                        ),
-                        alignment_params AS (
-                            SELECT 
-                                p.width / NULLIF(g.width, 0) AS scale_x,
-                                p.height / NULLIF(g.height, 0) AS scale_y,
-                                (p.min_x + p.max_x) / 2.0 AS pick_center_x,
-                                (p.min_y + p.max_y) / 2.0 AS pick_center_y,
-                                (g.min_x + g.max_x) / 2.0 AS gerber_center_x,
-                                (g.min_y + g.max_y) / 2.0 AS gerber_center_y,
-                                p.min_x AS pick_min_x, p.max_x AS pick_max_x,
-                                p.min_y AS pick_min_y, p.max_y AS pick_max_y,
-                                g.min_x AS gerber_min_x, g.max_x AS gerber_max_x,
-                                g.min_y AS gerber_min_y, g.max_y AS gerber_max_y,
-                                p.width AS pick_width, p.height AS pick_height,
-                                g.width AS gerber_width, g.height AS gerber_height
-                            FROM pickplace_bounds p, gerber_bounds g
-                        ),
-                        aligned_gerber AS (
-                            SELECT 
-                                p.designator,
-                                p.comment,
-                                p.layer,
-                                p.x AS pick_x,
-                                p.y AS pick_y,
-                                p.rotation,
-                                p.description,
-                                g.id AS gerber_id,
-                                g.type AS gerber_type,
-                                g.layer AS gerber_layer,
-                                g.x * 0.0254 AS gerber_x_mm,
-                                g.y * 0.0254 AS gerber_y_mm,
-                                
-                                ((g.x * 0.0254 - a.gerber_center_x) * a.scale_x + a.pick_center_x) AS gerber_x_scaled,
-                                ((g.y * 0.0254 - a.gerber_center_y) * a.scale_y + a.pick_center_y) AS gerber_y_scaled,
-                                
-                                (a.pick_min_x + (g.x * 0.0254 - a.gerber_min_x) * a.pick_width / NULLIF(a.gerber_width, 0)) AS gerber_x_flip,
-                                (a.pick_max_y - (g.y * 0.0254 - a.gerber_min_y) * a.pick_height / NULLIF(a.gerber_height, 0)) AS gerber_y_flip,
-                                
-                                (a.pick_min_x + (g.x * 0.0254 - a.gerber_min_x) * a.pick_width / NULLIF(a.gerber_width, 0)) AS gerber_x_direct,
-                                (a.pick_min_y + (g.y * 0.0254 - a.gerber_min_y) * a.pick_height / NULLIF(a.gerber_height, 0)) AS gerber_y_direct,
-                                
-                                (a.pick_center_x + (g.x * 0.0254 - a.gerber_center_x) * (a.scale_x + 1.0) / 2.0) AS gerber_x_weighted,
-                                (a.pick_center_y + (g.y * 0.0254 - a.gerber_center_y) * (a.scale_y + 1.0) / 2.0) AS gerber_y_weighted,
-                                
-                                p.project_id
-                            FROM Pickplace p
-                            CROSS JOIN GerberData g
-                            CROSS JOIN alignment_params a
-                            WHERE g.layer = 'Top' AND p.project_id = g.project_id
-                        ),
-                        distance_calc AS (
-                            SELECT 
-                                *,
-                                SQRT(POWER(pick_x - gerber_x_scaled, 2) + POWER(pick_y - gerber_y_scaled, 2)) AS dist_scaled,
-                                SQRT(POWER(pick_x - gerber_x_flip, 2) + POWER(pick_y - gerber_y_flip, 2)) AS dist_flip,
-                                SQRT(POWER(pick_x - gerber_x_direct, 2) + POWER(pick_y - gerber_y_direct, 2)) AS dist_direct,
-                                SQRT(POWER(pick_x - gerber_x_weighted, 2) + POWER(pick_y - gerber_y_weighted, 2)) AS dist_weighted
-                            FROM aligned_gerber
-                        ),
-                        best_matches AS (
-                            SELECT 
-                                *,
-                                MIN(dist_scaled, dist_flip, dist_direct, dist_weighted) AS best_distance,
-                                CASE
-                                    WHEN dist_scaled <= dist_flip AND dist_scaled <= dist_direct AND dist_scaled <= dist_weighted THEN 'scaled'
-                                    WHEN dist_flip <= dist_direct AND dist_flip <= dist_weighted THEN 'flip'
-                                    WHEN dist_direct <= dist_weighted THEN 'direct'
-                                    ELSE 'weighted'
-                                END AS best_method,
-                                ROW_NUMBER() OVER (
-                                    PARTITION BY designator 
-                                    ORDER BY MIN(dist_scaled, dist_flip, dist_direct, dist_weighted)
-                                ) AS rank_distance
-                            FROM distance_calc
-                        ),
-                        -- Calculate median and quartiles without PERCENTILE_CONT
-                        ranked_distances AS (
-                            SELECT 
-                                best_distance,
-                                ROW_NUMBER() OVER (ORDER BY best_distance) AS rn,
-                                COUNT(*) OVER () AS total_count
-                            FROM best_matches 
-                            WHERE rank_distance = 1
-                        ),
-                        outlier_analysis AS (
-                            SELECT
-                                -- Median calculation for odd and even counts
-                                (SELECT AVG(best_distance) FROM ranked_distances WHERE rn IN ((total_count + 1) / 2, (total_count + 2) / 2)) AS median_distance,
-                                
-                                -- Q1 (25th percentile)
-                                (SELECT AVG(best_distance) FROM ranked_distances 
-                                WHERE rn IN (CAST((total_count+1) * 0.25 AS INTEGER), CAST((total_count+1) * 0.25 AS INTEGER) + 1)) AS q1,
-                                
-                                -- Q3 (75th percentile)
-                                (SELECT AVG(best_distance) FROM ranked_distances 
-                                WHERE rn IN (CAST((total_count+1) * 0.75 AS INTEGER), CAST((total_count+1) * 0.75 AS INTEGER) + 1)) AS q3
-                            FROM ranked_distances
-                            LIMIT 1
-                        )
-
-                        SELECT 
-                            b.designator,
-                            b.comment,
-                            b.layer,
-                            ROUND(b.pick_x, 3) AS pick_x_mm,
-                            ROUND(b.pick_y, 3) AS pick_y_mm,
-                            b.rotation,
-                            b.description,
-                            b.gerber_id,
-                            b.gerber_type,
-                            b.gerber_layer,
-                            ROUND(b.gerber_x_mm, 3) AS original_gerber_x_mm,
-                            ROUND(b.gerber_y_mm, 3) AS original_gerber_y_mm,
-                            ROUND(CASE b.best_method
-                                WHEN 'scaled' THEN b.gerber_x_scaled
-                                WHEN 'flip' THEN b.gerber_x_flip
-                                WHEN 'direct' THEN b.gerber_x_direct
-                                ELSE b.gerber_x_weighted
-                            END, 3) AS aligned_gerber_x_mm,
-                            ROUND(CASE b.best_method
-                                WHEN 'scaled' THEN b.gerber_y_scaled
-                                WHEN 'flip' THEN b.gerber_y_flip
-                                WHEN 'direct' THEN b.gerber_y_direct
-                                ELSE b.gerber_y_weighted
-                            END, 3) AS aligned_gerber_y_mm,
-                            ROUND(b.best_distance, 3) AS distance_mm,
-                            b.best_method,
-                            
-                            ROUND(b.dist_scaled, 3) AS dist_scaled,
-                            ROUND(b.dist_flip, 3) AS dist_flip,
-                            ROUND(b.dist_direct, 3) AS dist_direct,
-                            ROUND(b.dist_weighted, 3) AS dist_weighted,
-                            
-                            CASE 
-                                WHEN b.best_distance <= 0.3 THEN 'PERFECT (<0.3mm)'
-                                WHEN b.best_distance <= 0.5 THEN 'EXCELLENT (0.3-0.5mm)'
-                                WHEN b.best_distance <= 1.0 THEN 'GOOD (0.5-1mm)'
-                                WHEN b.best_distance <= 2.0 THEN 'OK (1-2mm)'
-                                WHEN b.best_distance <= 5.0 THEN 'POOR (2-5mm)'
-                                ELSE 'BAD (>5mm)'
-                            END AS match_quality,
-                            
-                            CASE 
-                                WHEN b.best_distance > (o.q3 + 1.5 * (o.q3 - o.q1)) THEN 'OUTLIER'
-                                WHEN b.best_distance > (o.median_distance + 2 * (o.q3 - o.q1)) THEN 'SUSPICIOUS'
-                                ELSE 'NORMAL'
-                            END AS outlier_status,
-                            
-                            ROUND(o.median_distance, 3) AS dataset_median_distance
-                        FROM best_matches b
-                        CROSS JOIN outlier_analysis o
-                        WHERE b.rank_distance = 1 AND b.project_id = ?
-                        ORDER BY b.best_distance;
-                        `;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("CombineGerberError", err);
-          socket.emit("CombineGerberData", rows);
-        });
-      } catch (error) {
-        socket.emit("CombineGerberError", error);
       }
     }),
 
@@ -1907,9 +1724,18 @@ io.on("connection", (socket) => {
     }),
     socket.on("getPnPFile", async (id) => {
       try {
-        const query = `SELECT designator, x, y, rotation
-                      FROM PickPlace
-                      WHERE project_id = ?`;
+        const query = `SELECT 
+                          p.*,
+                          b.description AS description_bom,
+                          c.width,
+						              c.length
+                      FROM Pickplace p
+                      LEFT JOIN Bom b
+                        ON p.designator = b.designator
+                        AND p.project_id = b.project_id
+                      LEFT JOIN Components c
+                        ON b.description = c.package
+                     WHERE p.project_id = ?`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("PnPFileError", err);
           socket.emit("PnPFileData", rows);
@@ -5217,6 +5043,7 @@ app.delete("/api/FilterBom/Delete-item/:id", async (req, res) => {
   });
 });
 
+// Router post item in Bom table
 app.post(
   "/api/upload-bom/:project_id",
   upload.single("FileBom"),
@@ -5271,6 +5098,7 @@ app.post(
   }
 );
 
+// Router post item in Pick & Place table
 app.post(
   "/api/upload-pickplace/:id",
   upload.single("FilePnP"),
@@ -5305,53 +5133,45 @@ app.post(
 
       const ppData = await parseCSV(ppFile.path);
 
+      // Hàm đổi PosX, PosY từ mils -> mm
+      function parsePos(str) {
+        const num = parseFloat((str || "0").toString().replace(/,/g, "."));
+        if (isNaN(num)) return 0;
+        return +(num * 0.0254).toFixed(2); // mils -> mm
+      }
+
       // Chuẩn hóa header & lọc trùng Ref
       const uniqueRows = [];
       const seenRefs = new Set();
 
       for (const row of ppData) {
-        const ref = (row.Ref || row.Designator)?.trim();
-        if (!ref || seenRefs.has(ref)) continue;
-        seenRefs.add(ref);
-
-        // Map các cột
-        const valOrComment = row.Val || row.Comment || "";
-        const packageOrFootprint = row.Package || row.Footprint || "";
-
-        // Chuyển PosX, PosY từ định dạng 10.131.500 -> 10131.5
-        // Hàm đổi PosX, PosY từ µm -> mm
-        function parsePos(str) {
-          const num = parseFloat((str || "0").toString().replace(/,/g, "."));
-          return isNaN(num) ? 0 : num; // µm -> mm
-        }
+        const designator = (row.Ref || row.Designator)?.trim();
+        if (!designator || seenRefs.has(designator)) continue;
+        seenRefs.add(designator);
 
         uniqueRows.push({
-          ref,
-          val: valOrComment,
-          package: packageOrFootprint,
-          posX: parsePos(row.PosX),
-          posY: parsePos(row.PosY),
-          rot: parseFloat(row.Rotation || "0"),
-          side: row.Side || row.Layer || "",
+          designator,
+          posX: parsePos(row.PosX),   // mils -> mm
+          posY: parsePos(row.PosY),   // mils -> mm
+          rotation: parseFloat(row.Rotation || "0"),
+          layer: row.Side || row.Layer || "",
           project_id: id,
         });
       }
 
       // Lưu vào DB
       const stmt = db.prepare(`
-      INSERT INTO Pickplace (designator, comment, layer, x, y, rotation, description, project_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `);
+        INSERT INTO Pickplace (designator, layer, x, y, rotation, project_id, type)
+        VALUES (?, ?, ?, ?, ?, ?, 'SMT')
+      `);
 
       for (const r of uniqueRows) {
         stmt.run(
-          r.ref,
-          r.val,
-          r.side,
+          r.designator,
+          r.layer,
           r.posX,
           r.posY,
-          r.rot,
-          r.package,
+          r.rotation,
           r.project_id
         );
       }
@@ -5361,7 +5181,7 @@ app.post(
       fs.unlinkSync(ppFile.path);
       io.emit("CombineBomUpdate");
       res.json({
-        message: "Pick&Place đã upload & lưu thành công",
+        message: "Pick&Place đã upload & lưu thành công (đã quy đổi mils → mm)",
         inserted: uniqueRows.length,
       });
     } catch (error) {
@@ -5370,6 +5190,7 @@ app.post(
     }
   }
 );
+
 
 // Detect layer by file extension
 function detectLayer(filename) {
@@ -5406,106 +5227,32 @@ app.post("/api/upload-gerber/:id", upload.single("FileGerber"), (req, res) => {
   });
 });
 
-
-// // Hàm convert inch sang mm
-// const inchToMm = (val) => val * 25.4;
-
-// app.post("/api/upload-gerber/:id", upload.single("FileGerber"), (req, res) => {
-//   const projectId = req.params.id;
-//   const filePath = req.file.path;
-//   const fileName = req.file.originalname;
-
-//   const allowedExtensions = [
-//     ".gbr",
-//     ".ger",
-//     ".gbl",
-//     ".gbs",
-//     ".gtl",
-//     ".gto",
-//     ".gts",
-//     ".gbo",
-//     ".gbp",
-//     ".gpt",
-//     ".gm1",
-//     ".gm2",
-//     ".gm3",
-//     ".gm13",
-//     ".gm14",
-//     ".gm15",
-//     ".gd1",
-//     ".gg1",
-//     ".gko",
-//     ".gml",
-//     ".gtp",
-//     ".gbp",
-//   ];
-
-//   const fileExt = path.extname(fileName).toLowerCase();
-//   if (!allowedExtensions.includes(fileExt)) {
-//     fs.unlinkSync(filePath);
-//     return res.status(400).json({ error: "Chỉ hỗ trợ file Gerber hợp lệ" });
-//   }
-
-//   // Map extension sang layer
-//   const layerMap = {
-//     ".gtl": "Top",
-//     ".gto": "Top",
-//     ".gts": "Top",
-//     ".gtp": "Top",
-//     ".gbl": "Bottom",
-//     ".gbo": "Bottom",
-//     ".gbs": "Bottom",
-//     ".gbp": "Bottom",
-//   };
-//   const fileLayer = layerMap[fileExt] || "Other";
-
-//   const parser = parseGerber();
-//   const results = [];
-
-//   parser.on("data", (obj) => {
-//     let x = obj.x ?? obj.coord?.x ?? null;
-//     let y = obj.y ?? obj.coord?.y ?? null;
-
-//     // Chỉ lưu nếu có cả x và y
-//     if (x !== null && y !== null) {
-//       // Convert inch sang mm nếu Gerber là MOIN
-//       x = inchToMm(x);
-//       y = inchToMm(y);
-
-//       results.push({
-//         type: obj.type || null,
-//         x,
-//         y,
-//         layer: obj.layer || fileLayer,
-//         raw: JSON.stringify(obj),
-//         project_id: projectId,
-//       });
-//     }
-//   });
-
-//   parser.on("end", () => {
-//     db.serialize(() => {
-//       const stmt = db.prepare(`
-//         INSERT INTO GerberData (type, x, y, layer, raw, project_id)
-//         VALUES (?, ?, ?, ?, ?, ?)
-//       `);
-
-//       results.forEach((row) => {
-//         stmt.run(row.type, row.x, row.y, row.layer, row.raw, row.project_id);
-//       });
-
-//       stmt.finalize();
-//     });
-//     io.emit("CombineBomUpdate");
-//     fs.unlinkSync(filePath);
-//     res.json({
-//       message: "Upload & parse Gerber thành công",
-//       count: results.length,
-//     });
-//   });
-
-//   fs.createReadStream(filePath).pipe(parser);
-// });
+// Put value in table Pick Place table
+app.put("/api/Pickplace/Edit-item/:id", (req, res) => {
+  const { id } = req.params;
+  const { x, y, rotation, type, layer } = req.body;
+  db.run(
+    `UPDATE Pickplace 
+    SET 
+      x = ?, 
+      y = ?, 
+      rotation = ?,
+      type = ?,
+      layer = ?
+    WHERE id = ?`,
+    [x, y, rotation, type, layer, id],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("CombineBomUpdate");
+      res.json({ message: "Summary received" });
+    }
+  );
+});
 
 
 // Serve static files from frontend/dist
