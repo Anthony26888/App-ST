@@ -1686,7 +1686,7 @@ io.on("connection", (socket) => {
     }),
     socket.on("getCombineBom", async (id) => {
       try {
-        const query = `SELECT 
+        const query = `SELECT DISTINCT 
                           p.*,
                           b.mpn,
                           b.description AS description_bom,
@@ -1711,7 +1711,7 @@ io.on("connection", (socket) => {
 
     socket.on("getGerberFile", async (id) => {
       try {
-        const query = `SELECT *
+        const query = `SELECT DISTINCT  *
                       FROM GerberData
                       WHERE project_id = ?`;
         db.all(query, [id], (err, rows) => {
@@ -1724,18 +1724,19 @@ io.on("connection", (socket) => {
     }),
     socket.on("getPnPFile", async (id) => {
       try {
-        const query = `SELECT 
+        const query = `SELECT DISTINCT 
                           p.*,
                           b.description AS description_bom,
                           c.width,
-						              c.length
+                          c.length,
+                          p.layer
                       FROM Pickplace p
                       LEFT JOIN Bom b
-                        ON p.designator = b.designator
-                        AND p.project_id = b.project_id
+                          ON p.designator = b.designator
+                          AND p.project_id = b.project_id
                       LEFT JOIN Components c
-                        ON b.description = c.package
-                     WHERE p.project_id = ?`;
+                          ON b.description = c.package
+                      WHERE p.project_id = ?`; 
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("PnPFileError", err);
           socket.emit("PnPFileData", rows);
@@ -1747,7 +1748,7 @@ io.on("connection", (socket) => {
 
     socket.on("getSettingSVG", async (id) => {
       try {
-        const query = `SELECT *
+        const query = `SELECT DISTINCT  *
                       FROM SettingSVG
                       WHERE project_id = ?`;
         db.all(query, [id], (err, rows) => {
@@ -5098,6 +5099,8 @@ app.post(
   }
 );
 
+const XLSX = require("xlsx");
+
 // Router post item in Pick & Place table
 app.post(
   "/api/upload-pickplace/:id",
@@ -5111,27 +5114,19 @@ app.post(
         return res.status(400).json({ error: "Thiếu file Pick&Place" });
       }
 
-      // Parse CSV
-      async function parseCSV(filePath) {
-        return new Promise((resolve, reject) => {
-          const rows = [];
-          fs.createReadStream(filePath)
-            .pipe(
-              parse({
-                columns: true,
-                skip_empty_lines: true,
-                trim: true,
-                delimiter: ";",
-                relax_column_count: true,
-              })
-            )
-            .on("data", (row) => rows.push(row))
-            .on("end", () => resolve(rows))
-            .on("error", (err) => reject(err));
+      // Parse XLSX
+      function parseXLSX(filePath) {
+        const workbook = xlsx.readFile(filePath);
+        const sheetName = workbook.SheetNames[0]; // lấy sheet đầu tiên
+        const sheet = workbook.Sheets[sheetName];
+        return xlsx.utils.sheet_to_json(sheet, {
+          defval: "",    // nếu ô trống thì để rỗng
+          raw: false,    // ép kiểu string cho nhất quán
+          blankrows: false
         });
       }
 
-      const ppData = await parseCSV(ppFile.path);
+      const ppData = parseXLSX(ppFile.path);
 
       // Hàm đổi PosX, PosY từ mils -> mm
       function parsePos(str) {
@@ -5151,8 +5146,8 @@ app.post(
 
         uniqueRows.push({
           designator,
-          posX: parsePos(row.PosX),   // mils -> mm
-          posY: parsePos(row.PosY),   // mils -> mm
+          posX: row.PosX,
+          posY: row.PosY,
           rotation: parseFloat(row.Rotation || "0"),
           layer: row.Side || row.Layer || "",
           project_id: id,
@@ -5180,16 +5175,18 @@ app.post(
       // Xóa file tạm
       fs.unlinkSync(ppFile.path);
       io.emit("CombineBomUpdate");
+
       res.json({
-        message: "Pick&Place đã upload & lưu thành công (đã quy đổi mils → mm)",
+        message: "Pick&Place đã upload & lưu thành công (Excel, mils → mm)",
         inserted: uniqueRows.length,
       });
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: "Lỗi xử lý file Pick&Place" });
+      res.status(500).json({ error: "Lỗi xử lý file Pick&Place (Excel)" });
     }
   }
 );
+
 
 
 // Detect layer by file extension

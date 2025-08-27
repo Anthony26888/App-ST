@@ -133,6 +133,18 @@
           <v-btn value="pnp" size="small">Chỉ PnP</v-btn>
         </v-btn-toggle>
 
+        <!-- Layer select -->
+        <v-select
+          v-model="selectedLayer"
+          :items="['Top', 'Bottom']"
+          label="Layer"
+          class="me-4"
+          density="comfortable"
+          variant="outlined"
+          hide-details
+          style="max-width: 160px"
+        />
+
         <v-btn
           @click="resetZoom"
           icon="mdi-magnify-close"
@@ -221,7 +233,7 @@
               <!-- Hiển thị chỉ tọa độ PnP nếu chọn mode PnP -->
               <div
                 v-if="
-                  overlayMode === 'pnp' && detailPnP && detailPnP.length > 0
+                  overlayMode === 'pnp' && filteredPnP && filteredPnP.length > 0
                 "
                 class="pnp-only-view"
               >
@@ -236,11 +248,11 @@
 
               <!-- Thông tin tọa độ -->
               <div
-                v-if="detailPnP && detailPnP.length > 0"
+                v-if="filteredPnP && filteredPnP.length > 0"
                 class="coordinates-info mt-4"
               >
                 <div class="d-flex align-center justify-space-between mb-3">
-                  <h4>Tọa độ Pick & Place ({{ detailPnP.length }} điểm)</h4>
+                  <h4>Tọa độ Pick & Place ({{ filteredPnP.length }} điểm)</h4>
                   <v-chip color="primary" variant="tonal">
                     Zoom: {{ Math.round(zoomLevel * 100) }}%
                   </v-chip>
@@ -317,7 +329,7 @@
                   class="mt-2 elevation-1"
                   density="compact"
                   :headers="HeadersPnP"
-                  :items="detailPnP"
+                  :items="filteredPnP"
                   item-key="designator"
                   :items-per-page="itemsPerPagePnP"
                   hide-default-footer
@@ -383,7 +395,7 @@
                     <div class="text-center pt-2">
                       <v-pagination
                         v-model="pagePnP"
-                        :length="Math.ceil(detailPnP.length / itemsPerPagePnP)"
+                        :length="Math.ceil(filteredPnP.length / itemsPerPagePnP)"
                       ></v-pagination>
                     </div>
                   </template>
@@ -391,13 +403,13 @@
               </div>
 
               <!-- Thông báo khi không có dữ liệu -->
-              <div v-if="!svgWithPnP && !detailGerber" class="text-center pa-8">
+              <div v-if="!svgWithPnP && !currentGerberSvg" class="text-center pa-8">
                 <v-icon size="64" color="grey">mdi-image-off</v-icon>
                 <p class="text-h6 text-grey mt-4">Chưa có dữ liệu Gerber</p>
               </div>
 
               <div
-                v-if="!detailPnP || detailPnP.length === 0"
+                v-if="!filteredPnP || filteredPnP.length === 0"
                 class="text-center pa-8"
               >
                 <v-icon size="64" color="grey">mdi-map-marker-off</v-icon>
@@ -770,7 +782,7 @@
           </v-row>
         </div>
 
-        <!-- Nút điều chỉnh nhanh -->
+        <!-- Nút điều chỉnh nhanh
         <div class="d-flex flex-wrap ga-2 mt-2">
           <v-btn
             @click="quickAdjustX(1)"
@@ -847,7 +859,7 @@
           >
             -0.1mm Y
           </v-btn>
-        </div>
+        </div> -->
 
         <!-- Áp dụng điều chỉnh thủ công -->
         <div class="d-flex flex-wrap ga-2 mt-2">
@@ -1067,6 +1079,9 @@ const Package_Length_Edit = ref("");
 const overlayMode = ref("both"); // 'both', 'gerber', 'pnp'
 const svgContainer = ref(null);
 const zoomLevel = ref(1);
+
+// Layer selection
+const selectedLayer = ref('Top');
 
 //preset
 const presetValue = ref("");
@@ -1360,64 +1375,45 @@ const loadData = async () => {
 
 // Combine Gerber + Pick&Place overlay
 const svgWithPnP = computed(() => {
-  if (!detailGerber.value || !detailPnP.value) return "";
+  if (!currentGerberSvg.value || !filteredPnP.value) return "";
 
-  // Lấy SVG từ detailGerber
-  let svg = "";
-  if (Array.isArray(detailGerber.value) && detailGerber.value.length > 0) {
-    // Nếu là mảng, lấy phần tử đầu tiên có SVG
-    const firstGerber = detailGerber.value.find((item) => item.svg);
-    svg = firstGerber ? firstGerber.svg : "";
-  } else if (detailGerber.value && typeof detailGerber.value === "object") {
-    // Nếu là object, lấy trực tiếp
-    svg = detailGerber.value.svg || "";
-  } else if (typeof detailGerber.value === "string") {
-    // Nếu là string, sử dụng trực tiếp
-    svg = detailGerber.value;
-  }
-
+  let svg = currentGerberSvg.value;
   if (!svg || typeof svg !== "string") {
     console.warn("Không tìm thấy SVG hợp lệ trong detailGerber");
     return "";
   }
 
-  // Tạo các marker cho Pick & Place với coordinate transformation
-  const pnpMarkers = detailPnP.value
-    .filter((pnp) => pnp.x !== null && pnp.y !== null && pnp.designator) // Lọc dữ liệu hợp lệ
+  const pnpMarkers = filteredPnP.value
+    .filter((pnp) => pnp.x !== null && pnp.y !== null && pnp.designator)
     .map((pnp) => {
-      // Áp dụng coordinate transformation
       let transformedX =
         pnp.x * coordinateScale.value + coordinateOffsetX.value;
       let transformedY =
         pnp.y * coordinateScale.value + coordinateOffsetY.value;
 
-      // Apply flips and swaps
-      if (flipX.value) transformedX = -transformedX;
-      if (flipY.value) transformedY = -transformedY;
+      const { cxT, cyT } = getTransformedCenter();
+      if (flipX.value) transformedX = 2 * cxT - transformedX;
+      if (flipY.value) transformedY = 2 * cyT - transformedY;
       if (swapXY.value)
         [transformedX, transformedY] = [transformedY, transformedX];
 
-      // Lấy rotation từ dữ liệu PnP, nếu không có thì dùng global rotation
       const componentRotation =
-        pnp.rotation || pnp.rot || coordinateRotation.value;
+        pnp.rotation || pnp.rot|| coordinateRotation.value;
 
-      // Kích thước linh kiện (nếu có) vẽ hình vuông/rectangle tại tâm
       let rectWidth = (pnp.width || 0) * coordinateScale.value;
       let rectLength = (pnp.length || 0) * coordinateScale.value;
       if (swapXY.value) [rectWidth, rectLength] = [rectLength, rectWidth];
 
-      // Tạo markup cho hình vuông/rectangle của linh kiện
       let componentMarkup = "";
       if (rectWidth > 0 && rectLength > 0 && showComponentBoxes.value) {
-        // Hình vuông/rectangle đại diện cho linh kiện
         componentMarkup = `
           <!-- Component body rectangle -->
           <rect 
             class="pnp-component-body" 
-            x="${-(rectWidth / 2)}" 
-            y="${-(rectLength / 2)}" 
-            width="${rectWidth}" 
-            height="${rectLength}" 
+            x="${-(rectLength / 2)}" 
+            y="${-(rectWidth / 2)}" 
+            width="${rectLength}" 
+            height="${rectWidth}" 
             fill="rgba(0, 150, 136, 0.1)" 
             stroke="#009688" 
             stroke-width="1.5" 
@@ -1426,10 +1422,10 @@ const svgWithPnP = computed(() => {
           <!-- Component outline for better visibility -->
           <rect 
             class="pnp-component-outline" 
-            x="${-(rectWidth / 2)}" 
-            y="${-(rectLength / 2)}" 
-            width="${rectWidth}" 
-            height="${rectLength}" 
+            x="${-(rectLength / 2)}" 
+            y="${-(rectWidth / 2)}" 
+            width="${rectLength}" 
+            height="${rectWidth}" 
             fill="none" 
             stroke="#1976d2" 
             stroke-width="0.5" 
@@ -1440,9 +1436,7 @@ const svgWithPnP = computed(() => {
       }
 
       return `
-        <g transform="translate(${transformedX}, ${transformedY}) rotate(${
-        componentRotation - 90
-      })" class="pnp-marker" data-designator="${pnp.designator}">
+        <g transform="translate(${transformedX}, ${transformedY}) rotate(${componentRotation -180})" class="pnp-marker" data-designator="${pnp.designator}">
           ${componentMarkup}
           <!-- Crosshair marker - làm to hơn để dễ nhìn -->
           <line x1="-25" y1="0" x2="25" y2="0" stroke="red" stroke-width="1.5" opacity="0.9"/>
@@ -1472,7 +1466,6 @@ const svgWithPnP = computed(() => {
     })
     .join("");
 
-  // Chèn markers vào trước thẻ đóng </svg>
   return svg.replace("</svg>", `${pnpMarkers}</svg>`);
 });
 
@@ -1481,8 +1474,8 @@ const svgRotation = ref(0);
 
 // Computed properties for better performance
 const componentsWithSize = computed(() => {
-  if (!detailPnP.value) return 0;
-  return detailPnP.value.filter(
+  if (!filteredPnP.value) return 0;
+  return filteredPnP.value.filter(
     (p) => p.width && p.length && p.width > 0 && p.length > 0
   ).length;
 });
@@ -1498,11 +1491,7 @@ const currentSvgContent = computed(() => {
   if (overlayMode.value === "both") {
     return svgWithPnP.value;
   } else if (overlayMode.value === "gerber") {
-    if (Array.isArray(detailGerber.value) && detailGerber.value.length > 0) {
-      return detailGerber.value[0].svg || "";
-    } else {
-      return detailGerber.value?.svg || "";
-    }
+    return currentGerberSvg.value || "";
   }
   return "";
 });
@@ -1538,9 +1527,10 @@ const getTransformedCoordinates = (x, y) => {
   let transformedX = x * coordinateScale.value + coordinateOffsetX.value;
   let transformedY = y * coordinateScale.value + coordinateOffsetY.value;
 
-  // Apply flips and swaps
-  if (flipX.value) transformedX = -transformedX;
-  if (flipY.value) transformedY = -transformedY;
+  // Apply flips around board center and swaps
+  const { cxT, cyT } = getTransformedCenter();
+  if (flipX.value) transformedX = 2 * cxT - transformedX;
+  if (flipY.value) transformedY = 2 * cyT - transformedY;
   if (swapXY.value) [transformedX, transformedY] = [transformedY, transformedX];
 
   return { x: transformedX, y: transformedY };
@@ -1958,6 +1948,63 @@ const debugCoordinates = () => {
     });
   }
 };
+
+// Computed bounds and center of current PnP dataset (raw units)
+const pnpBounds = computed(() => {
+  if (!filteredPnP.value || filteredPnP.value.length === 0) return null;
+  const valid = filteredPnP.value.filter(
+    (p) => typeof p.x === "number" && typeof p.y === "number"
+  );
+  if (valid.length === 0) return null;
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const p of valid) {
+    if (p.x < minX) minX = p.x;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.y > maxY) maxY = p.y;
+  }
+  return {
+    minX,
+    maxX,
+    minY,
+    maxY,
+    cxRaw: (minX + maxX) / 2,
+    cyRaw: (minY + maxY) / 2,
+  };
+});
+
+// Helper to get center in transformed space (after scale and offsets)
+const getTransformedCenter = () => {
+  if (!pnpBounds.value) return { cxT: 0, cyT: 0 };
+  const cxT = pnpBounds.value.cxRaw * coordinateScale.value + coordinateOffsetX.value;
+  const cyT = pnpBounds.value.cyRaw * coordinateScale.value + coordinateOffsetY.value;
+  return { cxT, cyT };
+};
+
+// Current Gerber SVG for selected layer
+const currentGerberSvg = computed(() => {
+  const dg = detailGerber.value;
+  if (!dg) return "";
+  if (Array.isArray(dg) && dg.length > 0) {
+    const byLayer = dg.find((item) => item && item.layer === selectedLayer.value && item.svg);
+    if (byLayer && typeof byLayer.svg === 'string') return byLayer.svg;
+    return dg[0]?.svg || "";
+  } else if (dg && typeof dg === "object") {
+    return dg.svg || "";
+  } else if (typeof dg === "string") {
+    return dg;
+  }
+  return "";
+});
+
+// Filtered PnP by selected layer
+const filteredPnP = computed(() => {
+  const list = detailPnP.value || [];
+  return list.filter((p) => (p.layer || 'Top') === selectedLayer.value);
+});
 </script>
 <script>
 export default {
