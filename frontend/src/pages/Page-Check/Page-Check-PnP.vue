@@ -80,6 +80,12 @@
           <div class="d-flex">
             <ButtonEdit @edit="GetItemEdit(item)" />
             <ButtonSearch @search="getAccessToken(item)" class="ms-2" />
+            <v-btn
+              icon="mdi-update"
+              color="success"
+              variant="text"
+              @click="GetAddSize(item)"
+            ></v-btn>
           </div>
         </template>
         <template v-slot:item.mount_type="{ value }">
@@ -110,317 +116,328 @@
           </v-chip>
         </template>
       </v-data-table>
-      <v-card-title class="d-flex align-center">
-        <span>So sánh Gerber và Pick & Place</span>
-        <v-spacer></v-spacer>
-        <!-- Coordinate scaling controls -->
-        <v-btn
-          @click="
-            DialogCoordinateSettings = true;
-            GetSetting();
-          "
-          icon="mdi-tune"
-          size="small"
-          variant="outlined"
-          class="me-2"
-          title="Cài đặt tọa độ"
-        ></v-btn>
+    </v-card-text>
+    <v-card-title class="d-flex align-center mt-5">
+      <span>So sánh Gerber và Pick & Place</span>
+      <v-spacer></v-spacer>
+      <!-- Coordinate scaling controls -->
+      <v-btn
+        title="Cập nhật"
+        icon="mdi-update"
+        color="success"
+        class="text-caption"
+        variant="tonal"
+      ></v-btn>
+      <v-btn
+        @click="GetSettingSVG()"
+        icon="mdi-tune"
+        size="small"
+        variant="outlined"
+        class="me-2 ms-2"
+        title="Cài đặt tọa độ"
+      ></v-btn>
 
-        <!-- Controls for overlay -->
-        <v-btn-toggle v-model="overlayMode" color="primary" group class="me-4">
-          <v-btn value="both" size="small">Cả hai</v-btn>
-          <v-btn value="gerber" size="small">Chỉ Gerber</v-btn>
-          <v-btn value="pnp" size="small">Chỉ PnP</v-btn>
-        </v-btn-toggle>
+      <!-- Controls for overlay -->
+      <v-btn-toggle v-model="overlayMode" color="primary" group class="me-4">
+        <v-btn value="both" size="small">Cả hai</v-btn>
+        <v-btn value="gerber" size="small">Chỉ Gerber</v-btn>
+        <v-btn value="pnp" size="small">Chỉ PnP</v-btn>
+      </v-btn-toggle>
 
-        <!-- Layer select -->
-        <v-select
-          v-model="selectedLayer"
-          :items="['Top', 'Bottom']"
-          label="Layer"
-          class="me-4"
-          density="comfortable"
-          variant="outlined"
-          hide-details
-          style="max-width: 160px"
-        />
+      <!-- Layer select -->
+      <v-select
+        v-model="selectedLayer"
+        :items="['Top', 'Bottom']"
+        label="Layer"
+        class="me-4"
+        density="comfortable"
+        variant="outlined"
+        hide-details
+        style="max-width: 160px"
+      />
 
-        <v-btn
-          @click="resetZoom"
-          icon="mdi-magnify-close"
-          size="small"
-          variant="outlined"
-          class="me-2"
-          title="Reset zoom"
-        ></v-btn>
+      <v-btn
+        @click="resetZoom"
+        icon="mdi-magnify-close"
+        size="small"
+        variant="outlined"
+        class="me-2"
+        title="Reset zoom"
+      ></v-btn>
 
-        <v-btn
-          @click="toggleFullscreen"
-          icon="mdi-fullscreen"
-          size="small"
-          variant="outlined"
-          title="Fullscreen"
-        ></v-btn>
+      <v-btn
+        @click="toggleFullscreen"
+        icon="mdi-fullscreen"
+        size="small"
+        variant="outlined"
+        title="Fullscreen"
+      ></v-btn>
 
-        <v-btn
-          @click="showGrid = !showGrid"
-          :icon="showGrid ? 'mdi-grid-off' : 'mdi-grid'"
-          size="small"
-          variant="outlined"
-          :color="showGrid ? 'success' : 'default'"
-          title="Toggle Grid"
-          class="ms-2"
-        ></v-btn>
+      <!-- <v-btn
+        @click="showGrid = !showGrid"
+        :icon="showGrid ? 'mdi-grid-off' : 'mdi-grid'"
+        size="small"
+        variant="outlined"
+        :color="showGrid ? 'success' : 'default'"
+        title="Toggle Grid"
+        class="ms-2"
+      ></v-btn>
 
-        <v-btn
-          @click="showComponentBoxes = !showComponentBoxes"
-          :icon="showComponentBoxes ? 'mdi-square-outline' : 'mdi-square'"
-          size="small"
-          variant="outlined"
-          :color="showComponentBoxes ? 'success' : 'default'"
-          title="Toggle Component Boxes"
-          class="ms-2"
-        ></v-btn>
-      </v-card-title>
-      <v-card-text>
-        <v-row>
-          <v-col cols="12">
-            <div class="gerber-overlay-container">
-              <!-- Hiển thị SVG với overlay Pick & Place -->
-              <div
-                v-if="svgWithPnP && overlayMode !== 'pnp'"
-                class="gerber-svg-container"
-                ref="svgContainer"
-                @wheel="handleZoom"
-                @mousedown="handleMouseDown"
-                @mousemove="handleMouseMove"
-                @mouseup="handleMouseUp"
-                @mouseleave="handleMouseUp"
-              >
-                <!-- Coordinate grid overlay -->
-                <div v-if="showGrid" class="coordinate-grid-overlay">
-                  <svg width="100%" height="100%" class="grid-svg">
-                    <defs>
-                      <pattern
-                        id="grid"
-                        width="20"
-                        height="20"
-                        patternUnits="userSpaceOnUse"
-                      >
-                        <path
-                          d="M 20 0 L 0 0 0 20"
-                          fill="none"
-                          stroke="#e0e0e0"
-                          stroke-width="0.5"
-                        />
-                      </pattern>
-                    </defs>
-                    <rect width="100%" height="100%" fill="url(#grid)" />
-                  </svg>
-                </div>
+      <v-btn
+        @click="showComponentBoxes = !showComponentBoxes"
+        :icon="showComponentBoxes ? 'mdi-square-outline' : 'mdi-square'"
+        size="small"
+        variant="outlined"
+        :color="showComponentBoxes ? 'success' : 'default'"
+        title="Toggle Component Boxes"
+        class="ms-2"
+      ></v-btn> -->
+    </v-card-title>
+    <v-card-text class="mt-3">
+      <v-row>
+        <v-col cols="12">
+          <!-- Hiển thị SVG với overlay Pick & Place -->
+          <div
+            v-if="svgWithPnP && overlayMode !== 'pnp'"
+            class="gerber-svg-container"
+            ref="svgContainer"
+            @wheel="handleZoom"
+            @mousedown="handleMouseDown"
+            @mousemove="handleMouseMove"
+            @mouseup="handleMouseUp"
+            @mouseleave="handleMouseUp"
+          >
+            <!-- Coordinate grid overlay -->
+            <div v-if="showGrid" class="coordinate-grid-overlay">
+              <svg width="100%" height="100%" class="grid-svg">
+                <defs>
+                  <pattern
+                    id="grid"
+                    width="20"
+                    height="20"
+                    patternUnits="userSpaceOnUse"
+                  >
+                    <path
+                      d="M 20 0 L 0 0 0 20"
+                      fill="none"
+                      stroke="#e0e0e0"
+                      stroke-width="0.5"
+                    />
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#grid)" />
+              </svg>
+            </div>
 
-                <div
-                  v-html="currentSvgContent"
-                  :style="svgContainerStyle"
-                ></div>
+            <div v-html="currentSvgContent" :style="svgContainerStyle"></div>
 
-                <!-- Zoom indicator -->
-                <div class="zoom-indicator">
-                  {{ Math.round(zoomLevel * 100) }}%
-                </div>
-              </div>
+            <!-- Zoom indicator -->
+            <div class="zoom-indicator">{{ Math.round(zoomLevel * 100) }}%</div>
+          </div>
 
-              <!-- Hiển thị chỉ tọa độ PnP nếu chọn mode PnP -->
-              <div
-                v-if="
-                  overlayMode === 'pnp' && filteredPnP && filteredPnP.length > 0
-                "
-                class="pnp-only-view"
-              >
-                <div class="text-center pa-8">
-                  <v-icon size="64" color="primary">mdi-map-marker</v-icon>
-                  <p class="text-h6 mt-4">Chế độ xem tọa độ Pick & Place</p>
-                  <p class="text-body-2 text-grey">
-                    Sử dụng bảng bên dưới để xem chi tiết
-                  </p>
-                </div>
-              </div>
+          <!-- Hiển thị chỉ tọa độ PnP nếu chọn mode PnP -->
+          <div
+            v-if="
+              overlayMode === 'pnp' && filteredPnP && filteredPnP.length > 0
+            "
+            class="pnp-only-view"
+          >
+            <div class="text-center pa-8">
+              <v-icon size="64" color="primary">mdi-map-marker</v-icon>
+              <p class="text-h6 mt-4">Chế độ xem tọa độ Pick & Place</p>
+              <p class="text-body-2 text-grey">
+                Sử dụng bảng bên dưới để xem chi tiết
+              </p>
+            </div>
+          </div>
 
-              <!-- Thông tin tọa độ -->
-              <div
-                v-if="filteredPnP && filteredPnP.length > 0"
-                class="coordinates-info mt-4"
-              >
-                <div class="d-flex align-center justify-space-between mb-3">
-                  <h4>Tọa độ Pick & Place ({{ filteredPnP.length }} điểm)</h4>
-                  <v-chip color="primary" variant="tonal">
-                    Zoom: {{ Math.round(zoomLevel * 100) }}%
-                  </v-chip>
-                </div>
+          <!-- Thông tin tọa độ -->
+          <div v-if="filteredPnP && filteredPnP.length > 0" class="mt-4">
+            <v-card-title class="d-flex align-center pe-2">
+              Tọa độ Pick & Place
+              <p class="text-subtitle-1 font-weight-thin text-subtitle-1 ms-2">
+                ({{ filteredPnP.length }} điểm)
+              </p>
+              <Button-Download @click="downloadExcelPnP()"/>
+              <v-spacer></v-spacer>
+              <InputSearch v-model="searchPnP" />
+            </v-card-title>
 
-                <!-- Transformation info -->
-                <div class="transformation-info">
-                  <div class="d-flex flex-wrap gap-4">
-                    <span
-                      ><span class="label">Scale:</span>
-                      <span class="value">{{
-                        coordinateScale.toFixed(3)
-                      }}</span></span
-                    >
-                    <span
-                      ><span class="label">Offset X:</span>
-                      <span class="value"
-                        >{{ coordinateOffsetX.toFixed(2) }}mm</span
-                      ></span
-                    >
-                    <span
-                      ><span class="label">Offset Y:</span>
-                      <span class="value"
-                        >{{ coordinateOffsetY.toFixed(2) }}mm</span
-                      ></span
-                    >
-                    <span
-                      ><span class="label">Global Rotation:</span>
-                      <span class="value"
-                        >{{ coordinateRotation.toFixed(1) }}°</span
-                      ></span
-                    >
-                    <span
-                      ><span class="label">SVG Rotation:</span>
-                      <span class="value"
-                        >{{ svgRotation.toFixed(1) }}°</span
-                      ></span
-                    >
-                  </div>
-                  <div class="d-flex flex-wrap gap-4 mt-2">
-                    <span
-                      ><span class="label">Flip X:</span>
-                      <span
-                        class="value"
-                        :class="flipX ? 'text-error' : 'text-success'"
-                        >{{ flipX ? "ON" : "OFF" }}</span
-                      ></span
-                    >
-                    <span
-                      ><span class="label">Flip Y:</span>
-                      <span
-                        class="value"
-                        :class="flipY ? 'text-error' : 'text-success'"
-                        >{{ flipY ? "ON" : "OFF" }}</span
-                      ></span
-                    >
-                    <span
-                      ><span class="label">Swap X↔Y:</span>
-                      <span
-                        class="value"
-                        :class="swapXY ? 'text-warning' : 'text-success'"
-                        >{{ swapXY ? "ON" : "OFF" }}</span
-                      ></span
-                    >
-                  </div>
-                  <div class="mt-2 text-caption text-grey">
-                    <strong>Coordinate Note:</strong> Use Flip X/Y to correct
-                    upside-down or mirrored coordinates. Use Swap X↔Y if X and Y
-                    axes are swapped between PnP and Gerber.
-                  </div>
-                </div>
-
-                <v-data-table
-                  class="mt-2 elevation-1"
-                  density="compact"
-                  :headers="HeadersPnP"
-                  :items="filteredPnP"
-                  item-key="designator"
-                  :items-per-page="itemsPerPagePnP"
-                  hide-default-footer
-                  v-model:page="pagePnP"
-                  :footer-props="{
-                    'items-per-page-options': [10, 20, 50, 100],
-                    'items-per-page-text': 'Số hàng mỗi trang',
-                  }"
-                  :header-props="{
-                    sortByText: 'Sắp xếp theo',
-                    sortDescText: 'Giảm dần',
-                    sortAscText: 'Tăng dần',
-                  }"
-                  :loading="DialogLoading"
-                  loading-text="Đang tải dữ liệu..."
-                  no-data-text="Không có dữ liệu"
-                  no-results-text="Không tìm thấy kết quả"
-                  :hover="true"
-                  :dense="false"
-                  :fixed-header="true"
-                  height="calc(100vh - 400px)"
+            <!-- Transformation info -->
+            <div class="transformation-info">
+              <div class="d-flex flex-wrap gap-4">
+                <span
+                  ><span class="label">Scale:</span>
+                  <span class="value">{{
+                    coordinateScale.toFixed(3)
+                  }}</span></span
                 >
-                  <template #item.designator="{ item }">
-                    <v-chip size="small" color="primary" variant="tonal">
-                      {{ item.designator }}
-                    </v-chip>
-                  </template>
-
-                  <template #item.rotation="{ item }">
-                    <v-chip size="small" color="info" variant="tonal">
-                      {{ (item.rotation || item.rot || 0).toFixed(1) }}°
-                    </v-chip>
-                  </template>
-
-                  <template #item.tx="{ item }">
-                    {{ getTransformedCoordinates(item.x, item.y).x.toFixed(2) }}
-                  </template>
-
-                  <template #item.ty="{ item }">
-                    {{ getTransformedCoordinates(item.x, item.y).y.toFixed(2) }}
-                  </template>
-
-                  <template #item.finalRotation="{ item }">
-                    <v-chip size="small" color="success" variant="tonal">
-                      {{
-                        (
-                          (item.rotation || item.rot || 0) + coordinateRotation
-                        ).toFixed(1)
-                      }}°
-                    </v-chip>
-                  </template>
-
-                  <template #item.layer="{ item }">
-                    <v-chip
-                      size="small"
-                      :color="item.layer === 'Top' ? 'success' : 'error'"
-                      variant="tonal"
-                    >
-                      {{ item.layer || "Top" }}
-                    </v-chip>
-                  </template>
-                  <template v-slot:bottom>
-                    <div class="text-center pt-2">
-                      <v-pagination
-                        v-model="pagePnP"
-                        :length="Math.ceil(filteredPnP.length / itemsPerPagePnP)"
-                      ></v-pagination>
-                    </div>
-                  </template>
-                </v-data-table>
+                <span
+                  ><span class="label">Offset X:</span>
+                  <span class="value"
+                    >{{ coordinateOffsetX.toFixed(2) }}mm</span
+                  ></span
+                >
+                <span
+                  ><span class="label">Offset Y:</span>
+                  <span class="value"
+                    >{{ coordinateOffsetY.toFixed(2) }}mm</span
+                  ></span
+                >
+                <span
+                  ><span class="label">Global Rotation:</span>
+                  <span class="value"
+                    >{{ coordinateRotation.toFixed(1) }}°</span
+                  ></span
+                >
+                <span
+                  ><span class="label">SVG Rotation:</span>
+                  <span class="value">{{ svgRotation.toFixed(1) }}°</span></span
+                >
               </div>
-
-              <!-- Thông báo khi không có dữ liệu -->
-              <div v-if="!svgWithPnP && !currentGerberSvg" class="text-center pa-8">
-                <v-icon size="64" color="grey">mdi-image-off</v-icon>
-                <p class="text-h6 text-grey mt-4">Chưa có dữ liệu Gerber</p>
+              <div class="d-flex flex-wrap gap-4 mt-2">
+                <span
+                  ><span class="label">Flip X:</span>
+                  <span
+                    class="value"
+                    :class="flipX ? 'text-error' : 'text-success'"
+                    >{{ flipX ? "ON" : "OFF" }}</span
+                  ></span
+                >
+                <span
+                  ><span class="label">Flip Y:</span>
+                  <span
+                    class="value"
+                    :class="flipY ? 'text-error' : 'text-success'"
+                    >{{ flipY ? "ON" : "OFF" }}</span
+                  ></span
+                >
+                <span
+                  ><span class="label">Swap X↔Y:</span>
+                  <span
+                    class="value"
+                    :class="swapXY ? 'text-warning' : 'text-success'"
+                    >{{ swapXY ? "ON" : "OFF" }}</span
+                  ></span
+                >
               </div>
-
-              <div
-                v-if="!filteredPnP || filteredPnP.length === 0"
-                class="text-center pa-8"
-              >
-                <v-icon size="64" color="grey">mdi-map-marker-off</v-icon>
-                <p class="text-h6 text-grey mt-4">
-                  Chưa có dữ liệu Pick & Place
-                </p>
+              <div class="d-flex flex-wrap gap-4 mt-2">
+                <span
+                  ><span class="label">Label Angle:</span>
+                  <span class="value"
+                    >{{ designatorLabelAngle.toFixed(1) }}°</span
+                  ></span
+                >
+                <span
+                  ><span class="label">Body Angle:</span>
+                  <span class="value"
+                    >{{ componentBodyAngle.toFixed(1) }}°</span
+                  ></span
+                >
+              </div>
+              <div class="mt-2 text-caption text-grey">
+                <strong>Coordinate Note:</strong> Use Flip X/Y to correct
+                upside-down or mirrored coordinates. Use Swap X↔Y if X and Y
+                axes are swapped between PnP and Gerber.
               </div>
             </div>
-          </v-col>
-        </v-row>
-      </v-card-text>
+
+            <v-data-table
+              class="mt-2 elevation-1"
+              density="compact"
+              :search="searchPnP"
+              :headers="HeadersPnP"
+              :items="filteredPnP"
+              item-key="designator"
+              :items-per-page="itemsPerPagePnP"
+              hide-default-footer
+              v-model:page="pagePnP"
+              :footer-props="{
+                'items-per-page-options': [10, 20, 50, 100],
+                'items-per-page-text': 'Số hàng mỗi trang',
+              }"
+              :header-props="{
+                sortByText: 'Sắp xếp theo',
+                sortDescText: 'Giảm dần',
+                sortAscText: 'Tăng dần',
+              }"
+              :loading="DialogLoading"
+              loading-text="Đang tải dữ liệu..."
+              no-data-text="Không có dữ liệu"
+              no-results-text="Không tìm thấy kết quả"
+              :hover="true"
+              :dense="false"
+              :fixed-header="true"
+              height="calc(100vh - 400px)"
+            >
+              <template #item.designator="{ item }">
+                <v-chip size="small" color="primary" variant="tonal">
+                  {{ item.designator }}
+                </v-chip>
+              </template>
+
+              <template #item.rotation="{ item }">
+                <v-chip size="small" color="info" variant="tonal">
+                  {{ (item.rotation || item.rot || 0).toFixed(1) }}°
+                </v-chip>
+              </template>
+<!-- 
+              <template #item.tx="{ item }">
+                {{ getTransformedCoordinates(item.x, item.y).x.toFixed(2) }}
+              </template>
+
+              <template #item.ty="{ item }">
+                {{ getTransformedCoordinates(item.x, item.y).y.toFixed(2) }}
+              </template>
+
+              <template #item.finalRotation="{ item }">
+                <v-chip size="small" color="success" variant="tonal">
+                  {{
+                    (
+                      (item.rotation || item.rot || 0) + coordinateRotation
+                    ).toFixed(1)
+                  }}°
+                </v-chip>
+              </template> -->
+              <template v-slot:item.stt="{ index }">
+                {{ (pagePnP - 1) * itemsPerPagePnP + index + 1 }}
+              </template>
+
+              <template #item.layer="{ item }">
+                <v-chip
+                  size="small"
+                  :color="item.layer === 'Top' ? 'success' : 'error'"
+                  variant="tonal"
+                >
+                  {{ item.layer || "Top" }}
+                </v-chip>
+              </template>
+              <template v-slot:bottom>
+                <div class="text-center pt-2">
+                  <v-pagination
+                    v-model="pagePnP"
+                    :length="Math.ceil(filteredPnP.length / itemsPerPagePnP)"
+                  ></v-pagination>
+                </div>
+              </template>
+            </v-data-table>
+          </div>
+
+          <!-- Thông báo khi không có dữ liệu -->
+          <div v-if="!svgWithPnP && !currentGerberSvg" class="text-center pa-8">
+            <v-icon size="64" color="grey">mdi-image-off</v-icon>
+            <p class="text-h6 text-grey mt-4">Chưa có dữ liệu Gerber</p>
+          </div>
+
+          <div
+            v-if="!filteredPnP || filteredPnP.length === 0"
+            class="text-center pa-8"
+          >
+            <v-icon size="64" color="grey">mdi-map-marker-off</v-icon>
+            <p class="text-h6 text-grey mt-4">Chưa có dữ liệu Pick & Place</p>
+          </div>
+        </v-col>
+      </v-row>
     </v-card-text>
   </v-card>
 
@@ -444,7 +461,7 @@
       </template>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogAddPnP" width="600" scrollable>
+  <v-dialog v-model="DialogAddPnP" width="700" scrollable>
     <v-card class="overflow-y-auto">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
@@ -452,11 +469,16 @@
       </v-card-title>
       <v-card-text>
         <InputFiles
-          label="Nhập file Pick & Place (.csv)"
+          label="Nhập file Pick & Place (.xlsx)"
           class="mt-2"
           v-model="FilePnP"
           name="pnp"
         />
+        <div class="">
+          <p class="text-bold text-warning">Lưu ý: </p>
+          <p class="font-weight-light ms-2">Giá trị PosX, PosY cần chuyển về giá trị mm.</p>
+          <p class="font-weight-light ms-2">Giá trị Layer thay thế là Top và Bottom.</p>
+        </div>
       </v-card-text>
       <template v-slot:actions>
         <ButtonCancel @cancel="DialogAddPnP = false" />
@@ -464,7 +486,7 @@
       </template>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogAddGerber" width="600" scrollable>
+  <v-dialog v-model="DialogAddGerber" width="700" scrollable>
     <v-card class="overflow-y-auto">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
@@ -472,16 +494,44 @@
       </v-card-title>
       <v-card-text>
         <InputFiles
-          label="Nhập file Gerber"
+          label="Nhập file Gerber (.gtp, .gbp)"
           class="mt-2"
           v-model="FileGerber"
           accept="*"
           name="gerber"
         />
+        <div class="d-flex">
+          <p class="text-bold text-warning">Lưu ý:</p>
+          <p class="font-weight-light ms-2">Cần chuyển đổi đơn vị file Gerber .gtp, .gbp là inch</p>
+        </div>
       </v-card-text>
       <template v-slot:actions>
         <ButtonCancel @cancel="DialogAddGerber = false" />
         <ButtonSave @save="uploadGerber" />
+      </template>
+    </v-card>
+  </v-dialog>
+  <v-dialog v-model="DialogAddSize" width="600" scrollable>
+    <v-card class="overflow-y-auto">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
+        Cập nhật kích thước linh kiện
+        <v-spacer></v-spacer>
+        <v-btn>close</v-btn>
+      </v-card-title>
+      <v-card-text>
+        <InputField
+          label="Mã linh kiện | Manufacture Part Number"
+          v-model="MPN_Add_Size"
+          disabled
+        />
+        <InputField label="Loại | Package" v-model="Package_Add_Size" />
+        <InputField label="Chiều dài | Length (mm)" v-model="Length_Add_Size" />
+        <InputField label="Chiều rộng | Width (mm)" v-model="Width_Add_Size" />
+      </v-card-text>
+      <template v-slot:actions>
+        <ButtonCancel @cancel="DialogAddSize = false" />
+        <ButtonSave @save="SaveAddSize()" />
       </template>
     </v-card>
   </v-dialog>
@@ -513,7 +563,7 @@
               label="Góc°"
               v-model="PnP_Angle_Edit"
               hint="Góc toạ độ các linh kiện"
-              :items="['0.0', '90.0', '180.0', '270.0']"
+              :items="[0, 90, 180, 270]"
               item-text="text"
               item-value="value"
             />
@@ -553,6 +603,7 @@
           class="me-2"
         ></v-icon>
         Thông số kỹ thuật
+
         <v-spacer></v-spacer>
         <v-btn
           variant="text"
@@ -624,9 +675,7 @@
       </v-card-title>
       <v-card-text class="pa-4">
         <!-- Preset transformations -->
-        <!-- <p class="text-caption text-grey mb-2">
-          Preset transformations:
-        </p>
+        <!-- <p class="text-caption text-grey mb-2">Preset transformations:</p>
         <div class="d-flex flex-wrap gap-2">
           <v-btn
             @click="applyPreset('mm_to_inch')"
@@ -652,51 +701,20 @@
           >
             mil → mm (×0.0254)
           </v-btn>
-        </div>
+          <v-btn
+            @click="applyPreset('mm_to_um')"
+            size="small"
+            variant="outlined"
+            color="primary"
+          >
+            mm → µm (×1000)
+          </v-btn>
+        </div> -->
 
-        <v-divider class="my-3"></v-divider> -->
+        <!-- <v-divider class="my-3"></v-divider> -->
 
         <!-- Board rotation and flip controls -->
         <p class="text-caption text-grey mb-2">Xoay & Lật Pick&Place:</p>
-
-        <!-- Chọn tâm xoay -->
-        <div class="d-flex flex-wrap ga-2">
-          <InputField
-            v-model.number="cx"
-            label="cx (tâm X)"
-            type="number"
-            density="comfortable"
-            variant="outlined"
-          />
-          <InputField
-            v-model.number="cy"
-            label="cy (tâm Y)"
-            type="number"
-            density="comfortable"
-            variant="outlined"
-          />
-        </div>
-
-        <!-- Nút xoay nhanh -->
-        <div class="d-flex flex-wrap ga-2 mt-2">
-          <v-btn
-            @click="quickRotate(90)"
-            color="primary"
-            prepend-icon="mdi-rotate-orbit"
-            size="small"
-          >
-            90°
-          </v-btn>
-          <v-btn @click="quickRotate(180)" variant="tonal" size="small">
-            180°
-          </v-btn>
-          <v-btn @click="quickRotate(270)" variant="tonal" size="small">
-            270°
-          </v-btn>
-          <v-btn @click="quickRotate(-90)" variant="tonal" size="small">
-            -90° (CW)
-          </v-btn>
-        </div>
 
         <!-- Nút lật mặt -->
         <div class="d-flex flex-wrap ga-2 mt-2">
@@ -730,6 +748,44 @@
         </div>
 
         <!-- Custom angle rotation -->
+        <!-- Chọn tâm xoay -->
+        <div class="d-flex flex-wrap ga-2 mt-3">
+          <InputField
+            v-model.number="cx"
+            label="cx (tâm X)"
+            type="number"
+            density="comfortable"
+            variant="outlined"
+          />
+          <InputField
+            v-model.number="cy"
+            label="cy (tâm Y)"
+            type="number"
+            density="comfortable"
+            variant="outlined"
+          />
+        </div>
+
+        <!-- Nút xoay nhanh -->
+        <div class="d-flex flex-wrap ga-2">
+          <v-btn
+            @click="quickRotate(90)"
+            color="primary"
+            prepend-icon="mdi-rotate-orbit"
+            size="small"
+          >
+            90°
+          </v-btn>
+          <v-btn @click="quickRotate(180)" variant="tonal" size="small">
+            180°
+          </v-btn>
+          <v-btn @click="quickRotate(270)" variant="tonal" size="small">
+            270°
+          </v-btn>
+          <v-btn @click="quickRotate(-90)" variant="tonal" size="small">
+            -90° (CW)
+          </v-btn>
+        </div>
         <div class="d-flex flex-wrap ga-2 mt-2">
           <InputField
             v-model.number="rotationAngle"
@@ -764,9 +820,11 @@
                 type="number"
                 density="comfortable"
                 variant="outlined"
-                step="0.1"
+                step="0.01"
               />
-              <p class="font-weight-thin">Offset X: {{ hintOffsetX }} mm</p>
+              <p class="font-weight-thin">
+                Tổng Offset X: {{ totalAddedX.toFixed(2) }} mm
+              </p>
             </v-col>
             <v-col>
               <InputField
@@ -775,9 +833,11 @@
                 type="number"
                 density="comfortable"
                 variant="outlined"
-                step="0.1"
+                step="0.01"
               />
-              <p class="font-weight-thin">Offset Y: {{ hintOffsetX }} mm</p>
+              <p class="font-weight-thin">
+                Tổng Offset Y: {{ totalAddedY.toFixed(2) }} mm
+              </p>
             </v-col>
           </v-row>
         </div>
@@ -904,6 +964,130 @@
           </v-btn>
         </div>
 
+        <v-divider class="my-3"></v-divider>
+        <v-row>
+          <!-- Điều khiển góc designator label -->
+          <v-col cols="6">
+            <p class="text-caption text-grey mb-2">
+              Điều khiển góc designator label:
+            </p>
+
+            <div class="d-flex flex-wrap ga-2">
+              <InputField
+                v-model.number="designatorLabelAngle"
+                label="Góc designator label (°)"
+                type="number"
+                density="comfortable"
+                variant="outlined"
+                step="1"
+                min="-360"
+                max="360"
+              />
+            </div>
+
+            <!-- Nút xoay nhanh designator label -->
+            <div class="d-flex flex-wrap ga-2 mt-2">
+              <v-btn
+                @click="rotateDesignatorLabel(90)"
+                color="info"
+                prepend-icon="mdi-rotate-right"
+                size="small"
+                variant="outlined"
+              >
+                +90°
+              </v-btn>
+              <v-btn
+                @click="rotateDesignatorLabel(-90)"
+                color="info"
+                prepend-icon="mdi-rotate-left"
+                size="small"
+                variant="outlined"
+              >
+                -90°
+              </v-btn>
+              <v-btn
+                @click="rotateDesignatorLabel(180)"
+                color="info"
+                prepend-icon="mdi-rotate-3d-variant"
+                size="small"
+                variant="outlined"
+              >
+                +180°
+              </v-btn>
+              <v-btn
+                @click="resetDesignatorLabelAngle"
+                color="warning"
+                prepend-icon="mdi-refresh"
+                size="small"
+                variant="tonal"
+                :disabled="designatorLabelAngle === 0"
+              >
+                Reset góc label
+              </v-btn>
+            </div>
+          </v-col>
+          <v-col cols="6">
+            <!-- Điều khiển góc xoay component body rectangle -->
+            <p class="text-caption text-grey mb-2">
+              Điều khiển góc xoay component body rectangle:
+            </p>
+
+            <div class="d-flex flex-wrap ga-2">
+              <InputField
+                v-model.number="componentBodyAngle"
+                label="Góc xoay component body (°)"
+                type="number"
+                density="comfortable"
+                variant="outlined"
+                step="1"
+                min="-360"
+                max="360"
+              />
+            </div>
+
+            <!-- Nút xoay nhanh component body -->
+            <div class="d-flex flex-wrap ga-2 mt-2">
+              <v-btn
+                @click="rotateComponentBody(90)"
+                color="success"
+                prepend-icon="mdi-rotate-right"
+                size="small"
+                variant="outlined"
+              >
+                +90°
+              </v-btn>
+              <v-btn
+                @click="rotateComponentBody(-90)"
+                color="success"
+                prepend-icon="mdi-rotate-left"
+                size="small"
+                variant="outlined"
+              >
+                -90°
+              </v-btn>
+              <v-btn
+                @click="rotateComponentBody(180)"
+                color="success"
+                prepend-icon="mdi-rotate-3d-variant"
+                size="small"
+                variant="outlined"
+              >
+                +180°
+              </v-btn>
+              <v-btn
+                @click="resetComponentBodyAngle"
+                color="warning"
+                prepend-icon="mdi-refresh"
+                size="small"
+                variant="tonal"
+                :disabled="componentBodyAngle === 0"
+              >
+                Reset góc body
+              </v-btn>
+            </div>
+          </v-col>
+        </v-row>
+
         <!-- Điều khiển xoay SVG -->
         <v-divider class="my-3"></v-divider>
         <p class="text-caption text-grey mb-2">Điều khiển xoay SVG:</p>
@@ -920,8 +1104,6 @@
             max="360"
           />
         </div>
-
-        <!-- Nút xoay nhanh -->
         <div class="d-flex flex-wrap ga-2 mt-2">
           <v-btn
             @click="rotateSvg(90)"
@@ -995,7 +1177,7 @@
             Reset
           </v-btn>
           <v-spacer></v-spacer>
-          <ButtonSave @save="SaveAdjust()" />
+          <ButtonSave @save="SaveSettingSVG()" />
         </div>
       </v-card-text>
     </v-card>
@@ -1007,13 +1189,13 @@
 </template>
 <script setup>
 import axios from "axios";
-import { ref, watch, computed, onMounted } from "vue";
+import { ref, watch, computed, onMounted, reactive } from "vue";
 import { useRoute } from "vue-router";
 import { useCombineBom } from "@/composables/CheckBOM/useCombineBom";
-import { useCombineGerber } from "@/composables/CheckBOM/useCombineGerber";
 import { usePnPFile } from "@/composables/CheckBOM/usePnPFile";
 import { useGerberFile } from "@/composables/CheckBOM/useGerberFile";
 import { useSettingSVG } from "@/composables/CheckBOM/useSettingSVG";
+
 import ButtonBack from "@/components/Button-Back.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
@@ -1032,6 +1214,8 @@ import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import Loading from "@/components/Loading.vue";
 
+import ExcelJS from "exceljs"
+import { saveAs } from "file-saver"
 //
 
 const Url = import.meta.env.VITE_API_URL;
@@ -1039,16 +1223,15 @@ const GetID = ref("");
 const route = useRoute();
 const id = route.params.id;
 const { combineBom, combineBomErrror } = useCombineBom(id);
-const { combineGerber, combineGerberErrror } = useCombineGerber(id);
 const { detailPnP, detailPnPError } = usePnPFile(id);
 const { detailGerber, detailGerberError } = useGerberFile(id);
 const { detailSetting, detailSettingError } = useSettingSVG(id);
-
 // Dialog status
 const DialogEdit = ref(false);
 const DialogAddBom = ref(false);
 const DialogAddPnP = ref(false);
 const DialogAddGerber = ref(false);
+const DialogAddSize = ref(false);
 const DialogRemove = ref(false);
 const DialogFailed = ref(false);
 const DialogCaution = ref(false); // Warning notification
@@ -1065,15 +1248,19 @@ const FileBom = ref(null);
 const FilePnP = ref(null);
 const FileGerber = ref(null);
 
+const MPN_Add_Size = ref("");
+const Package_Add_Size = ref("");
+const Length_Add_Size = ref("");
+const Width_Add_Size = ref("");
+
 const GetIDPnP = ref("");
+const GetIDSize = ref("");
+const Check_Size = ref("");
 const PnP_Angle_Edit = ref("");
 const PnP_X_Edit = ref("");
 const PnP_Y_Edit = ref("");
 const PnP_Type_Edit = ref("");
 const PnP_Layer_Edit = ref("");
-
-const Package_Width_Edit = ref("");
-const Package_Length_Edit = ref("");
 
 // Overlay controls
 const overlayMode = ref("both"); // 'both', 'gerber', 'pnp'
@@ -1081,10 +1268,7 @@ const svgContainer = ref(null);
 const zoomLevel = ref(1);
 
 // Layer selection
-const selectedLayer = ref('Top');
-
-//preset
-const presetValue = ref("");
+const selectedLayer = ref("Top");
 
 // Coordinate transformation controls
 const coordinateScale = ref(1);
@@ -1103,12 +1287,19 @@ const swapXY = ref(false);
 const cx = ref(0);
 const cy = ref(0);
 const rotationAngle = ref(0);
+const svgRotation = ref(0);
+
+// Designator label and component body rotation controls
+const designatorLabelAngle = ref(0);
+const componentBodyAngle = ref(0);
 
 // Manual coordinate adjustment
 const manualOffsetX = ref(0);
 const manualOffsetY = ref(0);
-const hintOffsetX = ref(0);
-const hintOffsetY = ref(0);
+const totalAddedX = ref(0);
+const totalAddedY = ref(0);
+const totalAdjustedCountX = ref(0);
+const totalAdjustedCountY = ref(0);
 
 // Data search item in digikey
 const clientId = import.meta.env.VITE_DIGIKEY_CLIENT_ID;
@@ -1136,22 +1327,35 @@ const Headers = [
 ];
 
 const HeadersPnP = [
+  { title: "STT", key: "stt" },
   { title: "Designator", key: "designator" },
-  { title: "Original X (mm)", key: "x" },
-  { title: "Original Y (mm)", key: "y" },
-  { title: "Original Rotation (°)", key: "rotation" },
-  { title: "Transformed X (inch)", key: "tx" },
-  { title: "Transformed Y (inch)", key: "ty" },
-  { title: "Final Rotation (°)", key: "finalRotation" },
+  { title: "Transformed X(mm)", key: "x" },
+  { title: "Transformed Y (mm)", key: "y" },
+  { title: "Final Rotation (°)", key: "rotation" },
   { title: "Layer", key: "layer" },
+  { title: "MPN", key: "mpn" },
 ];
 const searchBom = ref("");
 const itemsPerPageBom = ref(20);
 const pageBom = ref(1);
 
+const searchPnP = ref("")
 const itemsPerPagePnP = ref(20);
 const pagePnP = ref(1);
 // Color mapping for match quality categories
+
+// ============ onMounted =============
+
+onMounted(() => {
+  if (coordinateScale.value) {
+    return (coordinateScale.value /= 0.0254);
+  }
+
+  if (detailSetting.value) {
+    return rotatePnPAroundCenter();
+  }
+});
+
 // Function
 
 const uploadBOM = async () => {
@@ -1219,6 +1423,165 @@ const GetItemEdit = (item) => {
   PnP_Layer_Edit.value = item.layer;
 };
 
+const GetSettingSVG = () => {
+  DialogCoordinateSettings.value = true;
+  const found = detailSetting.value.find((item) => (item.id = id));
+  console.log(selectedLayer.value);
+  if (selectedLayer.value == "Top") {
+    manualOffsetX.value = found.manualOffsetX_top;
+
+    manualOffsetY.value = found.manualOffsetY_top;
+    cx.value = found.cx_top;
+    cy.value = found.cy_top;
+    rotationAngle.value = found.rotation_top;
+    svgRotation.value = found.rotationSVG_top;
+    designatorLabelAngle.value = found.labelAngle_top || 0;
+    componentBodyAngle.value = found.componentBodyAngle_top || 0;
+    if (found.flipX_top == 1 || found.flipX_top == true) {
+      flipX.value = true;
+    } else {
+      flipX.value = false;
+    }
+    if (found.flipY_top == 1 || found.flipY_top == true) {
+      flipY.value = true;
+    } else {
+      flipY.value = false;
+    }
+    if (found.swapXY_top == 1 || found.swapXY_top == true) {
+      swapXY.value = true;
+    }
+  } else {
+    manualOffsetX.value = found.manualOffsetX_bottom;
+    manualOffsetY.value = found.manualOffsetY_bottom;
+    cx.value = found.cx_bottom;
+    cy.value = found.cy_bottom;
+    rotationAngle.value = found.rotation_bottom;
+    svgRotation.value = found.rotationSVG_bottom;
+    designatorLabelAngle.value = found.labelAngle_bottom || 0;
+    componentBodyAngle.value = found.componentBodyAngle_bottom || 0;
+    if (found.flipX_bottom == 1 || found.flipX_bottom == true) {
+      flipX.value = true;
+    } else {
+      flipX.value = false;
+    }
+    if (found.flipY_bottom == 1 || found.flipY_bottom == true) {
+      flipY.value = true;
+    } else {
+      flipY.value = false;
+    }
+    if (found.swapXY_bottom == 1 || found.swapXY_bottom == true) {
+      swapXY.value = true;
+    } else {
+      swapXY.value = false;
+    }
+  }
+};
+
+// Get information Update size
+const GetAddSize = (item) => {
+  DialogAddSize.value = true;
+  MPN_Add_Size.value = item.mpn;
+  Package_Add_Size.value = item.package;
+  Length_Add_Size.value = item.length;
+  Width_Add_Size.value = item.width;
+  console.log(GetIDSize.value);
+  if (item.source == "override") {
+    return (
+      (GetIDSize.value = item.id_components_overrides),
+      (Check_Size.value = item.source)
+    );
+  }
+  if (item.source == "package_map") {
+    return (
+      (GetIDSize.value = item.id_component),
+      (Check_Size.value = item.source),
+      GetIDSize.value
+    );
+  }
+};
+
+// Get information  Update size of accessory
+const SaveAddSize = async () => {
+  DialogLoading.value = true;
+
+  if (Check_Size.value == "package_map") {
+    const formData = reactive({
+      package: Package_Add_Size.value,
+      length: Length_Add_Size.value,
+      width: Width_Add_Size.value,
+    });
+    try {
+      const response = await axios.put(
+        `${Url}/Component/Edit-item/${GetIDSize.value}`,
+        formData
+      );
+      console.log(response.data.message);
+
+      DialogLoading.value = false;
+      DialogAddSize.value = false;
+      DialogSuccess.value = true;
+      MessageDialog.value = "Thêm dữ liệu thành công";
+    } catch (error) {
+      console.log(error);
+      DialogLoading.value = false;
+      DialogAddSize.value = false;
+      DialogFailed.value = true;
+      MessageErrorDialog.value = "Thêm dữ liệu thất bại";
+    }
+  } else if (Check_Size.value == "override") {
+    const formData = reactive({
+      package: Package_Add_Size.value,
+      length: Length_Add_Size.value,
+      width: Width_Add_Size.value,
+    });
+    console.log(GetIDSize.value);
+    try {
+      const response = await axios.put(
+        `${Url}/Component-overrides/Edit-item/${GetIDSize.value}`,
+        formData
+      );
+      console.log(response.data.message);
+
+      DialogLoading.value = false;
+      DialogAddSize.value = false;
+      DialogSuccess.value = true;
+      MessageDialog.value = "Thêm dữ liệu thành công";
+    } catch (error) {
+      console.log(error);
+      DialogLoading.value = false;
+      DialogAddSize.value = false;
+      DialogFailed.value = true;
+      MessageErrorDialog.value = "Thêm dữ liệu thất bại";
+    }
+  } else {
+    const formData = reactive({
+      mpn: MPN_Add_Size,
+      package: Package_Add_Size.value,
+      length: Length_Add_Size.value,
+      width: Width_Add_Size.value,
+    });
+    try {
+      const response = await axios.post(
+        `${Url}/Component-overrides/Add-item`,
+        formData
+      );
+      console.log(response.data.message);
+
+      DialogLoading.value = false;
+      DialogAddSize.value = false;
+      DialogSuccess.value = true;
+      MessageDialog.value = "Thêm dữ liệu thành công";
+    } catch (error) {
+      console.log(error);
+      DialogLoading.value = false;
+      DialogAddSize.value = false;
+      DialogFailed.value = true;
+      MessageErrorDialog.value = "Thêm dữ liệu thất bại";
+    }
+  }
+};
+
+// Put item in Pickplace table
 const SaveEditPnP = async () => {
   DialogLoading.value = true;
   const formData = reactive({
@@ -1246,7 +1609,64 @@ const SaveEditPnP = async () => {
     DialogEdit.value = false;
     DialogFailed.value = true;
     MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
-    Error();
+  }
+};
+
+const SaveSettingSVG = async () => {
+  DialogLoading.value = true;
+  const formData = reactive({
+    flipX: flipX.value,
+    flipY: flipY.value,
+    swapXY: swapXY.value,
+    cx: cx.value,
+    cy: cy.value,
+    rotation: rotationAngle.value,
+    rotationSVG: svgRotation.value,
+    designatorLabelAngle: designatorLabelAngle.value,
+    componentBodyAngle: componentBodyAngle.value,
+    manualOffsetX: totalAddedX.value,
+    manualOffsetY: totalAddedY.value,
+    labelAngle: designatorLabelAngle.value,
+    componentBodyAngle: componentBodyAngle.value,
+  });
+  if (selectedLayer.value == "Top") {
+    try {
+      const response = await axios.put(
+        `${Url}/SettingSVG/Edit-item-top/${id}`,
+        formData
+      );
+      console.log(response.data.message);
+
+      DialogLoading.value = false;
+      DialogCoordinateSettings.value = false;
+      DialogSuccess.value = true;
+      MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
+    } catch (error) {
+      console.log(error);
+      DialogLoading.value = false;
+      DialogCoordinateSettings.value = false;
+      DialogFailed.value = true;
+      MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
+    }
+  } else {
+    try {
+      const response = await axios.put(
+        `${Url}/SettingSVG/Edit-item-bottom/${id}`,
+        formData
+      );
+      console.log(response.data.message);
+
+      DialogLoading.value = false;
+      DialogCoordinateSettings.value = false;
+      DialogSuccess.value = true;
+      MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
+    } catch (error) {
+      console.log(error);
+      DialogLoading.value = false;
+      DialogCoordinateSettings.value = false;
+      DialogFailed.value = true;
+      MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
+    }
   }
 };
 
@@ -1257,7 +1677,7 @@ const SaveEditPnP = async () => {
  */
 const getAccessToken = async (value) => {
   DialogLoading.value = true;
-  const found = combineBom.value.find((v) => v.id === value);
+  const found = combineBom.value.find((v) => v.id === value.id);
   GetDigikey.value = found.mpn;
 
   const tokenUrl = "https://api.digikey.com/v1/oauth2/token";
@@ -1357,16 +1777,6 @@ const DownloadPnP = async () => {
   }
 };
 
-onMounted(() => {
-  if (coordinateScale.value) {
-    return (coordinateScale.value /= 0.0254);
-  }
-
-  if (detailSetting.value) {
-    return rotatePnPAroundCenter();
-  }
-});
-
 // Project demo (id=1)
 const loadData = async () => {
   await loadGerber(1);
@@ -1383,6 +1793,13 @@ const svgWithPnP = computed(() => {
     return "";
   }
 
+  if (!currentGerberUnit.value || !filteredPnP.value) return "";
+
+  let unit = currentGerberUnit.value;
+  if (!unit || typeof svg !== "string") {
+    console.warn("Không tìm thấy đơn vị đo hợp lệ trong detailGerber");
+    return "";
+  }
   const pnpMarkers = filteredPnP.value
     .filter((pnp) => pnp.x !== null && pnp.y !== null && pnp.designator)
     .map((pnp) => {
@@ -1398,55 +1815,84 @@ const svgWithPnP = computed(() => {
         [transformedX, transformedY] = [transformedY, transformedX];
 
       const componentRotation =
-        pnp.rotation || pnp.rot|| coordinateRotation.value;
+        pnp.rotation || pnp.rot || coordinateRotation.value;
 
       let rectWidth = (pnp.width || 0) * coordinateScale.value;
       let rectLength = (pnp.length || 0) * coordinateScale.value;
       if (swapXY.value) [rectWidth, rectLength] = [rectLength, rectWidth];
 
+      // scale theo đơn vị
+      let scale_mm_square = 0.02;
+      let scale_mm_crosshair = 50;
+      let scale_inch_square = 1; // ví dụ
+      let scale_inch_crosshair = 1; // ví dụ
+
+      let squareScale, crosshairScale;
+      if (unit === "mm") {
+        squareScale = scale_mm_square;
+        crosshairScale = scale_mm_crosshair;
+        coordinateScale.value = 1000;
+      } else {
+        squareScale = scale_inch_square;
+        crosshairScale = scale_inch_crosshair;
+      }
+
       let componentMarkup = "";
       if (rectWidth > 0 && rectLength > 0 && showComponentBoxes.value) {
         componentMarkup = `
-          <!-- Component body rectangle -->
-          <rect 
-            class="pnp-component-body" 
-            x="${-(rectLength / 2)}" 
-            y="${-(rectWidth / 2)}" 
-            width="${rectLength}" 
-            height="${rectWidth}" 
-            fill="rgba(0, 150, 136, 0.1)" 
-            stroke="#009688" 
-            stroke-width="1.5" 
-            opacity="0.8"
-          />
-          <!-- Component outline for better visibility -->
-          <rect 
-            class="pnp-component-outline" 
-            x="${-(rectLength / 2)}" 
-            y="${-(rectWidth / 2)}" 
-            width="${rectLength}" 
-            height="${rectWidth}" 
-            fill="none" 
-            stroke="#1976d2" 
-            stroke-width="0.5" 
-            stroke-dasharray="2,2"
-            opacity="0.6"
-          />
+          <!-- Component body rectangle with rotation -->
+          <g transform="rotate(${
+            componentBodyAngle.value
+          }) scale(${squareScale})">
+            <rect
+              class="pnp-component-body"
+              x="${-(rectWidth / 2)}"
+              y="${-(rectLength / 2)}"
+              width="${rectWidth}"
+              height="${rectLength}"
+              fill="rgba(0, 150, 136, 0.1)"
+              stroke="#009688"
+              stroke-width="1.5"
+              opacity="0.8"
+            />
+            <!-- Component outline for better visibility -->
+            <rect
+              class="pnp-component-outline"
+              x="${-(rectWidth / 2)}"
+              y="${-(rectLength / 2)}"
+              width="${rectWidth}"
+              height="${rectLength}"
+              fill="none"
+              stroke="#1976d2"
+              stroke-width="0.8"
+              stroke-dasharray="2,2"
+              opacity="0.6"
+            />
+          </g>
         `;
       }
 
       return `
-        <g transform="translate(${transformedX}, ${transformedY}) rotate(${componentRotation -180})" class="pnp-marker" data-designator="${pnp.designator}">
+        <g transform="translate(${transformedX}, ${transformedY}) rotate(${componentRotation}) scale(${crosshairScale})" class="pnp-marker" data-designator="${
+        pnp.designator
+      }">
           ${componentMarkup}
           <!-- Crosshair marker - làm to hơn để dễ nhìn -->
           <line x1="-25" y1="0" x2="25" y2="0" stroke="red" stroke-width="1.5" opacity="0.9"/>
           <line x1="0" y1="-25" x2="0" y2="25" stroke="red" stroke-width="1.5" opacity="0.9"/>
           <!-- Circle around the point - làm to hơn -->
           <circle cx="0" cy="0" r="2" fill="none" stroke="red" stroke-width="0.8" opacity="0.8"/>
-          <!-- Designator label -->
-          <text x="6" y="3" font-size="23" fill="blue" font-weight="bold" opacity="1">${
-            pnp.designator
-          }</text>
+          <!-- Designator label with rotation -->
+          <text
+            x="6"
+            y="3"
+            font-size="23"
+            fill="blue"
+            font-weight="bold"
+            opacity="1"
+            transform="rotate(${designatorLabelAngle.value})"
+            transform-origin="6 3"
+          >${pnp.designator}</text>
           <!-- Coordinate info on hover -->
           <title>${pnp.designator}: X=${transformedX.toFixed(
         2
@@ -1470,7 +1916,6 @@ const svgWithPnP = computed(() => {
 });
 
 // SVG rotation state
-const svgRotation = ref(0);
 
 // Computed properties for better performance
 const componentsWithSize = computed(() => {
@@ -1657,6 +2102,8 @@ const resetCoordinates = () => {
   manualOffsetX.value = 0;
   manualOffsetY.value = 0;
   svgRotation.value = 0;
+  designatorLabelAngle.value = 0;
+  componentBodyAngle.value = 0;
   resetPanAndZoom();
 };
 
@@ -1719,9 +2166,10 @@ const rotatePnPAroundCenter = () => {
 };
 
 // Manual coordinate adjustment functions
+
 const adjustCoordinates = (deltaX, deltaY) => {
-  manualOffsetX.value = deltaX;
-  manualOffsetY.value = deltaY;
+  manualOffsetX.value += deltaX;
+  manualOffsetY.value += deltaY;
 };
 
 // Quick adjustment functions (incremental)
@@ -1745,19 +2193,26 @@ const applyManualAdjustmentX = () => {
     DialogCaution.value = true;
     return;
   }
-
+  console.log(manualOffsetX.value);
+  let adjustedCountX = 0;
   detailPnP.value = detailPnP.value.map((item) => {
     if (item.x === null) return item;
 
+    adjustedCountX += 1;
     return {
       ...item,
-      x: Number((item.x + manualOffsetX.value).toFixed(3)),
+      x: Number(item.x + manualOffsetX.value),
     };
   });
 
-  MessageDialog.value = `Đã điều chỉnh X cho ${
-    detailPnP.value.length
-  } điểm Pick&Place: +${manualOffsetX.value.toFixed(3)}mm`;
+  totalAddedX.value += manualOffsetX.value;
+  totalAdjustedCountX.value += adjustedCountX;
+
+  MessageDialog.value = `Đã điều chỉnh X cho ${adjustedCountX} điểm Pick&Place: +${manualOffsetX.value.toFixed(
+    3
+  )}mm (Cộng dồn X: +${totalAddedX.value.toFixed(
+    3
+  )}mm, Tổng điểm đã cập nhật X: ${totalAdjustedCountX.value})`;
   DialogSuccess.value = true;
 
   // Reset manual offset X after applying
@@ -1777,18 +2232,25 @@ const applyManualAdjustmentY = () => {
     return;
   }
 
+  let adjustedCountY = 0;
   detailPnP.value = detailPnP.value.map((item) => {
     if (item.y === null) return item;
 
+    adjustedCountY += 1;
     return {
       ...item,
-      y: Number((item.y + manualOffsetY.value).toFixed(3)),
+      y: Number(item.y + manualOffsetY.value),
     };
   });
 
-  MessageDialog.value = `Đã điều chỉnh Y cho ${
-    detailPnP.value.length
-  } điểm Pick&Place: +${manualOffsetY.value.toFixed(3)}mm`;
+  totalAddedY.value += manualOffsetY.value;
+  totalAdjustedCountY.value += adjustedCountY;
+
+  MessageDialog.value = `Đã điều chỉnh Y cho ${adjustedCountY} điểm Pick&Place: +${manualOffsetY.value.toFixed(
+    3
+  )}mm (Cộng dồn Y: +${totalAddedY.value.toFixed(
+    3
+  )}mm, Tổng điểm đã cập nhật Y: ${totalAdjustedCountY.value})`;
   DialogSuccess.value = true;
 
   // Reset manual offset Y after applying
@@ -1808,21 +2270,43 @@ const applyManualAdjustment = () => {
     return;
   }
 
+  let adjustedCountX = 0;
+  let adjustedCountY = 0;
   detailPnP.value = detailPnP.value.map((item) => {
-    if (item.x === null || item.y === null) return item;
+    const hasX = item.x !== null;
+    const hasY = item.y !== null;
+    if (!hasX && !hasY) return item;
+
+    if (hasX) adjustedCountX += 1;
+    if (hasY) adjustedCountY += 1;
 
     return {
       ...item,
-      x: Number((item.x + manualOffsetX.value).toFixed(3)),
-      y: Number((item.y + manualOffsetY.value).toFixed(3)),
+      x: hasX ? Number((item.x + manualOffsetX.value).toFixed(3)) : item.x,
+      y: hasY ? Number((item.y + manualOffsetY.value).toFixed(3)) : item.y,
     };
   });
 
+  if (manualOffsetX.value !== 0) {
+    totalAddedX.value += manualOffsetX.value;
+    totalAdjustedCountX.value += adjustedCountX;
+  }
+  if (manualOffsetY.value !== 0) {
+    totalAddedY.value += manualOffsetY.value;
+    totalAdjustedCountY.value += adjustedCountY;
+  }
+
   MessageDialog.value = `Đã điều chỉnh ${
-    detailPnP.value.length
-  } điểm Pick&Place: X +${manualOffsetX.value.toFixed(
+    adjustedCountX + adjustedCountY
+  } cập nhật: X +${manualOffsetX.value.toFixed(
     3
-  )}mm, Y +${manualOffsetY.value.toFixed(3)}mm`;
+  )}mm (cộng dồn: +${totalAddedX.value.toFixed(3)}mm, điểm X: ${
+    totalAdjustedCountX.value
+  }), Y +${manualOffsetY.value.toFixed(
+    3
+  )}mm (cộng dồn: +${totalAddedY.value.toFixed(3)}mm, điểm Y: ${
+    totalAdjustedCountY.value
+  })`;
   DialogSuccess.value = true;
 
   // Reset manual offsets after applying
@@ -1836,6 +2320,63 @@ const resetManualAdjustment = () => {
   MessageDialog.value = "Đã reset điều chỉnh thủ công";
   DialogSuccess.value = true;
 };
+
+// Preset transformation functions
+// const applyPreset = (presetType) => {
+//   if (!detailPnP.value || detailPnP.value.length === 0) {
+//     MessageCautionDialog.value = "Không có dữ liệu Pick&Place để biến đổi";
+//     DialogCaution.value = true;
+//     return;
+//   }
+
+//   let transformationApplied = false;
+//   let transformationName = "";
+//   let transformationDescription = "";
+
+//   switch (presetType) {
+//     case "mm_to_inch":
+//       // Convert mm to inch (divide by 25.4)
+//       coordinateScale.value = 1 / 0.0254;
+//       transformationApplied = true;
+//       transformationName = "mm → inch";
+//       transformationDescription = "Chia cho 25.4";
+//       break;
+
+//     case "inch_to_mm":
+//       // Convert inch to mm (multiply by 25.4)
+//       coordinateScale.value = 25.4;
+//       transformationApplied = true;
+//       transformationName = "inch → mm";
+//       transformationDescription = "Nhân với 25.4";
+//       break;
+
+//     case "mil_to_mm":
+//       // Convert mil to mm (multiply by 0.0254)
+//       coordinateScale.value = 0.0254;
+//       transformationApplied = true;
+//       transformationName = "mil → mm";
+//       transformationDescription = "Nhân với 0.0254";
+//       break;
+
+//     case "mm_to_um":
+//       // Convert mm to µm (multiply by 1000)
+//       coordinateScale.value = 1000;
+//       transformationApplied = true;
+//       transformationName = "mm → µm";
+//       transformationDescription = "Nhân với 1000";
+//       break;
+
+//     default:
+//       MessageCautionDialog.value = "Loại biến đổi không hợp lệ";
+//       DialogCaution.value = true;
+//       return;
+//   }
+
+//   if (transformationApplied) {
+//     MessageDialog.value = `Đã áp dụng biến đổi ${transformationName} (${transformationDescription}) cho ${detailPnP.value.length} điểm Pick&Place`;
+//     DialogSuccess.value = true;
+//   }
+// };
 
 // SVG rotation functions
 const rotateSvg = (angle) => {
@@ -1852,6 +2393,44 @@ const setSvgRotation = (angle) => {
 const resetSvgRotation = () => {
   svgRotation.value = 0;
   MessageDialog.value = "Đã reset xoay SVG";
+  DialogSuccess.value = true;
+};
+
+// Designator label rotation functions
+const rotateDesignatorLabel = (angle) => {
+  designatorLabelAngle.value += angle;
+  // Keep angle between -360 and 360 degrees
+  if (designatorLabelAngle.value > 360) designatorLabelAngle.value -= 360;
+  if (designatorLabelAngle.value < -360) designatorLabelAngle.value += 360;
+
+  MessageDialog.value = `Đã xoay designator label ${
+    angle > 0 ? "+" : ""
+  }${angle}° (Tổng: ${designatorLabelAngle.value}°)`;
+  DialogSuccess.value = true;
+};
+
+const resetDesignatorLabelAngle = () => {
+  designatorLabelAngle.value = 0;
+  MessageDialog.value = "Đã reset góc designator label";
+  DialogSuccess.value = true;
+};
+
+// Component body rotation functions
+const rotateComponentBody = (angle) => {
+  componentBodyAngle.value += angle;
+  // Keep angle between -360 and 360 degrees
+  if (componentBodyAngle.value > 360) componentBodyAngle.value -= 360;
+  if (componentBodyAngle.value < -360) componentBodyAngle.value += 360;
+
+  MessageDialog.value = `Đã xoay component body ${
+    angle > 0 ? "+" : ""
+  }${angle}° (Tổng: ${componentBodyAngle.value}°)`;
+  DialogSuccess.value = true;
+};
+
+const resetComponentBodyAngle = () => {
+  componentBodyAngle.value = 0;
+  MessageDialog.value = "Đã reset góc component body";
   DialogSuccess.value = true;
 };
 
@@ -1932,6 +2511,8 @@ const debugCoordinates = () => {
   console.log("Manual Offset X:", manualOffsetX.value);
   console.log("Manual Offset Y:", manualOffsetY.value);
   console.log("SVG Rotation:", svgRotation.value);
+  console.log("Designator Label Angle:", designatorLabelAngle.value);
+  console.log("Component Body Angle:", componentBodyAngle.value);
 
   // Log PnP data with rotation
   if (detailPnP.value && detailPnP.value.length > 0) {
@@ -1979,8 +2560,10 @@ const pnpBounds = computed(() => {
 // Helper to get center in transformed space (after scale and offsets)
 const getTransformedCenter = () => {
   if (!pnpBounds.value) return { cxT: 0, cyT: 0 };
-  const cxT = pnpBounds.value.cxRaw * coordinateScale.value + coordinateOffsetX.value;
-  const cyT = pnpBounds.value.cyRaw * coordinateScale.value + coordinateOffsetY.value;
+  const cxT =
+    pnpBounds.value.cxRaw * coordinateScale.value + coordinateOffsetX.value;
+  const cyT =
+    pnpBounds.value.cyRaw * coordinateScale.value + coordinateOffsetY.value;
   return { cxT, cyT };
 };
 
@@ -1989,8 +2572,10 @@ const currentGerberSvg = computed(() => {
   const dg = detailGerber.value;
   if (!dg) return "";
   if (Array.isArray(dg) && dg.length > 0) {
-    const byLayer = dg.find((item) => item && item.layer === selectedLayer.value && item.svg);
-    if (byLayer && typeof byLayer.svg === 'string') return byLayer.svg;
+    const byLayer = dg.find(
+      (item) => item && item.layer === selectedLayer.value && item.svg
+    );
+    if (byLayer && typeof byLayer.svg === "string") return byLayer.svg;
     return dg[0]?.svg || "";
   } else if (dg && typeof dg === "object") {
     return dg.svg || "";
@@ -2000,11 +2585,54 @@ const currentGerberSvg = computed(() => {
   return "";
 });
 
+const currentGerberUnit = computed(() => {
+  const dg = detailGerber.value;
+  if (!dg) return "";
+  if (Array.isArray(dg) && dg.length > 0) {
+    const byLayer = dg.find(
+      (item) => item && item.layer === selectedLayer.value && item.unit
+    );
+    if (byLayer && typeof byLayer.unit === "string") return byLayer.unit;
+    return dg[0]?.unit || "";
+  } else if (dg && typeof dg === "object") {
+    return dg.unit || "";
+  } else if (typeof dg === "string") {
+    return dg;
+  }
+  return "";
+});
+
 // Filtered PnP by selected layer
 const filteredPnP = computed(() => {
   const list = detailPnP.value || [];
-  return list.filter((p) => (p.layer || 'Top') === selectedLayer.value);
+  return list.filter((p) => (p.layer || "Top") === selectedLayer.value && p.type === "SMT");
+  
 });
+
+
+const downloadExcelPnP = async () => {
+  const workbook = new ExcelJS.Workbook()
+  const worksheet = workbook.addWorksheet("Dữ liệu SMT")
+
+  // Tạo header
+  worksheet.columns = [
+    { header: "Designator", key: "designator", width: 20 },
+    { header: "X-Center", key: "x", width: 20 },
+    { header: "Y- Center", key: "y", width: 20 },
+    { header: "Rotation", key: "rotation", width: 20 },
+    { header: "Layer", key: "layer", width: 20 },
+    { header: "MPN", key: "mpn", width: 50 },
+  ]
+
+  // Thêm dữ liệu từ composables
+  filteredPnP.value.forEach((item) => {
+    worksheet.addRow(item)
+  })
+
+  // Xuất buffer
+  const buffer = await workbook.xlsx.writeBuffer()
+  saveAs(new Blob([buffer]), "DataSMT.xlsx")
+}
 </script>
 <script>
 export default {

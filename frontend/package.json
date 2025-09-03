@@ -17,7 +17,9 @@
     "@tracespace/core": "^5.0.0-alpha.0",
     "axios": "^1.8.2",
     "chart.js": "^4.5.0",
+    "exceljs": "^4.4.0",
     "express": "^4.21.2",
+    "file-saver": "^2.0.5",
     "jwt-decode": "^4.0.0",
     "langchain": "^0.3.30",
     "markdown-it": "^14.1.0",
@@ -27,7 +29,8 @@
     "svg-pan-zoom": "^3.6.2",
     "usb": "^2.15.0",
     "vue": "^3.4.31",
-    "vuetify": "^3.6.14"
+    "vuetify": "^3.6.14",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.14.0",
