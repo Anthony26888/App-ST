@@ -517,7 +517,7 @@
         <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
         Cập nhật kích thước linh kiện
         <v-spacer></v-spacer>
-        <v-btn>close</v-btn>
+        <v-btn icon="mdi-close" @click="DialogAddSize = false"></v-btn>
       </v-card-title>
       <v-card-text>
         <InputField
