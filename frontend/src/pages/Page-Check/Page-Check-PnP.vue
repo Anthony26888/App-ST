@@ -381,16 +381,16 @@
                   {{ (item.rotation || item.rot || 0).toFixed(1) }}°
                 </v-chip>
               </template>
-<!-- 
-              <template #item.tx="{ item }">
-                {{ getTransformedCoordinates(item.x, item.y).x.toFixed(2) }}
+              
+              <template #item.smtX="{ item }">
+                {{ item.x + panelFrameX  || item.x }}
               </template>
 
-              <template #item.ty="{ item }">
-                {{ getTransformedCoordinates(item.x, item.y).y.toFixed(2) }}
+              <template #item.smtY="{ item }">
+                {{ item.y + panelFrameY || item.y }}
               </template>
 
-              <template #item.finalRotation="{ item }">
+              <!-- <template #item.finalRotation="{ item }">
                 <v-chip size="small" color="success" variant="tonal">
                   {{
                     (
@@ -801,7 +801,7 @@
             variant="tonal"
             size="small"
             prepend-icon="mdi-rotate-3d-variant"
-            class="mt-2"
+            class="mt-2 text-caption"
           >
             Xoay
           </v-btn>
@@ -930,6 +930,7 @@
             size="small"
             prepend-icon="mdi-cursor-pointer"
             :disabled="manualOffsetX === 0"
+            class="text-caption"
           >
             Áp dụng X
           </v-btn>
@@ -940,6 +941,7 @@
             size="small"
             prepend-icon="mdi-cursor-pointer"
             :disabled="manualOffsetY === 0"
+            class="text-caption"
           >
             Áp dụng Y
           </v-btn>
@@ -950,6 +952,7 @@
             size="small"
             prepend-icon="mdi-cursor-pointer"
             :disabled="manualOffsetX === 0 && manualOffsetY === 0"
+            class="text-caption"
           >
             Áp dụng cả X&Y
           </v-btn>
@@ -959,6 +962,7 @@
             variant="tonal"
             size="small"
             prepend-icon="mdi-refresh"
+            class="text-caption"
           >
             Reset điều chỉnh
           </v-btn>
@@ -1021,6 +1025,7 @@
                 size="small"
                 variant="tonal"
                 :disabled="designatorLabelAngle === 0"
+                class="text-caption"
               >
                 Reset góc label
               </v-btn>
@@ -1081,6 +1086,7 @@
                 size="small"
                 variant="tonal"
                 :disabled="componentBodyAngle === 0"
+                class="text-caption"
               >
                 Reset góc body
               </v-btn>
@@ -1090,12 +1096,33 @@
 
         <!-- Điều khiển xoay SVG -->
         <v-divider class="my-3"></v-divider>
-        <p class="text-caption text-grey mb-2">Điều khiển xoay SVG:</p>
-
+        <p class="text-caption text-grey mb-2">Điều khiển board:</p>
         <div class="d-flex flex-wrap ga-2">
           <InputField
+            v-model.number="panelFrameX"
+            label="Rìa panel trục X (mm)"
+            type="number"
+            density="comfortable"
+            variant="outlined"
+            step="0.01"
+          />
+          <InputField
+            v-model.number="panelFrameY"
+            label="Rìa panel trục Y (mm)"
+            type="number"
+            density="comfortable"
+            variant="outlined"
+            step="0.01"
+          />
+        </div>
+        <div class="d-flex">
+          <p class="text-bold text-warning">Lưu ý:</p>
+          <p class="font-weight-light ms-2">Trục Y tính từ dưới panel đến vị trị board có linh kiện, Trục X tính từ bên trái qua.</p>
+        </div>
+        <div class="d-flex flex-wrap ga-2 mt-5">
+          <InputField
             v-model.number="svgRotation"
-            label="Góc xoay SVG (°)"
+            label="Góc xoay board (°)"
             type="number"
             density="comfortable"
             variant="outlined"
@@ -1149,6 +1176,7 @@
             size="small"
             variant="tonal"
             :disabled="svgRotation === 0"
+            class="text-caption"
           >
             Reset xoay
           </v-btn>
@@ -1173,6 +1201,7 @@
             color="secondary"
             variant="tonal"
             size="small"
+            class="text-caption"
           >
             Reset
           </v-btn>
@@ -1301,6 +1330,10 @@ const totalAddedY = ref(0);
 const totalAdjustedCountX = ref(0);
 const totalAdjustedCountY = ref(0);
 
+// Adjustment include panel frame và rotation SVG
+const panelFrameX = ref(0);
+const panelFrameY = ref(0);
+
 // Data search item in digikey
 const clientId = import.meta.env.VITE_DIGIKEY_CLIENT_ID;
 const clientSecret = import.meta.env.VITE_DIGIKEY_CLIENT_SECRET;
@@ -1331,6 +1364,8 @@ const HeadersPnP = [
   { title: "Designator", key: "designator" },
   { title: "Transformed X(mm)", key: "x" },
   { title: "Transformed Y (mm)", key: "y" },
+  { title: "SMT X(mm)", key: "smtX" },
+  { title: "SMT Y (mm)", key: "smtY" },
   { title: "Final Rotation (°)", key: "rotation" },
   { title: "Layer", key: "layer" },
   { title: "MPN", key: "mpn" },
@@ -1426,17 +1461,17 @@ const GetItemEdit = (item) => {
 const GetSettingSVG = () => {
   DialogCoordinateSettings.value = true;
   const found = detailSetting.value.find((item) => (item.id = id));
-  console.log(selectedLayer.value);
   if (selectedLayer.value == "Top") {
-    manualOffsetX.value = found.manualOffsetX_top;
-
-    manualOffsetY.value = found.manualOffsetY_top;
+    manualOffsetX.value = (found.manualOffsetX_top).toFixed(2);
+    manualOffsetY.value = (found.manualOffsetY_top).toFixed(2);
     cx.value = found.cx_top;
     cy.value = found.cy_top;
     rotationAngle.value = found.rotation_top;
     svgRotation.value = found.rotationSVG_top;
     designatorLabelAngle.value = found.labelAngle_top || 0;
     componentBodyAngle.value = found.componentBodyAngle_top || 0;
+    panelFrameX.value = found.panel_frame_X || 0;
+    panelFrameY.value = found.panel_frame_Y || 0;
     if (found.flipX_top == 1 || found.flipX_top == true) {
       flipX.value = true;
     } else {
@@ -1449,16 +1484,19 @@ const GetSettingSVG = () => {
     }
     if (found.swapXY_top == 1 || found.swapXY_top == true) {
       swapXY.value = true;
-    }
+    };
+
   } else {
-    manualOffsetX.value = found.manualOffsetX_bottom;
-    manualOffsetY.value = found.manualOffsetY_bottom;
+    manualOffsetX.value = (found.manualOffsetX_bottom);
+    manualOffsetY.value = (found.manualOffsetY_bottom);
     cx.value = found.cx_bottom;
     cy.value = found.cy_bottom;
     rotationAngle.value = found.rotation_bottom;
     svgRotation.value = found.rotationSVG_bottom;
     designatorLabelAngle.value = found.labelAngle_bottom || 0;
     componentBodyAngle.value = found.componentBodyAngle_bottom || 0;
+    panelFrameX.value = found.panel_frame_X || 0;
+    panelFrameY.value = found.panel_frame_Y || 0;
     if (found.flipX_bottom == 1 || found.flipX_bottom == true) {
       flipX.value = true;
     } else {
@@ -1484,7 +1522,6 @@ const GetAddSize = (item) => {
   Package_Add_Size.value = item.package;
   Length_Add_Size.value = item.length;
   Width_Add_Size.value = item.width;
-  console.log(GetIDSize.value);
   if (item.source == "override") {
     return (
       (GetIDSize.value = item.id_components_overrides),
@@ -1628,6 +1665,8 @@ const SaveSettingSVG = async () => {
     manualOffsetY: totalAddedY.value,
     labelAngle: designatorLabelAngle.value,
     componentBodyAngle: componentBodyAngle.value,
+    panelFrameX: panelFrameX.value,
+    panelFrameY: panelFrameY.value
   });
   if (selectedLayer.value == "Top") {
     try {
@@ -1669,6 +1708,30 @@ const SaveSettingSVG = async () => {
     }
   }
 };
+
+const downloadExcelPnP = async () => {
+  const workbook = new ExcelJS.Workbook()
+  const worksheet = workbook.addWorksheet("Dữ liệu SMT")
+
+  // Tạo header
+  worksheet.columns = [
+    { header: "Designator", key: "designator", width: 20 },
+    { header: "X-Center", key: "x", width: 20 },
+    { header: "Y- Center", key: "y", width: 20 },
+    { header: "Rotation", key: "rotation", width: 20 },
+    { header: "Layer", key: "layer", width: 20 },
+    { header: "MPN", key: "mpn", width: 50 },
+  ]
+
+  // Thêm dữ liệu từ composables
+  filteredPnP.value.forEach((item) => {
+    worksheet.addRow(item)
+  })
+
+  // Xuất buffer
+  const buffer = await workbook.xlsx.writeBuffer()
+  saveAs(new Blob([buffer]), "DataSMT.xlsx")
+}
 
 // ===== DIGIKEY API OPERATIONS =====
 /**
@@ -1783,6 +1846,30 @@ const loadData = async () => {
   await loadPnP(1);
 };
 
+// Helper: parse SVG height from viewBox or height attribute
+const getSvgRenderedHeight = (svgString) => {
+  if (typeof svgString !== "string") return null;
+  // Try viewBox first: viewBox="minX minY width height"
+  const viewBoxMatch = svgString.match(/viewBox\s*=\s*"([^"]+)"/i);
+  if (viewBoxMatch && viewBoxMatch[1]) {
+    const parts = viewBoxMatch[1]
+      .trim()
+      .split(/\s+/)
+      .map((n) => Number(n));
+    if (parts.length === 4 && parts.every((v) => Number.isFinite(v))) {
+      return parts[3];
+    }
+  }
+  // Fallback to height attribute
+  const heightMatch = svgString.match(/height\s*=\s*"([^"]+)"/i);
+  if (heightMatch && heightMatch[1]) {
+    const val = heightMatch[1].trim();
+    const num = Number(val.replace(/[^0-9.+-]/g, ""));
+    if (Number.isFinite(num)) return num;
+  }
+  return null;
+};
+
 // Combine Gerber + Pick&Place overlay
 const svgWithPnP = computed(() => {
   if (!currentGerberSvg.value || !filteredPnP.value) return "";
@@ -1800,6 +1887,9 @@ const svgWithPnP = computed(() => {
     console.warn("Không tìm thấy đơn vị đo hợp lệ trong detailGerber");
     return "";
   }
+
+  const svgHeight = getSvgRenderedHeight(svg);
+
   const pnpMarkers = filteredPnP.value
     .filter((pnp) => pnp.x !== null && pnp.y !== null && pnp.designator)
     .map((pnp) => {
@@ -1814,8 +1904,15 @@ const svgWithPnP = computed(() => {
       if (swapXY.value)
         [transformedX, transformedY] = [transformedY, transformedX];
 
-      const componentRotation =
+      // Invert Y to move origin to bottom-left of SVG if we know the height
+      if (svgHeight !== null) {
+        transformedY = svgHeight - transformedY;
+      }
+
+      const desiredRotation =
         pnp.rotation || pnp.rot || coordinateRotation.value;
+      const componentRotation = ((-desiredRotation % 360) + 360) % 360;
+      const displayRotation = ((desiredRotation % 360) + 360) % 360;
 
       let rectWidth = (pnp.width || 0) * coordinateScale.value;
       let rectLength = (pnp.length || 0) * coordinateScale.value;
@@ -1841,9 +1938,7 @@ const svgWithPnP = computed(() => {
       if (rectWidth > 0 && rectLength > 0 && showComponentBoxes.value) {
         componentMarkup = `
           <!-- Component body rectangle with rotation -->
-          <g transform="rotate(${
-            componentBodyAngle.value
-          }) scale(${squareScale})">
+          <g transform="rotate(${componentBodyAngle.value}) scale(${squareScale})">
             <rect
               class="pnp-component-body"
               x="${-(rectWidth / 2)}"
@@ -1894,11 +1989,7 @@ const svgWithPnP = computed(() => {
             transform-origin="6 3"
           >${pnp.designator}</text>
           <!-- Coordinate info on hover -->
-          <title>${pnp.designator}: X=${transformedX.toFixed(
-        2
-      )}inch, Y=${transformedY.toFixed(
-        2
-      )}inch, Rotation=${componentRotation.toFixed(1)}° (Original: X=${
+          <title>${pnp.designator}: X=${transformedX.toFixed(2)}inch, Y=${transformedY.toFixed(2)}inch, Rotation=${displayRotation.toFixed(1)}° (Original: X=${
         pnp.x
       }mm, Y=${pnp.y}mm${
         rectWidth > 0 && rectLength > 0
@@ -2282,8 +2373,8 @@ const applyManualAdjustment = () => {
 
     return {
       ...item,
-      x: hasX ? Number((item.x + manualOffsetX.value).toFixed(3)) : item.x,
-      y: hasY ? Number((item.y + manualOffsetY.value).toFixed(3)) : item.y,
+      x: hasX ? Number((item.x + manualOffsetX.value).toFixed(2)) : item.x,
+      y: hasY ? Number((item.y + manualOffsetY.value).toFixed(2)) : item.y,
     };
   });
 
@@ -2610,29 +2701,7 @@ const filteredPnP = computed(() => {
 });
 
 
-const downloadExcelPnP = async () => {
-  const workbook = new ExcelJS.Workbook()
-  const worksheet = workbook.addWorksheet("Dữ liệu SMT")
 
-  // Tạo header
-  worksheet.columns = [
-    { header: "Designator", key: "designator", width: 20 },
-    { header: "X-Center", key: "x", width: 20 },
-    { header: "Y- Center", key: "y", width: 20 },
-    { header: "Rotation", key: "rotation", width: 20 },
-    { header: "Layer", key: "layer", width: 20 },
-    { header: "MPN", key: "mpn", width: 50 },
-  ]
-
-  // Thêm dữ liệu từ composables
-  filteredPnP.value.forEach((item) => {
-    worksheet.addRow(item)
-  })
-
-  // Xuất buffer
-  const buffer = await workbook.xlsx.writeBuffer()
-  saveAs(new Blob([buffer]), "DataSMT.xlsx")
-}
 </script>
 <script>
 export default {

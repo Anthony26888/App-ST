@@ -1675,7 +1675,7 @@ io.on("connection", (socket) => {
       try {
         const query = `SELECT *
                       FROM FilterBom
-                      ORDER BY created_at DESC`;
+                      ORDER BY id DESC`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("FilterBomError", err);
           socket.emit("FilterBomData", rows);
@@ -1686,20 +1686,52 @@ io.on("connection", (socket) => {
     }),
     socket.on("getCombineBom", async (id) => {
       try {
-        const query = `SELECT DISTINCT 
-                          p.*,
-                          b.mpn,
-                          b.description AS description_bom,
-                          c.width,
-                          c.length
-                      FROM Pickplace p
-                      LEFT JOIN Bom b
-                        ON p.designator = b.designator
-                        AND p.project_id = b.project_id
-                      LEFT JOIN Components c
-                        ON b.description = c.package
-                      WHERE p.project_id = ?
-                        `;
+        const query = `WITH pm_match AS (
+                        SELECT 
+                          b.project_id,
+                          b.designator, 
+                          pm.package,
+                          pm.width,
+                          pm.length,
+						              pm.id,
+                          LENGTH(pm.package) AS match_len,
+                          ROW_NUMBER() OVER (
+                              PARTITION BY b.project_id, b.designator
+                              ORDER BY LENGTH(pm.package) DESC
+                          ) AS rn
+                      FROM Bom b
+                      JOIN Components pm 
+                          ON b.description LIKE '%' || pm.package || '%'
+                  )
+                  SELECT 
+                      p.id,
+                      p.project_id,
+					            o.id AS id_components_overrides,
+					            pm.id AS id_component,
+                      p.designator,
+                      p.x, p.y, p.rotation, p.layer,
+                      b.mpn,
+                      p.type,
+                      b.description AS description_bom,
+                      COALESCE(o.width, pm.width)  AS width,
+                      COALESCE(o.length, pm.length) AS length,
+                      pm.package AS package,
+                      CASE
+                          WHEN o.mpn IS NOT NULL THEN 'override'
+                          WHEN pm.package IS NOT NULL THEN 'package_map'
+                          ELSE 'missing'
+                      END AS source
+                  FROM Pickplace p
+                  LEFT JOIN Bom b
+                      ON p.designator = b.designator 
+                    AND p.project_id = b.project_id
+                  LEFT JOIN pm_match pm
+                      ON b.designator = pm.designator 
+                    AND b.project_id = pm.project_id 
+                    AND pm.rn = 1
+                  LEFT JOIN Component_overrides o
+                      ON b.mpn = o.mpn
+                  WHERE p.project_id = ?`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("CombineBomError", err);
           socket.emit("CombineBomData", rows);
@@ -1724,18 +1756,53 @@ io.on("connection", (socket) => {
     }),
     socket.on("getPnPFile", async (id) => {
       try {
-        const query = `SELECT DISTINCT 
-                          p.*,
+        const query = `WITH pm_match AS (
+                          SELECT 
+                              b.project_id,
+                              b.designator, 
+                              pm.package,
+                              pm.width,
+                              pm.length,
+                              LENGTH(pm.package) AS match_len,
+                              ROW_NUMBER() OVER (
+                                  PARTITION BY b.project_id, b.designator
+                                  ORDER BY LENGTH(pm.package) DESC
+                              ) AS rn
+                          FROM Bom b
+                          JOIN Components pm 
+                              ON b.description LIKE '%' || pm.package || '%'
+                      )
+                      SELECT 
+                          p.id,
+                          p.project_id,
+                          p.designator,
+                          p.x, 
+                          p.y, 
+                          p.rotation, 
+                          p.layer,
+                          p.type,
                           b.description AS description_bom,
-                          c.width,
-                          c.length,
-                          p.layer
+                          b.mpn,
+                          COALESCE(o.width, pm.width)  AS width,
+                          COALESCE(o.length, pm.length) AS length,   -- sửa theo field của bạn
+                          COALESCE(o.package, pm.package) AS package,
+
+                          CASE
+                              WHEN o.mpn IS NOT NULL THEN 'override'
+                              WHEN pm.package IS NOT NULL THEN 'package_map'
+                              ELSE 'missing'
+                          END AS source
+
                       FROM Pickplace p
                       LEFT JOIN Bom b
-                          ON p.designator = b.designator
-                          AND p.project_id = b.project_id
-                      LEFT JOIN Components c
-                          ON b.description = c.package
+                          ON p.designator = b.designator 
+                        AND p.project_id = b.project_id
+                      LEFT JOIN pm_match pm
+                          ON b.designator = pm.designator 
+                        AND b.project_id = pm.project_id 
+                        AND pm.rn = 1
+                      LEFT JOIN Component_overrides o
+                          ON b.mpn = o.mpn
                       WHERE p.project_id = ?`; 
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("PnPFileError", err);
@@ -1749,8 +1816,8 @@ io.on("connection", (socket) => {
     socket.on("getSettingSVG", async (id) => {
       try {
         const query = `SELECT DISTINCT  *
-                      FROM SettingSVG
-                      WHERE project_id = ?`;
+                      FROM FilterBom
+                      WHERE id = ?`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("SettingSVGError", err);
           socket.emit("SettingSVGData", rows);
@@ -4985,8 +5052,36 @@ app.put("/api/Summary/Edit-item-action/:id", async (req, res) => {
 app.post("/api/FilterBom/Add-item", (req, res) => {
   const { project_name, created_at, note } = req.body;
   db.run(
-    `INSERT INTO FilterBom (project_name, created_at, note)
-     VALUES (?, ?, ?)`,
+    `INSERT INTO FilterBom (
+        project_name, 
+        created_at, 
+        note, 
+        flipX_top, 
+        flipY_top, 
+        swapXY_top, 
+        cx_top, 
+        cy_top, 
+        rotation_top, 
+        rotationSVG_top, 
+        manualOffsetX_top, 
+        manualOffsetY_top,
+        labelAngle_top,
+        componentBodyAngle_top,
+        flipX_bottom, 
+        flipY_bottom, 
+        swapXY_bottom, 
+        cx_bottom, 
+        cy_bottom, 
+        rotation_bottom, 
+        rotationSVG_bottom, 
+        manualOffsetX_bottom, 
+        manualOffsetY_bottom,
+        labelAngle_bottom,
+        componentBodyAngle_bottom,
+        panel_frame_X,
+        panel_frame_Y
+        )
+     VALUES (?, ?, ?, 'false', 'false', 'false', 0, 0, 0, 0, 0, 0, 0, 0, 'false', 'false', 'false', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)`,
     [project_name, created_at, note],
     (err) => {
       if (err) {
@@ -4996,7 +5091,7 @@ app.post("/api/FilterBom/Add-item", (req, res) => {
           .json({ error: "Database error", details: err.message });
       }
       io.emit("UpdateFilterBom");
-      res.json({ message: "Summary received" });
+      res.json({ message: "Filter Bom received" });
     }
   );
 });
@@ -5197,6 +5292,28 @@ function detectLayer(filename) {
   return "Unknown";
 }
 
+// Detect unit in Gerber
+function detectUnit(fileContent) {
+  if (fileContent.includes("%MOIN")) return "inch";
+  if (fileContent.includes("%MOMM")) return "mm";
+  return "unknown";
+}
+
+// Detect format (FS)
+function detectFormat(fileContent) {
+  // Ví dụ: %FSLAX44Y44*%  -> X: 4.4, Y: 4.4
+  const m = fileContent.match(/%FS([LT])A?X(\d)(\d)Y(\d)(\d)\*%/);
+  if (!m) return null;
+
+  return {
+    suppression: m[1] === "L" ? "leading" : "trailing", // L = leading zero omitted, T = trailing
+    x_int: parseInt(m[2], 10),
+    x_dec: parseInt(m[3], 10),
+    y_int: parseInt(m[4], 10),
+    y_dec: parseInt(m[5], 10),
+  };
+}
+
 // Upload Gerber
 app.post("/api/upload-gerber/:id", upload.single("FileGerber"), (req, res) => {
   const projectId = req.params.id;
@@ -5204,24 +5321,62 @@ app.post("/api/upload-gerber/:id", upload.single("FileGerber"), (req, res) => {
   const fileName = req.file.originalname;
   const layer = detectLayer(fileName);
 
-  const fileStream = fs.createReadStream(filePath);
-  const converter = gerberToSvg(fileStream);
+  try {
+    // Đọc nội dung file text để detect unit + format
+    const fileContent = fs.readFileSync(filePath, "utf8");
+    const unit = detectUnit(fileContent);
+    const format = detectFormat(fileContent);
 
-  let svgData = "";
-  converter.on("data", (d) => (svgData += d.toString()));
-  converter.on("end", () => {
-    db.run(
-      `INSERT INTO GerberData (layer, svg, filename, project_id) VALUES (?, ?, ?, ?)`,
-      [layer, svgData, fileName, projectId],
-      function (err) {
-        if (err) return res.status(500).json({ error: err.message });
+    // Convert sang SVG
+    const fileStream = fs.createReadStream(filePath);
+    const converter = gerberToSvg(fileStream);
 
-        io.emit("gerber_uploaded", { id: this.lastID, layer, svg: svgData });
-        res.json({ id: this.lastID, layer });
-      }
-    );
-    fs.unlinkSync(filePath); // xóa file upload
-  });
+    let svgData = "";
+    converter.on("data", (d) => (svgData += d.toString()));
+    converter.on("end", () => {
+      db.run(
+        `INSERT INTO GerberData (layer, svg, filename, project_id, unit, format) 
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          layer,
+          svgData,
+          fileName,
+          projectId,
+          unit,
+          format ? JSON.stringify(format) : null,
+        ],
+        function (err) {
+          if (err) {
+            console.error("DB insert error:", err.message);
+            return res.status(500).json({ error: err.message });
+          }
+
+          io.emit("gerber_uploaded", {
+            id: this.lastID,
+            layer,
+            unit,
+            format,
+            svg: svgData,
+          });
+          io.emit("CombineBomUpdate");
+          io.emit("PnPFileUpdate");
+          res.json({ id: this.lastID, layer, unit, format });
+        }
+      );
+
+      fs.unlinkSync(filePath); // Xóa file upload sau khi xử lý
+    });
+
+    converter.on("error", (err) => {
+      console.error("Gerber convert error:", err.message);
+      res.status(500).json({ error: "Failed to convert Gerber to SVG" });
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    });
+  } catch (e) {
+    console.error("Upload error:", e.message);
+    res.status(500).json({ error: e.message });
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  }
 });
 
 // Put value in table Pick Place table
@@ -5246,7 +5401,163 @@ app.put("/api/Pickplace/Edit-item/:id", (req, res) => {
           .json({ error: "Database error", details: err.message });
       }
       io.emit("CombineBomUpdate");
+      io.emit("PnPFileUpdate");
+      io.emit("SettingSVGUpdate");
       res.json({ message: "Summary received" });
+    }
+  );
+});
+
+// Put value in table SettingSVG table
+app.put("/api/SettingSVG/Edit-item-top/:id", (req, res) => {
+  const { id } = req.params;
+  const { cx, cy, rotation, rotationSVG, manualOffsetX, manualOffsetY, flipX, flipY, swapXY, labelAngle, componentBodyAngle, panelFrameX, panelFrameY } = req.body;
+  db.run(
+    `UPDATE FilterBom
+    SET 
+      flipX_top = ?,
+      flipY_top = ?,
+      swapXY_top = ?,
+      cx_top = ?, 
+      cy_top = ?, 
+      rotation_top = ?,
+      rotationSVG_top = ?,
+      manualOffsetX_top = ?,
+      manualOffsetY_top = ?,
+      labelAngle_top = ?,
+      componentBodyAngle_top = ?,
+      panel_frame_X = ?,
+      panel_frame_Y = ?
+    WHERE id = ?`,
+    [flipX, flipY, swapXY, cx, cy, rotation, rotationSVG, manualOffsetX, manualOffsetY, labelAngle, componentBodyAngle, panelFrameX, panelFrameY, id],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("CombineBomUpdate");
+      io.emit("PnPFileUpdate");
+      io.emit("SettingSVGUpdate");
+      res.json({ message: "Summary received" });
+    }
+  );
+});
+
+app.put("/api/SettingSVG/Edit-item-bottom/:id", (req, res) => {
+  const { id } = req.params;
+  const { cx, cy, rotation, rotationSVG, manualOffsetX, manualOffsetY, flipX, flipY, swapXY, labelAngle, componentBodyAngle, panelFrameX, panelFrameY } = req.body;
+  db.run(
+    `UPDATE FilterBom
+    SET 
+      flipX_bottom = ?,
+      flipY_bottom = ?,
+      swapXY_bottom = ?,
+      cx_bottom = ?, 
+      cy_bottom = ?, 
+      rotation_bottom = ?,
+      rotationSVG_bottom = ?,
+      manualOffsetX_bottom = ?,
+      manualOffsetY_bottom = ?,
+      labelAngle_bottom = ?,
+      componentBodyAngle_bottom = ?,
+      panel_frame_X = ?,
+      panel_frame_Y = ?
+    WHERE id = ?`,
+    [flipX, flipY, swapXY, cx, cy, rotation, rotationSVG, manualOffsetX, manualOffsetY, labelAngle, componentBodyAngle, panelFrameX, panelFrameY, id],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("CombineBomUpdate");
+      io.emit("PnPFileUpdate");
+      io.emit("SettingSVGUpdate");
+      res.json({ message: "Summary received" });
+    }
+  );
+});
+
+// Post item in Component overrides
+app.post("/api/Component-overrides/Add-item", (req, res) => {
+  const { mpn, package, length, width } = req.body;
+  db.run(
+    `INSERT INTO Component_overrides (
+        mpn, 
+        package, 
+        length, 
+        width
+        )
+     VALUES (?, ?, ?, ?)`,
+    [mpn, package, length, width],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("UpdateFilterBom");
+      io.emit("CombineBomUpdate");
+      io.emit("PnPFileUpdate");
+      res.json({ message: "Filter Bom received" });
+    }
+  );
+});
+
+// Put item in Component overrides
+app.put("/api/Component-overrides/Edit-item/:id", (req, res) => {
+  const { id } = req.params;
+  const { package, length, width } = req.body;
+  db.run(
+    `UPDATE Component_overrides
+     SET
+        package = ?, 
+        length = ?, 
+        width = ?
+     WHERE id = ?`,
+    [package, length, width, id],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("UpdateFilterBom");
+      io.emit("CombineBomUpdate");
+      io.emit("PnPFileUpdate");
+      res.json({ message: "Filter Bom received" });
+    }
+  );
+});
+
+// Put item in Component overrides
+app.put("/api/Component/Edit-item/:id", (req, res) => {
+  const { id } = req.params;
+  const { package, length, width } = req.body;
+  db.run(
+    `UPDATE Components
+     SET
+        package = ?, 
+        length = ?, 
+        width = ?
+     WHERE id = ?`,
+    [package, length, width, id],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("UpdateFilterBom");
+      io.emit("CombineBomUpdate");
+      io.emit("PnPFileUpdate");
+      res.json({ message: "Filter Bom received" });
     }
   );
 });

@@ -437,7 +437,31 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       project_name TEXT,
       created_at TEXT,
-      note TEXT
+      note TEXT,
+      flipX_top TEXT,
+      flipY_top TEXT,
+      swapXY_top TEXT,
+      cx_top REAL,
+      cy_top REAL,
+      rotation_top INTERGER,
+      rotationSVG_top INTERGER,
+      manualOffsetX_top REAL,
+      manualOffsetY_top REAL,
+      labelAngle_top INTERGER,
+      componentBodyAngle_top INTERGER,
+      flipX_bottom TEXT,
+      flipY_bottom TEXT,
+      swapXY_bottom TEXT,
+      cx_bottom REAL,
+      cy_bottom REAL,
+      rotation_bottom INTERGER,
+      rotationSVG_bottom INTERGER,
+      manualOffsetX_bottom REAL,
+      manualOffsetY_bottom REAL,
+      labelAngle_bottom INTERGER,
+      componentBodyAngle_bottom INTERGER,
+      panel_frame_X INTERGER,
+      panel_frame_Y INTERGER
     )
   `);
 
@@ -474,37 +498,29 @@ db.serialize(() => {
       layer TEXT,
       svg TEXT,
       filename TEXT,
-      project_id INTERGER,
-      FOREIGN KEY (project_id) REFERENCES FilterBom(id) ON DELETE CASCADE
-    )
-  `);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS SettingSVG (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
       unit TEXT,
-      swapXY TEXT,
-      cx REAL,
-      cy REAL,
-      rotation INTERGER,
-      manualOffsetX REAL,
-      manualOffsetY REAL,
+      format TEXT,
       project_id INTERGER,
       FOREIGN KEY (project_id) REFERENCES FilterBom(id) ON DELETE CASCADE
     )
   `);
   db.run(`
     CREATE TABLE IF NOT EXISTS Components (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      category TEXT,      
-      name TEXT,         
+      id INTEGER PRIMARY KEY AUTOINCREMENT,      
       package TEXT,     
       width REAL,         
-      length REAL,        
-      pitch REAL,        
-      pins INTEGER,      
-      notes TEXT
+      length REAL   
     )
+  `);
+  
+  db.run(`
+    CREATE TABLE IF NOT EXISTS Component_overrides (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      mpn TEXT UNIQUE,
+      width REAL,
+      length REAL,
+      package TEXT
+    );
   `);
 
 

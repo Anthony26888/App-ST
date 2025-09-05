@@ -14,7 +14,7 @@
           <!-- Header của bảng với các nút chức năng -->
           <v-card-title class="d-flex align-center pe-2">
             <!-- Nút thêm mới -->
-            <!-- <v-btn
+            <v-btn
               prepend-icon="mdi mdi-plus"
               variant="tonal"
               color="primary"
@@ -22,7 +22,7 @@
               @click="DialogAdd = true"
             >
               Thêm
-            </v-btn> -->
+            </v-btn>
             <!-- Hiển thị tổng số kế hoạch -->
             <p class="ms-2 font-weight-thin text-subtitle-1">
               ( {{ manufacture.length }} kế hoạch)
@@ -92,7 +92,9 @@
                 >
                   {{ item.Status_Output }}
                 </v-chip>
-                <v-chip v-else color="warning" variant="tonal"> {{ item.Status_Output}} </v-chip>
+                <v-chip v-else color="warning" variant="tonal">
+                  {{ item.Status_Output }}
+                </v-chip>
               </template>
 
               <!-- Cột độ trễ SMT -->
@@ -145,7 +147,7 @@
               'Tẩm phủ',
               'OQC',
               'RW',
-              'Nhập kho' 
+              'Nhập kho',
             ]"
             multiple
             chips
@@ -184,19 +186,23 @@
       <v-card max-width="500" class="overflow-y-auto">
         <v-card-title class="d-flex align-center pa-4">
           <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
-          Thêm dữ liệu
+          Thêm dữ liệu sản xuất
         </v-card-title>
         <v-card-text>
           <InputField
             label="Tên dự án"
-            :model-value="Name_Add"
-            @update:model-value="Name_Add = $event"
+            v-model="Name_Manufacture_Add"
+          />
+          <InputField
+            label="Tên đơn hàng"
+            v-model="Name_Order_Manufacture"
+            @update:model-value="Name_Order_Manufacture = $event"
           />
           <InputField
             label="Tổng sản phẩm"
             type="number"
-            :model-value="Total_Add"
-            @update:model-value="Total_Add = $event"
+            :model-value="Total_Manufacture_Add"
+            @update:model-value="Total_Manufacture_Add = $event"
           />
           <InputSelect
             label="Quy trình"
@@ -209,7 +215,10 @@
               'Test 1',
               'Test 2',
               'Box Build',
-              'OQC'
+              'Tẩm phủ',
+              'OQC',
+              'RW',
+              'Nhập kho',
             ]"
             multiple
             chips
@@ -220,13 +229,13 @@
           <InputField
             label="Ngày tạo"
             type="date"
-            :model-value="Date_Add"
-            @update:model-value="Date_Add = $event"
+            v-model="Date_Manufacture_Add"
+            @update:model-value="Date_Manufacture_Add = $event"
           />
           <InputTextarea
             label="Ghi chú"
-            :model-value="Note_Add"
-            @update:model-value="Note_Add = $event"
+            :model-value="Note_Add_Manufacture"
+            @update:model-value="Note_Add_Manufacture = $event"
           />
         </v-card-text>
         <v-card-actions>
@@ -314,7 +323,6 @@ import { useManufacture } from "@/composables/Manufacture/useManufacture";
 
 // Khởi tạo các composables và biến môi trường
 const { manufacture, manufactureError } = useManufacture();
-console.log(manufacture);
 
 // Khởi tạo các biến môi trường
 const Url = import.meta.env.VITE_API_URL;
@@ -349,15 +357,14 @@ const Quantity_Test2_Edit = ref(1);
 const Quantity_ConformalCoating_Edit = ref(1);
 const Quantity_OQC_Edit = ref(1);
 
-
-
-
 // Khởi tạo các biến ref cho form thêm mới
-const Name_Add = ref("");
-const Date_Add = ref("");
-const Note_Add = ref("");
-const Total_Add = ref(0);
-const Level_Add = ref("");
+// Khởi tạo các biến ref cho form thêm mới
+const Name_Manufacture_Add = ref("");
+const Name_Order_Manufacture =ref("");
+const Date_Manufacture_Add = ref("");
+const Note_Manufacture_Add = ref("");
+const Total_Manufacture_Add = ref(0);
+const Level_Manufacture_Add = ref(null);
 
 // Khởi tạo các biến ref cho thông tin người dùng và tìm kiếm
 const UserInfo = ref("");
@@ -424,10 +431,9 @@ function GetItem(value) {
   DialogEdit.value = true;
   GetID.value = value;
   const found = manufacture.value.find((v) => v.id === value);
-  console.log(found);
   Name_Edit.value = found.Name;
   Total_Edit.value = found.Total;
-  Level_Edit.value = (found.Level).split('-');
+  Level_Edit.value = found.Level.split("-");
   Date_Edit.value = found.Date;
   Note_Edit.value = found.Note;
   DelaySMT_Edit.value = found.DelaySMT;
@@ -441,7 +447,6 @@ function GetItem(value) {
   Quantity_Test2_Edit.value = found.Quantity_Test2;
   Quantity_ConformalCoating_Edit.value = found.Quantity_ConformalCoating;
   Quantity_OQC_Edit.value = found.Quantity_OQC;
-
 }
 
 // Hàm lưu thông tin chỉnh sửa
@@ -456,15 +461,15 @@ const SaveEdit = async () => {
     DelaySMT: DelaySMT_Edit.value,
     Level: Level_Edit.value,
     Quantity: Quantity_Edit.value,
-    Quantity_IPQC : Quantity_IPQC_Edit.value,
-    Quantity_IPQCSMT : Quantity_IPQCSMT_Edit.value,
-    Quantity_AOI : Quantity_AOI_Edit.value,
-    Quantity_Assembly : Quantity_Assembly_Edit.value,
-    Quantity_BoxBuild : Quantity_BoxBuild_Edit.value,
-    Quantity_Test1 : Quantity_Test1_Edit.value,
-    Quantity_Test2 : Quantity_Test2_Edit.value,
-    Quantity_ConformalCoating : Quantity_ConformalCoating_Edit.value,
-    Quantity_OQC : Quantity_OQC_Edit.value
+    Quantity_IPQC: Quantity_IPQC_Edit.value,
+    Quantity_IPQCSMT: Quantity_IPQCSMT_Edit.value,
+    Quantity_AOI: Quantity_AOI_Edit.value,
+    Quantity_Assembly: Quantity_Assembly_Edit.value,
+    Quantity_BoxBuild: Quantity_BoxBuild_Edit.value,
+    Quantity_Test1: Quantity_Test1_Edit.value,
+    Quantity_Test2: Quantity_Test2_Edit.value,
+    Quantity_ConformalCoating: Quantity_ConformalCoating_Edit.value,
+    Quantity_OQC: Quantity_OQC_Edit.value,
   });
   try {
     const response = await axios.put(
@@ -485,24 +490,25 @@ const SaveEdit = async () => {
 const SaveAdd = async () => {
   DialogLoading.value = true;
   const formData = reactive({
-    Name: Name_Add.value,
-    Status: false,
-    Date: Date_Add.value,
-    Total: Total_Add.value,
-    Note: Note_Add.value,
+    Name: Name_Manufacture_Add.value,
+    Name_Order: Name_Order_Manufacture.value,
+    Date: Date_Manufacture_Add,
+    Total: Total_Manufacture_Add.value,
+    Note: Note_Manufacture_Add.value,
     Creater: UserInfo.value,
-    DelaySMT: 50,
-    Level: Level_Add.value,
+    DelaySMT:5000,
     Quantity: 1,
+    Level: Level_Manufacture_Add.value,
+    ProjectID: 1
   });
   try {
     const response = await axios.post(`${Url}/PlanManufacture/Add`, formData);
     console.log(response.data);
-    MessageDialog.value = response.data.message;
+    MessageDialog.value = "Đã thêm dữ liệu thành công";
     Reset();
   } catch (error) {
     console.log(error);
-    MessageErrorDialog.value = error.response.data.message;
+    MessageErrorDialog.value = "Thêm dữ liệu thất bại";
     Error();
   }
 };
@@ -532,8 +538,12 @@ function Reset() {
   DialogAdd.value = false;
   Dialog.value = false;
   DialogLoading.value = false;
-  Name_Add.value = "";
-  Date_Add.value = "";
+  Name_Manufacture_Add = "";
+  Name_Order_Manufacture = "";
+  Date_Manufacture_Add = "";
+  Note_Manufacture_Add = "";
+  Total_Manufacture_Add = 0;
+  Level_Manufacture_Add = null;
 }
 
 // Hàm xử lý lỗi
