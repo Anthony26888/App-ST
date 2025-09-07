@@ -5408,6 +5408,36 @@ app.put("/api/Pickplace/Edit-item/:id", (req, res) => {
   );
 });
 
+// Put item in PickPlace table
+app.put("/api/PickPlace/Update-item", (req, res) => {
+  const updates = req.body; // Mảng [{id, project_id, x, y}, ...]
+
+  if (!Array.isArray(updates) || updates.length === 0) {
+    return res.status(400).json({ error: "Dữ liệu không hợp lệ" });
+  }
+
+  // Chuẩn bị statement
+  const stmt = db.prepare(`
+    UPDATE Pickplace
+    SET x = ?, y = ?
+    WHERE id = ? AND project_id = ?
+  `);
+
+  db.serialize(() => {
+    updates.forEach(item => {
+      stmt.run(item.x, item.y, item.id, item.project_id);
+    });
+
+    stmt.finalize(err => {
+      if (err) {
+        console.error("Update error:", err);
+        return res.status(500).json({ error: "Lỗi khi update" });
+      }
+      res.json({ message: "Update Pickplace thành công", count: updates.length });
+    });
+  });
+});
+
 // Put value in table SettingSVG table
 app.put("/api/SettingSVG/Edit-item-top/:id", (req, res) => {
   const { id } = req.params;
@@ -5561,6 +5591,8 @@ app.put("/api/Component/Edit-item/:id", (req, res) => {
     }
   );
 });
+
+
 
 
 // Serve static files from frontend/dist

@@ -383,11 +383,19 @@
               </template>
               
               <template #item.smtX="{ item }">
-                {{ item.x + panelFrameX  || item.x }}
+                {{ (item.x + panelFrameX).toFixed(2)  || item.x }}
               </template>
 
               <template #item.smtY="{ item }">
-                {{ item.y + panelFrameY || item.y }}
+                {{ (item.y + panelFrameY).toFixed(2) || item.y }}
+              </template>
+
+              <template #item.x="{ item }">
+                {{ (item.x).toFixed(2)}}
+              </template>
+
+              <template #item.y="{ item }">
+                {{ (item.y).toFixed(2)}}
               </template>
 
               <!-- <template #item.finalRotation="{ item }">
@@ -517,7 +525,7 @@
         <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
         Cập nhật kích thước linh kiện
         <v-spacer></v-spacer>
-        <v-btn icon="mdi-close" @click="DialogAddSize = false"></v-btn>
+        <v-btn icon="mdi-close" variant="text" @click="DialogAddSize = false"></v-btn>
       </v-card-title>
       <v-card-text>
         <InputField
@@ -1206,6 +1214,7 @@
             Reset
           </v-btn>
           <v-spacer></v-spacer>
+          <v-btn @click="SaveTransformPnP()">Save</v-btn>
           <ButtonSave @save="SaveSettingSVG()" />
         </div>
       </v-card-text>
@@ -1571,7 +1580,6 @@ const SaveAddSize = async () => {
       length: Length_Add_Size.value,
       width: Width_Add_Size.value,
     });
-    console.log(GetIDSize.value);
     try {
       const response = await axios.put(
         `${Url}/Component-overrides/Edit-item/${GetIDSize.value}`,
@@ -1633,6 +1641,28 @@ const SaveEditPnP = async () => {
     const response = await axios.put(
       `${Url}/PickPlace/Edit-item/${GetIDPnP.value}`,
       formData
+    );
+    console.log(response.data.message);
+
+    DialogLoading.value = false;
+    DialogEdit.value = false;
+    DialogSuccess.value = true;
+    MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
+  } catch (error) {
+    console.log(error);
+    DialogLoading.value = false;
+    DialogEdit.value = false;
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
+  }
+};
+
+// Put item in Pickplace table with x, y transform-origin
+const SaveTransformPnP = async () => {
+  DialogLoading.value = true;
+  try {
+    const response = await axios.put(
+      `${Url}/PickPlace/Update-item`, filteredPnP.value  
     );
     console.log(response.data.message);
 
@@ -1941,10 +1971,10 @@ const svgWithPnP = computed(() => {
           <g transform="rotate(${componentBodyAngle.value}) scale(${squareScale})">
             <rect
               class="pnp-component-body"
-              x="${-(rectWidth / 2)}"
-              y="${-(rectLength / 2)}"
-              width="${rectWidth}"
-              height="${rectLength}"
+              x="${-(rectLength / 2)}"
+              y="${-(rectWidth / 2)}"
+              width="${rectLength}"
+              height="${rectWidth}"
               fill="rgba(0, 150, 136, 0.1)"
               stroke="#009688"
               stroke-width="1.5"
@@ -1953,10 +1983,10 @@ const svgWithPnP = computed(() => {
             <!-- Component outline for better visibility -->
             <rect
               class="pnp-component-outline"
-              x="${-(rectWidth / 2)}"
-              y="${-(rectLength / 2)}"
-              width="${rectWidth}"
-              height="${rectLength}"
+              x="${-(rectLength / 2)}"
+              y="${-(rectWidth / 2)}"
+              width="${rectLength}"
+              height="${rectWidth}"
               fill="none"
               stroke="#1976d2"
               stroke-width="0.8"
