@@ -115,34 +115,31 @@
             {{ value }}
           </v-chip>
         </template>
+        <template v-slot:item.x="{ item }">
+          {{ (item.x).toFixed(2)}}
+        </template>
+        <template v-slot:item.y="{ item }">
+          {{ (item.y).toFixed(2)}}
+        </template>
       </v-data-table>
     </v-card-text>
     <v-card-title class="d-flex align-center mt-5">
       <span>So sánh Gerber và Pick & Place</span>
+      <p class="text-subtitle-1 font-weight-thin text-subtitle-1 ms-2">
+                ({{ filteredPnP.length }} điểm)
+              </p>
+              <Button-Download @click="downloadExcelPnP()"/>
       <v-spacer></v-spacer>
       <!-- Coordinate scaling controls -->
       <v-btn
-        title="Cập nhật"
-        icon="mdi-update"
-        color="success"
-        class="text-caption"
-        variant="tonal"
-      ></v-btn>
-      <v-btn
         @click="GetSettingSVG()"
-        icon="mdi-tune"
-        size="small"
-        variant="outlined"
-        class="me-2 ms-2"
+        prepend-icon="mdi-tune"
+        variant="tonal"
+        class="me-2 ms-2 text-caption"
         title="Cài đặt tọa độ"
-      ></v-btn>
+      >Cài đặt</v-btn>
 
       <!-- Controls for overlay -->
-      <v-btn-toggle v-model="overlayMode" color="primary" group class="me-4">
-        <v-btn value="both" size="small">Cả hai</v-btn>
-        <v-btn value="gerber" size="small">Chỉ Gerber</v-btn>
-        <v-btn value="pnp" size="small">Chỉ PnP</v-btn>
-      </v-btn-toggle>
 
       <!-- Layer select -->
       <v-select
@@ -156,22 +153,7 @@
         style="max-width: 160px"
       />
 
-      <v-btn
-        @click="resetZoom"
-        icon="mdi-magnify-close"
-        size="small"
-        variant="outlined"
-        class="me-2"
-        title="Reset zoom"
-      ></v-btn>
-
-      <v-btn
-        @click="toggleFullscreen"
-        icon="mdi-fullscreen"
-        size="small"
-        variant="outlined"
-        title="Fullscreen"
-      ></v-btn>
+      <InputSearch v-model="searchPnP" />
 
       <!-- <v-btn
         @click="showGrid = !showGrid"
@@ -195,7 +177,7 @@
     </v-card-title>
     <v-card-text class="mt-3">
       <v-row>
-        <v-col cols="12">
+        <v-col cols="8" class="mt-5">
           <!-- Hiển thị SVG với overlay Pick & Place -->
           <div
             v-if="svgWithPnP && overlayMode !== 'pnp'"
@@ -250,21 +232,13 @@
               </p>
             </div>
           </div>
-
+        </v-col>
+        <v-col cols="4">
           <!-- Thông tin tọa độ -->
           <div v-if="filteredPnP && filteredPnP.length > 0" class="mt-4">
-            <v-card-title class="d-flex align-center pe-2">
-              Tọa độ Pick & Place
-              <p class="text-subtitle-1 font-weight-thin text-subtitle-1 ms-2">
-                ({{ filteredPnP.length }} điểm)
-              </p>
-              <Button-Download @click="downloadExcelPnP()"/>
-              <v-spacer></v-spacer>
-              <InputSearch v-model="searchPnP" />
-            </v-card-title>
-
+            
             <!-- Transformation info -->
-            <div class="transformation-info">
+            <!-- <div class="transformation-info">
               <div class="d-flex flex-wrap gap-4">
                 <span
                   ><span class="label">Scale:</span>
@@ -340,7 +314,7 @@
                 upside-down or mirrored coordinates. Use Swap X↔Y if X and Y
                 axes are swapped between PnP and Gerber.
               </div>
-            </div>
+            </div> -->
 
             <v-data-table
               class="mt-2 elevation-1"
@@ -831,6 +805,9 @@
                 step="0.01"
               />
               <p class="font-weight-thin">
+                Đã Offset X: {{ hintOffsetX }} mm
+              </p></br>
+              <p class="font-weight-thin">
                 Tổng Offset X: {{ totalAddedX.toFixed(2) }} mm
               </p>
             </v-col>
@@ -843,6 +820,9 @@
                 variant="outlined"
                 step="0.01"
               />
+              <p class="font-weight-thin">
+                Đã Offset Y: {{ hintOffsetY }} mm
+              </p></br>
               <p class="font-weight-thin">
                 Tổng Offset Y: {{ totalAddedY.toFixed(2) }} mm
               </p>
@@ -1338,6 +1318,8 @@ const totalAddedX = ref(0);
 const totalAddedY = ref(0);
 const totalAdjustedCountX = ref(0);
 const totalAdjustedCountY = ref(0);
+const hintOffsetX = ref(0);
+const hintOffsetY = ref(0);
 
 // Adjustment include panel frame và rotation SVG
 const panelFrameX = ref(0);
@@ -1371,12 +1353,9 @@ const Headers = [
 const HeadersPnP = [
   { title: "STT", key: "stt" },
   { title: "Designator", key: "designator" },
-  { title: "Transformed X(mm)", key: "x" },
-  { title: "Transformed Y (mm)", key: "y" },
-  { title: "SMT X(mm)", key: "smtX" },
-  { title: "SMT Y (mm)", key: "smtY" },
-  { title: "Final Rotation (°)", key: "rotation" },
-  { title: "Layer", key: "layer" },
+  { title: "X(mm)", key: "x" },
+  { title: "Y(mm)", key: "y" },
+  { title: "Rotation (°)", key: "rotation" },
   { title: "MPN", key: "mpn" },
 ];
 const searchBom = ref("");
@@ -1471,8 +1450,8 @@ const GetSettingSVG = () => {
   DialogCoordinateSettings.value = true;
   const found = detailSetting.value.find((item) => (item.id = id));
   if (selectedLayer.value == "Top") {
-    manualOffsetX.value = (found.manualOffsetX_top).toFixed(2);
-    manualOffsetY.value = (found.manualOffsetY_top).toFixed(2);
+    hintOffsetX.value = (found.manualOffsetX_top).toFixed(2);
+    hintOffsetY.value = (found.manualOffsetY_top).toFixed(2);
     cx.value = found.cx_top;
     cy.value = found.cy_top;
     rotationAngle.value = found.rotation_top;
@@ -1496,8 +1475,8 @@ const GetSettingSVG = () => {
     };
 
   } else {
-    manualOffsetX.value = (found.manualOffsetX_bottom);
-    manualOffsetY.value = (found.manualOffsetY_bottom);
+    hintOffsetX.value = (found.manualOffsetX_bottom);
+    hintOffsetY.value = (found.manualOffsetY_bottom);
     cx.value = found.cx_bottom;
     cy.value = found.cy_bottom;
     rotationAngle.value = found.rotation_bottom;
