@@ -116,10 +116,10 @@
           </v-chip>
         </template>
         <template v-slot:item.x="{ item }">
-          {{ (item.x).toFixed(2)}}
+          {{ item.x}}
         </template>
         <template v-slot:item.y="{ item }">
-          {{ (item.y).toFixed(2)}}
+          {{ item.y}}
         </template>
       </v-data-table>
     </v-card-text>
@@ -128,7 +128,7 @@
       <p class="text-subtitle-1 font-weight-thin text-subtitle-1 ms-2">
                 ({{ filteredPnP.length }} điểm)
               </p>
-              <Button-Download @click="downloadExcelPnP()"/>
+              <!-- <Button-Download @click="downloadExcelPnP()"/> -->
       <v-spacer></v-spacer>
       <!-- Coordinate scaling controls -->
       <v-btn
@@ -153,7 +153,7 @@
         style="max-width: 160px"
       />
 
-      <InputSearch v-model="searchPnP" />
+      <!-- <InputSearch v-model="searchPnP" /> -->
 
       <!-- <v-btn
         @click="showGrid = !showGrid"
@@ -177,7 +177,7 @@
     </v-card-title>
     <v-card-text class="mt-3">
       <v-row>
-        <v-col cols="8" class="mt-5">
+        <v-col cols="12" class="mt-5">
           <!-- Hiển thị SVG với overlay Pick & Place -->
           <div
             v-if="svgWithPnP && overlayMode !== 'pnp'"
@@ -217,8 +217,13 @@
             <div class="zoom-indicator">{{ Math.round(zoomLevel * 100) }}%</div>
           </div>
 
+          <div v-if="overlayMode !== 'pnp' && !currentGerberSvg" class="text-center pa-8">
+            <v-icon size="64" color="grey">mdi-image-off</v-icon>
+            <p class="text-h6 text-grey mt-4">Chưa có dữ liệu Gerber cho layer đã chọn</p>
+          </div>
+
           <!-- Hiển thị chỉ tọa độ PnP nếu chọn mode PnP -->
-          <div
+          <!-- <div
             v-if="
               overlayMode === 'pnp' && filteredPnP && filteredPnP.length > 0
             "
@@ -231,11 +236,11 @@
                 Sử dụng bảng bên dưới để xem chi tiết
               </p>
             </div>
-          </div>
+          </div> -->
         </v-col>
-        <v-col cols="4">
-          <!-- Thông tin tọa độ -->
-          <div v-if="filteredPnP && filteredPnP.length > 0" class="mt-4">
+        <!-- <v-col cols="4">
+           Thông tin tọa độ
+          <div v-if="filteredPnP && filteredPnP.length > 0" class="mt-4"> -->
             
             <!-- Transformation info -->
             <!-- <div class="transformation-info">
@@ -316,7 +321,7 @@
               </div>
             </div> -->
 
-            <v-data-table
+            <!-- <v-data-table
               class="mt-2 elevation-1"
               density="compact"
               :search="searchPnP"
@@ -372,7 +377,7 @@
                 {{ (item.y).toFixed(2)}}
               </template>
 
-              <!-- <template #item.finalRotation="{ item }">
+              <template #item.finalRotation="{ item }">
                 <v-chip size="small" color="success" variant="tonal">
                   {{
                     (
@@ -380,7 +385,7 @@
                     ).toFixed(1)
                   }}°
                 </v-chip>
-              </template> -->
+              </template>
               <template v-slot:item.stt="{ index }">
                 {{ (pagePnP - 1) * itemsPerPagePnP + index + 1 }}
               </template>
@@ -402,11 +407,11 @@
                   ></v-pagination>
                 </div>
               </template>
-            </v-data-table>
-          </div>
+            </v-data-table> 
+          </div> -->
 
           <!-- Thông báo khi không có dữ liệu -->
-          <div v-if="!svgWithPnP && !currentGerberSvg" class="text-center pa-8">
+          <!-- <div v-if="!svgWithPnP && !currentGerberSvg" class="text-center pa-8">
             <v-icon size="64" color="grey">mdi-image-off</v-icon>
             <p class="text-h6 text-grey mt-4">Chưa có dữ liệu Gerber</p>
           </div>
@@ -418,7 +423,7 @@
             <v-icon size="64" color="grey">mdi-map-marker-off</v-icon>
             <p class="text-h6 text-grey mt-4">Chưa có dữ liệu Pick & Place</p>
           </div>
-        </v-col>
+        </v-col> -->
       </v-row>
     </v-card-text>
   </v-card>
@@ -1085,7 +1090,7 @@
         <!-- Điều khiển xoay SVG -->
         <v-divider class="my-3"></v-divider>
         <p class="text-caption text-grey mb-2">Điều khiển board:</p>
-        <div class="d-flex flex-wrap ga-2">
+        <!-- <div class="d-flex flex-wrap ga-2">
           <InputField
             v-model.number="panelFrameX"
             label="Rìa panel trục X (mm)"
@@ -1106,7 +1111,7 @@
         <div class="d-flex">
           <p class="text-bold text-warning">Lưu ý:</p>
           <p class="font-weight-light ms-2">Trục Y tính từ dưới panel đến vị trị board có linh kiện, Trục X tính từ bên trái qua.</p>
-        </div>
+        </div> -->
         <div class="d-flex flex-wrap ga-2 mt-5">
           <InputField
             v-model.number="svgRotation"
@@ -1194,8 +1199,7 @@
             Reset
           </v-btn>
           <v-spacer></v-spacer>
-          <v-btn @click="SaveTransformPnP()">Save</v-btn>
-          <ButtonSave @save="SaveSettingSVG()" />
+          <ButtonSave @save="SaveSettingSVG(); SaveTransformPnP()" />
         </div>
       </v-card-text>
     </v-card>
@@ -1350,21 +1354,21 @@ const Headers = [
   { title: "Thao tác", key: "id", sortable: false },
 ];
 
-const HeadersPnP = [
-  { title: "STT", key: "stt" },
-  { title: "Designator", key: "designator" },
-  { title: "X(mm)", key: "x" },
-  { title: "Y(mm)", key: "y" },
-  { title: "Rotation (°)", key: "rotation" },
-  { title: "MPN", key: "mpn" },
-];
+// const HeadersPnP = [
+//   { title: "STT", key: "stt" },
+//   { title: "Designator", key: "designator" },
+//   { title: "X(mm)", key: "x" },
+//   { title: "Y(mm)", key: "y" },
+//   { title: "Rotation (°)", key: "rotation" },
+//   { title: "MPN", key: "mpn" },
+// ];
 const searchBom = ref("");
 const itemsPerPageBom = ref(20);
 const pageBom = ref(1);
 
-const searchPnP = ref("")
-const itemsPerPagePnP = ref(20);
-const pagePnP = ref(1);
+// const searchPnP = ref("")
+// const itemsPerPagePnP = ref(20);
+// const pagePnP = ref(1);
 // Color mapping for match quality categories
 
 // ============ onMounted =============
@@ -1998,7 +2002,7 @@ const svgWithPnP = computed(() => {
             transform-origin="6 3"
           >${pnp.designator}</text>
           <!-- Coordinate info on hover -->
-          <title>${pnp.designator}: X=${transformedX.toFixed(2)}inch, Y=${transformedY.toFixed(2)}inch, Rotation=${displayRotation.toFixed(1)}° (Original: X=${
+          <title>${pnp.designator}: X=${
         pnp.x
       }mm, Y=${pnp.y}mm${
         rectWidth > 0 && rectLength > 0
@@ -2006,7 +2010,7 @@ const svgWithPnP = computed(() => {
               2
             )}mm`
           : ""
-      })</title>
+      }</title>
     </g>
       `;
     })
@@ -2594,42 +2598,6 @@ const GetSetting = () => {
   }
 };
 
-// Debug coordinate info
-const debugCoordinates = () => {
-  console.log("Current Coordinates:");
-  console.log("Scale:", coordinateScale.value);
-  console.log("Offset X:", coordinateOffsetX.value);
-  console.log("Offset Y:", coordinateOffsetY.value);
-  console.log("Global Rotation:", coordinateRotation.value);
-  console.log("Flip X:", flipX.value);
-  console.log("Flip Y:", flipY.value);
-  console.log("Swap X↔Y:", swapXY.value);
-  console.log("Zoom Level:", zoomLevel.value);
-  console.log("Rotation Center X:", cx.value);
-  console.log("Rotation Center Y:", cy.value);
-  console.log("Rotation Angle:", rotationAngle.value);
-  console.log("Manual Offset X:", manualOffsetX.value);
-  console.log("Manual Offset Y:", manualOffsetY.value);
-  console.log("SVG Rotation:", svgRotation.value);
-  console.log("Designator Label Angle:", designatorLabelAngle.value);
-  console.log("Component Body Angle:", componentBodyAngle.value);
-
-  // Log PnP data with rotation
-  if (detailPnP.value && detailPnP.value.length > 0) {
-    console.log("PnP Data with Rotation:");
-    detailPnP.value.forEach((item, index) => {
-      const transformed = getTransformedCoordinates(item.x, item.y);
-      console.log(
-        `${index + 1}. ${item.designator}: Original(X=${item.x}, Y=${
-          item.y
-        }) → Transformed(X=${transformed.x.toFixed(
-          2
-        )}, Y=${transformed.y.toFixed(2)})`
-      );
-    });
-  }
-};
-
 // Computed bounds and center of current PnP dataset (raw units)
 const pnpBounds = computed(() => {
   if (!filteredPnP.value || filteredPnP.value.length === 0) return null;
@@ -2676,7 +2644,7 @@ const currentGerberSvg = computed(() => {
       (item) => item && item.layer === selectedLayer.value && item.svg
     );
     if (byLayer && typeof byLayer.svg === "string") return byLayer.svg;
-    return dg[0]?.svg || "";
+    return "";
   } else if (dg && typeof dg === "object") {
     return dg.svg || "";
   } else if (typeof dg === "string") {
@@ -2693,7 +2661,7 @@ const currentGerberUnit = computed(() => {
       (item) => item && item.layer === selectedLayer.value && item.unit
     );
     if (byLayer && typeof byLayer.unit === "string") return byLayer.unit;
-    return dg[0]?.unit || "";
+    return "";
   } else if (dg && typeof dg === "object") {
     return dg.unit || "";
   } else if (typeof dg === "string") {
@@ -2707,8 +2675,7 @@ const filteredPnP = computed(() => {
   const list = detailPnP.value || [];
   return list.filter((p) => (p.layer || "Top") === selectedLayer.value && p.type === "SMT");
   
-});
-
+})
 
 
 </script>

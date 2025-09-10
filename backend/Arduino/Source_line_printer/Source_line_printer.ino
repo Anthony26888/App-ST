@@ -9,7 +9,7 @@
 // ===================== CẤU HÌNH =====================
 const char* ssid = "KTNM2023";
 const char* password = "Sthuat@2023KTNM";
-const char* SERVER_HOST = "http://192.168.1.200";  // ✅ Đặt URL server tại đây
+const char* SERVER_HOST = "http://192.168.1.201";  // ✅ Đặt URL server tại đây
 // ====================================================
 
 // ⚙️ IP tĩnh cấu hình
