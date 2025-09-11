@@ -538,18 +538,26 @@ function Reset() {
   DialogAdd.value = false;
   Dialog.value = false;
   DialogLoading.value = false;
-  Name_Manufacture_Add = "";
-  Name_Order_Manufacture = "";
-  Date_Manufacture_Add = "";
-  Note_Manufacture_Add = "";
-  Total_Manufacture_Add = 0;
-  Level_Manufacture_Add = null;
+  DialogFailed.value = false;
+  Name_Manufacture_Add.value = "";
+  Name_Order_Manufacture.value = "";
+  Date_Manufacture_Add.value = "";
+  Note_Manufacture_Add.value = "";
+  Total_Manufacture_Add.value = 0;
+  Level_Manufacture_Add.value = null;
 }
 
 // Hàm xử lý lỗi
 function Error() {
   DialogFailed.value = true;
+  DialogSuccess.value = false;
   DialogLoading.value = false;
+  Name_Manufacture_Add.value = "";
+  Name_Order_Manufacture.value = "";
+  Date_Manufacture_Add.value = "";
+  Note_Manufacture_Add.value = "";
+  Total_Manufacture_Add.value = 0;
+  Level_Manufacture_Add.value = null;
 }
 </script>
 

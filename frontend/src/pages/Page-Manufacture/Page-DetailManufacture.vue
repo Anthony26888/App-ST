@@ -1917,10 +1917,12 @@ const SaveEditSettingSMT = async () => {
       formData
     );
     console.log(response.data.message);
+    DialogSuccess.value = true
     MessageDialog.value = response.data.message;
     Reset();
   } catch (error) {
     console.log(error);
+    DialogFailed.value = true
     MessageErrorDialog.value = error.response.data.message;
     Error();
   }

@@ -930,7 +930,13 @@ io.on("connection", (socket) => {
     });
   socket.on("getManufactureAOI", async (id) => {
     try {
-      const query = `SELECT *
+      const query = `SELECT 
+                      PartNumber,
+                      Status,
+                      RWID,
+                      TimestampRW,
+                      Note,
+                      datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp
                       FROM ManufactureAOI
                       WHERE HistoryID = ?
                       ORDER BY Timestamp DESC`;
@@ -969,7 +975,13 @@ io.on("connection", (socket) => {
     }),
     socket.on("getManufactureIPQC", async (id) => {
       try {
-        const query = `SELECT *
+        const query = `SELECT 
+                        PartNumber,
+                        Status,
+                        RWID,
+                        TimestampRW,
+                        Note,
+                        datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp
                       FROM ManufactureIPQC
                       WHERE HistoryID = ?
                       ORDER BY Timestamp DESC`;
@@ -997,7 +1009,13 @@ io.on("connection", (socket) => {
     }),
     socket.on("getManufactureAssembly", async (id) => {
       try {
-        const query = `SELECT *
+        const query = `SELECT 
+                        PartNumber,
+                        Status,
+                        RWID,
+                        TimestampRW,
+                        Note,
+                        datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp
                       FROM ManufactureAssembly
                       WHERE HistoryID = ?
                       ORDER BY Timestamp DESC`;
@@ -1011,7 +1029,13 @@ io.on("connection", (socket) => {
     }),
     socket.on("getManufactureOQC", async (id) => {
       try {
-        const query = `SELECT *
+        const query = `SELECT 
+                        PartNumber,
+                        Status,
+                        RWID,
+                        TimestampRW,
+                        Note,
+                        datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp
                       FROM ManufactureOQC
                       WHERE HistoryID = ?
                       ORDER BY Timestamp DESC`;
@@ -1034,7 +1058,7 @@ io.on("connection", (socket) => {
                           ELSE 'Máy Reflow'
                         END AS Source,
                         Status,
-                        Timestamp,
+                        datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp,
                         HistoryID
                       FROM ManufactureSMT
                       WHERE HistoryID = ?
@@ -1049,7 +1073,13 @@ io.on("connection", (socket) => {
     }),
     socket.on("getManufactureBoxBuild", async (id) => {
       try {
-        const query = `SELECT *
+        const query = `SELECT 
+                        PartNumber,
+                        Status,
+                        RWID,
+                        TimestampRW,
+                        Note,
+                        datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp
                       FROM ManufactureBoxBuild
                       WHERE HistoryID = ?
                       ORDER BY Timestamp DESC`;
@@ -1063,7 +1093,13 @@ io.on("connection", (socket) => {
     }),
     socket.on("getManufactureCC", async (id) => {
       try {
-        const query = `SELECT *
+        const query = `SELECT 
+                        PartNumber,
+                        Status,
+                        RWID,
+                        TimestampRW,
+                        Note,
+                        datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp
                       FROM ManufactureConformalCoating
                       WHERE HistoryID = ?
                       ORDER BY Timestamp DESC`;
@@ -1077,7 +1113,13 @@ io.on("connection", (socket) => {
     }),
     socket.on("getManufactureTest1", async (id) => {
       try {
-        const query = `SELECT *
+        const query = `SELECT 
+                        PartNumber,
+                        Status,
+                        RWID,
+                        TimestampRW,
+                        Note,
+                        datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp
                       FROM ManufactureTest1
                       WHERE HistoryID = ?
                       ORDER BY Timestamp DESC`;
@@ -1091,7 +1133,13 @@ io.on("connection", (socket) => {
     }),
     socket.on("getManufactureTest2", async (id) => {
       try {
-        const query = `SELECT *
+        const query = `SELECT 
+                        PartNumber,
+                        Status,
+                        RWID,
+                        TimestampRW,
+                        Note,
+                        datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp
                       FROM ManufactureTest2
                       WHERE HistoryID = ?
                       ORDER BY Timestamp DESC`;
@@ -1105,7 +1153,13 @@ io.on("connection", (socket) => {
     }),
     socket.on("getManufactureWarehouse", async (id) => {
       try {
-        const query = `SELECT *
+        const query = `SELECT 
+                        PartNumber,
+                        Status,
+                        RWID,
+                        TimestampRW,
+                        Note,
+                        datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp
                       FROM ManufactureWarehouse
                       WHERE HistoryID = ?
                       ORDER BY Timestamp DESC`;
@@ -1350,7 +1404,7 @@ io.on("connection", (socket) => {
                         a.Type,
                         a.PONumber,
                         a.PlanID,
-						 a.Action,
+						            a.Action,
                         z.Name_Order,
                         z.DelaySMT,
 						            z.Quantity,
@@ -1363,7 +1417,6 @@ io.on("connection", (socket) => {
                         z.Quantity_OQC,
                         z.Quantity_Test1,
                         z.Quantity_Test2,
-						
                         a.Category,
                         a.Quantity_Plan,
                         a.CycleTime_Plan,
@@ -1570,31 +1623,31 @@ io.on("connection", (socket) => {
         const query = `
                       SELECT * 
                       FROM (
-                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'SMT - Printer' AS Source FROM ManufactureSMT WHERE Source = 'source_3'
+                        SELECT id, PartNumber, Status, datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, PlanID, Note, 'SMT - Printer' AS Source FROM ManufactureSMT WHERE Source = 'source_3'
                         UNION ALL
-                        SELECT id,PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'SMT - Gắp linh kiện' AS Source FROM ManufactureSMT WHERE Source = 'source_2'
+                        SELECT id,PartNumber, Status, datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, PlanID, Note, 'SMT - Gắp linh kiện' AS Source FROM ManufactureSMT WHERE Source = 'source_2'
                         UNION ALL
-                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'SMT - Lò Reflow' AS Source FROM ManufactureSMT WHERE Source = 'source_1'
+                        SELECT id, PartNumber, Status, datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, PlanID, Note, 'SMT - Lò Reflow' AS Source FROM ManufactureSMT WHERE Source = 'source_1'
                         UNION ALL
-                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'AOI' AS Source FROM ManufactureAOI
+                        SELECT id, PartNumber, Status, datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, PlanID, Note, 'AOI' AS Source FROM ManufactureAOI
                         UNION ALL
-                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Tẩm phủ' FROM ManufactureConformalCoating
+                        SELECT id, PartNumber, Status, datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, PlanID, Note, 'Tẩm phủ' FROM ManufactureConformalCoating
                         UNION ALL
-                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Test1' FROM ManufactureTest1
+                        SELECT id, PartNumber, Status, datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, PlanID, Note, 'Test1' FROM ManufactureTest1
                         UNION ALL
-                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Test2' FROM ManufactureTest2
+                        SELECT id, PartNumber, Status, datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, PlanID, Note, 'Test2' FROM ManufactureTest2
                         UNION ALL
-                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'BoxBuild' FROM ManufactureBoxBuild
+                        SELECT id, PartNumber, Status, datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, PlanID, Note, 'BoxBuild' FROM ManufactureBoxBuild
                         UNION ALL
-                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'IPQC' FROM ManufactureIPQC
+                        SELECT id, PartNumber, Status, datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, PlanID, Note, 'IPQC' FROM ManufactureIPQC
                         UNION ALL
-                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'IPQCSMT' FROM ManufactureIPQCSMT
+                        SELECT id, PartNumber, Status, datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, PlanID, Note, 'IPQCSMT' FROM ManufactureIPQCSMT
                         UNION ALL
-                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'OQC' FROM ManufactureOQC
+                        SELECT id, PartNumber, Status, datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, PlanID, Note, 'OQC' FROM ManufactureOQC
                         UNION ALL
-                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Assembly' FROM ManufactureAssembly
+                        SELECT id, PartNumber, Status, datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, PlanID, Note, 'Assembly' FROM ManufactureAssembly
                         UNION ALL
-                        SELECT id, PartNumber, Status, Timestamp, RWID, TimestampRW, PlanID, Note, 'Nhập kho' FROM ManufactureWarehouse
+                        SELECT id, PartNumber, Status, datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, PlanID, Note, 'Nhập kho' FROM ManufactureWarehouse
                       ) 
                       WHERE PlanID = ?
                       ORDER BY Timestamp DESC`;
@@ -1609,31 +1662,31 @@ io.on("connection", (socket) => {
     socket.on("getActived", async (id) => {
       try {
         const query = `WITH AllData AS (
-                          SELECT Timestamp, RWID, TimestampRW, 'SMT - Printer' AS Source, 'Cảm biến Printer' AS Device FROM ManufactureSMT WHERE Source = 'source_3'
+                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Printer' AS Source, 'Cảm biến Printer' AS Device FROM ManufactureSMT WHERE Source = 'source_3'
                           UNION ALL
-                          SELECT Timestamp, RWID, TimestampRW, 'SMT - Gắp linh kiện' AS Source, 'Cảm biến Gắp linh kiện' AS Device FROM ManufactureSMT WHERE Source = 'source_2'
+                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Gắp linh kiện' AS Source, 'Cảm biến Gắp linh kiện' AS Device FROM ManufactureSMT WHERE Source = 'source_2'
                           UNION ALL
-                          SELECT Timestamp, RWID, TimestampRW, 'SMT - Lò Reflow' AS Source, 'Cảm biến Reflow' AS Device FROM ManufactureSMT WHERE Source = 'source_1'
+                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Lò Reflow' AS Source, 'Cảm biến Reflow' AS Device FROM ManufactureSMT WHERE Source = 'source_1'
                           UNION ALL
-                          SELECT Timestamp, RWID, TimestampRW, 'AOI' AS Source, 'Súng barcode AOI' AS Device FROM ManufactureAOI
+                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'AOI' AS Source, 'Súng barcode AOI' AS Device FROM ManufactureAOI
                           UNION ALL
-                          SELECT Timestamp, RWID, TimestampRW, 'Tẩm phủ' AS Source, 'Súng barcode Tẩm phủ' AS Device FROM ManufactureConformalCoating
+                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'Tẩm phủ' AS Source, 'Súng barcode Tẩm phủ' AS Device FROM ManufactureConformalCoating
                           UNION ALL
-                          SELECT Timestamp, RWID, TimestampRW, 'Test1' AS Source, 'Súng barcode Test1' AS Device FROM ManufactureTest1
+                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'Test1' AS Source, 'Súng barcode Test1' AS Device FROM ManufactureTest1
                           UNION ALL
-                          SELECT Timestamp, RWID, TimestampRW, 'Test2' AS Source, 'Súng barcode Test2' AS Device FROM ManufactureTest2
+                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'Test2' AS Source, 'Súng barcode Test2' AS Device FROM ManufactureTest2
                           UNION ALL
-                          SELECT Timestamp, RWID, TimestampRW, 'BoxBuild' AS Source, 'Súng barcode BoxBuild' AS Device FROM ManufactureBoxBuild
+                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'BoxBuild' AS Source, 'Súng barcode BoxBuild' AS Device FROM ManufactureBoxBuild
                           UNION ALL
-                          SELECT Timestamp, RWID, TimestampRW, 'IPQC' AS Source, 'Súng barcode IPQC' AS Device FROM ManufactureIPQC
+                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'IPQC' AS Source, 'Súng barcode IPQC' AS Device FROM ManufactureIPQC
                           UNION ALL
-                          SELECT Timestamp, RWID, TimestampRW, 'IPQCSMT' AS Source, 'Súng barcode IPQCSMT' AS Device FROM ManufactureIPQCSMT
+                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'IPQCSMT' AS Source, 'Súng barcode IPQCSMT' AS Device FROM ManufactureIPQCSMT
                           UNION ALL
-                          SELECT Timestamp, RWID, TimestampRW, 'OQC' AS Source, 'Súng barcode OQC' AS Device FROM ManufactureOQC
+                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'OQC' AS Source, 'Súng barcode OQC' AS Device FROM ManufactureOQC
                           UNION ALL
-                          SELECT Timestamp, RWID, TimestampRW, 'Assembly' AS Source, 'Súng barcode Assembly' AS Device FROM ManufactureAssembly
+                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'Assembly' AS Source, 'Súng barcode Assembly' AS Device FROM ManufactureAssembly
                           UNION ALL
-                          SELECT Timestamp, RWID, TimestampRW, 'Nhập kho' AS Source, 'Súng barcode Nhập kho' AS Device FROM ManufactureWarehouse
+                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'Nhập kho' AS Source, 'Súng barcode Nhập kho' AS Device FROM ManufactureWarehouse
                       ),
                       Sources(SourceName, SortOrder, DeviceName) AS (
                           VALUES 
@@ -4247,18 +4300,7 @@ app.post("/api/esp-config", async (req, res) => {
 
 app.post("/api/sensor", (req, res) => {
   const { project_id, input_value, source, plan_id } = req.body;
-  const Timestamp = new Date()
-    .toLocaleString("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-      timeZone: "Asia/Bangkok", // GMT+7 timezone
-    })
-    .replace(/,/g, "");
+  const Timestamp = Math.floor(Date.now() / 1000) + (7 * 60 * 60); 
   if (
     typeof project_id === "undefined" ||
     typeof input_value === "undefined" ||
@@ -4343,8 +4385,8 @@ app.get("/api/devices", (req, res) => {
 
 // Post value in table ManufactureAOI
 app.post("/api/Manufacture/AOI", (req, res) => {
-  const { PartNumber, HistoryID, Timestamp, Status, Note, PlanID } = req.body;
-
+  const { PartNumber, HistoryID, Status, Note, PlanID } = req.body;
+  const Timestamp = Math.floor(Date.now() / 1000); 
   db.run(
     `INSERT INTO ManufactureAOI (PartNumber, HistoryID, Timestamp, Status, Note, PlanID)
      VALUES (?, ?, ? ,?, ?, ?)`,
@@ -4364,8 +4406,8 @@ app.post("/api/Manufacture/AOI", (req, res) => {
 
 // Post value in table ManufactureIPQC
 app.post("/api/Manufacture/IPQC", (req, res) => {
-  const { PartNumber, HistoryID, Timestamp, Status, Note, PlanID } = req.body;
-
+  const { PartNumber, HistoryID, Status, Note, PlanID } = req.body;
+  const Timestamp = Math.floor(Date.now() / 1000); 
   db.run(
     `INSERT INTO ManufactureIPQC (HistoryID, PartNumber, Timestamp, Status, Note, PlanID)
      VALUES (?, ?, ?, ?, ?, ?)`,
@@ -4385,8 +4427,8 @@ app.post("/api/Manufacture/IPQC", (req, res) => {
 
 // Post value in table ManufactureAssembly
 app.post("/api/Manufacture/Assembly", (req, res) => {
-  const { PartNumber, HistoryID, Timestamp, Status, PlanID } = req.body;
-
+  const { PartNumber, HistoryID, Status, PlanID } = req.body;
+  const Timestamp = Math.floor(Date.now() / 1000);
   db.run(
     `INSERT INTO ManufactureAssembly (HistoryID, PartNumber, Timestamp, Status, PlanID)
      VALUES (?, ?, ?, ?, ?)`,
@@ -4406,8 +4448,8 @@ app.post("/api/Manufacture/Assembly", (req, res) => {
 
 // Post value in table ManufactureOQC
 app.post("/api/Manufacture/OQC", (req, res) => {
-  const { PartNumber, HistoryID, Timestamp, Status, Note, PlanID } = req.body;
-
+  const { PartNumber, HistoryID, Status, Note, PlanID } = req.body;
+  const Timestamp = Math.floor(Date.now() / 1000); 
   db.run(
     `INSERT INTO ManufactureOQC (HistoryID, PartNumber, Timestamp, Status, Note, PlanID)
      VALUES (?, ?, ?, ?, ?, ?)`,
@@ -4427,8 +4469,8 @@ app.post("/api/Manufacture/OQC", (req, res) => {
 
 // Post value in table ManufactureIPQCSMT
 app.post("/api/Manufacture/IPQC-SMT", (req, res) => {
-  const { PartNumber, HistoryID, Timestamp, Status, Note, PlanID } = req.body;
-
+  const { PartNumber, HistoryID, Status, Note, PlanID } = req.body;
+  const Timestamp = Math.floor(Date.now() / 1000); 
   db.run(
     `INSERT INTO ManufactureIPQCSMT (HistoryID, PartNumber, Timestamp, Status, Note, PlanID)
      VALUES (?, ?, ?, ?, ?, ?)`,
@@ -4447,8 +4489,8 @@ app.post("/api/Manufacture/IPQC-SMT", (req, res) => {
 });
 // Post value in table ManufactureBoxBuild
 app.post("/api/Manufacture/BoxBuild", (req, res) => {
-  const { PartNumber, HistoryID, Timestamp, Status, PlanID } = req.body;
-
+  const { PartNumber, HistoryID, Status, PlanID } = req.body;
+  const Timestamp = Math.floor(Date.now() / 1000); 
   db.run(
     `INSERT INTO ManufactureBoxBuild (HistoryID, PartNumber, Timestamp, Status, PlanID)
      VALUES (?, ?, ?, ?, ?)`,
@@ -4467,8 +4509,8 @@ app.post("/api/Manufacture/BoxBuild", (req, res) => {
 });
 // Post value in table ManufactureBoxBuild
 app.post("/api/Manufacture/Conformal-Coating", (req, res) => {
-  const { PartNumber, HistoryID, Timestamp, Status, PlanID } = req.body;
-
+  const { PartNumber, HistoryID, Status, PlanID } = req.body;
+  const Timestamp = Math.floor(Date.now() / 1000); 
   db.run(
     `INSERT INTO ManufactureConformalCoating (HistoryID, PartNumber, Timestamp, Status, PlanID)
      VALUES (?, ?, ?, ?, ?)`,
@@ -4487,8 +4529,8 @@ app.post("/api/Manufacture/Conformal-Coating", (req, res) => {
 });
 // Post value in table ManufactureTest1
 app.post("/api/Manufacture/Test1", (req, res) => {
-  const { PartNumber, HistoryID, Timestamp, Status, Note, PlanID } = req.body;
-
+  const { PartNumber, HistoryID, Status, Note, PlanID } = req.body;
+  const Timestamp = Math.floor(Date.now() / 1000); 
   db.run(
     `INSERT INTO ManufactureTest1 (HistoryID, PartNumber, Timestamp, Status, Note, PlanID)
      VALUES (?, ?, ?, ?, ?, ?)`,
@@ -4507,8 +4549,8 @@ app.post("/api/Manufacture/Test1", (req, res) => {
 });
 // Post value in table ManufactureTest2
 app.post("/api/Manufacture/Test2", (req, res) => {
-  const { PartNumber, HistoryID, Timestamp, Status, Note, PlanID } = req.body;
-
+  const { PartNumber, HistoryID, Status, Note, PlanID } = req.body;
+  const Timestamp = Math.floor(Date.now() / 1000); 
   db.run(
     `INSERT INTO ManufactureTest2 (HistoryID, PartNumber, Timestamp, Status, Note, PlanID)
      VALUES (?, ?, ?, ?, ?, ?)`,
@@ -4527,8 +4569,8 @@ app.post("/api/Manufacture/Test2", (req, res) => {
 });
 // Post value in table ManufactureWarehouse
 app.post("/api/Manufacture/Warehouse", (req, res) => {
-  const { PartNumber, HistoryID, Timestamp, Status, PlanID } = req.body;
-
+  const { PartNumber, HistoryID, Status, PlanID } = req.body;
+  const Timestamp = Math.floor(Date.now() / 1000); 
   db.run(
     `INSERT INTO ManufactureWarehouse (HistoryID, PartNumber, Timestamp, Status, PlanID)
      VALUES (?, ?, ?, ?, ?)`,
@@ -4710,8 +4752,9 @@ app.put("/api/Manufacture/AOI/Edit-status/:id", async (req, res) => {
 
 // Update value in table AOI Status
 app.put("/api/Manufacture/AOI-Fixed/Edit-status/:id", (req, res) => {
-  const { Status, RWID, TimestampRW } = req.body;
+  const { Status, RWID } = req.body;
   const { id } = req.params;
+  const TimestampRW = Math.floor(Date.now() / 1000); 
   db.run(
     `UPDATE ManufactureAOI
       SET Status=?, RWID=?, TimestampRW=?
@@ -4733,8 +4776,9 @@ app.put("/api/Manufacture/AOI-Fixed/Edit-status/:id", (req, res) => {
 
 // Update value in table IPQC Status
 app.put("/api/Manufacture/IPQC-Fixed/Edit-status/:id", (req, res) => {
-  const { Status, RWID, TimestampRW } = req.body;
+  const { Status, RWID} = req.body;
   const { id } = req.params;
+  const TimestampRW = Math.floor(Date.now() / 1000); 
   db.run(
     `UPDATE ManufactureIPQC
       SET Status=?, RWID=?, TimestampRW=?
@@ -4756,8 +4800,9 @@ app.put("/api/Manufacture/IPQC-Fixed/Edit-status/:id", (req, res) => {
 
 // Update value in table IPQC-SMT Status
 app.put("/api/Manufacture/IPQC-SMT-Fixed/Edit-status/:id", (req, res) => {
-  const { Status, RWID, TimestampRW } = req.body;
+  const { Status, RWID } = req.body;
   const { id } = req.params;
+  const TimestampRW = Math.floor(Date.now() / 1000); 
   db.run(
     `UPDATE ManufactureIPQCSMT
       SET Status=?, RWID=?, TimestampRW=?
@@ -4779,8 +4824,9 @@ app.put("/api/Manufacture/IPQC-SMT-Fixed/Edit-status/:id", (req, res) => {
 
 // Update value in table Test1 Status
 app.put("/api/Manufacture/Test1-Fixed/Edit-status/:id", (req, res) => {
-  const { Status, RWID, TimestampRW } = req.body;
+  const { Status, RWID } = req.body;
   const { id } = req.params;
+  const TimestampRW = Math.floor(Date.now() / 1000); 
   db.run(
     `UPDATE ManufactureTest1
       SET Status=?, RWID=?, TimestampRW=?
@@ -4802,8 +4848,9 @@ app.put("/api/Manufacture/Test1-Fixed/Edit-status/:id", (req, res) => {
 
 // Update value in table Test2 Status
 app.put("/api/Manufacture/Test2-Fixed/Edit-status/:id", (req, res) => {
-  const { Status, RWID, TimestampRW } = req.body;
+  const { Status, RWID } = req.body;
   const { id } = req.params;
+  const TimestampRW = Math.floor(Date.now() / 1000); 
   db.run(
     `UPDATE ManufactureTest2
       SET Status=?, RWID=?, TimestampRW=?
@@ -4825,8 +4872,9 @@ app.put("/api/Manufacture/Test2-Fixed/Edit-status/:id", (req, res) => {
 
 // Update value in table OQC Status
 app.put("/api/Manufacture/OQC-Fixed/Edit-status/:id", (req, res) => {
-  const { Status, RWID, TimestampRW } = req.body;
+  const { Status, RWID } = req.body;
   const { id } = req.params;
+  const TimestampRW = Math.floor(Date.now() / 1000); 
   db.run(
     `UPDATE ManufactureOQC
       SET Status=?, RWID=?, TimestampRW=?

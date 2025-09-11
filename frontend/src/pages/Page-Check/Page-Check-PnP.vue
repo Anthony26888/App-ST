@@ -116,19 +116,19 @@
           </v-chip>
         </template>
         <template v-slot:item.x="{ item }">
-          {{ item.x}}
+          {{ item.x }}
         </template>
         <template v-slot:item.y="{ item }">
-          {{ item.y}}
+          {{ item.y }}
         </template>
       </v-data-table>
     </v-card-text>
     <v-card-title class="d-flex align-center mt-5">
       <span>So sánh Gerber và Pick & Place</span>
       <p class="text-subtitle-1 font-weight-thin text-subtitle-1 ms-2">
-                ({{ filteredPnP.length }} điểm)
-              </p>
-              <!-- <Button-Download @click="downloadExcelPnP()"/> -->
+        ({{ filteredPnP.length }} điểm)
+      </p>
+      <!-- <Button-Download @click="downloadExcelPnP()"/> -->
       <v-spacer></v-spacer>
       <!-- Coordinate scaling controls -->
       <v-btn
@@ -137,7 +137,8 @@
         variant="tonal"
         class="me-2 ms-2 text-caption"
         title="Cài đặt tọa độ"
-      >Cài đặt</v-btn>
+        >Cài đặt</v-btn
+      >
 
       <!-- Controls for overlay -->
 
@@ -217,9 +218,14 @@
             <div class="zoom-indicator">{{ Math.round(zoomLevel * 100) }}%</div>
           </div>
 
-          <div v-if="overlayMode !== 'pnp' && !currentGerberSvg" class="text-center pa-8">
+          <div
+            v-if="overlayMode !== 'pnp' && !currentGerberSvg"
+            class="text-center pa-8"
+          >
             <v-icon size="64" color="grey">mdi-image-off</v-icon>
-            <p class="text-h6 text-grey mt-4">Chưa có dữ liệu Gerber cho layer đã chọn</p>
+            <p class="text-h6 text-grey mt-4">
+              Chưa có dữ liệu Gerber cho layer đã chọn
+            </p>
           </div>
 
           <!-- Hiển thị chỉ tọa độ PnP nếu chọn mode PnP -->
@@ -241,9 +247,9 @@
         <!-- <v-col cols="4">
            Thông tin tọa độ
           <div v-if="filteredPnP && filteredPnP.length > 0" class="mt-4"> -->
-            
-            <!-- Transformation info -->
-            <!-- <div class="transformation-info">
+
+        <!-- Transformation info -->
+        <!-- <div class="transformation-info">
               <div class="d-flex flex-wrap gap-4">
                 <span
                   ><span class="label">Scale:</span>
@@ -321,7 +327,7 @@
               </div>
             </div> -->
 
-            <!-- <v-data-table
+        <!-- <v-data-table
               class="mt-2 elevation-1"
               density="compact"
               :search="searchPnP"
@@ -410,8 +416,8 @@
             </v-data-table> 
           </div> -->
 
-          <!-- Thông báo khi không có dữ liệu -->
-          <!-- <div v-if="!svgWithPnP && !currentGerberSvg" class="text-center pa-8">
+        <!-- Thông báo khi không có dữ liệu -->
+        <!-- <div v-if="!svgWithPnP && !currentGerberSvg" class="text-center pa-8">
             <v-icon size="64" color="grey">mdi-image-off</v-icon>
             <p class="text-h6 text-grey mt-4">Chưa có dữ liệu Gerber</p>
           </div>
@@ -462,9 +468,13 @@
           name="pnp"
         />
         <div class="">
-          <p class="text-bold text-warning">Lưu ý: </p>
-          <p class="font-weight-light ms-2">Giá trị PosX, PosY cần chuyển về giá trị mm.</p>
-          <p class="font-weight-light ms-2">Giá trị Layer thay thế là Top và Bottom.</p>
+          <p class="text-bold text-warning">Lưu ý:</p>
+          <p class="font-weight-light ms-2">
+            Giá trị PosX, PosY cần chuyển về giá trị mm.
+          </p>
+          <p class="font-weight-light ms-2">
+            Giá trị Layer thay thế là Top và Bottom.
+          </p>
         </div>
       </v-card-text>
       <template v-slot:actions>
@@ -489,7 +499,9 @@
         />
         <div class="d-flex">
           <p class="text-bold text-warning">Lưu ý:</p>
-          <p class="font-weight-light ms-2">Cần chuyển đổi đơn vị file Gerber .gtp, .gbp là inch</p>
+          <p class="font-weight-light ms-2">
+            Cần chuyển đổi đơn vị file Gerber .gtp, .gbp là inch
+          </p>
         </div>
       </v-card-text>
       <template v-slot:actions>
@@ -504,7 +516,11 @@
         <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
         Cập nhật kích thước linh kiện
         <v-spacer></v-spacer>
-        <v-btn icon="mdi-close" variant="text" @click="DialogAddSize = false"></v-btn>
+        <v-btn
+          icon="mdi-close"
+          variant="text"
+          @click="DialogAddSize = false"
+        ></v-btn>
       </v-card-title>
       <v-card-text>
         <InputField
@@ -809,9 +825,8 @@
                 variant="outlined"
                 step="0.01"
               />
-              <p class="font-weight-thin">
-                Đã Offset X: {{ hintOffsetX }} mm
-              </p></br>
+              <p class="font-weight-thin">Đã Offset X: {{ hintOffsetX }} mm</p>
+              <br />
               <p class="font-weight-thin">
                 Tổng Offset X: {{ totalAddedX.toFixed(2) }} mm
               </p>
@@ -825,9 +840,8 @@
                 variant="outlined"
                 step="0.01"
               />
-              <p class="font-weight-thin">
-                Đã Offset Y: {{ hintOffsetY }} mm
-              </p></br>
+              <p class="font-weight-thin">Đã Offset Y: {{ hintOffsetY }} mm</p>
+              <br />
               <p class="font-weight-thin">
                 Tổng Offset Y: {{ totalAddedY.toFixed(2) }} mm
               </p>
@@ -1199,7 +1213,12 @@
             Reset
           </v-btn>
           <v-spacer></v-spacer>
-          <ButtonSave @save="SaveSettingSVG(); SaveTransformPnP()" />
+          <ButtonSave
+            @save="
+              SaveSettingSVG();
+              SaveTransformPnP();
+            "
+          />
         </div>
       </v-card-text>
     </v-card>
@@ -1236,8 +1255,8 @@ import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import Loading from "@/components/Loading.vue";
 
-import ExcelJS from "exceljs"
-import { saveAs } from "file-saver"
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 //
 
 const Url = import.meta.env.VITE_API_URL;
@@ -1454,8 +1473,8 @@ const GetSettingSVG = () => {
   DialogCoordinateSettings.value = true;
   const found = detailSetting.value.find((item) => (item.id = id));
   if (selectedLayer.value == "Top") {
-    hintOffsetX.value = (found.manualOffsetX_top).toFixed(2);
-    hintOffsetY.value = (found.manualOffsetY_top).toFixed(2);
+    hintOffsetX.value = found.manualOffsetX_top.toFixed(2);
+    hintOffsetY.value = found.manualOffsetY_top.toFixed(2);
     cx.value = found.cx_top;
     cy.value = found.cy_top;
     rotationAngle.value = found.rotation_top;
@@ -1476,11 +1495,10 @@ const GetSettingSVG = () => {
     }
     if (found.swapXY_top == 1 || found.swapXY_top == true) {
       swapXY.value = true;
-    };
-
+    }
   } else {
-    hintOffsetX.value = (found.manualOffsetX_bottom);
-    hintOffsetY.value = (found.manualOffsetY_bottom);
+    hintOffsetX.value = found.manualOffsetX_bottom;
+    hintOffsetY.value = found.manualOffsetY_bottom;
     cx.value = found.cx_bottom;
     cy.value = found.cy_bottom;
     rotationAngle.value = found.rotation_bottom;
@@ -1645,7 +1663,8 @@ const SaveTransformPnP = async () => {
   DialogLoading.value = true;
   try {
     const response = await axios.put(
-      `${Url}/PickPlace/Update-item`, filteredPnP.value  
+      `${Url}/PickPlace/Update-item`,
+      filteredPnP.value
     );
     console.log(response.data.message);
 
@@ -1679,7 +1698,7 @@ const SaveSettingSVG = async () => {
     labelAngle: designatorLabelAngle.value,
     componentBodyAngle: componentBodyAngle.value,
     panelFrameX: panelFrameX.value,
-    panelFrameY: panelFrameY.value
+    panelFrameY: panelFrameY.value,
   });
   if (selectedLayer.value == "Top") {
     try {
@@ -1723,8 +1742,8 @@ const SaveSettingSVG = async () => {
 };
 
 const downloadExcelPnP = async () => {
-  const workbook = new ExcelJS.Workbook()
-  const worksheet = workbook.addWorksheet("Dữ liệu SMT")
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Dữ liệu SMT");
 
   // Tạo header
   worksheet.columns = [
@@ -1734,17 +1753,17 @@ const downloadExcelPnP = async () => {
     { header: "Rotation", key: "rotation", width: 20 },
     { header: "Layer", key: "layer", width: 20 },
     { header: "MPN", key: "mpn", width: 50 },
-  ]
+  ];
 
   // Thêm dữ liệu từ composables
   filteredPnP.value.forEach((item) => {
-    worksheet.addRow(item)
-  })
+    worksheet.addRow(item);
+  });
 
   // Xuất buffer
-  const buffer = await workbook.xlsx.writeBuffer()
-  saveAs(new Blob([buffer]), "DataSMT.xlsx")
-}
+  const buffer = await workbook.xlsx.writeBuffer();
+  saveAs(new Blob([buffer]), "DataSMT.xlsx");
+};
 
 // ===== DIGIKEY API OPERATIONS =====
 /**
@@ -1958,10 +1977,10 @@ const svgWithPnP = computed(() => {
               y="${-(rectWidth / 2)}"
               width="${rectLength}"
               height="${rectWidth}"
-              fill="rgba(0, 150, 136, 0.1)"
-              stroke="#009688"
-              stroke-width="1.5"
-              opacity="0.8"
+              fill="rgba(255, 179, 0, 0.4)"
+              stroke="#E65100"
+              stroke-width="3"
+              opacity="1"
             />
             <!-- Component outline for better visibility -->
             <rect
@@ -1971,10 +1990,10 @@ const svgWithPnP = computed(() => {
               width="${rectLength}"
               height="${rectWidth}"
               fill="none"
-              stroke="#1976d2"
-              stroke-width="0.8"
+              stroke="#FFFFFF"
+              stroke-width="1.5"
               stroke-dasharray="2,2"
-              opacity="0.6"
+              opacity="1"
             />
           </g>
         `;
@@ -2002,9 +2021,7 @@ const svgWithPnP = computed(() => {
             transform-origin="6 3"
           >${pnp.designator}</text>
           <!-- Coordinate info on hover -->
-          <title>${pnp.designator}: X=${
-        pnp.x
-      }mm, Y=${pnp.y}mm${
+          <title>${pnp.designator}: X=${pnp.x}mm, Y=${pnp.y}mm${
         rectWidth > 0 && rectLength > 0
           ? `, Size=${(pnp.width || 0).toFixed(2)}x${(pnp.length || 0).toFixed(
               2
@@ -2673,11 +2690,10 @@ const currentGerberUnit = computed(() => {
 // Filtered PnP by selected layer
 const filteredPnP = computed(() => {
   const list = detailPnP.value || [];
-  return list.filter((p) => (p.layer || "Top") === selectedLayer.value && p.type === "SMT");
-  
-})
-
-
+  return list.filter(
+    (p) => (p.layer || "Top") === selectedLayer.value && p.type === "SMT"
+  );
+});
 </script>
 <script>
 export default {
@@ -2780,48 +2796,48 @@ export default {
 
 /* Component body rectangle */
 .gerber-svg-container :deep(.pnp-component-body) {
-  fill: rgba(0, 150, 136, 0.15);
-  stroke: #009688;
-  stroke-width: 1.5;
+  fill: rgba(255, 179, 0, 0.4);
+  stroke: #E65100;
+  stroke-width: 3;
   transition: all 0.2s ease;
 }
 
 /* Component outline for better visibility */
 .gerber-svg-container :deep(.pnp-component-outline) {
   fill: none;
-  stroke: #1976d2;
-  stroke-width: 0.5;
+  stroke: #FFFFFF;
+  stroke-width: 1.5;
   stroke-dasharray: 2, 2;
-  opacity: 0.6;
+  opacity: 1;
   transition: all 0.2s ease;
 }
 
 .gerber-svg-container :deep(.pnp-marker:hover) {
   opacity: 1 !important;
-  filter: brightness(1.3) drop-shadow(0 0 3px rgba(255, 0, 0, 0.5));
+  filter: brightness(1.1) drop-shadow(0 0 4px rgba(0, 0, 0, 0.5));
 }
 
 .gerber-svg-container :deep(.pnp-marker:hover .pnp-component-body) {
-  fill: rgba(0, 150, 136, 0.25);
-  stroke: #ff4444;
-  stroke-width: 2;
+  fill: rgba(255, 179, 0, 0.6);
+  stroke: #BF360C;
+  stroke-width: 3.5;
 }
 
 .gerber-svg-container :deep(.pnp-marker:hover .pnp-component-outline) {
-  stroke: #ff4444;
-  stroke-width: 1;
-  opacity: 0.8;
+  stroke: #FFFFFF;
+  stroke-width: 2;
+  opacity: 1;
 }
 
 .gerber-svg-container :deep(.pnp-marker:hover circle) {
-  stroke-width: 1.2;
+  stroke-width: 1.5;
   r: 3;
-  stroke: #ff4444;
+  stroke: #E65100;
 }
 
 .gerber-svg-container :deep(.pnp-marker:hover line) {
-  stroke-width: 2;
-  stroke: #ff4444;
+  stroke-width: 2.5;
+  stroke: #E65100;
 }
 
 .gerber-svg-container :deep(.pnp-marker:hover text) {
