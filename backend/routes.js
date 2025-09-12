@@ -479,6 +479,78 @@ app.delete("/api/Project/delete-all", async (req, res) => {
     res.json({ message: "Item inserted successfully" });
   });
 });
+
+// Router delete all item in Manufacture table
+app.delete("/api/Manufacture/delete-all", async (req, res) => {
+  // Delete data into SQLite database
+  const query = `DELETE FROM PlanManufacture`;
+  db.run(query, [], function (err) {
+    if (err) {
+      return console.error(err.message);
+    }
+    // Broadcast the new message to all clients
+    res.json({ message: "Item inserted successfully" });
+  });
+});
+
+// Router delete all item in Summary table
+app.delete("/api/Summary/delete-all", async (req, res) => {
+  // Delete data into SQLite database
+  const query = `DELETE FROM Summary`;
+  db.run(query, [], function (err) {
+    if (err) {
+      return console.error(err.message);
+    }
+    // Broadcast the new message to all clients
+    res.json({ message: "Item inserted successfully" });
+  });
+});
+
+// Router delete all item in Maintenance table
+app.delete("/api/Maintenance/delete-all", async (req, res) => {
+  // Delete data into SQLite database
+  const query = `DELETE FROM Maintenance`;
+  db.run(query, [], function (err) {
+    if (err) {
+      return console.error(err.message);
+    }
+    // Broadcast the new message to all clients
+    res.json({ message: "Item inserted successfully" });
+  });
+});
+
+// Router delete all item in PickPlace table
+app.delete("/api/FilterBom/delete-all", async (req, res) => {
+  // Delete data into SQLite database
+  const query = `DELETE FROM FilterBom`;
+  db.run(query, [], function (err) {
+    if (err) {
+      return console.error(err.message);
+    }
+    // Broadcast the new message to all clients
+    res.json({ message: "Item inserted successfully" });
+  });
+});
+
+// Tạo router download
+app.get("/api/download-db", (req, res) => {
+  const filePath = path.join(__dirname, "./database.db");
+
+  // Kiểm tra file tồn tại trước khi gửi
+  if (!fs.existsSync(filePath)) {
+    console.error("❌ database.db không tồn tại:", filePath);
+    return res.status(404).send("Không tìm thấy file database.");
+  }
+
+  console.log("📤 Gửi file:", filePath);
+  res.download(filePath, "database.db", (err) => {
+    if (err) {
+      console.error("❌ Lỗi khi gửi file:", err);
+      if (!res.headersSent) res.status(500).send("Không thể tải file.");
+    }
+  });
+});
+
 // 📥 API to Download AOI data as XLSX
 app.get("/api/Download-AOI/:id", async (req, res) => {
   const { id } = req.params;

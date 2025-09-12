@@ -1,4 +1,5 @@
 <template lang="">
+  
   <v-navigation-drawer
     theme="light"
     permanent
@@ -103,6 +104,7 @@ const StatusOption_8 = ref(false);
 const StatusOption_9 = ref(false);
 const StatusOption_10 = ref(false);
 const StatusOption_11 = ref(false);
+const StatusOption_12 = ref(false);
 const Date_Expired = ref("");
 
 // Dialog
@@ -154,6 +156,7 @@ const FetchUser = async () => {
         StatusOption_8.value = true;
         StatusOption_9.value = true;  
         StatusOption_11.value = true;    
+        StatusOption_12.value = true;
       } else if (LevelUser.value == "Kế hoạch") {
         StatusOption_2.value = true;
         StatusOption_3.value = true;
@@ -161,6 +164,7 @@ const FetchUser = async () => {
         StatusOption_6.value = true;
         StatusOption_7.value = true;
         StatusOption_8.value = true;
+        StatusOption_12.value = true;
       } else if (LevelUser.value == "Quản lý tổng") {
         StatusOption_9.value = true;
       } else if (LevelUser.value == "Quản lý kinh doanh") {
@@ -176,6 +180,7 @@ const FetchUser = async () => {
         StatusOption_11.value = true;
         StatusOption_7.value = true;
         StatusOption_4.value = true;
+        
       } else if (LevelUser.value == "Quản lý sản xuất") {
         StatusOption_1.value = true;
         StatusOption_9.value = true;
@@ -183,6 +188,7 @@ const FetchUser = async () => {
         StatusOption_3.value = true;
         StatusOption_4.value = true;
         StatusOption_6.value = true;
+        StatusOption_12.value = true;
       } else if (LevelUser.value == "Admin") {
         StatusOption_1.value = false;
         StatusOption_2.value = false;
@@ -193,6 +199,7 @@ const FetchUser = async () => {
         StatusOption_7.value = false;
         StatusOption_8.value = false;
         StatusOption_9.value = false;
+        StatusOption_12.value = false;
       } else if (LevelUser.value == "Nhân viên") {
         StatusOption_1.value = true;
         StatusOption_2.value = true;
@@ -203,6 +210,7 @@ const FetchUser = async () => {
         StatusOption_7.value = true;
         StatusOption_8.value = true;
         StatusOption_9.value = true;
+        StatusOption_12.value = true;
       } else {
         StatusOption_1.value = true;
         StatusOption_2.value = true;
@@ -212,6 +220,7 @@ const FetchUser = async () => {
         StatusOption_7.value = true;
         StatusOption_8.value = true;
         StatusOption_9.value = true;
+        StatusOption_12.value = true;
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
@@ -237,7 +246,7 @@ const menuItems = computed(() => [
     title: "Pick & Place",
     value: "CheckPnP",
     to: "/Danh-sach-pnp",
-    disabled: StatusOption_1.value,
+    disabled: StatusOption_12.value,
   },
   {
     icon: "mdi-warehouse",
@@ -557,4 +566,5 @@ export default {
     }
   }
 }
+
 </style>

@@ -64,6 +64,7 @@ const allowedOrigins = new Set([
   "http://192.168.100.200",
   "http://192.168.1.200",
   "http://192.168.2.200",
+  "http://192.168.1.201",
 
   // Production domain – **đầy đủ biến thể**
   "http://erp.sieuthuat.com",
@@ -4300,7 +4301,7 @@ app.post("/api/esp-config", async (req, res) => {
 
 app.post("/api/sensor", (req, res) => {
   const { project_id, input_value, source, plan_id } = req.body;
-  const Timestamp = Math.floor(Date.now() / 1000) + (7 * 60 * 60); 
+  const Timestamp = Math.floor(Date.now() / 1000); 
   if (
     typeof project_id === "undefined" ||
     typeof input_value === "undefined" ||
