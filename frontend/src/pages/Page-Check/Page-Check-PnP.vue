@@ -2,7 +2,7 @@
   <v-card variant="text" class="overflow-y-auto" height="100vh">
     <v-card-title class="d-flex">
       <ButtonBack to="/Danh-sach-pnp" />
-      <p class="text-h4 font-weight-light ms-3">Dữ liệu SMT</p>
+      <p class="text-h4 font-weight-light ms-3">{{ project_name }}</p>
     </v-card-title>
     <v-card-title class="d-flex align-center pe-2">
       <v-btn
@@ -1285,6 +1285,7 @@ const MessageErrorDialog = ref("");
 const MessageCautionDialog = ref("");
 
 // Data page
+const project_name = ref(localStorage.getItem("BomName"));
 const FileBom = ref(null);
 const FilePnP = ref(null);
 const FileGerber = ref(null);

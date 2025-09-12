@@ -167,6 +167,8 @@ const page =  ref(1);
 // Function
 function PushItem(value) {
   router.push(`/Kiem-tra-so-lieu-pnp/${value}`);
+  const found = filterBom.value.find((v) => v.id === value);
+  localStorage.setItem("BomName", found.project_name)
 }
 
 const GetItem = (value) => {
