@@ -289,7 +289,7 @@ const LevelUser = localStorage.getItem("LevelUser");
 // ===== FILTER STATES =====
 const itemsFilter = [
   { title: "Tất cả", value: "" },
-  { title: "Chưa xong", value: "Chưa xong" },
+  { title: "Đang sản xuất", value: "Đang sản xuất" },
   { title: "Hoàn thành", value: "Hoàn thành" },
 ];
 
