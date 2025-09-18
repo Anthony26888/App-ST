@@ -422,6 +422,7 @@ db.serialize(() => {
       Type TEXT NOT NULL,
       PONumber TEXT NOT NULL,
       Category TEXT,
+      Line_SMT TEXT,
       Quantity_Plan INTEGER,
       CycleTime_Plan INTEGER,
       Time_Plan INTEGER,

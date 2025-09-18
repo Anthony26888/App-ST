@@ -474,8 +474,7 @@ const HeadersActived = [
 ];
 
 // ===== COMPUTED =======
-const dateMenu = ref(false);
-const selectedDate = ref(new Date().toLocaleDateString("sv")); // Returns YYYY-MM-DD in local time
+
 
 // Thời gian thực để trigger cập nhật
 const now = ref(Date.now());
@@ -493,20 +492,6 @@ onMounted(() => {
 });
 onUnmounted(() => {
   if (timer) clearInterval(timer);
-});
-
-// formattedDateActived sẽ tự động cập nhật mỗi giây
-const formattedDateActived = computed(() => {
-  const date = new Date(now.value).toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-  return date;
 });
 
 // Tổng hợp dữ liệu summary theo Type (loại)
@@ -541,14 +526,17 @@ const overallSummaryRate = computed(() => {
   return total > 0 ? Math.round((totalSummaryOK.value / total) * 100) : 0;
 });
 
+
+// format date for v-data-picker
+const dateMenu = ref(false);
+const selectedDate = ref(new Date()); 
+
 const formattedSelectedDate = computed(() => {
-  const date = new Date(selectedDate.value);
-  return date.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    timeZone: "Asia/Bangkok",
-  });
+  const date = selectedDate.value;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 });
 
 const formattedWeekDate = computed(() => {
@@ -575,6 +563,7 @@ const formattedWeekDate = computed(() => {
 });
 
 // Pass the computed ref to useSummary
+
 const { summary, summaryError } = useSummary(formattedSelectedDate);
 const { status, statusError } = useActived();
 

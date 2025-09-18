@@ -163,16 +163,14 @@ const route = useRoute();
 const router = useRouter();
 
 //  Choose date
-const selectedDate = ref(new Date().toLocaleDateString("sv")); // Returns YYYY-MM-DD in local time
+const selectedDate = ref(new Date()); 
 
 const formattedSelectedDate = computed(() => {
-  const date = new Date(selectedDate.value);
-  return date.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    timeZone: "Asia/Bangkok",
-  });
+  const date = selectedDate.value;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 });
 
 const formattedWeekDate = computed(() => {

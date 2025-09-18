@@ -77,7 +77,7 @@
               <v-card-title
                 class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
               >
-                SMT
+                SMT Line 1
               </v-card-title>
               <v-card-text class="pa-4">
                 <div
@@ -102,7 +102,7 @@
                       Tổng số lượng SMT (Printer)
                     </div>
                   </div>
-                  <v-divider
+                  <!-- <v-divider
                     vertical
                     class="mx-0 d-none d-sm-flex"
                     style="height: 120px"
@@ -127,14 +127,16 @@
                     <div class="text-caption text-medium-emphasis mt-2">
                       Tổng số lượng SMT (Gắp linh kiện)
                     </div>
-                  </div>
+                  </div> -->
                   <v-divider
                     vertical
                     class="mx-0 d-none d-sm-flex"
                     style="height: 120px"
                   ></v-divider>
                   <div class="flex-grow-1 d-flex flex-column align-center">
-                    <div class="text-h6 font-weight-bold mb-2">Lò Reflow</div>
+                    <div class="text-h6 font-weight-bold mb-2">
+                      Gắp linh kiện Juki
+                    </div>
                     <div class="text-h4 font-weight-bold mb-2">
                       <span class="text-primary">{{ totalInput }}</span> /
                       <span class="text-success">{{ totalSMT_1 }}</span>
@@ -147,7 +149,70 @@
                       {{ Math.round((totalSMT_1 / totalInput) * 100) }}%
                     </v-progress-circular>
                     <div class="text-caption text-medium-emphasis mt-2">
-                      Tổng số lượng SMT (Lò Reflow)
+                      Tổng số lượng SMT (Gắp linh kiện)
+                    </div>
+                  </div>
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+
+        <v-row v-if="Level_SMT" class="mb-6 align-center">
+          <v-col cols="12">
+            <v-card class="rounded-lg">
+              <v-card-title
+                class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
+              >
+                SMT Line 2
+              </v-card-title>
+              <v-card-text class="pa-4">
+                <div
+                  class="d-flex align-center flex-wrap-sm-nowrap flex-column flex-sm-row"
+                >
+                  <div
+                    class="flex-grow-1 d-flex flex-column align-center mb-4 mb-sm-0"
+                  >
+                    <div class="text-h6 font-weight-bold mb-2">
+                      Gắp linh kiện Topaz
+                    </div>
+                    <div class="text-h4 font-weight-bold mb-2">
+                      <span class="text-primary">{{ totalInput }}</span> /
+                      <span class="text-success">{{ totalSMT_4 }}</span>
+                    </div>
+                    <v-progress-circular
+                      :model-value="(totalSMT_4 / totalInput) * 100"
+                      color="primary"
+                      size="48"
+                    >
+                      {{ Math.round((totalSMT_4 / totalInput) * 100) }}%
+                    </v-progress-circular>
+                    <div class="text-caption text-medium-emphasis mt-2">
+                      Tổng số lượng SMT (Gắp linh kiện máy Topaz)
+                    </div>
+                  </div>
+                  <v-divider
+                    vertical
+                    class="mx-0 d-none d-sm-flex"
+                    style="height: 120px"
+                  ></v-divider>
+                  <div class="flex-grow-1 d-flex flex-column align-center">
+                    <div class="text-h6 font-weight-bold mb-2">
+                      Gắp linh kiện Yahmaha
+                    </div>
+                    <div class="text-h4 font-weight-bold mb-2">
+                      <span class="text-primary">{{ totalInput }}</span> /
+                      <span class="text-success">{{ totalSMT_5 }}</span>
+                    </div>
+                    <v-progress-circular
+                      :model-value="(totalSMT_5 / totalInput) * 100"
+                      color="primary"
+                      size="48"
+                    >
+                      {{ Math.round((totalSMT_5 / totalInput) * 100) }}%
+                    </v-progress-circular>
+                    <div class="text-caption text-medium-emphasis mt-2">
+                      Tổng số lượng SMT (Gắp linh kiện Yahmaha)
                     </div>
                   </div>
                 </div>
@@ -534,6 +599,23 @@
               </div>
             </template>
 
+            <template #[`item.Category`]="{ item }">
+              {{ item.Category }}
+              <v-chip
+                :color="
+                  item.Line_SMT === 'Line 1'
+                    ? 'brown-lighten-2'
+                    : 'deep-orange-lighten-2'
+                "
+                size="small"
+                variant="tonal"
+                v-if="item.Line_SMT !== null && item.Line_SMT !== ''"
+                class="ms-2"
+              >
+                {{ item.Line_SMT }}
+              </v-chip>
+            </template>
+
             <template #[`item.Quantity_Plan`]="{ item }">
               <v-chip color="primary" variant="tonal">{{
                 item.Quantity_Plan
@@ -799,8 +881,8 @@
     </v-card>
 
     <!-- Dialog Add -->
-    <v-dialog v-model="DialogAdd" width="700" scrollable>
-      <v-card max-width="600" class="overflow-y-auto">
+    <v-dialog v-model="DialogAdd" width="800" scrollable>
+      <v-card max-width="700" class="overflow-y-auto">
         <v-card-title class="d-flex align-center pa-4">
           <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
           Thêm dữ liệu kế hoạch
@@ -820,17 +902,33 @@
                 />
               </v-col>
             </v-row>
-            <InputSelect
-              label="Công đoạn"
-              :items="LevelSelectAdd"
-              hint="Lựa chọn công đoạn phù hợp"
-              v-model="Type_Add"
-              :rules="requiredRule"
-            />
+            <v-row>
+              <v-col cols="6">
+                <InputSelect
+                  label="Công đoạn"
+                  :items="LevelSelectAdd"
+                  hint="Lựa chọn công đoạn phù hợp"
+                  v-model="Type_Add"
+                  :rules="requiredRule"
+                />
+              </v-col>
+              <v-col cols="6">
+                <InputSelect
+                  label="Vị trí line"
+                  :items="['Line 1', 'Line 2']"
+                  hint="Lựa chọn công đoạn phù hợp"
+                  v-model="Line_Add"
+                  :rules="requiredRule"
+                  :disabled="Type_Add != 'SMT'"
+                />
+              </v-col>
+            </v-row>
+
             <InputField
               label="Hạng mục"
               v-model="Category_Add"
               :rules="requiredRule"
+              ss
             />
 
             <v-row>
@@ -897,6 +995,14 @@
             hint="Lựa chọn quy trình phù hợp"
             v-model="Type_Edit"
             @update:model-value="(val) => (Type_Edit = val)"
+          />
+          <InputSelect
+            label="Vị trí line"
+            :items="['Line 1', 'Line 2']"
+            hint="Lựa chọn công đoạn phù hợp"
+            v-model="Line_Edit"
+            :rules="requiredRule"
+            :disabled="Type_Edit != 'SMT'"
           />
           <InputField label="Hạng mục" v-model="Category_Edit" />
 
@@ -1120,6 +1226,7 @@ const { manufacture, manufactureFound, manufactureError, isConnected } =
   useManufacture();
 const { history, historyError, refresh } = useHistory(id);
 const { historyPart, historyPartError } = useHistoryPart(id);
+
 // Dialog
 const DialogSuccess = ref(false);
 const DialogLoading = ref(false);
@@ -1145,6 +1252,8 @@ const totalInput = ref(0);
 const totalSMT_1 = ref(0);
 const totalSMT_2 = ref(0);
 const totalSMT_3 = ref(0);
+const totalSMT_4 = ref(0);
+const totalSMT_5 = ref(0);
 const totalAOI = ref(0);
 const totalRW = ref(0);
 const totalIPQC = ref(0);
@@ -1188,6 +1297,7 @@ const LevelSelectAdd = ref(null);
 const DataManufacture = ref(null);
 // ===== FORM ADD =====
 const Type_Add = ref("");
+const Line_Add = ref("");
 const PONumber_Add = ref(localStorage.getItem("ProductName"));
 const Name_Order_Add = ref("");
 const Category_Add = ref("");
@@ -1201,6 +1311,7 @@ const Type_Edit = ref("");
 const PONumber_Edit = ref("");
 const Name_Order_Edit = ref("");
 const Category_Edit = ref("");
+const Line_Edit = ref("");
 const Quantity_Plan_Edit = ref("");
 const CycleTime_Edit = ref("");
 const Note_Edit = ref("");
@@ -1254,6 +1365,28 @@ const formRef = ref(null);
 const isFormValid = ref(true);
 const requiredRule = [(v) => !!v || "Dữ liệu này không được bỏ trống"];
 
+// Normalized historyPart: merge source_1 and source_4 as 'SMT'; hide source_2, source_3, source_5
+const normalizedHistoryPart = computed(() => {
+  if (!historyPart.value || !Array.isArray(historyPart.value)) return [];
+  const hiddenSources = new Set(["source_2", "source_3", "source_5"]);
+  const smtSources = new Set(["source_1", "source_4"]);
+
+  return historyPart.value
+    .filter((item) => {
+      const src = String(item.Source || "").toLowerCase();
+      // Hide 2,3,5
+      if (hiddenSources.has(src)) return false;
+      return true;
+    })
+    .map((item) => {
+      const src = String(item.Source || "").toLowerCase();
+      if (smtSources.has(src)) {
+        return { ...item, Source: "SMT" };
+      }
+      return item;
+    });
+});
+
 // Watch for manufactureFound changes to update levels
 watch(
   manufactureDetails,
@@ -1266,7 +1399,9 @@ watch(
 
         Level_SMT.value = DataManufacture.value.includes("SMT");
         Level_AOI.value = DataManufacture.value.includes("AOI");
-        Level_IPQC.value = DataManufacture.value.includes("IPQC") && !DataManufacture.value.includes("IPQC (SMT)");
+        Level_IPQC.value =
+          DataManufacture.value.includes("IPQC") &&
+          !DataManufacture.value.includes("IPQC (SMT)");
         Level_Assembly.value = DataManufacture.value.includes("Assembly");
         Level_OQC.value = DataManufacture.value.includes("OQC");
         Level_IPQCSMT.value = DataManufacture.value.includes("IPQC (SMT)");
@@ -1444,7 +1579,10 @@ const Time_Edit = computed(() => {
 
 // Chart data computed property
 const chartData = computed(() => {
-  if (!historyPart.value || !Array.isArray(historyPart.value)) {
+  if (
+    !normalizedHistoryPart.value ||
+    !Array.isArray(normalizedHistoryPart.value)
+  ) {
     return {
       labels: [],
       datasets: [],
@@ -1453,9 +1591,8 @@ const chartData = computed(() => {
 
   // Define the process steps we want to track with possible variations
   const processSteps = [
-    "SMT - Printer",
-    "SMT - Gắp linh kiện",
-    "SMT - Lò Reflow",
+    "SMT",
+
     "IPQCSMT",
     "AOI",
     "Assembly",
@@ -1470,20 +1607,9 @@ const chartData = computed(() => {
 
   // Create a mapping for different possible source values
   const sourceMapping = {
+    SMT: ["SMT"],
     "SMT - Printer": ["SMT - Printer", "SMT-Printer", "SMT_Printer", "Printer"],
-    "SMT - Gắp linh kiện": [
-      "SMT - Gắp linh kiện",
-      "SMT-Gắp linh kiện",
-      "SMT_Gắp linh kiện",
-      "Gắp linh kiện",
-    ],
-    "SMT - Lò Reflow": [
-      "SMT - Lò Reflow",
-      "SMT-Lò Reflow",
-      "SMT_Lò Reflow",
-      "Lò Reflow",
-      "Reflow",
-    ],
+
     IPQCSMT: ["IPQCSMT", "IPQC SMT", "IPQC-SMT"],
     AOI: ["AOI"],
     Assembly: ["Assembly", "assembly", "Lắp ráp"],
@@ -1512,9 +1638,8 @@ const chartData = computed(() => {
 
   // Define quantity multipliers for each process step
   const quantityMultipliers = {
-    "SMT - Printer": data?.Quantity || 1,
-    "SMT - Gắp linh kiện": data?.Quantity || 1,
-    "SMT - Lò Reflow": data?.Quantity || 1,
+    SMT: data?.Quantity || 1,
+
     IPQCSMT: data?.Quantity_IPQCSMT || 1,
     AOI: data?.Quantity_AOI || 1,
     Assembly: data?.Quantity_Assembly || 1,
@@ -1534,7 +1659,7 @@ const chartData = computed(() => {
   });
 
   // Count OK and error items for each process step
-  historyPart.value.forEach((item) => {
+  normalizedHistoryPart.value.forEach((item) => {
     if (item.Source) {
       // Find the matching process step
       let matchedStep = null;
@@ -1542,7 +1667,9 @@ const chartData = computed(() => {
       // First pass for exact match
       for (const [step, variations] of Object.entries(sourceMapping)) {
         if (
-          variations.some((v) => v.toLowerCase() === item.Source.toLowerCase())
+          variations.some(
+            (v) => v.toLowerCase() === String(item.Source).toLowerCase()
+          )
         ) {
           matchedStep = step;
           break;
@@ -1555,8 +1682,12 @@ const chartData = computed(() => {
           if (
             variations.some(
               (variation) =>
-                item.Source.toLowerCase().includes(variation.toLowerCase()) ||
-                variation.toLowerCase().includes(item.Source.toLowerCase())
+                String(item.Source)
+                  .toLowerCase()
+                  .includes(variation.toLowerCase()) ||
+                variation
+                  .toLowerCase()
+                  .includes(String(item.Source).toLowerCase())
             )
           ) {
             matchedStep = step;
@@ -1625,15 +1756,17 @@ const chartData = computed(() => {
 
 // Detail table data computed property
 const chartDetailData = computed(() => {
-  if (!historyPart.value || !Array.isArray(historyPart.value)) {
+  if (
+    !normalizedHistoryPart.value ||
+    !Array.isArray(normalizedHistoryPart.value)
+  ) {
     return [];
   }
 
   // Define the process steps we want to track with possible variations
   const processSteps = [
-    "SMT - Printer",
-    "SMT - Gắp linh kiện",
-    "SMT - Lò Reflow",
+    "SMT",
+
     "IPQCSMT",
     "AOI",
     "Assembly",
@@ -1648,6 +1781,7 @@ const chartDetailData = computed(() => {
 
   // Create a mapping for different possible source values
   const sourceMapping = {
+    SMT: ["SMT"],
     "SMT - Printer": ["SMT - Printer", "SMT-Printer", "SMT_Printer", "Printer"],
     "SMT - Gắp linh kiện": [
       "SMT - Gắp linh kiện",
@@ -1690,6 +1824,7 @@ const chartDetailData = computed(() => {
 
   // Define quantity multipliers for each process step
   const quantityMultipliers = {
+    SMT: data?.Quantity || 1,
     "SMT - Printer": data?.Quantity || 1,
     "SMT - Gắp linh kiện": data?.Quantity || 1,
     "SMT - Lò Reflow": data?.Quantity || 1,
@@ -1712,7 +1847,7 @@ const chartDetailData = computed(() => {
   });
 
   // Count OK and error items for each process step
-  historyPart.value.forEach((item) => {
+  normalizedHistoryPart.value.forEach((item) => {
     if (item.Source) {
       // Find the matching process step
       let matchedStep = null;
@@ -1720,7 +1855,9 @@ const chartDetailData = computed(() => {
       // First pass for exact match
       for (const [step, variations] of Object.entries(sourceMapping)) {
         if (
-          variations.some((v) => v.toLowerCase() === item.Source.toLowerCase())
+          variations.some(
+            (v) => v.toLowerCase() === String(item.Source).toLowerCase()
+          )
         ) {
           matchedStep = step;
           break;
@@ -1733,8 +1870,12 @@ const chartDetailData = computed(() => {
           if (
             variations.some(
               (variation) =>
-                item.Source.toLowerCase().includes(variation.toLowerCase()) ||
-                variation.toLowerCase().includes(item.Source.toLowerCase())
+                String(item.Source)
+                  .toLowerCase()
+                  .includes(variation.toLowerCase()) ||
+                variation
+                  .toLowerCase()
+                  .includes(String(item.Source).toLowerCase())
             )
           ) {
             matchedStep = step;
@@ -1839,11 +1980,12 @@ const GetItem = (item) => {
   PONumber_Edit.value = item.PONumber;
   Name_Order_Edit.value = item.Name_Order;
   Category_Edit.value = item.Category;
+  Line_Edit.value = item.Line_SMT;
   Quantity_Plan_Edit.value = item.Quantity_Plan;
   CycleTime_Edit.value = item.CycleTime_Plan;
   Time_Edit.value = item.Time_Plan;
   Note_Edit.value = item.Note;
-  Date_DetailManufacture_Edit.value = item.Created_At
+  Date_DetailManufacture_Edit.value = item.Created_At;
   GetID.value = item.id;
 };
 
@@ -1873,11 +2015,12 @@ const SaveEdit = async () => {
     PlanID: route.params.id,
     PONumber: PONumber_Edit.value,
     Category: Category_Edit.value,
+    Line_SMT: Line_Edit.value,
     Quantity_Plan: Quantity_Plan_Edit.value,
     CycleTime_Plan: CycleTime_Edit.value,
     Time_Plan: Time_Edit.value,
     Note: Note_Edit.value,
-    Created_At: Date_DetailManufacture_Edit.value
+    Created_At: Date_DetailManufacture_Edit.value,
   });
 
   try {
@@ -1917,12 +2060,12 @@ const SaveEditSettingSMT = async () => {
       formData
     );
     console.log(response.data.message);
-    DialogSuccess.value = true
+    DialogSuccess.value = true;
     MessageDialog.value = response.data.message;
     Reset();
   } catch (error) {
     console.log(error);
-    DialogFailed.value = true
+    DialogFailed.value = true;
     MessageErrorDialog.value = error.response.data.message;
     Error();
   }
@@ -1947,6 +2090,7 @@ const SaveAdd = async () => {
     PlanID: route.params.id,
     PONumber: PONumber_Add.value,
     Category: Category_Add.value,
+    Line_SMT: Line_Add.value,
     Quantity_Plan: Quantity_Plan_Add.value,
     CycleTime_Plan: CycleTime_Add.value,
     Time_Plan: Time_Add.value,
