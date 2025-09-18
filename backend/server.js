@@ -1438,7 +1438,7 @@ io.on("connection", (socket) => {
                         a.Quantity_Plan,
                         a.CycleTime_Plan,
                         a.Time_Plan,
-                        a.Created_At,
+                        datetime(a.Created_At, 'unixepoch', 'localtime') AS Created_At,
                         CASE
                           WHEN a.Type = 'SMT' THEN IFNULL(b.SMT, 0) * z.Quantity
                           WHEN a.Type = 'AOI' THEN IFNULL(c.AOI, 0) * z.Quantity_AOI
