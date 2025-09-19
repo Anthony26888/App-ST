@@ -40,8 +40,8 @@ const fetch = require("node-fetch");
 // Add processing flags at the top of the file
 const processingRequests = new Set();
 
-const ESP32_IP_LINE1 = "http://192.168.2.82"; // IP ESP32 (phải đổi đúng IP của bạn)
-const ESP32_IP_LINE2 = "http://192.168.2.83";
+const ESP32_IP_LINE1 = "http://192.168.1.82"; // IP ESP32 (phải đổi đúng IP của bạn)
+const ESP32_IP_LINE2 = "http://192.168.1.83";
 const sessions = {}; // lưu theo socket.id
 // Khởi tạo Express và Socket.IO
 const PORT = 3000;

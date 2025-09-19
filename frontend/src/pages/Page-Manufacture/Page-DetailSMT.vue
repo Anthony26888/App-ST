@@ -238,6 +238,10 @@ const route = useRoute();
 const id = route.params.id;
 const back = localStorage.getItem("ManufactureID");
 const LevelUser = localStorage.getItem("LevelUser");
+const Line_SMT = ref("");
+const currentStatus = computed(() =>
+  Line_SMT.value === "Line 1" ? status.value : statusLine2.value
+);
 
 
 const { manufactureSMT } = useManufactureSMT(id);
@@ -247,10 +251,7 @@ const { status } = useDeviceStatusSocket("esp32-001");
 const { status: statusLine2 } = useDeviceStatusSocket("esp32-002");
 
 // Chọn trạng thái theo Line_SMT
-const Line_SMT = ref("");
-const currentStatus = computed(() =>
-  Line_SMT.value === "Line 1" ? status.value : statusLine2.value
-);
+
 
 const DialogLoading = ref(false);
 const DialogSuccess = ref(false);
