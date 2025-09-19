@@ -1994,8 +1994,9 @@ const GetItemHistory = (item) => {
   GetIDHistory.value = item.id;
   if (
     item.Source == "SMT - Printer" ||
-    item.Source == "SMT - Gắn linh kiện" ||
-    item.Source == "SMT - Lò Reflow"
+    item.Source == "SMT - Gắp linh kiện Juki" ||
+    item.Source == "SMT - Gắp linh kiện Yamaha" || 
+    item.Source == "SMT - Gắp linh kiện Topaz"
   ) {
     GetSourceHistory.value = "ManufactureSMT";
   } else if (item.Source == "Tẩm phủ") {
@@ -2005,7 +2006,7 @@ const GetItemHistory = (item) => {
   } else {
     GetSourceHistory.value = `Manufacture${item.Source}`;
   }
-  console.log(GetSourceHistory.value);
+  console.log(item.Source);
 };
 
 const SaveEdit = async () => {
@@ -2130,6 +2131,7 @@ const RemoveItem = async () => {
 // Hàm xóa item lịch sử sản xuất
 const RemoveItemHistory = async () => {
   DialogLoading.value = true;
+  console.log(GetSourceHistory.value)
   try {
     const response = await axios.delete(
       `${Url}/Manufacture/Delete-item-history/${GetIDHistory.value}?table=${GetSourceHistory.value}`
@@ -2159,6 +2161,7 @@ function Reset() {
   Quantity_Plan_Add.value = "";
   CycleTime_Add.value = "";
   Note_Add.value = "";
+  Date_DetailManufacture_Add.value = ""
 }
 
 /**
@@ -2179,6 +2182,7 @@ function Error() {
   Quantity_Plan_Add.value = "";
   CycleTime_Add.value = "";
   Note_Add.value = "";
+  Date_DetailManufacture_Add.value = "";
 }
 
 // Update fetchProductionData to use the watcher

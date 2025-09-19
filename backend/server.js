@@ -5036,8 +5036,8 @@ app.post("/api/Summary/Add-item", (req, res) => {
     Line_SMT,
     Quantity_Plan,
     CycleTime_Plan,
+    Time_Plan,
     Note,
-    Created_At,
   } = req.body;
   const Timestamp = Math.floor(Date.now() / 1000) + (7 * 60 * 60);
   db.run(
@@ -5051,9 +5051,9 @@ app.post("/api/Summary/Add-item", (req, res) => {
       Line_SMT,
       Quantity_Plan,
       CycleTime_Plan,
-      Timestamp,
+      Time_Plan,
       Note,
-      Created_At,
+      Timestamp
     ],
     (err) => {
       if (err) {
