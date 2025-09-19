@@ -7,29 +7,29 @@
 #define EEPROM_SIZE 100
 
 // ===================== CẤU HÌNH =====================
-// const char* ssid = "KTNM2023";
-// const char* password = "Sthuat@2023KTNM";
-// const char* SERVER_HOST = "http://192.168.1.201";  // ✅ Đặt URL server tại đây
-
-//Test
 const char* ssid = "KTNM2023";
 const char* password = "Sthuat@2023KTNM";
-const char* SERVER_HOST = "http://192.168.2.221"; 
+const char* SERVER_HOST = "http://192.168.1.201";  // ✅ Đặt URL server tại đây
+
+//Test
+// const char* ssid = "KTNM2023";
+// const char* password = "Sthuat@2023KTNM";
+// const char* SERVER_HOST = "http://192.168.1.221"; 
 // ====================================================
 
 // ⚙️ IP tĩnh cấu hình
-// IPAddress local_IP(192, 168, 1, 82);
-// IPAddress gateway(192, 168, 1, 1);
-// IPAddress subnet(255, 255, 255, 0);
-// IPAddress primaryDNS(8, 8, 8, 8);
-// IPAddress secondaryDNS(8, 8, 4, 4);
-
-// ⚙️ IP tĩnh cấu hình test
-IPAddress local_IP(192, 168, 2, 82);
-IPAddress gateway(192, 168, 2, 1);
+IPAddress local_IP(192, 168, 1, 82);
+IPAddress gateway(192, 168, 1, 1);
 IPAddress subnet(255, 255, 255, 0);
 IPAddress primaryDNS(8, 8, 8, 8);
 IPAddress secondaryDNS(8, 8, 4, 4);
+
+// ⚙️ IP tĩnh cấu hình test
+// IPAddress local_IP(192, 168, 2, 82);
+// IPAddress gateway(192, 168, 2, 1);
+// IPAddress subnet(255, 255, 255, 0);
+// IPAddress primaryDNS(8, 8, 8, 8);
+// IPAddress secondaryDNS(8, 8, 4, 4);
 
 WebServer server(80);
 
