@@ -12,7 +12,7 @@
         </div>
       </v-col>
       <v-col cols="12" md="6" class="d-flex align-center justify-center">
-        <v-card class="login-card" elevation="12" rounded="xl" width="100%" max-width="500">
+        <v-card   rounded="xl" width="100%" max-width="500" variant="text" v-if="mdAndDown">
           <!-- Logo/Branding Section -->
           <div class="text-center pa-8">
             <v-avatar size="80" color="primary" class="mb-4">
@@ -73,6 +73,68 @@
             </v-form>
           </v-card-text>
         </v-card>
+        <v-card class="login-card" elevation="12" rounded="xl" width="100%" max-width="500" v-else>
+          <!-- Logo/Branding Section -->
+          <div class="text-center pa-8">
+            <v-avatar size="80" color="primary" class="mb-4">
+              <v-img src="@/assets/avatar-ST.jpg"></v-img>
+            </v-avatar>
+            <h1 class="text-h4 font-weight-bold mb-2">Đăng Nhập</h1>
+            <p class="text-subtitle-1 text-medium-emphasis">Vui lòng đăng nhập để tiếp tục</p>
+          </div>
+
+          <v-card-text class="pa-8">
+            <v-form @submit.prevent="login" class="mt-4">
+              <InputField
+                v-model="Username"
+                label="Tên đăng nhập"
+                prepend-inner-icon="mdi-account"
+                variant="outlined"
+                class="mb-4"
+                density="comfortable"
+                bg-color="surface"
+              />
+              <InputField
+                v-model="Password"
+                :type="showPassword ? 'text' : 'password'"
+                label="Mật khẩu"
+                prepend-inner-icon="mdi-lock"
+                :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                @click:append-inner="showPassword = !showPassword"
+                variant="outlined"
+                class="mb-2"
+                density="comfortable"
+                bg-color="surface"
+              />
+              
+
+              <v-alert
+                v-if="TextError"
+                type="error"
+                variant="tonal"
+                class="mb-4"
+                density="comfortable"
+                rounded="lg"
+              >
+                {{ TextError }}
+              </v-alert>
+
+              <v-btn
+                block
+                size="large"
+                color="primary"
+                type="submit"
+                :loading="DialogLoading"
+                class="text-none font-weight-medium "
+                rounded="lg"
+                elevation="2"
+              >
+                Đăng Nhập
+              </v-btn>
+            </v-form>
+          </v-card-text>
+        </v-card>
+
       </v-col>
     </v-row>
   </v-container>
@@ -86,7 +148,9 @@ import { useRoute, useRouter } from "vue-router";
 import InputField from "@/components/Input-Field.vue";
 import Loading from "@/components/Loading.vue";
 // import { useInforUser } from "@/composables/Settings/useInforUser";
+import { useDisplay } from 'vuetify'
 
+const { mdAndDown, lgAndUp } = useDisplay()
 
 const router = useRouter();
 const Url = import.meta.env.VITE_API_URL;
@@ -106,7 +170,6 @@ const login = async () => {
     Password: Password.value,
   };
   const API_URL = import.meta.env.VITE_API_URL; // phải log được /api
-  console.log("API_URL:", API_URL); // KIỂM TRA: phải in ra "/api"
   try {
     const res = await axios.post(`${Url}/Users/login`, formData);
     localStorage.setItem("token", res.data.token);
@@ -133,21 +196,27 @@ const FetchUser = async () => {
     if (LevelUser == "Admin" || LevelUser == "Kế hoạch" || LevelUser == "Quản lý") {
       router.push(`/Kiem-tra-so-lieu`);
       DialogLoading.value = false;
+      localStorage.setItem("titleNavigation", "Kiem-tra-so-lieu");
     } else if(LevelUser == "Kinh doanh" || LevelUser == "Thủ kho" || LevelUser == "Quản lý kinh doanh") {
       DialogLoading.value = false;
       router.push(`/Ton-kho`);
+      localStorage.setItem("titleNavigation", "Ton-kho");
     } else if (LevelUser == 'Nhân viên'){
       DialogLoading.value = false;
       router.push(`/Danh-sach-cong-viec`);
+      localStorage.setItem("titleNavigation", "Danh-sach-cong-viec");
     } else if (LevelUser == 'Quản lý sản xuất'){
       DialogLoading.value = false;
       router.push(`/San-xuat`);
+      localStorage.setItem("titleNavigation", "San-xuat");
     } else if (LevelUser == 'Quản lý bảo trì'){
       DialogLoading.value = false;
       router.push(`/Bao-tri`);
+      localStorage.setItem("titleNavigation", "Bao-tri");
     } else{
       router.push(`/`);
       DialogLoading.value = false;
+      localStorage.setItem("titleNavigation", "Kiem-tra-so-lieu");
     }
   } catch (error) {
     console.error("Error fetching user data:", error);

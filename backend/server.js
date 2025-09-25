@@ -1684,11 +1684,15 @@ io.on("connection", (socket) => {
     socket.on("getActived", async (id) => {
       try {
         const query = `WITH AllData AS (
-                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Printer' AS Source, 'Cảm biến Printer' AS Device FROM ManufactureSMT WHERE Source = 'source_3'
+                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Printer' AS Source, 'Máy Printer' AS Device FROM ManufactureSMT WHERE Source = 'source_3'
                           UNION ALL
-                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Gắp linh kiện' AS Source, 'Cảm biến Gắp linh kiện' AS Device FROM ManufactureSMT WHERE Source = 'source_2'
+                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Lò Reflow' AS Source, 'Lò Reflow' AS Device FROM ManufactureSMT WHERE Source = 'source_2'
                           UNION ALL
-                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Lò Reflow' AS Source, 'Cảm biến Reflow' AS Device FROM ManufactureSMT WHERE Source = 'source_1'
+                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Gắp linh kiện Juki' AS Source, 'Máy gắp linh kiện Juki' AS Device FROM ManufactureSMT WHERE Source = 'source_1'
+                          UNION ALL
+                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Gắp linh kiện Yamaha' AS Source, 'Máy gắp linh kiện Yamaha' AS Device FROM ManufactureSMT WHERE Source = 'source_4'
+                          UNION ALL
+                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Gắp linh kiện Topaz' AS Source, 'Máy gắp linh kiện Topaz' AS Device FROM ManufactureSMT WHERE Source = 'source_5'
                           UNION ALL
                           SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'AOI' AS Source, 'Súng barcode AOI' AS Device FROM ManufactureAOI
                           UNION ALL
@@ -1712,19 +1716,21 @@ io.on("connection", (socket) => {
                       ),
                       Sources(SourceName, SortOrder, DeviceName) AS (
                           VALUES 
-                              ('SMT - Printer', 1, 'Cảm biến Printer'),
-                              ('SMT - Gắp linh kiện', 2, 'Cảm biến Gắp linh kiện'),
-                              ('SMT - Lò Reflow', 3, 'Cảm biến Reflow'),
-                              ('AOI', 4, 'Súng barcode AOI'),
-                              ('Tẩm phủ', 5, 'Súng barcode Tẩm phủ'),
-                              ('Test1', 6, 'Súng barcode Test1'),
-                              ('Test2', 7, 'Súng barcode Test2'),
-                              ('BoxBuild', 8, 'Súng barcode BoxBuild'),
-                              ('IPQC', 9, 'Súng barcode IPQC'),
-                              ('IPQCSMT', 10, 'Súng barcode IPQCSMT'),
-                              ('OQC', 11, 'Súng barcode OQC'),
-                              ('Assembly', 12, 'Súng barcode Assembly'),
-                              ('Nhập kho', 13, 'Súng barcode Nhập kho')
+                              ('SMT - Printer', 1, 'Máy Printer'),
+                              ('SMT - Gắp linh kiện Juki', 2, 'Máy gắp linh kiện Juki'),
+                              ('SMT - Gắp linh kiện Yamaha', 3, 'Máy gắp linh kiện Yamaha'),
+                              ('SMT - Gắp linh kiện Topaz', 4, 'Máy gắp linh kiện Topaz'),
+                              ('SMT - Lò Reflow', 5, 'Cảm biến Reflow'),
+                              ('AOI', 6, 'Súng barcode AOI'),
+                              ('Tẩm phủ', 7, 'Súng barcode Tẩm phủ'),
+                              ('Test1', 8, 'Súng barcode Test1'),
+                              ('Test2', 9, 'Súng barcode Test2'),
+                              ('BoxBuild', 10, 'Súng barcode BoxBuild'),
+                              ('IPQC', 11, 'Súng barcode IPQC'),
+                              ('IPQCSMT', 12, 'Súng barcode IPQCSMT'),
+                              ('OQC', 13, 'Súng barcode OQC'),
+                              ('Assembly', 14, 'Súng barcode Assembly'),
+                              ('Nhập kho', 15, 'Súng barcode Nhập kho')
                       ),
                       LatestPerSource AS (
                           SELECT Source, MAX(Timestamp) AS LatestTimestamp

@@ -1226,6 +1226,7 @@ const { manufacture, manufactureFound, manufactureError, isConnected } =
   useManufacture();
 const { history, historyError, refresh } = useHistory(id);
 const { historyPart, historyPartError } = useHistoryPart(id);
+console.log(historyPart)
 
 // Dialog
 const DialogSuccess = ref(false);

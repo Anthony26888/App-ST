@@ -281,4 +281,70 @@ docker-compose up
    # Sau đó build lại
    docker-compose up --build
    ```
+   
+### Thay đôi ip Raspberry
+- sudo nmcli con mod preconfigured \
+ipv4.addresses 192.168.2.201/24 \
+ipv4.gateway 192.168.2.1 \
+ipv4.dns "8.8.8.8 8.8.4.4" \
+ipv4.method manual
+
+- Áp dụng thay đổi:
+sudo nmcli con down preconfigured
+sudo nmcli con up preconfigured
+
+- Kiểm tra lại: ip a show wlan0
+
+### Cách build vào raspberry nhanh bằng PC
+
+# Build image multi-arch
+docker buildx build --platform linux/arm/v7 -t frontend:latest ./frontend --load
+docker buildx build --platform linux/arm/v7 -t backend:latest ./backend --load
+
+# Save to tar
+docker save frontend:latest -o frontend.tar
+docker save backend:latest -o backend.tar
+
+# Copy to Raspberry Pi (thay IP và user nếu cần)
+scp frontend.tar sieuthuat@sieuthuat.local:/home/sieuthuat/
+scp backend.tar sieuthuat@sieuthuat.local:/home/sieuthuat/
+
+# Load file 
+docker load -i frontend.tar
+docker load -i backend.tar
+
+# Nếu chưa có file docker-compose.yml
+- Tạo file docker-compose.yml bằng nano docker-compose.yml
+- Thêm code này: 
+services:
+  frontend:
+    image: frontend:latest
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    restart: always
+
+  backend:
+    image: backend:latest
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+    restart: always
+
+networks:
+  app-network:
+    driver: bridge
+
+- Ctrl+ O để lưu
+- Nhân Enter
+- Ctrl + X để thoát
+
+
+
+
+
 
