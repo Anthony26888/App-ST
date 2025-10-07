@@ -1406,6 +1406,7 @@ onMounted(() => {
 // Function
 
 const uploadBOM = async () => {
+  DialogLoading.value = true;
   try {
     const formData = new FormData();
     formData.append("FileBom", FileBom.value);
@@ -1414,15 +1415,17 @@ const uploadBOM = async () => {
     MessageDialog.value = "Upload Bom thành công";
     DialogAddBom.value = false;
     FileBom.value = null;
-    console.log("BOM upload thành công");
+    DialogLoading.value = false;
   } catch (error) {
     DialogFailed.value = true;
     MessageErrorDialog.value = "Upload Bom thất bại";
     console.error("Lỗi upload BOM:", error);
+    DialogLoading.value = false;
   }
 };
 
 const uploadPNP = async () => {
+  DialogLoading.value = true;
   try {
     const formData = new FormData();
     formData.append("FilePnP", FilePnP.value);
@@ -1431,15 +1434,17 @@ const uploadPNP = async () => {
     MessageDialog.value = "Upload Pick&Place thành công";
     DialogAddPnP.value = false;
     FilePnP.value = null;
-    console.log("PickPlace upload thành công");
+    DialogLoading.value = false;
   } catch (error) {
     DialogFailed.value = true;
     MessageErrorDialog.value = "Upload Pick&Place thất bại";
     console.error("Lỗi upload PickPlace:", error);
+    DialogLoading.value = false;
   }
 };
 
 const uploadGerber = async () => {
+  DialogLoading.value = true;
   try {
     const formData = new FormData();
     // Nếu Vuetify trả về mảng thì lấy phần tử đầu tiên
@@ -1451,11 +1456,12 @@ const uploadGerber = async () => {
     MessageDialog.value = "Upload Gerber thành công";
     DialogAddGerber.value = false;
     FileGerber.value = null;
-    console.log("Gerber upload thành công");
+    DialogLoading.value = false;
   } catch (error) {
+    console.error("Lỗi upload Gerber:", error.response?.data || error);
+    DialogLoading.value = false;
     DialogFailed.value = true;
     MessageErrorDialog.value = "Upload Gerber thất bại";
-    console.error("Lỗi upload Gerber:", error.response?.data || error);
   }
 };
 

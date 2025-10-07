@@ -282,12 +282,35 @@ docker-compose up
    docker-compose up --build
    ```
    
-### Thay đôi ip Raspberry
+# Thay đôi ip Raspberry
+- Kiểm tra ip:
+nmcli con show
+ 
+ - Kiểm tra kết nối WiFi có đang chạy không
+ nmcli device status
+
+- Xem tên kết nối Wlan0 thường preconfigured
+
 - sudo nmcli con mod preconfigured \
 ipv4.addresses 192.168.2.201/24 \
 ipv4.gateway 192.168.2.1 \
 ipv4.dns "8.8.8.8 8.8.4.4" \
 ipv4.method manual
+
+- Luu ý thay đổi ipv4.addresses theo ý muốn (192.168.x.y) trong đó x là subnet, y là số ip cần thay đổi, thay đổi ipv4.gateway 192.168.x.1 (x là subnet phải giống ip4 addresses trên)
+
+- Áp dụng thay đổi:
+sudo nmcli con down preconfigured
+sudo nmcli con up preconfigured
+
+- Kiểm tra lại: ip a show wlan0
+
+# Xoá ip tĩnh và để ip tự cập nhật
+- Nhập lệnh này:
+sudo nmcli con mod preconfigured ipv4.method auto
+sudo nmcli con mod preconfigured -ipv4.addresses
+sudo nmcli con mod preconfigured -ipv4.gateway
+sudo nmcli con mod preconfigured -ipv4.dns
 
 - Áp dụng thay đổi:
 sudo nmcli con down preconfigured
@@ -342,6 +365,9 @@ networks:
 - Ctrl+ O để lưu
 - Nhân Enter
 - Ctrl + X để thoát
+
+# Chạy dự án
+- docker compose up -d để chạy dự án
 
 
 

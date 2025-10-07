@@ -1,6 +1,5 @@
 <template lang="">
-  
-  <v-navigation-drawer
+  <!-- <v-navigation-drawer
     theme="light"
     permanent
     color="#1E293B"
@@ -43,7 +42,6 @@
         :value="item.value"
         :to="item.to"
         :disabled="item.disabled"
-
         :class="{ 'menu-item-disabled': item.disabled }"
       >
         <template v-slot:prepend>
@@ -72,6 +70,59 @@
           <span v-if="!rail">Đăng xuất</span>
         </v-btn>
       </div>
+    </template>
+  </v-navigation-drawer> -->
+
+  <v-navigation-drawer expand-on-hover permanent rail color="#1E293B">
+    <v-list>
+      <v-list-item
+        prepend-avatar="@/assets/avatar-ST.jpg"
+        :subtitle="LevelUser"
+        :title="UserInfo"
+      >
+      
+    </v-list-item>
+    <template v-slot:append>
+          <v-icon :color="item.disabled ? 'grey' : 'white'" class="me-3">{{
+            item.icon
+          }}</v-icon>
+        </template>
+    </v-list>
+
+    <v-divider></v-divider>
+
+    <v-list nav class="mt-4">
+      <v-list-item
+        v-for="(item, i) in menuItems"
+        :key="i"
+        :prepend-icon="item.icon"
+        :title="item.title"
+        :value="item.value"
+        :to="item.to"
+        :disabled="item.disabled"
+        :class="{ 'menu-item-disabled': item.disabled }"
+      >
+        <template v-slot:prepend>
+          <v-icon :color="item.disabled ? 'grey' : 'white'" class="me-3">{{
+            item.icon
+          }}</v-icon>
+        </template>
+        <template v-slot:title>
+          <span :class="item.disabled ? 'text-grey' : 'text-white'">{{
+            item.title
+          }}</span>
+        </template>
+      </v-list-item>
+    </v-list>
+    <template v-slot:append>
+      <v-list>
+        <v-list-item
+          prepend-icon="mdi-logout"
+          title="Đăng xuất"
+          value="Đăng xuất"
+          @click="LogOut()"
+        ></v-list-item>
+      </v-list>
     </template>
   </v-navigation-drawer>
   <SnackbarFailed v-model="DialogFailed" />
@@ -154,8 +205,8 @@ const FetchUser = async () => {
         StatusOption_6.value = true;
         StatusOption_7.value = true;
         StatusOption_8.value = true;
-        StatusOption_9.value = true;  
-        StatusOption_11.value = true;    
+        StatusOption_9.value = true;
+        StatusOption_11.value = true;
         StatusOption_12.value = true;
       } else if (LevelUser.value == "Kế hoạch") {
         StatusOption_2.value = true;
@@ -173,14 +224,13 @@ const FetchUser = async () => {
         StatusOption_7.value = true;
         StatusOption_8.value = true;
         StatusOption_9.value = true;
-        StatusOption_11.value = true; 
+        StatusOption_11.value = true;
       } else if (LevelUser.value == "Quản lý bảo trì") {
         StatusOption_1.value = true;
         StatusOption_9.value = true;
         StatusOption_11.value = true;
         StatusOption_7.value = true;
         StatusOption_4.value = true;
-        
       } else if (LevelUser.value == "Quản lý sản xuất") {
         StatusOption_1.value = true;
         StatusOption_9.value = true;
@@ -464,20 +514,20 @@ export default {
         &:hover {
           background: rgba(255, 255, 255, 0.1);
           transform: translateX(8px);
-          
+
           .v-icon {
             transform: scale(1.1);
-            color: #4CAF50 !important;
+            color: #4caf50 !important;
           }
 
           &::before {
-            content: '';
+            content: "";
             position: absolute;
             left: 0;
             top: 0;
             height: 100%;
             width: 3px;
-            background: #4CAF50;
+            background: #4caf50;
             animation: slideIn 0.3s ease;
           }
         }
@@ -524,12 +574,12 @@ export default {
 
     &.v-navigation-drawer--rail {
       width: 56px !important;
-      
+
       .v-list-item {
         min-height: 48px;
         padding: 0;
         justify-content: center;
-        
+
         .v-icon {
           margin: 0 !important;
           font-size: 24px;
@@ -566,5 +616,4 @@ export default {
     }
   }
 }
-
 </style>

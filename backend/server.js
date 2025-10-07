@@ -62,7 +62,7 @@ const allowedOrigins = new Set([
   "http://192.168.1.200",
   "http://192.168.2.200",
   "http://192.168.1.201",
-  "http://192.168.2.221",
+  "http://192.168.2.201",
 
   // Production domain – **đầy đủ biến thể**
   "http://erp.sieuthuat.com",
@@ -5271,8 +5271,9 @@ app.post(
       });
 
       stmt.finalize();
-      fs.unlinkSync(filePath);
       io.emit("CombineBomUpdate");
+      fs.unlinkSync(filePath);
+      
       res.json({
         message: "BOM uploaded & formatted successfully, duplicates removed",
       });
@@ -5286,90 +5287,87 @@ app.post(
 const XLSX = require("xlsx");
 
 // Router post item in Pick & Place table
-app.post(
-  "/api/upload-pickplace/:id",
-  upload.single("FilePnP"),
-  async (req, res) => {
-    const { id } = req.params;
+app.post("/api/upload-pickplace/:id", upload.single("FilePnP"), async (req, res) => {
+  const { id } = req.params;
 
-    try {
-      const ppFile = req.file;
-      if (!ppFile) {
-        return res.status(400).json({ error: "Thiếu file Pick&Place" });
-      }
-
-      // Parse XLSX
-      function parseXLSX(filePath) {
-        const workbook = xlsx.readFile(filePath);
-        const sheetName = workbook.SheetNames[0]; // lấy sheet đầu tiên
-        const sheet = workbook.Sheets[sheetName];
-        return xlsx.utils.sheet_to_json(sheet, {
-          defval: "",    // nếu ô trống thì để rỗng
-          raw: false,    // ép kiểu string cho nhất quán
-          blankrows: false
-        });
-      }
-
-      const ppData = parseXLSX(ppFile.path);
-
-      // Hàm đổi PosX, PosY từ mils -> mm
-      function parsePos(str) {
-        const num = parseFloat((str || "0").toString().replace(/,/g, "."));
-        if (isNaN(num)) return 0;
-        return +(num * 0.0254).toFixed(2); // mils -> mm
-      }
-
-      // Chuẩn hóa header & lọc trùng Ref
-      const uniqueRows = [];
-      const seenRefs = new Set();
-
-      for (const row of ppData) {
-        const designator = (row.Ref || row.Designator)?.trim();
-        if (!designator || seenRefs.has(designator)) continue;
-        seenRefs.add(designator);
-
-        uniqueRows.push({
-          designator,
-          posX: row.PosX,
-          posY: row.PosY,
-          rotation: parseFloat(row.Rotation || "0"),
-          layer: row.Side || row.Layer || "",
-          project_id: id,
-        });
-      }
-
-      // Lưu vào DB
-      const stmt = db.prepare(`
-        INSERT INTO Pickplace (designator, layer, x, y, rotation, project_id, type)
-        VALUES (?, ?, ?, ?, ?, ?, 'SMT')
-      `);
-
-      for (const r of uniqueRows) {
-        stmt.run(
-          r.designator,
-          r.layer,
-          r.posX,
-          r.posY,
-          r.rotation,
-          r.project_id
-        );
-      }
-      stmt.finalize();
-
-      // Xóa file tạm
-      fs.unlinkSync(ppFile.path);
-      io.emit("CombineBomUpdate");
-
-      res.json({
-        message: "Pick&Place đã upload & lưu thành công (Excel, mils → mm)",
-        inserted: uniqueRows.length,
-      });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Lỗi xử lý file Pick&Place (Excel)" });
+  try {
+    const ppFile = req.file;
+    if (!ppFile) {
+      return res.status(400).json({ error: "Thiếu file Pick&Place" });
     }
+
+    // --- 1️⃣ Đọc file Excel
+    const workbook = xlsx.readFile(ppFile.path);
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const ppData = xlsx.utils.sheet_to_json(sheet, {
+      defval: "",
+      raw: false,
+      blankrows: false,
+    });
+
+    // --- 2️⃣ Chuyển đổi và lọc dữ liệu
+    const uniqueRows = [];
+    const seenRefs = new Set();
+    for (const row of ppData) {
+      const designator = (row.Ref || row.Designator)?.trim();
+      if (!designator || seenRefs.has(designator)) continue;
+      seenRefs.add(designator);
+
+      uniqueRows.push({
+        designator,
+        layer: row.Side || row.Layer || "",
+        posX: parseFloat(row.PosX || 0),
+        posY: parseFloat(row.PosY || 0),
+        rotation: parseFloat(row.Rotation || 0),
+        project_id: id,
+      });
+    }
+
+    // --- 3️⃣ Chèn dữ liệu vào SQLite và CHỜ hoàn tất
+    await new Promise((resolve, reject) => {
+      db.serialize(() => {
+        const stmt = db.prepare(`
+          INSERT INTO Pickplace (designator, layer, x, y, rotation, project_id, type)
+          VALUES (?, ?, ?, ?, ?, ?, 'SMT')
+        `);
+
+        for (const r of uniqueRows) {
+          stmt.run(
+            r.designator,
+            r.layer,
+            r.posX,
+            r.posY,
+            r.rotation,
+            r.project_id
+          );
+        }
+
+        stmt.finalize((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+    });
+
+    // --- 4️⃣ Xóa file tạm
+    fs.unlinkSync(ppFile.path);
+
+    // --- 5️⃣ Emit chỉ sau khi DB insert hoàn tất
+    io.emit("CombineBomUpdate", { project_id: id });
+
+    // --- 6️⃣ Gửi phản hồi
+    res.json({
+      message: "Pick&Place đã upload & lưu thành công (Excel, mils → mm)",
+      inserted: uniqueRows.length,
+    });
+
+  } catch (error) {
+    console.error("Lỗi xử lý Pick&Place:", error);
+    res.status(500).json({ error: "Lỗi xử lý file Pick&Place (Excel)" });
   }
-);
+});
+
 
 
 

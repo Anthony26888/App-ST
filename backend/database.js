@@ -531,5 +531,26 @@ db.serialize(() => {
       last_seen INTEGER
     )
   `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS Users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      Username TEXT,
+      FullName TEXT,
+      Password TEXT,
+      Level TEXT,
+      Date TEXT,
+      Email TEXT
+    )
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS UsersCustomer (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      Username TEXT,
+      FullName TEXT,
+      Password TEXT,
+      Customer TEXT,
+      Date TEXT
+    )
+  `);
 });
 module.exports = db;
