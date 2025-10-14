@@ -1,6 +1,5 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { io } from "socket.io-client";
-import { getSocketUrl } from "@/utils/getSocketUrl";
 
 export function useProject() {
   const project = ref([]);

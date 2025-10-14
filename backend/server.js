@@ -63,12 +63,13 @@ const allowedOrigins = new Set([
   "http://192.168.2.200",
   "http://192.168.1.201",
   "http://192.168.2.201",
+  "http://192.168.2.6",
 
   // Production domain – **đầy đủ biến thể**
   "http://erp.sieuthuat.com",
   "https://erp.sieuthuat.com",
-  "http://erpapp.hopto.org",
-  "https://erpapp.hopto.org",
+  "http://erpst.io.vn",
+  "https://erpst.io.vn",
 ]);
 
 app.use(
@@ -1909,6 +1910,40 @@ io.on("connection", (socket) => {
         });
       } catch (error) {
         socket.emit("SettingSVGError", error);
+      }
+    }),
+
+    socket.on("getOrderTracking", async (id) => {
+      try {
+        const query = `SELECT 
+                          a.ProductDetail AS customer,
+                          a.QuantityProduct AS totalAmount,
+                          a.QuantityDelivered AS totalDelivered,
+                          b.DateCreated AS createdDate,
+                          b.DateDelivery AS deliveryDate,
+                          b.PONumber AS orderId,
+                          CASE
+                            WHEN a.QuantityDelivered IS NULL OR a.QuantityDelivered = '' THEN 'Đang xử lý'
+                            WHEN a.QuantityDelivered = a.QuantityProduct THEN 'Hoàn thành'
+                            WHEN b.DateDelivery IS NOT NULL 
+                              AND b.DateDelivery <> '' 
+                              AND DATETIME('now') > b.DateDelivery 
+                              AND a.QuantityDelivered < a.QuantityProduct THEN 'Trễ hạn'
+                            WHEN b.DateDelivery IS NULL 
+                              OR b.DateDelivery = '' 
+                              OR (DATETIME('now') <= b.DateDelivery AND a.QuantityDelivered < a.QuantityProduct) THEN 'Đang sản xuất'
+                          END AS status,
+                          IFNULL((a.QuantityDelivered * 100) / a.QuantityProduct , 0) AS progress
+                        FROM ProductDetails a
+                        LEFT JOIN PurchaseOrders b ON a.POID = b.id
+                        WHERE a.CustomerID = ?`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("OrderTrackingError", err);
+          socket.emit("OrderTrackingData", rows);
+
+        });
+      } catch (error) {
+        socket.emit("OrderTrackingError", error);
       }
     }),
     // socket.on("ask", async (message) => {

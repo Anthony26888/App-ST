@@ -186,15 +186,25 @@
 
     <!-- Orders Table -->
     <v-card elevation="2">
-      <v-card-title class="d-flex align-center justify-space-between">
-        <div class="d-flex align-center">
-          <v-icon class="me-2" color="primary">mdi-table</v-icon>
+      <v-card-title class="d-flex align-center pe-2">
+        <v-icon class="me-2" color="primary">mdi-table</v-icon>
           Danh sách đơn hàng
-        </div>
-        <v-chip color="primary" variant="outlined">
-          {{ filteredOrders.length }} đơn hàng
-        </v-chip>
+        
+        <v-spacer></v-spacer>
+
+        <v-text-field
+          v-model="search"
+          density="compact"
+          label="Search"
+          prepend-inner-icon="mdi-magnify"
+          variant="solo-filled"
+          flat
+          hide-details
+          single-line
+        ></v-text-field>
       </v-card-title>
+
+      <v-divider></v-divider>
 
       <v-data-table
         :headers="headers"
@@ -204,6 +214,7 @@
         item-key="id"
         :items-per-page="10"
         :search="searchQuery"
+        :hover="true"
       >
         <!-- Order ID Column -->
         <template v-slot:item.orderId="{ item }">
@@ -375,136 +386,39 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import Chart from 'chart.js/auto'
+import { useProject } from '@/composables/Project/useProject'
+import { useRoute } from 'vue-router'
 
 // Reactive data
-const data = ref([])
+const route = useRoute();
+const id = route.params.id
 const loading = ref(false)
 const searchQuery = ref('')
 const statusFilter = ref('')
 const priorityFilter = ref('')
 const orderDialog = ref(false)
 const selectedOrder = ref(null)
-
-// Sample data
-const sampleData = [
-  {
-    id: 1,
-    orderId: 'ORD-001',
-    customer: 'Công ty ABC',
-    status: 'Đang xử lý',
-    priority: 'Cao',
-    progress: 65,
-    totalAmount: 15000000,
-    createdDate: '2024-01-15',
-    deliveryDate: '2024-02-15',
-    description: 'Đơn hàng sản phẩm điện tử'
-  },
-  {
-    id: 2,
-    orderId: 'ORD-002',
-    customer: 'Công ty XYZ',
-    status: 'Hoàn thành',
-    priority: 'Trung bình',
-    progress: 100,
-    totalAmount: 8500000,
-    createdDate: '2024-01-10',
-    deliveryDate: '2024-01-25',
-    description: 'Đơn hàng linh kiện máy móc'
-  },
-  {
-    id: 3,
-    orderId: 'ORD-003',
-    customer: 'Công ty DEF',
-    status: 'Chờ xác nhận',
-    priority: 'Thấp',
-    progress: 25,
-    totalAmount: 12000000,
-    createdDate: '2024-01-20',
-    deliveryDate: '2024-02-20',
-    description: 'Đơn hàng phụ tùng ô tô'
-  },
-  {
-    id: 4,
-    orderId: 'ORD-004',
-    customer: 'Công ty GHI',
-    status: 'Đang giao hàng',
-    priority: 'Cao',
-    progress: 85,
-    totalAmount: 22000000,
-    createdDate: '2024-01-12',
-    deliveryDate: '2024-02-10',
-    description: 'Đơn hàng thiết bị công nghiệp'
-  },
-  {
-    id: 5,
-    orderId: 'ORD-005',
-    customer: 'Công ty JKL',
-    status: 'Trễ hạn',
-    priority: 'Cao',
-    progress: 45,
-    totalAmount: 18000000,
-    createdDate: '2024-01-05',
-    deliveryDate: '2024-01-30',
-    description: 'Đơn hàng máy móc nông nghiệp'
-  },
-  {
-    id: 6,
-    orderId: 'ORD-006',
-    customer: 'Công ty MNO',
-    status: 'Hoàn thành',
-    priority: 'Trung bình',
-    progress: 100,
-    totalAmount: 9500000,
-    createdDate: '2024-01-08',
-    deliveryDate: '2024-01-28',
-    description: 'Đơn hàng thiết bị y tế'
-  },
-  {
-    id: 7,
-    orderId: 'ORD-007',
-    customer: 'Công ty PQR',
-    status: 'Đang xử lý',
-    priority: 'Thấp',
-    progress: 30,
-    totalAmount: 7500000,
-    createdDate: '2024-01-18',
-    deliveryDate: '2024-02-25',
-    description: 'Đơn hàng phụ kiện điện tử'
-  },
-  {
-    id: 8,
-    orderId: 'ORD-008',
-    customer: 'Công ty STU',
-    status: 'Chờ xác nhận',
-    priority: 'Cao',
-    progress: 15,
-    totalAmount: 16000000,
-    createdDate: '2024-01-22',
-    deliveryDate: '2024-02-18',
-    description: 'Đơn hàng linh kiện máy tính'
-  }
-]
+const { project } = useProject(id)
 
 // Table headers
 const headers = [
   { title: 'Mã đơn hàng', key: 'orderId', sortable: true },
-  { title: 'Khách hàng', key: 'customer', sortable: true },
+  { title: 'Tên đơn hàng', key: 'customer', sortable: true, width: '400px' },
   { title: 'Trạng thái', key: 'status', sortable: true },
-  { title: 'Độ ưu tiên', key: 'priority', sortable: true },
+  // { title: 'Độ ưu tiên', key: 'priority', sortable: true },
   { title: 'Tiến độ', key: 'progress', sortable: true },
-  { title: 'Giá trị', key: 'totalAmount', sortable: true },
+  { title: 'Tổng sản phẩm', key: 'totalAmount', sortable: true },
+  { title: 'Tổng đã giao', key: 'totalDelivered', sortable: true },
   { title: 'Ngày tạo', key: 'createdDate', sortable: true },
   { title: 'Ngày giao', key: 'deliveryDate', sortable: true },
-  { title: 'Thao tác', key: 'actions', sortable: false }
+  // { title: 'Thao tác', key: 'actions', sortable: false }
 ]
 
 // Filter options
 const statusOptions = [
-  'Chờ xác nhận',
   'Đang xử lý',
-  'Đang giao hàng',
   'Hoàn thành',
   'Trễ hạn'
 ]
@@ -517,10 +431,10 @@ const priorityOptions = [
 
 // Computed properties
 const statistics = computed(() => {
-  const total = data.value.length
-  const completed = data.value.filter(item => item.status === 'Hoàn thành').length
-  const pending = data.value.filter(item => ['Chờ xác nhận', 'Đang xử lý', 'Đang giao hàng'].includes(item.status)).length
-  const delayed = data.value.filter(item => item.status === 'Trễ hạn').length
+  const total = project.value.length
+  const completed = project.value.filter(item => item.status === 'Hoàn thành').length
+  const pending = project.value.filter(item => ['Chờ xác nhận', 'Đang xử lý', 'Đang giao hàng'].includes(item.status)).length
+  const delayed = project.value.filter(item => item.status === 'Trễ hạn').length
   
   return {
     totalOrders: total,
@@ -531,7 +445,7 @@ const statistics = computed(() => {
 })
 
 const filteredOrders = computed(() => {
-  let filtered = data.value
+  let filtered = project.value
 
   if (statusFilter.value) {
     filtered = filtered.filter(item => item.status === statusFilter.value)
@@ -547,9 +461,8 @@ const filteredOrders = computed(() => {
 // Methods
 const refreshData = async () => {
   loading.value = true
-  // Simulate API call
+  // Data will be refreshed automatically via socket connection in useProject
   await new Promise(resolve => setTimeout(resolve, 1000))
-  data.value = [...sampleData]
   loading.value = false
 }
 
@@ -614,19 +527,25 @@ const exportData = () => {
 const orderChart = ref(null)
 const statusChart = ref(null)
 
+// Chart instances
+let orderChartInstance = null
+let statusChartInstance = null
+
 // Initialize charts
 const initCharts = async () => {
   await nextTick()
   
-  // Order chart
+  // Order chart - Group orders by month
   if (orderChart.value) {
-    new Chart(orderChart.value, {
+    const monthlyData = getMonthlyOrderData()
+    
+    orderChartInstance = new Chart(orderChart.value, {
       type: 'line',
       data: {
-        labels: ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6'],
+        labels: monthlyData.labels,
         datasets: [{
           label: 'Số đơn hàng',
-          data: [12, 19, 15, 25, 22, 30],
+          data: monthlyData.data,
           borderColor: 'rgb(75, 192, 192)',
           backgroundColor: 'rgba(75, 192, 192, 0.2)',
           tension: 0.1
@@ -651,12 +570,17 @@ const initCharts = async () => {
 
   // Status chart
   if (statusChart.value) {
-    new Chart(statusChart.value, {
+    statusChartInstance = new Chart(statusChart.value, {
       type: 'doughnut',
       data: {
         labels: ['Hoàn thành', 'Đang xử lý', 'Chờ xác nhận', 'Trễ hạn'],
         datasets: [{
-          data: [statistics.value.completedOrders, statistics.value.pendingOrders, 2, statistics.value.delayedOrders],
+          data: [
+            statistics.value.completedOrders, 
+            statistics.value.pendingOrders, 
+            project.value.filter(item => item.status === 'Chờ xác nhận').length,
+            statistics.value.delayedOrders
+          ],
           backgroundColor: [
             '#4CAF50',
             '#2196F3',
@@ -678,9 +602,63 @@ const initCharts = async () => {
   }
 }
 
+// Helper function to get monthly order data
+const getMonthlyOrderData = () => {
+  const monthlyCounts = {}
+  const monthNames = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12']
+  
+  // Initialize all months with 0
+  monthNames.forEach(month => {
+    monthlyCounts[month] = 0
+  })
+  
+  // Count orders by month
+  project.value.forEach(order => {
+    if (order.createdDate) {
+      const date = new Date(order.createdDate)
+      const monthIndex = date.getMonth()
+      const monthName = monthNames[monthIndex]
+      if (monthlyCounts[monthName] !== undefined) {
+        monthlyCounts[monthName]++
+      }
+    }
+  })
+  
+  return {
+    labels: monthNames,
+    data: monthNames.map(month => monthlyCounts[month])
+  }
+}
+
+// Update charts when data changes
+const updateCharts = () => {
+  if (orderChartInstance) {
+    const monthlyData = getMonthlyOrderData()
+    orderChartInstance.data.labels = monthlyData.labels
+    orderChartInstance.data.datasets[0].data = monthlyData.data
+    orderChartInstance.update()
+  }
+  
+  if (statusChartInstance) {
+    statusChartInstance.data.datasets[0].data = [
+      statistics.value.completedOrders, 
+      statistics.value.pendingOrders, 
+      project.value.filter(item => item.status === 'Chờ xác nhận').length,
+      statistics.value.delayedOrders
+    ]
+    statusChartInstance.update()
+  }
+}
+
+// Watch for project data changes
+watch(project, (newData) => {
+  if (newData && newData.length > 0) {
+    updateCharts()
+  }
+}, { deep: true })
+
 // Lifecycle
 onMounted(() => {
-  data.value = [...sampleData]
   initCharts()
 })
 </script>

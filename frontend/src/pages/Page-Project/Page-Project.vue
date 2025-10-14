@@ -404,6 +404,7 @@ const router = useRouter();
 
 // Initialize composables
 const { project } = useProject();
+console.log(project)
 const { projectFind } = useProjectFind();
 
 
