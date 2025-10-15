@@ -509,7 +509,7 @@ app.delete("/api/Summary/delete-all", async (req, res) => {
 // Router delete all item in Maintenance table
 app.delete("/api/Maintenance/delete-all", async (req, res) => {
   // Delete data into SQLite database
-  const query = `DELETE FROM Maintenance`;
+  const query = `DELETE FROM Machine`;
   db.run(query, [], function (err) {
     if (err) {
       return console.error(err.message);

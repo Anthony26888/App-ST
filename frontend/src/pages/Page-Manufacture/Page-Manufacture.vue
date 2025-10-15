@@ -189,10 +189,7 @@
           Thêm dữ liệu sản xuất
         </v-card-title>
         <v-card-text>
-          <InputField
-            label="Tên dự án"
-            v-model="Name_Manufacture_Add"
-          />
+          <InputField label="Tên dự án" v-model="Name_Manufacture_Add" />
           <InputField
             label="Tên đơn hàng"
             v-model="Name_Order_Manufacture"
@@ -226,6 +223,46 @@
             v-model="Level_Manufacture_Add"
             @update:model-value="(val) => (Level_Manufacture_Add = val)"
           />
+
+          <!-- Thêm input cho quy trình khác -->
+          <div class="mt-3">
+            <InputField
+              label="Thêm quy trình khác"
+              v-model="customProcess"
+              placeholder="Nhập tên quy trình và nhấn Enter"
+              @keyup.enter="addCustomProcess"
+              hint="Nhập và nhấn Enter để thêm nhiều quy trình"
+            >
+              <template #append>
+                <v-btn
+                  icon="mdi-plus-circle"
+                  size="small"
+                  color="primary"
+                  variant="text"
+                  @click="addCustomProcess"
+                  :disabled="!customProcess || !customProcess.trim()"
+                ></v-btn>
+              </template>
+            </InputField>
+
+            <!-- Hiển thị danh sách quy trình tùy chỉnh đã thêm -->
+            <div v-if="customProcessList.length > 0" class="mt-2">
+              <div class="text-caption text-grey mb-1">Quy trình đã thêm:</div>
+              <div class="d-flex flex-wrap ga-2">
+                <v-chip
+                  v-for="(process, index) in customProcessList"
+                  :key="index"
+                  closable
+                  color="secondary"
+                  size="small"
+                  @click:close="removeCustomProcess(index)"
+                >
+                  {{ process }}
+                </v-chip>
+              </div>
+            </div>
+          </div>
+
           <InputField
             label="Ngày tạo"
             type="date"
@@ -360,11 +397,13 @@ const Quantity_OQC_Edit = ref(1);
 // Khởi tạo các biến ref cho form thêm mới
 // Khởi tạo các biến ref cho form thêm mới
 const Name_Manufacture_Add = ref("");
-const Name_Order_Manufacture =ref("");
+const Name_Order_Manufacture = ref("");
 const Date_Manufacture_Add = ref("");
 const Note_Manufacture_Add = ref("");
 const Total_Manufacture_Add = ref(0);
 const Level_Manufacture_Add = ref(null);
+const customProcess = ref('')
+const customProcessList = ref([])
 
 // Khởi tạo các biến ref cho thông tin người dùng và tìm kiếm
 const UserInfo = ref("");
@@ -415,6 +454,52 @@ onMounted(() => {
     router.push("/");
   }
 });
+
+const addCustomProcess = () => {
+  if (customProcess.value && customProcess.value.trim()) {
+    const processName = customProcess.value.trim()
+    
+    // Kiểm tra trùng lặp
+    if (!customProcessList.value.includes(processName)) {
+      customProcessList.value.push(processName)
+      
+      // Cập nhật Level_Manufacture_Add
+      if (!Level_Manufacture_Add.value) {
+        Level_Manufacture_Add.value = []
+      }
+      if (!Level_Manufacture_Add.value.includes(processName)) {
+        Level_Manufacture_Add.value.push(processName)
+      }
+    }
+    
+    // Reset input
+    customProcess.value = ''
+  }
+}
+
+// Thêm method để xóa quy trình tùy chỉnh
+const removeCustomProcess = (index) => {
+  const processName = customProcessList.value[index]
+  
+  // Xóa khỏi danh sách tùy chỉnh
+  customProcessList.value.splice(index, 1)
+  
+  // Xóa khỏi Level_Manufacture_Add
+  if (Level_Manufacture_Add.value) {
+    const levelIndex = Level_Manufacture_Add.value.indexOf(processName)
+    if (levelIndex > -1) {
+      Level_Manufacture_Add.value.splice(levelIndex, 1)
+    }
+  }
+}
+
+// Reset khi đóng dialog
+watch(DialogAdd, (newVal) => {
+  if (!newVal) {
+    customProcess.value = ''
+    customProcessList.value = []
+  }
+})
 
 // Hàm chuyển hướng đến trang chi tiết sản phẩm
 function PushItem(value) {
@@ -496,10 +581,10 @@ const SaveAdd = async () => {
     Total: Total_Manufacture_Add.value,
     Note: Note_Manufacture_Add.value,
     Creater: UserInfo.value,
-    DelaySMT:5000,
+    DelaySMT: 5000,
     Quantity: 1,
     Level: Level_Manufacture_Add.value,
-    ProjectID: 1
+    ProjectID: 1,
   });
   try {
     const response = await axios.post(`${Url}/PlanManufacture/Add`, formData);

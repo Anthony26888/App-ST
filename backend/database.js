@@ -199,8 +199,8 @@ db.serialize(() => {
       NguoiThucHien TEXT,
       ChiPhi REAL,
       NgayHoanThanh DATE,
-      TrangThai TEXT, -- Ví dụ: Đã hoàn thành, Đang thực hiện, Chờ phê duyệt
-      FOREIGN KEY (MaThietBi) REFERENCES Machine(MaThietBi)
+      TrangThai TEXT,
+      FOREIGN KEY (MaThietBi) REFERENCES Machine(MaThietBi) ON DELETE CASCADE
   )
   `);
   db.run(`
@@ -213,7 +213,7 @@ db.serialize(() => {
       NgayBatDau DATE NOT NULL,
       NgayBaoTriTiepTheo DATE,
       GhiChu TEXT,
-      FOREIGN KEY (MaThietBi) REFERENCES Machine(MaThietBi)
+      FOREIGN KEY (MaThietBi) REFERENCES Machine(MaThietBi) ON DELETE CASCADE
   )
   `);
   db.run(`
@@ -225,8 +225,8 @@ db.serialize(() => {
       SoLuongSuDung INTEGER NOT NULL,
       DonVi TEXT NOT NULL,
       GhiChu TEXT,
-      FOREIGN KEY (MaBaoTri) REFERENCES Maintenance(MaBaoTri),
-      FOREIGN KEY (MaThietBi) REFERENCES Machine(MaThietBi)
+      FOREIGN KEY (MaBaoTri) REFERENCES Maintenance(MaBaoTri) ON DELETE CASCADE,
+      FOREIGN KEY (MaThietBi) REFERENCES Machine(MaThietBi) ON DELETE CASCADE
   )
   `);
   db.run(`
