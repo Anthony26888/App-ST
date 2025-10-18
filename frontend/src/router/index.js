@@ -24,21 +24,10 @@ import PageSparePartUsage from "@/pages/Page-Maintaince/Page-SparePartUsage.vue"
 import PagePlanProduct from "@/pages/Page-Manufacture/Page-Manufacture.vue";
 import PageDetailManufacture from "@/pages/Page-Manufacture/Page-DetailManufacture.vue";
 import PageDetailSMT from "@/pages/Page-Manufacture/Page-DetailSMT.vue";
-import PageDetailAOI from "@/pages/Page-Manufacture/Page-DetailAOI.vue";
-import PageDetailRW from "@/pages/Page-Manufacture/Page-DetailRW.vue";
-import PageDetailIPQC from "@/pages/Page-Manufacture/Page-DetailIPQC.vue";
-import PageDetailAssembly from "@/pages/Page-Manufacture/Page-DetailAssembly.vue";
-import PageDetailOQC from "@/pages/Page-Manufacture/Page-DetailOQC.vue";
 import PageSummary from "@/pages/Page-Summary/Page-Summary.vue"
-import PageDetailIPQCSMT from "@/pages/Page-Manufacture/Page-Detail-IPQC-SMT.vue";
-import PageDetailBoxBuild from "@/pages/Page-Manufacture/Page-Detail-BoxBuild.vue";
-import PageDetailWarehouse from "@/pages/Page-Manufacture/Page-Detail-Warehouse.vue";
-import PageDetailTest1 from "@/pages/Page-Manufacture/Page-Detail-Test1.vue";
-import PageDetailTest2 from "@/pages/Page-Manufacture/Page-Detail-Test2.vue";
 import PageListWork from "@/pages/Page-Manufacture/Page-ListWork.vue";
 import PageAI from "@/pages/Page-AI-Chatbox/Page-AI.vue"
-import PageDetailConformalCoating from "@/pages/Page-Manufacture/Page-Detail-Conformal-Coating.vue";
-
+import PageDetailCounting from "@/pages/Page-Manufacture/Page-Detail-Couting.vue"
 
 const routes = [
   {
@@ -172,70 +161,10 @@ const routes = [
         component: PageDetailSMT,
       },
       {
-        path: "/San-xuat/AOI/:id",
-        name: "DetailAOI",
+        path: "/San-xuat/:process/:id",
+        name: "DetailList",
         meta: { requiresAuth: true },
-        component: PageDetailAOI,
-      },
-      {
-        path: "/San-xuat/RW/:id",
-        name: "DetailHand",
-        meta: { requiresAuth: true },
-        component: PageDetailRW,
-      },
-      {
-        path: "/San-xuat/IPQC/:id",
-        name: "DetailIPQC",
-        meta: { requiresAuth: true },
-        component: PageDetailIPQC,
-      },
-      {
-        path: "/San-xuat/Assembly/:id",
-        name: "DetailAssembly",
-        meta: { requiresAuth: true },
-        component: PageDetailAssembly,
-      },
-      {
-        path: "/San-xuat/OQC/:id",
-        name: "DetailOQC",
-        meta: { requiresAuth: true },
-        component: PageDetailOQC,
-      },
-      {
-        path: "/San-xuat/IPQCSMT/:id",
-        name: "DetailIPQCSMT",
-        meta: { requiresAuth: true },
-        component: PageDetailIPQCSMT,
-      },
-      {
-        path: "/San-xuat/Test1/:id",
-        name: "DetailTest1",
-        meta: { requiresAuth: true },
-        component: PageDetailTest1,
-      },
-      {
-        path: "/San-xuat/Test2/:id",
-        name: "DetailTest2",
-        meta: { requiresAuth: true },
-        component: PageDetailTest2,
-      },
-      {
-        path: "/San-xuat/Nhap-kho/:id",
-        name: "DetailWarehouse",
-        meta: { requiresAuth: true },
-        component: PageDetailWarehouse,
-      },
-      {
-        path: "/San-xuat/BoxBuild/:id",
-        name: "DetailBoxBuild",
-        meta: { requiresAuth: true },
-        component: PageDetailBoxBuild,
-      },
-      {
-        path: "/San-xuat/Conformal-Coating/:id",
-        name: "DetailConformalCoating",
-        meta: { requiresAuth: true },
-        component: PageDetailConformalCoating,
+        component: PageDetailCounting,
       },
       {
         path: "/Bao-cao-san-xuat",

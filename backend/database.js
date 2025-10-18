@@ -190,7 +190,7 @@ db.serialize(() => {
       MaBaoTri INTEGER PRIMARY KEY AUTOINCREMENT,
       MaThietBi INTEGER NOT NULL,
       NgayBaoTri DATE NOT NULL,
-      LoaiBaoTri TEXT NOT NULL, -- Ví dụ: Bảo trì định kỳ, Sửa chữa, Thay thế
+      LoaiBaoTri TEXT NOT NULL,
       MoTaLoi TEXT,
       BienPhapKhacPhuc TEXT,
       PhuongAn TEXT,
@@ -267,6 +267,23 @@ db.serialize(() => {
       Note TEXT,
       Source TEXT,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ManufactureCounting (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      HistoryID INTEGER NOT NULL,
+      PartNumber TEXT NOT NULL,
+      Status TEXT NOT NULL,
+      Timestamp TEXT NOT NULL,
+      RWID TEXT,
+      TimestampRW TEXT,
+      Note TEXT,
+      PlanID INTEGER,
+      Type TEXT,
+      FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
+      FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
     )
   `);
 

@@ -8,11 +8,6 @@ export function useDetailOrder(id) {
   const headers = ref([]);
   const SOCKET_URL = import.meta.env.VITE_SOCKET_URL; // Lấy URL từ .env
   const socket = io(SOCKET_URL) // chỉnh lại nếu deploy
-  // const socket = io(getSocketUrl(), {
-  //   transports: ["websocket"],      // ✅ ưu tiên websocket
-  //   withCredentials: true,          // ✅ gửi cookie nếu có auth
-  //   path: "/socket.io",             // ✅ khớp với backend nếu thay đổi path
-  // });
   const generateHeaders = (Obj) => {
     if (Obj) {
       headers.value = Object.keys(Obj).map((key) => ({
@@ -26,7 +21,6 @@ export function useDetailOrder(id) {
     
     socket.emit("getCompare", id);
     socket.on("compareData", (data) => {
-      console.log("Received compare:", data);
       compare.value = data;
       generateHeaders(data)
     });

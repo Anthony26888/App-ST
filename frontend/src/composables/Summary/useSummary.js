@@ -19,7 +19,6 @@ export function useSummary(selectedDate) {
   const fetchData = () => {
     try {
       if (selectedDate.value) {
-        console.log("Fetching summary for:", selectedDate.value);
         socket.emit("getSummary", {
           start: startOfDay.value,
           end: endOfDay.value,

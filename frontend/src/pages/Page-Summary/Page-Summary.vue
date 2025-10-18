@@ -87,7 +87,7 @@
 
       <!-- Charts -->
       <v-row>
-        <v-col cols="12" md="7">
+        <v-col cols="12" md="8">
           <v-card class="mb-4 rounded-xl" elevation="2" height="500px">
             <v-card-title class="d-flex align-center">
               <span>Biểu đồ so sánh kế hoạch và thực tế theo hạng mục</span>
@@ -97,7 +97,7 @@
             </v-card-text>
           </v-card>
         </v-col>
-        <v-col cols="12" md="5">
+        <v-col cols="12" md="4">
           <!-- Thay thế pie chart bằng bảng chi tiết công đoạn -->
           <v-card class="mb-4 rounded-xl" elevation="2" height="500px">
             <v-toolbar flat dense>
@@ -333,7 +333,7 @@
       </v-data-table-virtual>
 
       <!-- Bảng dữ liệu hoạt động các công đoạn -->
-      <v-data-table-virtual
+      <!-- <v-data-table-virtual
         :items="status"
         :headers="HeadersActived"
         :key="now"
@@ -376,10 +376,10 @@
               {{ getTimeDifference(item.LatestTimestamp) < 600 ? "mdi-check-circle" : "mdi-close-circle" }}
             </v-icon>
             {{ getTimeDifference(item.LatestTimestamp) < 600 ? "Đang hoạt động" : "Ngắt kết nối" }}
-            <!-- Debug: {{ getTimeDifference(item.LatestTimestamp) }} -->
+
           </v-chip>
         </template>
-      </v-data-table-virtual>
+      </v-data-table-virtual> -->
     </v-card-text>
   </v-card>
 
@@ -471,7 +471,7 @@
 
       <!-- Charts -->
       <v-row>
-        <v-col cols="12" md="7">
+        <v-col cols="12" md="12">
           <v-card class="mb-4 rounded-xl" elevation="2" height="500px">
             <v-card-title class="d-flex align-center">
               <span>Biểu đồ so kế hoạch và thực tế</span>
@@ -481,7 +481,7 @@
             </v-card-text>
           </v-card>
         </v-col>
-        <v-col cols="12" md="5">
+        <v-col cols="12" md="12">
           <!-- Thay thế pie chart bằng bảng chi tiết công đoạn -->
           <v-card class="mb-4 rounded-xl" elevation="2" height="500px">
             <v-toolbar flat dense>
@@ -716,7 +716,7 @@
         </template>
       </v-data-table-virtual>
 
-      <!-- Bảng dữ liệu hoạt động các công đoạn -->
+      <!-- Bảng dữ liệu hoạt động các công đoạn
       <v-data-table-virtual
         :items="status"
         :headers="HeadersActived"
@@ -746,7 +746,7 @@
                 size="x-small"
                 start
               ></v-icon>
-              Hoạt động các công đoạn 
+              Hoạt động các công đoạns
               
             </v-toolbar-title>
           </v-toolbar>
@@ -760,10 +760,9 @@
               {{ getTimeDifference(item.LatestTimestamp) < 600 ? "mdi-check-circle" : "mdi-close-circle" }}
             </v-icon>
             {{ getTimeDifference(item.LatestTimestamp) < 600 ? "Đang hoạt động" : "Ngắt kết nối" }}
-            <!-- Debug: {{ getTimeDifference(item.LatestTimestamp) }} -->
           </v-chip>
         </template>
-      </v-data-table-virtual>
+      </v-data-table-virtual> -->
     </v-card-text>
   </v-card>
 

@@ -1,78 +1,4 @@
 <template lang="">
-  <!-- <v-navigation-drawer
-    theme="light"
-    permanent
-    color="#1E293B"
-    class="custom-nav"
-    elevation="2"
-    :rail="rail"
-    :rail-width="70"
-    @click="rail = false"
-  >
-    <template v-slot:prepend>
-      <v-list-item
-        class="ms-2"
-        lines="two"
-        prepend-avatar="@/assets/avatar-ST.jpg"
-      >
-        <template v-slot:title>
-          <p class="text-h6 font-weight-medium ms-3 text-white">
-            {{ UserInfo }}
-          </p>
-        </template>
-        <template v-slot:subtitle>
-          <p class="ms-3 text-grey-lighten-1">{{ LevelUser }}</p>
-        </template>
-        <template v-slot:append>
-          <v-btn
-            icon="mdi-chevron-left"
-            variant="text"
-            @click.stop="rail = !rail"
-          ></v-btn>
-        </template>
-      </v-list-item>
-    </template>
-    <v-divider class="border-opacity-25"></v-divider>
-    <v-list nav class="mt-4">
-      <v-list-item
-        v-for="(item, i) in menuItems"
-        :key="i"
-        :prepend-icon="item.icon"
-        :title="item.title"
-        :value="item.value"
-        :to="item.to"
-        :disabled="item.disabled"
-        :class="{ 'menu-item-disabled': item.disabled }"
-      >
-        <template v-slot:prepend>
-          <v-icon :color="item.disabled ? 'grey' : 'white'" class="me-3">{{
-            item.icon
-          }}</v-icon>
-        </template>
-        <template v-slot:title>
-          <span :class="item.disabled ? 'text-grey' : 'text-white'">{{
-            item.title
-          }}</span>
-        </template>
-      </v-list-item>
-    </v-list>
-    <template v-slot:append>
-      <div class="pa-4">
-        <v-btn
-          block
-          @click="LogOut()"
-          class="logout-btn text-caption"
-          variant="tonal"
-          elevation="2"
-          prepend-icon="mdi-logout"
-          :class="{ 'rail-mode': rail }"
-        >
-          <span v-if="!rail">Đăng xuất</span>
-        </v-btn>
-      </div>
-    </template>
-  </v-navigation-drawer> -->
-
   <v-navigation-drawer expand-on-hover permanent rail color="#1E293B">
     <v-list>
       <v-list-item
@@ -93,22 +19,20 @@
 
     <v-list nav class="mt-4">
       <v-list-item
-        v-for="(item, i) in menuItems"
+        v-for="(item, i) in visibleMenuItems"
         :key="i"
         :prepend-icon="item.icon"
         :title="item.title"
         :value="item.value"
         :to="item.to"
-        :disabled="item.disabled"
-        :class="{ 'menu-item-disabled': item.disabled }"
       >
         <template v-slot:prepend>
-          <v-icon :color="item.disabled ? 'grey' : 'white'" class="me-3">{{
+          <v-icon :color="'white'" class="me-3">{{
             item.icon
           }}</v-icon>
         </template>
         <template v-slot:title>
-          <span :class="item.disabled ? 'text-grey' : 'text-white'">{{
+          <span class="text-white">{{
             item.title
           }}</span>
         </template>
@@ -369,6 +293,10 @@ const menuItems = computed(() => [
     disabled: StatusOption_9.value,
   },
 ]);
+
+const visibleMenuItems = computed(() =>
+  menuItems.value.filter((item) => !item.disabled)
+);
 </script>
 
 <script>
