@@ -42,7 +42,7 @@
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra</div>
                 <div class="text-h4 font-weight-bold">
-                  {{ totalWarehouse }}
+                  {{ totalOutput }}
                 </div>
                 <div class="text-caption">Tổng số lượng đầu ra</div>
               </v-card-text>
@@ -63,8 +63,8 @@
             <v-card class="rounded-lg" color="info" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Tỷ lệ</div>
-                <div class="text-h4 font-weight-bold">{{ percent }}%</div>
-                <div class="text-caption">Tỉ lệ hàng hoá</div>
+                <div class="text-h4 font-weight-bold">{{ (totalOutput*100)/totalInput }}%</div>
+                <div class="text-caption">Tỉ lệ hàng pass</div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -565,6 +565,7 @@
                     : "Pass"
                 }}
               </v-chip>
+              
             </template>
             <template #[`item.PartNumber`]="{ item }">
               <p v-if="item.PartNumber == 1">{{ NameOrder }}</p>
@@ -745,6 +746,7 @@
               />
             </v-col>
           </v-row>
+          <InputField type="date" label="Ngày tạo" v-model="Date_DetailManufacture_Edit" />
           <InputTextarea label="Ghi chú" v-model="Note_Edit" />
         </v-card-text>
         <v-card-actions>
@@ -944,7 +946,6 @@ const { manufacture, manufactureFound, manufactureError, isConnected } =
 const { history, historyError, refresh } = useHistory(id);
 const { historyPart, historyPartError } = useHistoryPart(id);
 const { manufactureSummary, manufactureSummaryError} = useManufactureSummary(id)
-console.log(manufactureSummary)
 
 // Dialog
 const DialogSuccess = ref(false);
@@ -968,6 +969,7 @@ const GetSourceHistory = ref(null);
 
 // Production statistics
 const totalInput = ref(0);
+const totalOutput = ref(0);
 const totalSMT_1 = ref(0);
 const totalSMT_2 = ref(0);
 const totalSMT_3 = ref(0);
@@ -1062,10 +1064,26 @@ const chartInstance = ref(null);
 const HeadersHistory = [
   { title: "Ngày", key: "Created_At", sortable: true },
   { title: "Tên danh mục", key: "Category", sortable: true },
-  { title: "Đầu vào", key: "Quantity_Plan", sortable: true },
-  { title: "Đầu ra", key: "Quantity_Real", sortable: true },
-  { title: "Hàng lỗi", key: "Quantity_Error", sortable: true },
-  { title: "RW đã sửa", key: "Total_Fixed", sortable: true },
+  {
+    title: "Kế hoạch",
+    align: "center",
+    children: [
+      { title: "Vòng lập (s)", key: "CycleTime_Plan" },
+      { title: "Thời gian (s)", key: "Time_Plan" },
+      { title: "Đầu vào", key: "Quantity_Plan" },
+    ],
+  },
+  {
+    title: "Thực tế",
+    align: "center",
+    children: [
+      { title: "Đầu ra", key: "Quantity_Real" },
+      { title: "Hàng lỗi", key: "Quantity_Error"},
+      { title: "Phần trăm (%)", key: "Percent" },    
+      { title: "RW đã sửa", key: "Total_Fixed"},
+    ],
+  },
+  { title: "Ghi chú", key: "Note" },
   { title: "Thao tác", key: "id", sortable: false },
 ];
 const HeadersHistoryPart = [
@@ -1075,8 +1093,8 @@ const HeadersHistoryPart = [
   { title: "Trạng thái", key: "Status", sortable: true },
   { title: "Thời gian", key: "Timestamp", sortable: true },
   { title: "Ghi chú lỗi", key: "Note", sortable: true },
-  { title: "Thời gian RW", key: "TimestampRW", sortable: true },
-  { title: "Thao tác", key: "id", sortable: true },
+  // { title: "Thời gian RW", key: "TimestampRW", sortable: true },
+  // { title: "Thao tác", key: "id", sortable: true },
 ];
 
 // =============== Rules ============
@@ -1105,6 +1123,22 @@ const normalizedHistoryPart = computed(() => {
       return item;
     });
 });
+
+// 🔸 Hàm chuyển unixepoch → yyyy-mm-dd
+const formatDateForInput = (timestamp) => {
+  if (!timestamp) return ''
+  const d = new Date((timestamp + 12 * 60 * 60) * 1000)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+// Hàm chuyển yyyy-mm-dd → unixepoch
+const dateStringToUnix = (value) => {
+  if (!value) return null
+  return Math.floor(new Date(value).getTime() / 1000)
+}
 
 // Watch for manufactureFound changes to update levels
 watch(
@@ -1143,6 +1177,7 @@ watch(
       if (Array.isArray(newValue) && newValue.length > 0) {
         const data = newValue[0]; // Get first item if it's an array
         totalInput.value = data.Total || 0;
+        totalOutput.value = data.Quantity_Pass || 0;
         totalError.value = data.Quantity_Error || 0;
         totalFixed.value = data.Quantity_Fixed || 0;
         totalSMT_1.value = data.SMT_1 || 0;
@@ -1189,14 +1224,6 @@ watch(
   },
   { immediate: true, deep: true }
 );
-
-// Watch for manufacture errors
-watch(manufactureError, (error) => {
-  if (error) {
-    console.error("Manufacture error:", error);
-    DialogFailed.value = true;
-  }
-});
 
 // Initialize chart
 onMounted(() => {
@@ -1612,7 +1639,6 @@ const dynamicProcessCards = computed(() => {
 
 // ====== CRUD ========
 const PushItem = (item) => {
-  console.log(item)
   localStorage.setItem("ManufactureID", id);
   if (item.Type === "SMT") {
     router.push(`/San-xuat/SMT/${item.id}`);
@@ -1622,6 +1648,7 @@ const PushItem = (item) => {
 };
 
 const GetItem = (item) => {
+  console.log(item)
   DialogEdit.value = true;
   Type_Edit.value = item.Type;
   PONumber_Edit.value = item.PONumber;
@@ -1632,7 +1659,7 @@ const GetItem = (item) => {
   CycleTime_Edit.value = item.CycleTime_Plan;
   Time_Edit.value = item.Time_Plan;
   Note_Edit.value = item.Note;
-  Date_DetailManufacture_Edit.value = item.Created_At;
+  Date_DetailManufacture_Edit.value = item.Created_At_unixepoch;
   GetID.value = item.id;
 };
 
@@ -1653,7 +1680,6 @@ const GetItemHistory = (item) => {
   } else {
     GetSourceHistory.value = `Manufacture${item.Source}`;
   }
-  console.log(item.Source);
 };
 
 const SaveEdit = async () => {
@@ -1668,7 +1694,7 @@ const SaveEdit = async () => {
     CycleTime_Plan: CycleTime_Edit.value,
     Time_Plan: Time_Edit.value,
     Note: Note_Edit.value,
-    Created_At: Date_DetailManufacture_Edit.value,
+    Created_At: dateStringToUnix(Date_DetailManufacture_Edit.value),
   });
 
   try {
@@ -1836,10 +1862,9 @@ function Error() {
 async function fetchProductionData() {
   try {
     DialogLoading.value = true;
-    console.log("Current manufactureDetails:", manufactureDetails.value); // Debug current value
   } catch (error) {
-    console.error("Error fetching production data:", error);
     DialogFailed.value = true;
+    MessageErrorDialog.value = "Lỗi không lấy được dữ liệu"
   } finally {
     DialogLoading.value = false;
   }
@@ -2019,14 +2044,7 @@ watch(
   { deep: true }
 );
 
-// Add watcher for history errors
-watch(historyError, (error) => {
-  if (error) {
-    console.error("History error:", error);
-    DialogFailed.value = true;
-    MessageErrorDialog.value = error;
-  }
-});
+
 </script>
 <script>
 export default {

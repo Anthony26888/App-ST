@@ -101,16 +101,16 @@
           <!-- Thay thế pie chart bằng bảng chi tiết công đoạn -->
           <v-card class="mb-4 rounded-xl" elevation="2" height="500px">
             <v-toolbar flat dense>
-            <v-toolbar-title>
-              <v-icon
-                color="primary"
-                icon="mdi-book-multiple"
-                size="x-small"
-                start
-              ></v-icon>
-              Chi tiết theo công đoạn
-            </v-toolbar-title>
-          </v-toolbar>
+              <v-toolbar-title>
+                <v-icon
+                  color="primary"
+                  icon="mdi-book-multiple"
+                  size="x-small"
+                  start
+                ></v-icon>
+                Chi tiết theo công đoạn
+              </v-toolbar-title>
+            </v-toolbar>
             <v-card-text class="pa-4">
               <div class="detail-table-container">
                 <v-table density="compact" class="elevation-1 rounded">
@@ -123,8 +123,13 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="(item, index) in summaryDetailByType" :key="index">
-                      <td class="text-caption font-weight-medium">{{ item.type }}</td>
+                    <tr
+                      v-for="(item, index) in summaryDetailByType"
+                      :key="index"
+                    >
+                      <td class="text-caption font-weight-medium">
+                        {{ item.type }}
+                      </td>
                       <td class="text-center">
                         <v-chip size="x-small" color="success" variant="tonal">
                           {{ item.ok }}
@@ -138,7 +143,13 @@
                       <td class="text-center">
                         <v-chip
                           size="x-small"
-                          :color="item.rate >= 95 ? 'success' : item.rate >= 80 ? 'warning' : 'error'"
+                          :color="
+                            item.rate >= 95
+                              ? 'success'
+                              : item.rate >= 80
+                              ? 'warning'
+                              : 'error'
+                          "
                           variant="tonal"
                         >
                           {{ item.rate }}%
@@ -166,7 +177,13 @@
                     <span class="text-caption">Tỷ lệ chung:</span>
                     <v-chip
                       size="small"
-                      :color="overallSummaryRate >= 95 ? 'success' : overallSummaryRate >= 80 ? 'warning' : 'error'"
+                      :color="
+                        overallSummaryRate >= 95
+                          ? 'success'
+                          : overallSummaryRate >= 80
+                          ? 'warning'
+                          : 'error'
+                      "
                       variant="tonal"
                     >
                       {{ overallSummaryRate }}%
@@ -300,34 +317,23 @@
           </tr>
         </template>
 
-        <template #[`item.Quantity_Error`]="{ item }">
-          <div class="d-flex">
-            <p class="text-primary">
-              {{ item.Quantity_Real + item.Quantity_Error }}
-            </p>
-            /
-            <p class="text-error">{{ item.Quantity_Error }}</p>
-          </div>
+        <template #[`item.Total_Summary_ID`]="{ item }">
+          <v-chip color="success" variant="tonal">{{
+            item.Total_Summary_ID
+          }}</v-chip>
         </template>
-        <template #[`item.Quantity_Real`]="{ item }">
+        <template #[`item.Quantity_Error`]="{ item }">
+          <v-chip color="warning" variant="tonal">{{
+            item.Quantity_Error
+          }}</v-chip>
+        </template>
+        <template #[`item.Percent_Error`]="{ item }">
           <v-progress-linear
-            :model-value="
-              Number(
-                (item.Quantity_Error * 100) /
-                  (item.Quantity_Real + item.Quantity_Error) || 0
-              )
-            "
+            :model-value="Number(item.Percent_Error)"
             height="25"
             color="success"
           >
-            <strong
-              >{{
-                (
-                  (item.Quantity_Error * 100) /
-                    (item.Quantity_Real + item.Quantity_Error) || 0
-                ).toFixed(1)
-              }}%</strong
-            >
+            <strong>{{ Number(item.Percent_Error).toFixed(1) }}%</strong>
           </v-progress-linear>
         </template>
       </v-data-table-virtual>
@@ -485,16 +491,16 @@
           <!-- Thay thế pie chart bằng bảng chi tiết công đoạn -->
           <v-card class="mb-4 rounded-xl" elevation="2" height="500px">
             <v-toolbar flat dense>
-            <v-toolbar-title>
-              <v-icon
-                color="primary"
-                icon="mdi-book-multiple"
-                size="x-small"
-                start
-              ></v-icon>
-              Chi tiết theo công đoạn
-            </v-toolbar-title>
-          </v-toolbar>
+              <v-toolbar-title>
+                <v-icon
+                  color="primary"
+                  icon="mdi-book-multiple"
+                  size="x-small"
+                  start
+                ></v-icon>
+                Chi tiết theo công đoạn
+              </v-toolbar-title>
+            </v-toolbar>
             <v-card-text class="pa-4">
               <div class="detail-table-container">
                 <v-table density="compact" class="elevation-1 rounded">
@@ -507,8 +513,13 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="(item, index) in summaryDetailByType" :key="index">
-                      <td class="text-caption font-weight-medium">{{ item.type }}</td>
+                    <tr
+                      v-for="(item, index) in summaryDetailByType"
+                      :key="index"
+                    >
+                      <td class="text-caption font-weight-medium">
+                        {{ item.type }}
+                      </td>
                       <td class="text-center">
                         <v-chip size="x-small" color="success" variant="tonal">
                           {{ item.ok }}
@@ -522,7 +533,13 @@
                       <td class="text-center">
                         <v-chip
                           size="x-small"
-                          :color="item.rate >= 95 ? 'success' : item.rate >= 80 ? 'warning' : 'error'"
+                          :color="
+                            item.rate >= 95
+                              ? 'success'
+                              : item.rate >= 80
+                              ? 'warning'
+                              : 'error'
+                          "
                           variant="tonal"
                         >
                           {{ item.rate }}%
@@ -550,7 +567,13 @@
                     <span class="text-caption">Tỷ lệ chung:</span>
                     <v-chip
                       size="small"
-                      :color="overallSummaryRate >= 95 ? 'success' : overallSummaryRate >= 80 ? 'warning' : 'error'"
+                      :color="
+                        overallSummaryRate >= 95
+                          ? 'success'
+                          : overallSummaryRate >= 80
+                          ? 'warning'
+                          : 'error'
+                      "
                       variant="tonal"
                     >
                       {{ overallSummaryRate }}%
@@ -683,35 +706,23 @@
             </td>
           </tr>
         </template>
-
+        <template #[`item.Total_Summary_ID`]="{ item }">
+          <v-chip color="success" variant="tonal">{{
+            item.Total_Summary_ID
+          }}</v-chip>
+        </template>
         <template #[`item.Quantity_Error`]="{ item }">
-          <div class="d-flex">
-            <p class="text-primary">
-              {{ item.Quantity_Real + item.Quantity_Error }}
-            </p>
-            /
-            <p class="text-error">{{ item.Quantity_Error }}</p>
-          </div>
+          <v-chip color="warning" variant="tonal">{{
+            item.Quantity_Error
+          }}</v-chip>
         </template>
         <template #[`item.Quantity_Real`]="{ item }">
           <v-progress-linear
-            :model-value="
-              Number(
-                (item.Quantity_Error * 100) /
-                  (item.Quantity_Real + item.Quantity_Error) || 0
-              )
-            "
+            :model-value="Number(item.Percent_Error)"
             height="25"
             color="success"
           >
-            <strong
-              >{{
-                (
-                  (item.Quantity_Error * 100) /
-                    (item.Quantity_Real + item.Quantity_Error) || 0
-                ).toFixed(1)
-              }}%</strong
-            >
+            <strong>{{ Number(item.Percent_Error).toFixed(1) }}%</strong>
           </v-progress-linear>
         </template>
       </v-data-table-virtual>
@@ -775,11 +786,17 @@
 // Core dependencies
 import axios from "axios";
 import { useRouter } from "vue-router";
-import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
+import {
+  ref,
+  reactive,
+  computed,
+  watch,
+  onMounted,
+  onUnmounted,
+  nextTick,
+} from "vue";
 import Chart from "chart.js/auto";
-import { useDisplay } from 'vuetify'
-
-
+import { useDisplay } from "vuetify";
 
 // Components
 
@@ -800,7 +817,7 @@ import { useSummary } from "@/composables/Summary/useSummary";
 import { useActived } from "@/composables/Summary/useActived";
 
 // ===== STATE MANAGEMENT =====
-const { mdAndDown, lgAndUp } = useDisplay()
+const { mdAndDown, lgAndUp } = useDisplay();
 // API Configuration
 const Url = import.meta.env.VITE_API_URL;
 
@@ -831,16 +848,16 @@ const Headers = ref([
     title: "Kế hoạch",
     align: "center",
     children: [
-      { title: "Số lượng (pcs)", key: "Quantity_Plan" },
       { title: "Vòng lập (s)", key: "CycleTime_Plan" },
       { title: "Thời gian (s)", key: "Time_Plan" },
+      { title: "Đầu vào (pcs)", key: "Quantity_Plan" },
     ],
   },
   {
     title: "Thực tế",
     align: "center",
     children: [
-      { title: "Số lượng (pcs)", key: "Quantity_Real" },
+      { title: "Đầu ra (pcs)", key: "Quantity_Real" },
       { title: "Phần trăm (%)", key: "Percent" },
       { title: "Ghi chú", key: "Note" },
     ],
@@ -850,8 +867,9 @@ const Headers = ref([
 const HeadersError = ref([
   { key: "PONumber", title: "Dự án" },
   { key: "Type", title: "Công đoạn" },
-  { key: "Quantity_Error", title: "Tổng / Lỗi" },
-  { key: "Quantity_Real", title: "Tỷ lệ lỗi" },
+  { key: "Total_Summary_ID", title: "Số lượng đã sản xuất" },
+  { key: "Quantity_Error", title: "Hàng lỗi" },
+  { key: "Percent_Error", title: "Tỷ lệ lỗi" },
 ]);
 
 const HeadersActived = [
@@ -862,7 +880,6 @@ const HeadersActived = [
 ];
 
 // ===== COMPUTED =======
-
 
 // Thời gian thực để trigger cập nhật
 const now = ref(Date.now());
@@ -914,10 +931,9 @@ const overallSummaryRate = computed(() => {
   return total > 0 ? Math.round((totalSummaryOK.value / total) * 100) : 0;
 });
 
-
 // format date for v-data-picker
 const dateMenu = ref(false);
-const selectedDate = ref(new Date()); 
+const selectedDate = ref(new Date());
 
 const formattedSelectedDate = computed(() => {
   const date = selectedDate.value;

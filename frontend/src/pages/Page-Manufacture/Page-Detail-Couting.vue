@@ -8,7 +8,7 @@
           @click="removeGoBackListWork"
         />
         <ButtonBack v-else :to="`/San-xuat/Chi-tiet/${back}`" />
-        <span class="ml-2">Theo dõi sản xuất {{Name_Category}}</span>
+        <span class="ml-2">Theo dõi sản xuất {{ Name_Category }}</span>
       </v-card-title>
 
       <v-card-title class="d-flex align-center pe-2">
@@ -46,7 +46,9 @@
                 <div class="text-h4 font-weight-bold" v-else>
                   {{ totalOutput }}
                 </div>
-                <div class="text-caption">Tổng số lượng đầu ra ( {{ Quantity_Counting }} pcs/ panel )</div>
+                <div class="text-caption">
+                  Tổng số lượng đầu ra ( {{ Quantity_Counting }} pcs/ panel )
+                </div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -143,7 +145,7 @@
           </v-card-title>
           <v-data-table
             :headers="Headers"
-            :items="manufactureCounting"
+            :items="filteredManufactureCounting"
             :search="combinedSearch"
             v-model:page="page"
             v-model:items-per-page="itemsPerPage"
@@ -189,15 +191,23 @@
                     : "Pass"
                 }}
               </v-chip>
+              <v-chip
+                color="info"
+                class="ms-2"
+                v-if="item.Status_Fixed === 'fixed'"
+                size="small"
+                variant="tonal"
+                >Fixed</v-chip
+              >
               <v-btn
-                v-if="item.Status === 'fixed'"
+                v-if="item.Status === 'fail'"
                 size="small"
                 color="success"
                 variant="tonal"
                 class="ml-2 text-caption"
                 @click="GetItem(item)"
               >
-                <v-icon size="small">mdi-check</v-icon>
+                <v-icon size="small" class="me-2">mdi-check</v-icon>
                 Kiểm tra
               </v-btn>
             </template>
@@ -207,12 +217,23 @@
             <template #item.Note="{ item }">
               <div style="white-space: pre-line">{{ item.Note }}</div>
             </template>
+            <template #item.id="{ item }">
+              <v-btn
+                size="small"
+                variant="text"
+                color="error"
+                icon="mdi-trash-can"
+                @click="GetItemHistory(item)"
+              ></v-btn>
+            </template>
             <template #[`bottom`]>
               <div class="text-center pt-2">
                 <v-pagination
                   v-model="page"
                   :length="
-                    Math.ceil((manufactureAOI?.length || 0) / itemsPerPage)
+                    Math.ceil(
+                      (filteredManufactureCounting?.length || 0) / itemsPerPage
+                    )
                   "
                 ></v-pagination>
               </div>
@@ -230,7 +251,7 @@
       <v-card
         max-width="500"
         prepend-icon="mdi-hammer-screwdriver"
-        title="Xác nhận sửa sản phẩm"
+        title="Xác nhận đã sửa sản phẩm"
       >
         <v-card-text> Sản phẩm đã được sửa lỗi hoàn tất ? </v-card-text>
         <template #actions>
@@ -239,6 +260,18 @@
         </template>
       </v-card>
     </v-dialog>
+
+    <!-- Dialog xác nhận xóa dữ liệu lịch sử sản xuất -->
+    <v-dialog v-model="DialogRemoveHistory" width="400">
+      <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
+        <v-card-text> Bạn có chắc chắn muốn xoá dữ liệu ? </v-card-text>
+        <template v-slot:actions>
+          <ButtonCancel @cancel="DialogRemoveHistory = false" />
+          <ButtonDelete @delete="RemoveItemHistory()" />
+        </template>
+      </v-card>
+    </v-dialog>
+
     <SnackbarSuccess
       :model-value="DialogSuccess"
       @update:model-value="DialogSuccess = $event"
@@ -270,6 +303,7 @@ import { useManufactureCounting } from "@/composables/Manufacture/useManufacture
 import Loading from "@/components/Loading.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import ButtonBack from "@/components/Button-Back.vue";
+import ButtonDelete from "@/components/Button-Delete.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";
 
@@ -287,13 +321,14 @@ const Headers = [
   { title: "Trạng thái", key: "Status", sortable: true },
   { title: "Ghi chú lỗi", key: "Note", sortable: true },
   { title: "Thời gian", key: "Timestamp", sortable: true },
-  { title: "Thời gian RW", key: "TimestampRW", sortable: true },
+  { title: "Thao tác", key: "id" },
 ];
 
 // ===== Composables & Data Management =====
 // Initialize composables for data fetching
 const { history, historyError } = useHistory(back);
-const { manufactureCounting, manufactureCountingError } = useManufactureCounting(id);
+const { manufactureCounting, manufactureCountingError } =
+  useManufactureCounting(id);
 // ===== Reactive State =====
 
 // Dialog
@@ -301,6 +336,7 @@ const DialogLoading = ref(false);
 const DialogFixed = ref(false);
 const DialogSuccess = ref(false);
 const DialogFailed = ref(false);
+const DialogRemoveHistory = ref(false);
 const MessageErrorDialog = ref("");
 const MessageDialog = ref("");
 
@@ -340,13 +376,15 @@ watch(
   (newData) => {
     if (!newData?.value) {
       DialogFailed.value = true;
-      MessageErrorDialog.value ="Lỗi không có dữ liệu - Vui lòng tải lại dữ liệu"
+      MessageErrorDialog.value =
+        "Lỗi không có dữ liệu - Vui lòng tải lại dữ liệu";
       return;
     }
 
     if (!Array.isArray(newData.value)) {
       DialogFailed.value = true;
-      MessageErrorDialog.value ="Lỗi không có dữ liệu - Vui lòng tải lại dữ liệu"
+      MessageErrorDialog.value =
+        "Lỗi không có dữ liệu - Vui lòng tải lại dữ liệu";
       return;
     }
 
@@ -392,7 +430,7 @@ watch(
       (item) => item?.Status === "fail"
     ).length;
     totalFixed.value = newData.value.filter(
-      (item) => item?.Status === "fixed"
+      (item) => item?.Status_Fixed === "fixed"
     ).length;
     totalOutput.value = newData.value.filter(
       (item) => item?.Status === "pass"
@@ -420,7 +458,7 @@ const submitBarcode = async () => {
     Status: isError.value ? "fail" : "pass",
     Note: ErrorLog.value,
     PlanID: PlanID.value,
-    Type: Name_Category.value
+    Type: Name_Category.value,
   });
 
   try {
@@ -434,7 +472,7 @@ const submitBarcode = async () => {
   } catch (error) {
     DialogLoading.value = false;
     Input.value = "";
-    ErrorLog.value ="";
+    ErrorLog.value = "";
     DialogFailed.value = true;
     MessageErrorDialog.value = "Lỗi khi nhập mã sản phẩm";
   } finally {
@@ -448,29 +486,50 @@ const GetItem = (item) => {
   GetID.value = item.id;
 };
 
+const GetItemHistory = (item) => {
+  DialogRemoveHistory.value = true;
+  GetID.value = item.id
+};
+
 const markAsFixed = async () => {
   DialogFixed.value = true;
   try {
     const response = await axios.put(
-      `${Url}/Manufacture/AOI/Edit-status/${GetID.value}`,
-      {
-        Status: "ok",
-      }
+      `${Url}/ManufactureCounting/Edit-status-fixed/${GetID.value}`
     );
-    console.log("Item marked as fixed:", response.data);
     // Refresh the data after successful update
     DialogFixed.value = false;
     DialogLoading.value = true;
     DialogSuccess.value = true;
     MessageDialog.value = "Sản phẩm đã được sửa lỗi hoàn tất";
   } catch (error) {
-    console.error("Error marking item as fixed:", error);
     DialogFixed.value = false;
     DialogLoading.value = true;
     DialogFailed.value = true;
     MessageErrorDialog.value = "Sản phẩm đã được sửa lỗi hoàn tất";
   } finally {
     DialogLoading.value = false;
+  }
+};
+
+
+// Hàm xóa item lịch sử sản xuất
+const RemoveItemHistory = async () => {
+  DialogLoading.value = true;
+  try {
+    const response = await axios.delete(
+      `${Url}/ManufactureCounting/Delete-item-history/${GetID.value}`
+    );
+    DialogSuccess.value = true
+    DialogLoading.value = false
+    DialogRemoveHistory.value = false
+    MessageDialog.value = "Xoá dữ liệu thành công";
+  } catch (error) {
+    DialogFailed.value = true
+    DialogLoading.value = false
+    DialogRemoveHistory.value = false
+    MessageErrorDialog.value = error;
+    Error();
   }
 };
 
@@ -483,7 +542,41 @@ const removeGoBackListWork = () => {
 };
 
 // ===== Filter Methods =====
+const filteredManufactureCounting = computed(() => {
+  if (!manufactureCounting.value || !Array.isArray(manufactureCounting.value)) {
+    return [];
+  }
+
+  let filtered = manufactureCounting.value;
+
+  // Apply Status_Fixed filter
+  if (selectedFilter.value === "status_fixed") {
+    filtered = filtered.filter((item) => item.Status_Fixed === "fixed");
+  } else if (selectedFilter.value && selectedFilter.value !== "") {
+    // Apply other status filters
+    filtered = filtered.filter((item) => item.Status === selectedFilter.value);
+  }
+
+  // Apply search text filter
+  if (searchText.value && searchText.value.trim() !== "") {
+    const searchLower = searchText.value.toLowerCase();
+    filtered = filtered.filter(
+      (item) =>
+        item.PartNumber?.toLowerCase().includes(searchLower) ||
+        item.Note?.toLowerCase().includes(searchLower) ||
+        item.Timestamp?.toLowerCase().includes(searchLower)
+    );
+  }
+
+  return filtered;
+});
+
 const combinedSearch = computed(() => {
+  // For Status_Fixed filtering, we use custom filtering instead of v-data-table search
+  if (selectedFilter.value === "status_fixed") {
+    return "";
+  }
+
   // If search text is provided, use it for searching
   if (searchText.value) {
     return searchText.value;
@@ -508,14 +601,14 @@ const filterOptions = computed(() => [
     icon: "mdi-alert-circle",
   },
   {
-    label: "Fixed",
-    value: "fixed",
-    icon: "mdi-wrench",
-  },
-  {
     label: "Pass",
     value: "pass",
     icon: "mdi-check-circle",
+  },
+  {
+    label: "Fixed",
+    value: "status_fixed",
+    icon: "mdi-hammer-screwdriver",
   },
 ]);
 
@@ -523,10 +616,10 @@ const getFilterColor = (filterValue) => {
   switch (filterValue) {
     case "fail":
       return "warning";
-    case "fixed":
-      return "info";
     case "pass":
       return "success";
+    case "status_fixed":
+      return "info";
     default:
       return "primary";
   }
@@ -540,6 +633,8 @@ const getFilterIcon = (filterValue) => {
       return "mdi-wrench";
     case "pass":
       return "mdi-check-circle";
+    case "status_fixed":
+      return "mdi-hammer-screwdriver";
     default:
       return "mdi-view-list";
   }
@@ -553,6 +648,8 @@ const getFilterLabel = (filterValue) => {
       return "Fixed";
     case "pass":
       return "Pass";
+    case "status_fixed":
+      return "Đã sửa";
     default:
       return "Tất cả";
   }

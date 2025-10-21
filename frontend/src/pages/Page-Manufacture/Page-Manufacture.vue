@@ -25,7 +25,7 @@
             </v-btn>
             <!-- Hiển thị tổng số kế hoạch -->
             <p class="ms-2 font-weight-thin text-subtitle-1">
-              ( {{ manufacture.length }} kế hoạch)
+              ( {{ sortedManufacture.length }} kế hoạch)
             </p>
             <v-spacer></v-spacer>
             <!-- Component tìm kiếm -->
@@ -40,7 +40,7 @@
             <!-- Bảng dữ liệu chính -->
             <v-data-table
               :headers="Headers"
-              :items="manufacture"
+              :items="sortedManufacture"
               :search="search"
               :items-per-page="itemsPerPage"
               :page="page"
@@ -70,7 +70,7 @@
                   <v-pagination
                     :model-value="page"
                     @update:model-value="page = $event"
-                    :length="Math.ceil(manufacture.length / itemsPerPage)"
+                    :length="Math.ceil(sortedManufacture.length / itemsPerPage)"
                   ></v-pagination>
                 </div>
               </template>
@@ -96,7 +96,16 @@
                   {{ item.Status_Output }}
                 </v-chip>
               </template>
-
+              <template #[`item.Total`]="{ item }">
+                <v-chip color="primary" variant="tonal">{{
+                  item.Total
+                }}</v-chip>
+              </template>
+              <template #[`item.Total_Output`]="{ item }">
+                <v-chip color="success" variant="tonal">{{
+                  item.Total_Output
+                }}</v-chip>
+              </template>
               <!-- Cột độ trễ SMT -->
               <template #[`item.DelaySMT`]="{ item }">
                 <p>{{ item.DelaySMT }} ms</p>
@@ -155,11 +164,51 @@
             v-model="Level_Edit"
             @update:model-value="(val) => (Level_Edit = val)"
           />
+
+          <!-- Thêm input cho quy trình khác trong dialog chỉnh sửa -->
+          <div class="mt-3">
+            <InputField
+              label="Thêm quy trình khác"
+              v-model="customProcessEdit"
+              placeholder="Nhập tên quy trình và nhấn Enter"
+              @keyup.enter="addCustomProcessEdit"
+              hint="Nhập và nhấn Enter để thêm nhiều quy trình"
+            >
+              <template #append>
+                <v-btn
+                  icon="mdi-plus-circle"
+                  size="small"
+                  color="primary"
+                  variant="text"
+                  @click="addCustomProcessEdit"
+                  :disabled="!customProcessEdit || !customProcessEdit.trim()"
+                ></v-btn>
+              </template>
+            </InputField>
+
+            <!-- Hiển thị danh sách quy trình tùy chỉnh đã thêm -->
+            <div v-if="customProcessListEdit.length > 0" class="mt-2">
+              <div class="text-caption text-grey mb-1">Quy trình đã thêm:</div>
+              <div class="d-flex flex-wrap ga-2">
+                <v-chip
+                  v-for="(process, index) in customProcessListEdit"
+                  :key="index"
+                  closable
+                  color="secondary"
+                  size="small"
+                  @click:close="removeCustomProcessEdit(index)"
+                >
+                  {{ process }}
+                </v-chip>
+              </div>
+            </div>
+          </div>
+
           <InputField
             label="Ngày tạo"
             type="date"
-            :model-value="Date_Edit"
-            @update:model-value="Date_Edit = $event"
+            class="mt-3"
+            v-model="Date_Edit"
           />
           <InputTextarea
             label="Ghi chú"
@@ -264,6 +313,7 @@
           </div>
 
           <InputField
+            class="mt-3"
             label="Ngày tạo"
             type="date"
             v-model="Date_Manufacture_Add"
@@ -342,7 +392,7 @@
 import axios from "axios";
 import { useRouter } from "vue-router";
 import { jwtDecode } from "jwt-decode";
-import { ref, onMounted, computed, reactive } from "vue";
+import { ref, onMounted, computed, reactive, watch } from "vue";
 
 // Import các components
 import InputSearch from "@/components/Input-Search.vue";
@@ -394,6 +444,10 @@ const Quantity_Test2_Edit = ref(1);
 const Quantity_ConformalCoating_Edit = ref(1);
 const Quantity_OQC_Edit = ref(1);
 
+// Khởi tạo các biến ref cho quy trình tùy chỉnh trong dialog chỉnh sửa
+const customProcessEdit = ref('');
+const customProcessListEdit = ref([]);
+
 // Khởi tạo các biến ref cho form thêm mới
 // Khởi tạo các biến ref cho form thêm mới
 const Name_Manufacture_Add = ref("");
@@ -431,13 +485,40 @@ const Headers = [
   { title: "Thao tác", key: "id", sortable: false },
 ];
 
-const formattedSelectedDate = computed(() => {
-  const date = new Date();
-  return date.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    timeZone: "Asia/Bangkok",
+
+// 🔸 Hàm chuyển unixepoch → yyyy-mm-dd
+const formatDateForInput = (timestamp) => {
+  if (!timestamp) return ''
+  const d = new Date((timestamp + 12 * 60 * 60) * 1000)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+// Hàm chuyển yyyy-mm-dd → unixepoch
+const dateStringToUnix = (value) => {
+  if (!value) return null
+  return Math.floor(new Date(value).getTime() / 1000)
+}
+
+// Computed property để sắp xếp dữ liệu theo ngày tạo (mới nhất ở cuối)
+const sortedManufacture = computed(() => {
+  if (!manufacture.value || !Array.isArray(manufacture.value)) {
+    return [];
+  }
+  
+  return [...manufacture.value].sort((a, b) => {
+    // Sắp xếp theo ngày tạo, mới nhất ở cuối
+    const dateA = new Date(a.Date || a.created_at || 0);
+    const dateB = new Date(b.Date || b.created_at || 0);
+    
+    // Nếu cùng ngày, sắp xếp theo ID để đảm bảo thứ tự nhất quán
+    if (dateA.getTime() === dateB.getTime()) {
+      return (a.id || 0) - (b.id || 0);
+    }
+    
+    return dateA.getTime() - dateB.getTime();
   });
 });
 
@@ -479,17 +560,50 @@ const addCustomProcess = () => {
 
 // Thêm method để xóa quy trình tùy chỉnh
 const removeCustomProcess = (index) => {
-  const processName = customProcessList.value[index]
-  
-  // Xóa khỏi danh sách tùy chỉnh
-  customProcessList.value.splice(index, 1)
-  
-  // Xóa khỏi Level_Manufacture_Add
-  if (Level_Manufacture_Add.value) {
-    const levelIndex = Level_Manufacture_Add.value.indexOf(processName)
-    if (levelIndex > -1) {
-      Level_Manufacture_Add.value.splice(levelIndex, 1)
+  if (index >= 0 && index < customProcessList.value.length) {
+    const processName = customProcessList.value[index]
+    
+    // Xóa khỏi danh sách tùy chỉnh
+    customProcessList.value.splice(index, 1)
+    
+    // Xóa khỏi Level_Manufacture_Add
+    if (Level_Manufacture_Add.value) {
+      const levelIndex = Level_Manufacture_Add.value.indexOf(processName)
+      if (levelIndex > -1) {
+        Level_Manufacture_Add.value.splice(levelIndex, 1)
+      }
     }
+  }
+}
+
+// Thêm method để thêm quy trình tùy chỉnh trong dialog chỉnh sửa
+const addCustomProcessEdit = () => {
+  if (customProcessEdit.value && customProcessEdit.value.trim()) {
+    const processName = customProcessEdit.value.trim()
+    
+    // Kiểm tra trùng lặp
+    if (!customProcessListEdit.value.includes(processName)) {
+      customProcessListEdit.value.push(processName)
+      
+      // Không cần cập nhật Level_Edit vì Level_Edit chỉ chứa quy trình chuẩn
+      // Quy trình tùy chỉnh được quản lý riêng trong customProcessListEdit
+    }
+    
+    // Reset input
+    customProcessEdit.value = ''
+  }
+}
+
+// Thêm method để xóa quy trình tùy chỉnh trong dialog chỉnh sửa
+const removeCustomProcessEdit = (index) => {
+  if (index >= 0 && index < customProcessListEdit.value.length) {
+    const processName = customProcessListEdit.value[index]
+    
+    // Xóa khỏi danh sách tùy chỉnh
+    customProcessListEdit.value.splice(index, 1)
+    
+    // Không cần xóa khỏi Level_Edit vì Level_Edit chỉ chứa quy trình chuẩn
+    // Quy trình tùy chỉnh được quản lý riêng trong customProcessListEdit
   }
 }
 
@@ -498,6 +612,14 @@ watch(DialogAdd, (newVal) => {
   if (!newVal) {
     customProcess.value = ''
     customProcessList.value = []
+  }
+})
+
+// Reset khi đóng dialog chỉnh sửa
+watch(DialogEdit, (newVal) => {
+  if (!newVal) {
+    customProcessEdit.value = ''
+    customProcessListEdit.value = []
   }
 })
 
@@ -518,7 +640,29 @@ function GetItem(value) {
   const found = manufacture.value.find((v) => v.id === value);
   Name_Edit.value = found.Name;
   Total_Edit.value = found.Total;
-  Level_Edit.value = found.Level.split("-");
+  
+  // Xử lý Level để tách quy trình chuẩn và quy trình tùy chỉnh
+  const levelArray = found.Level.split("-");
+  const standardProcesses = [
+    'SMT',
+    'AOI',
+    'IPQC (SMT)',
+    'Assembly',
+    'IPQC',
+    'Test 1',
+    'Test 2',
+    'Box Build',
+    'Tẩm phủ',
+    'OQC',
+    'RW',
+    'Nhập kho',
+  ];
+  
+  const customProcesses = levelArray.filter(process => !standardProcesses.includes(process));
+  const standardSelected = levelArray.filter(process => standardProcesses.includes(process));
+  
+  Level_Edit.value = standardSelected;
+  customProcessListEdit.value = customProcesses;
   Date_Edit.value = found.Date;
   Note_Edit.value = found.Note;
   DelaySMT_Edit.value = found.DelaySMT;
@@ -537,31 +681,25 @@ function GetItem(value) {
 // Hàm lưu thông tin chỉnh sửa
 const SaveEdit = async () => {
   DialogLoading.value = true;
+  
+  // Kết hợp quy trình chuẩn và quy trình tùy chỉnh
+  const allProcesses = [...(Level_Edit.value || []), ...customProcessListEdit.value];
+  const levelString = allProcesses.join("-");
   const formData = reactive({
     Name: Name_Edit.value,
-    Date: Date_Edit.value,
+    Date: dateStringToUnix(Date_Edit.value),
     Creater: UserInfo.value,
     Note: Note_Edit.value,
     Total: Total_Edit.value,
     DelaySMT: DelaySMT_Edit.value,
-    Level: Level_Edit.value,
-    Quantity: Quantity_Edit.value,
-    Quantity_IPQC: Quantity_IPQC_Edit.value,
-    Quantity_IPQCSMT: Quantity_IPQCSMT_Edit.value,
-    Quantity_AOI: Quantity_AOI_Edit.value,
-    Quantity_Assembly: Quantity_Assembly_Edit.value,
-    Quantity_BoxBuild: Quantity_BoxBuild_Edit.value,
-    Quantity_Test1: Quantity_Test1_Edit.value,
-    Quantity_Test2: Quantity_Test2_Edit.value,
-    Quantity_ConformalCoating: Quantity_ConformalCoating_Edit.value,
-    Quantity_OQC: Quantity_OQC_Edit.value,
+    Level: levelString,
+    Quantity: Quantity_Edit.value
   });
   try {
     const response = await axios.put(
       `${Url}/PlanManufacture/Edit/${GetID.value}`,
       formData
     );
-    console.log(response.data.message);
     MessageDialog.value = response.data.message;
     Reset();
   } catch (error) {

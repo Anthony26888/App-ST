@@ -28,13 +28,11 @@ export function useSummary(selectedDate) {
         socket.emit("getSummary", { start: 0, end: Math.floor(Date.now() / 1000) });
       }
     } catch (error) {
-      console.error("Error fetching summary:", error);
       summaryError.value = error.message;
     }
   };
 
   watch(selectedDate, (newDate) => {
-    console.log("Date changed -> refetching:", newDate);
     fetchData();
   });
 
@@ -42,7 +40,6 @@ export function useSummary(selectedDate) {
     fetchData();
 
     socket.on("SummaryData", (data) => {
-      console.log("Received summary data:", data);
       if (Array.isArray(data)) {
         summary.value = data;
       } else {
@@ -51,7 +48,6 @@ export function useSummary(selectedDate) {
     });
 
     socket.on("SummaryError", (message) => {
-      console.error("Summary Error:", message);
       summaryError.value = message;
     });
 

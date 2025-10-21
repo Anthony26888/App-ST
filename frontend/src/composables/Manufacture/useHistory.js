@@ -17,49 +17,39 @@ export function useHistory(id) {
         history.value = Array.isArray(response.data) ? response.data : [response.data];
       }
     } catch (error) {
-      console.error("Error fetching history via API:", error);
       historyError.value = error.message;
     }
   };
 
   const fetchData = () => {
     if (!id) {
-      console.warn("No id provided for history fetch");
       return;
     }
-    
-    console.log("Fetching history for id:", id);
     socket.emit("getHistory", id);
   };
 
   // Watch for changes in the id
   watch(() => id, (newId) => {
     if (newId) {
-      console.log("Id changed to:", newId);
       fetchData();
     }
   }, { immediate: true });
 
   onMounted(() => {
-    console.log("useHistory mounted, connecting to socket...");
     
     socket.on("connect", () => {
-      console.log("Socket connected successfully:", socket.id);
       fetchData();
     });
 
     socket.on("HistoryData", (data) => {
-      console.log("Received history data:", data);
       if (Array.isArray(data)) {
         history.value = data;
       } else {
-        console.warn("Received non-array history data:", data);
         history.value = [];
       }
     });
 
     socket.on("HistoryError", (error) => {
-      console.error("History Error from socket:", error);
       historyError.value = error.message || "Failed to fetch history data";
     });
 
@@ -69,17 +59,14 @@ export function useHistory(id) {
     });
 
     socket.on("disconnect", () => {
-      console.log("Socket disconnected");
     });
 
     socket.on("connect_error", (error) => {
-      console.error("Socket connection error:", error);
       historyError.value = "Socket connection failed";
     });
   });
 
   onUnmounted(() => {
-    console.log("useHistory unmounting, cleaning up socket...");
     if (socket) {
       socket.off("HistoryData");
       socket.off("HistoryError");
