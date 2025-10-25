@@ -1080,7 +1080,7 @@ const HeadersHistory = [
       { title: "Đầu ra", key: "Quantity_Real" },
       { title: "Hàng lỗi", key: "Quantity_Error"},
       { title: "Phần trăm (%)", key: "Percent" },    
-      { title: "RW đã sửa", key: "Total_Fixed"},
+      // { title: "RW đã sửa", key: "Total_Fixed"},
     ],
   },
   { title: "Ghi chú", key: "Note" },

@@ -1,10 +1,10 @@
 <template lang="">
   <v-card variant="text" class="overflow-y-auto" height="100vh">
-    <v-card-title class="text-h4 font-weight-light"
+    <v-card-title class="text-h4 font-weight-light" v-if="lgAndUp"
       >Danh sách bảo trì</v-card-title
     >
     <v-card-title>
-      <v-row>
+      <v-row v-if="lgAndUp">
         <v-col cols="12" sm="4" md="4">
           <v-card class="rounded-lg" color="primary" variant="tonal">
             <v-card-text>
@@ -41,16 +41,55 @@
           </v-card>
         </v-col>
       </v-row>
+
+      <v-row v-else>
+        <v-col cols="4">
+          <v-card class="rounded-lg" color="primary" variant="tonal">
+            <v-card-text>
+              <div class="text-wrap text-subtitle-1">Tổng</div>
+              <div class="text-h6 font-weight-bold">
+                {{ machine?.length || 0 }}
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+        <v-col cols="4">
+          <v-card class="rounded-lg" color="success" variant="tonal">
+            <v-card-text>
+              <div class="text-subtitle-1">Đã bảo trì</div>
+              <div class="text-h6 font-weight-bold">
+                {{
+                  machine?.filter((p) => p.Status === "Chưa tới hạn").length || 0
+                }}
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+        <v-col cols="4">
+          <v-card class="rounded-lg" color="warning" variant="tonal">
+            <v-card-text>
+              <div class="text-h6 text-subtitle-1">Đến hạn</div>
+              <div class="text-h6 font-weight-bold">
+                {{
+                  machine?.filter((p) => p.Status === "Cần bảo trì").length ||
+                  0
+                }}
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
     </v-card-title>
     <v-card-text>
       <v-card variant="text">
-        <v-card-title class="d-flex align-center pe-2">
+        <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
           <v-btn
             prepend-icon="mdi mdi-plus"
             variant="tonal"
             color="primary"
             class="text-caption ms-2"
             @click="DialogAdd = true"
+            
             >Thêm</v-btn
           >
           <p class="ms-2 font-weight-thin text-subtitle-1">
@@ -59,9 +98,13 @@
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
         </v-card-title>
+        <v-card-title class="d-flex align-center " v-else>
+          <InputSearch v-model="search" />
+        </v-card-title>
 
         <v-card-text class="overflow-auto">
           <v-data-table
+            v-if="lgAndUp"
             :headers="Headers"
             :items="machine"
             :search="search"
@@ -85,6 +128,7 @@
             :dense="false"
             :fixed-header="true"
             height="calc(100vh - 330px)"
+            
           >
             <template v-slot:bottom>
               <div class="text-center pt-2">
@@ -120,6 +164,58 @@
               <div style="white-space: pre-line">{{ item.MoTa }}</div>
             </template>
           </v-data-table>
+          <v-data-table-virtual
+            :headers="Headers"
+            :items="machine"
+            :search="search"
+            :items-per-page="itemsPerPage"
+            v-model:page="page"
+            class="elevation-1"
+            :footer-props="{
+              'items-per-page-options': [10, 20, 50, 100],
+              'items-per-page-text': 'Số hàng mỗi trang',
+            }"
+            :header-props="{
+              sortByText: 'Sắp xếp theo',
+              sortDescText: 'Giảm dần',
+              sortAscText: 'Tăng dần',
+            }"
+            :loading="DialogLoading"
+            loading-text="Đang tải dữ liệu..."
+            no-data-text="Không có dữ liệu"
+            no-results-text="Không tìm thấy kết quả"
+            :hover="true"
+            :dense="false"
+            :fixed-header="true"
+            height="calc(100vh - 250px)"
+            v-else
+          >
+            <template v-slot:item.Status="{ value }">
+              <div>
+                <v-chip
+                  v-if="value == 'Chưa tới hạn'"
+                  color="green"
+                  text="Chưa đến hạn"
+                  size="small"
+                ></v-chip>
+                <v-chip
+                  v-else
+                  color="red"
+                  text="Cần bảo trì"
+                  size="small"
+                ></v-chip>
+              </div>
+            </template>
+            <template v-slot:item.MaThietBi="{ value }">
+              <div class="d-flex">
+                <ButtonEye @detail="PushItem(value)" />
+                <ButtonEdit @edit="GetItem(value)" />
+              </div>
+            </template>
+            <template #item.MoTa="{ item }">
+              <div style="white-space: pre-line">{{ item.MoTa }}</div>
+            </template>
+          </v-data-table-virtual>
         </v-card-text>
       </v-card>
     </v-card-text>
@@ -229,7 +325,7 @@
 // Core dependencies
 import axios from "axios";
 import { useRouter } from "vue-router";
-
+import { useDisplay } from "vuetify";
 // Composables
 import { useMachine } from "@/composables/Maintenance/useMachine";
 
@@ -251,7 +347,7 @@ const Url = import.meta.env.VITE_API_URL;
 
 // Router
 const router = useRouter();
-
+const { mdAndDown, lgAndUp } = useDisplay();
 // Initialize composables
 const { machine } = useMachine();
 
@@ -306,7 +402,7 @@ const Headers = [
   { title: "Nhà sản xuất", key: "NhaSanXuat" },
   { title: "Ngày mua", key: "NgayMua" },
   { title: "Vị trí", key: "ViTri" },
-  { title: "Mô tả", key: "MoTa" },
+  { title: "Mô tả", key: "MoTa", width:"150" },
   { title: "Trạng thái", key: "Status" },
   { title: "Thao tác", key: "MaThietBi", sortable: false },
 ];
@@ -318,7 +414,6 @@ const Headers = [
  */
 function PushItem(value) {
   const found = machine.value.find((v) => v.MaThietBi === value);
-  console.log(found);
   router.push(`/Bao-tri/Chi-tiet/${found.TenThietBi}`);
   localStorage.setItem("MaintenanceID", value);
 }

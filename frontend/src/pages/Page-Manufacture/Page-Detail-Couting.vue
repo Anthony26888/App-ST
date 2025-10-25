@@ -40,10 +40,7 @@
             <v-card class="rounded-lg" color="success" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra</div>
-                <div class="text-h4 font-weight-bold" v-if="Quantity_AOI > 1">
-                  {{ totalOutput }} / {{ totalOutput * Quantity_AOI }}
-                </div>
-                <div class="text-h4 font-weight-bold" v-else>
+                <div class="text-h4 font-weight-bold">
                   {{ totalOutput }}
                 </div>
                 <div class="text-caption">

@@ -1,12 +1,19 @@
 <template lang="">
   <v-card variant="text" class="overflow-y-auto" height="100vh">
-    <v-card-title class="d-flex">
+    <v-card-title class="d-flex" v-if="lgAndUp">
       <ButtonBack to="/Bao-tri" />
-      <p class="text-h4 font-weight-light ms-3">Chi tiết bảo trì</p>
+      <p class="text-h4 font-weight-light ms-3" >
+        Chi tiết bảo trì
+      </p>
+    </v-card-title>
+    <v-card-title class="d-flex" v-else>
+      <ButtonBack to="/Bao-tri" />
+      <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
+      {{ route.params.id }}
     </v-card-title>
     <v-card-text>
       <v-card variant="text">
-        <v-card-title class="d-flex align-center pe-2">
+        <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
           <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
           {{ route.params.id }}
 
@@ -25,9 +32,17 @@
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
         </v-card-title>
-
+        <v-card-title class="d-flex align-center pe-2" v-else>
+          <v-btn
+            variant="tonal"
+            color="orange"
+            prepend-icon="mdi-calendar-check"
+            class="ms-2 text-caption align-center"
+            @click="PushSchedule()"
+          >Lịch bảo trì</v-btn>
+        </v-card-title>
         <v-data-table
-          
+          v-if="lgAndUp"
           :search="search"
           :items="maintenance"
           :headers="Headers"
@@ -95,6 +110,67 @@
             </div>
           </template>
         </v-data-table>
+        <v-data-table-virtual
+          v-else
+          :search="search"
+          :items="maintenance"
+          :headers="Headers"
+          :items-per-page="itemsPerPage"
+          v-model:page="page"
+          class="elevation-1"
+          :footer-props="{
+            'items-per-page-options': [10, 20, 50, 100],
+            'items-per-page-text': 'Số hàng mỗi trang',
+          }"
+          :header-props="{
+            sortByText: 'Sắp xếp theo',
+            sortDescText: 'Giảm dần',
+            sortAscText: 'Tăng dần',
+          }"
+          :loading="DialogLoading"
+          loading-text="Đang tải dữ liệu..."
+          no-data-text="Không có dữ liệu"
+          no-results-text="Không tìm thấy kết quả"
+          :hover="true"
+          :dense="false"
+          :fixed-header="true"
+          height="calc(100vh - 200px)"
+        >
+          <template v-slot:item.TrangThai="{ item }">
+            <div class="text-start">
+              <v-chip
+                v-if="item.TrangThai === 'Chờ phê duyệt'"
+                color="red"
+                text="Chờ phê duyệt"
+                size="small"
+              ></v-chip>
+              <v-chip
+                v-else-if="item.TrangThai === 'Đang thực hiện'"
+                color="orange"
+                text="Đang thực hiện"
+                size="small"
+              ></v-chip>
+              <v-chip
+                v-else-if="item.TrangThai === 'Đã hoàn thành'"
+                color="green"
+                text="Đã hoàn thành"
+                size="small"
+              ></v-chip>
+            </div>
+          </template>
+          <template #item.MoTaLoi="{ item }">
+            <div style="white-space: pre-line">{{ item.MoTaLoi }}</div>
+          </template>
+          <template #item.BienPhapKhacPhuc="{ item }">
+            <div style="white-space: pre-line">{{ item.BienPhapKhacPhuc }}</div>
+          </template>
+          <template #item.MaBaoTri="{ item }">
+            <div class="d-flex">
+              <ButtonEye @detail="PushItem(item)" />
+              <ButtonEdit @edit="GetItem(item)" />
+            </div>
+          </template>
+        </v-data-table-virtual>
       </v-card>
     </v-card-text>
   </v-card>
@@ -331,6 +407,8 @@
 import axios from "axios";
 import { useRoute, useRouter } from "vue-router";
 import { ref, computed, reactive } from "vue";
+import { useDisplay } from "vuetify";
+
 import InputSearch from "@/components/Input-Search.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";
 import InputField from "@/components/Input-Field.vue";
@@ -349,6 +427,7 @@ import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 import { useMaintenance } from "@/composables/Maintenance/useMaintenance";
 
+const { mdAndDown, lgAndUp } = useDisplay();
 const Url = import.meta.env.VITE_API_URL;
 const router = useRouter();
 const route = useRoute();
@@ -493,7 +572,7 @@ const SaveAdd = async () => {
     const response = await axios.post(`${Url}/Maintenance/Add`, formData);
     console.log(response.data);
     Reset();
-    MessageDialog.value = "Thêm dữ liệu dự án thành công"
+    MessageDialog.value = "Thêm dữ liệu dự án thành công";
   } catch (error) {
     console.error("Error adding maintenance record:", error);
     Error();

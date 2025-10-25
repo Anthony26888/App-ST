@@ -1,12 +1,17 @@
 <template lang="">
   <v-card variant="text" class="overflow-y-auto" height="100vh">
-    <v-card-title class="d-flex">
+    <v-card-title class="d-flex" v-if="lgAndUp">
       <ButtonBack to="/Du-an" />
-      <p class="text-h4 font-weight-light ms-3">Chi tiết PO</p>
+      <p class="text-h4 font-weight-light ms-3" >Chi tiết PO</p>
+    </v-card-title>
+    <v-card-title class="d-flex" v-else>
+      <ButtonBack to="/Du-an" />
+      <v-icon icon="mdi mdi-account-badge-outline"></v-icon> &nbsp;
+      {{ NamePO }}
     </v-card-title>
     <v-card-text>
       <v-card variant="text">
-        <v-card-title class="d-flex align-center pe-2">
+        <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
           <v-icon icon="mdi mdi-account-badge-outline"></v-icon> &nbsp;
           {{ NamePO }}
 
@@ -42,7 +47,41 @@
           <InputSearch v-model="search" />
         </v-card-title>
 
+        <v-card-title class="d-flex align-center pe-2" v-else>
+          <v-row>
+            <v-col cols="1">
+              <v-menu :location="location">
+                <template v-slot:activator="{ props }">
+                  <v-btn
+                    color="orange"
+                    v-bind="props"
+                    class="ms-2 text-caption"
+                    icon="mdi-filter"
+                    variant="text"
+                  >
+                  </v-btn>
+                </template>
+
+                <v-list>
+                  <v-list-item
+                    v-for="(item, index) in itemsFilter"
+                    :key="index"
+                    :value="item.value"
+                    @click="search = item.value"
+                  >
+                    <v-list-item-title>{{ item.title }}</v-list-item-title>
+                  </v-list-item>
+                </v-list>
+              </v-menu>
+            </v-col>
+            <v-col cols="11">
+              <InputSearch v-model="search" />
+            </v-col>
+          </v-row>
+        </v-card-title>
+
         <v-data-table
+          v-if="lgAndUp"
           :search="search"
           :items="detailProject"
           :headers="Headers"
@@ -112,6 +151,70 @@
             {{ item.Date_Delivery.split("-").reverse().join("/") }}
           </template>
         </v-data-table>
+
+        <v-data-table-virtual
+          v-else
+          :search="search"
+          :items="detailProject"
+          :headers="Headers"
+          :items-per-page="itemsPerPage"
+          v-model:page="page"
+          class="elevation-1"
+          :footer-props="{
+            'items-per-page-options': [10, 20, 50, 100],
+            'items-per-page-text': 'Số hàng mỗi trang',
+          }"
+          :header-props="{
+            sortByText: 'Sắp xếp theo',
+            sortDescText: 'Giảm dần',
+            sortAscText: 'Tăng dần',
+          }"
+          :loading="DialogLoading"
+          loading-text="Đang tải dữ liệu..."
+          no-data-text="Không có dữ liệu"
+          no-results-text="Không tìm thấy kết quả"
+          :hover="true"
+          :dense="false"
+          :fixed-header="true"
+          height="calc(100vh - 200px)"
+        >
+
+          <template #item.Status="{ value }">
+            <div class="text-start">
+              <v-chip
+                :color="
+                  value === 'Hoàn thành'
+                    ? 'success'
+                    : value === 'Đang sản xuất'
+                    ? 'warning'
+                    : 'error'
+                "
+                variant="tonal"
+                class="text-caption"
+              >
+                {{ value }}
+              </v-chip>
+            </div>
+          </template>
+          <template #item.id="{ item }">
+            <div class="d-flex">
+              <ButtonEye @detail="PushItem(item)" />
+              <ButtonEdit
+                @edit="GetItem(item)"
+                v-if="LevelUser == 'Admin' || LevelUser == 'Quản lý kinh doanh'"
+              />
+            </div>
+          </template>
+          <template #item.Note="{ item }">
+            <div style="white-space: pre-line">{{ item.Note }}</div>
+          </template>
+          <template v-slot:item.Date_Created="{ item }">
+            {{ item.Date_Created.split("-").reverse().join("/") }}
+          </template>
+          <template v-slot:item.Date_Delivery="{ item }">
+            {{ item.Date_Delivery.split("-").reverse().join("/") }}
+          </template>
+        </v-data-table-virtual>
       </v-card>
     </v-card-text>
   </v-card>
@@ -193,7 +296,7 @@
 import axios from "axios";
 import { useRoute, useRouter } from "vue-router";
 import { ref, computed } from "vue";
-
+import { useDisplay } from "vuetify";
 // Components
 import InputSearch from "@/components/Input-Search.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";
@@ -218,7 +321,7 @@ import { useDetailProject } from "@/composables/Project/useDetailProject";
 // ===== STATE MANAGEMENT =====
 // API Configuration
 const Url = import.meta.env.VITE_API_URL;
-
+const { mdAndDown, lgAndUp } = useDisplay();
 // Router and Route
 const router = useRouter();
 const route = useRoute();

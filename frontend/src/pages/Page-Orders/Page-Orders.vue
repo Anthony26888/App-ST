@@ -1,5 +1,5 @@
 <template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="100vh">
+  <v-card variant="text" class="overflow-y-auto" height="100vh" v-if="lgAndUp">
     <v-card-title class="text-h4 font-weight-light"
       >Danh sách đơn hàng
     </v-card-title>
@@ -110,6 +110,8 @@
     </v-card-text>
   </v-card>
 
+  <EmptyMobile v-else />
+
   <v-dialog v-model="DialogRemove" width="400" scrollable>
     <v-card class="overflow-y-auto">
       <v-card-title class="d-flex align-center pa-4">
@@ -132,7 +134,7 @@
 import axios from "axios";
 import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-
+import { useDisplay } from "vuetify";
 // Composables
 import { useOrders } from "@/composables/Orders/useOrders";
 
@@ -143,11 +145,12 @@ import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonEye from "@/components/Button-Eye.vue";
+import EmptyMobile from "@/components/Empty-Mobile.vue"
 
 // ===== STATE MANAGEMENT =====
 // API Configuration
 const Url = import.meta.env.VITE_API_URL;
-
+const { mdAndDown, lgAndUp } = useDisplay();
 // Initialize composables and router
 const { orders } = useOrders();
 const router = useRouter();

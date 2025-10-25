@@ -1,6 +1,6 @@
 <template lang="">
   <!-- Main Card Container -->
-  <v-card variant="text" class="overflow-y-auto" height="100vh">
+  <v-card variant="text" class="overflow-y-auto" height="100vh" v-if="lgAndUp">
     <!-- Page Title -->
     <v-card-title class="text-h4 font-weight-light">
       Kiểm tra số liệu linh kiện
@@ -117,6 +117,8 @@
     </v-card-text>
   </v-card>
 
+  <EmptyMobile v-else />
+
   <!-- Import File Dialog -->
   <v-dialog v-model="Dialog" width="400" scrollable>
     <v-card class="overflow-y-auto">
@@ -210,7 +212,7 @@ import { jwtDecode } from "jwt-decode";
 import { useRoute, useRouter } from "vue-router";
 import { onMounted, ref, computed, watch } from "vue";
 import emailjs from "@emailjs/browser";
-
+import { useDisplay } from "vuetify";
 // Composables
 import { useCheckBOM } from "@/composables/CheckBOM/useCheckBom";
 import { useUsers } from "@/composables/Settings/useUsers";
@@ -227,7 +229,7 @@ import InputFiles from "@/components/Input-Files.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
-
+import EmptyMpbile from "@/components/Empty-Mobile.vue"
 // ===== STATE MANAGEMENT =====
 // Initialize composables
 const { checkBOM, fetchData } = useCheckBOM();
@@ -235,6 +237,7 @@ const { users } = useUsers();
 
 // API Configuration
 const Url = import.meta.env.VITE_API_URL;
+const { mdAndDown, lgAndUp } = useDisplay();
 const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
 const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
 const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;

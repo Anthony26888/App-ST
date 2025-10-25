@@ -7,9 +7,9 @@
 #define EEPROM_SIZE 100
 
 // ===================== CẤU HÌNH =====================
-const char* ssid = "1B_5G";
-const char* password = "12345678910";
-const char* SERVER_HOST = "http://192.168.100.200";  // ✅ Đặt URL server tại đây
+const char* ssid = "KTNM2023";
+const char* password = "Sthuat@2023KTNM";
+const char* SERVER_HOST = "http://192.168.2.201:8080";  // ✅ Đặt URL server tại đây
 
 //Test
 // const char* ssid = "KTNM2023";
@@ -18,8 +18,8 @@ const char* SERVER_HOST = "http://192.168.100.200";  // ✅ Đặt URL server t�
 // ====================================================
 
 // ⚙️ IP tĩnh cấu hình
-IPAddress local_IP(192, 168, 100, 205);
-IPAddress gateway(192, 168, 100, 1);
+IPAddress local_IP(192, 168, 2, 205);
+IPAddress gateway(192, 168, 2, 1);
 IPAddress subnet(255, 255, 255, 0);
 IPAddress primaryDNS(8, 8, 8, 8);
 IPAddress secondaryDNS(8, 8, 4, 4);

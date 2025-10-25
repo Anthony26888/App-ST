@@ -1,5 +1,5 @@
 <template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="100vh">
+  <v-card variant="text" class="overflow-y-auto" height="100vh" v-if="lgAndUp">
     <v-card-title class="d-flex">
       <p class="text-h4 font-weight-light ms-3">Chỉnh sửa số liệu</p>
     </v-card-title>
@@ -54,6 +54,11 @@
       </v-data-table>
     </v-card-text>
   </v-card>
+
+  <EmptyMobile v-else />
+
+
+
   <v-dialog v-model="DialogAdd" width="500" scrollable>
     <v-card class="overflow-y-auto">
       <v-card-title class="d-flex align-center pa-4">
@@ -107,7 +112,7 @@
 import axios from "axios";
 import { ref, watch } from "vue";
 import { useRouter } from "vue-router";
-
+import { useDisplay } from "vuetify";
 import { useFilterBom } from "@/composables/CheckBOM/useFilterBom.js";
 import ButtonBack from "@/components/Button-Back.vue";
 import InputSearch from "@/components/Input-Search.vue";
@@ -122,10 +127,12 @@ import ButtonEdit from "@/components/Button-Edit.vue";
 import ButtonRemove from "@/components/Button-Remove.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import Loading from "@/components/Loading.vue";
+import EmptyMobile from "@/components/Empty-Mobile.vue"
 
 
 // Data from Composables
-
+// ===== STATE MANAGEMENT =====
+const { mdAndDown, lgAndUp } = useDisplay();
 const { filterBom, filterBomError } = useFilterBom();
 const Url = import.meta.env.VITE_API_URL;
 const GetID = ref("");

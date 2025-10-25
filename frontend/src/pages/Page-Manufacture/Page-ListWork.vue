@@ -1,8 +1,8 @@
 <template lang="">
   <v-card variant="text" class="overflow-y-auto" height="100vh">
     <v-card-title class="d-flex justify-space-between align-center pa-4">
-      <span class="text-h4 font-weight-light">Danh sách công việc</span>
-      <v-spacer></v-spacer>
+      <span class="text-h4 font-weight-light" v-if="lgAndUp">Danh sách công việc</span>
+      <v-spacer v-if="lgAndUp"></v-spacer>
       <v-toolbar rounded="lg" border floating class="mt-3">
         <div class="d-flex align-center px-4">
           <div class="text-subtitle-1 mr-4">
@@ -36,7 +36,7 @@
 
     <v-card-text>
       <!-- Thống kê tổng quan -->
-      <v-row>
+      <v-row v-if="lgAndUp">
         <v-col cols="12" sm="6" md="6">
           <v-card class="rounded-lg" color="primary" variant="tonal">
             <v-card-text>
@@ -59,13 +59,37 @@
         </v-col>
       </v-row>
 
+      <v-row v-else>
+        <v-col cols="6">
+          <v-card class="rounded-lg" color="primary" variant="tonal">
+            <v-card-text>
+              <div class="text-subtitle-1">Quy trình</div>
+              <div class="text-h4 font-weight-bold">
+                {{ totalOrders }}
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+        <v-col cols="6">
+          <v-card class="rounded-lg" color="warning" variant="tonal">
+            <v-card-text>
+              <div class="text-subtitle-1">Công việc</div>
+              <div class="text-h4 font-weight-bold">
+                {{ completedOrders }}
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
+
       <!-- Danh sách công việc -->
-      <v-card class="mt-4" height="calc(100vh - 250px)">
+      <v-card class="mt-4" v-if="lgAndUp"  >
         <v-empty-state
           v-if="summary == ''"
           headline="OPPS !"
           title="Chưa có dữ liệu"
           icon="mdi-folder-remove-outline"
+          height="calc(100vh - 250px)"
         ></v-empty-state>
         <div class="table-container">
           <template v-for="(group, type) in groupedSummary" :key="type">
@@ -78,7 +102,94 @@
               {{ type }}
             </v-card-title>
 
-            <v-table density="compact" class="mb-4">
+            <v-table density="compact" class="mb-4" >
+              <thead class="sticky-header">
+                <tr>
+                  <th class="text-left">Mã PO</th>
+                  <th class="text-left">Đơn hàng</th>
+                  <th class="text-center">Hạng mục</th>
+                  <th class="text-center">Thời gian tạo</th>
+                  <th class="text-center">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="item in group"
+                  :key="item.PONumber"
+                  class="hover-row"
+                >
+                  <td>
+                    <div class="d-flex align-center">
+                      <v-avatar
+                        variant="text "
+                        size="35"
+                        class="rounded-lg mr-2"
+                      >
+                        <v-icon size="small">mdi-tools</v-icon>
+                      </v-avatar>
+                      <span class="font-weight-medium">{{
+                        item.PONumber
+                      }}</span>
+                    </div>
+                  </td>
+                  <td>{{ item.Name_Order }}</td>
+                  <td class="text-center">
+                    <v-chip
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                      class="rounded-lg"
+                    >
+                      {{ item.Category }}
+                    </v-chip>
+                  </td>
+                  <td class="text-center">
+                    <div class="d-flex align-center justify-center">
+                      <v-icon size="small" color="grey" class="mr-1"
+                        >mdi-clock-outline</v-icon
+                      >
+                      <span class="text-caption">{{ item.Created_At }}</span>
+                    </div>
+                  </td>
+                  <td class="text-center">
+                    <v-btn
+                      color="primary"
+                      icon="mdi-chevron-right"
+                      variant="tonal"
+                      size="small"
+                      class="rounded-lg"
+                      @click="PushItem(item)"
+                    ></v-btn>
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+            <v-divider class="mb-4"></v-divider>
+          </template>
+        </div>
+      </v-card>
+
+
+      <v-card class="mt-4" v-else >
+        <v-empty-state
+          v-if="summary == ''"
+          headline="OPPS !"
+          title="Chưa có dữ liệu"
+          icon="mdi-folder-remove-outline"
+          height="calc(100vh - 320px)"
+        ></v-empty-state>
+        <div class="table-container" >
+          <template v-for="(group, type) in groupedSummary" :key="type">
+            <v-card-title
+              class="text-primary font-weight-bold text-h6 py-4 d-flex align-center sticky-header"
+            >
+              <v-icon start color="primary" class="mr-2"
+                >mdi-folder-outline</v-icon
+              >
+              {{ type }}
+            </v-card-title>
+
+            <v-table density="compact" class="mb-4" >
               <thead class="sticky-header">
                 <tr>
                   <th class="text-left">Mã PO</th>
@@ -152,11 +263,12 @@
 import { ref, onMounted, computed, reactive } from "vue";
 import axios from "axios";
 import { useRoute, useRouter } from "vue-router";
+import { useDisplay } from "vuetify";
 // Composables
 import { useSummary } from "@/composables/Summary/useSummary";
 
 const dateMenu = ref(false);
-
+const { mdAndDown, lgAndUp } = useDisplay();
 // API
 const Url = import.meta.env.VITE_API_URL;
 const route = useRoute();

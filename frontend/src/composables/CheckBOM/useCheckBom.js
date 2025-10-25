@@ -7,12 +7,6 @@ export function useCheckBOM() {
   const checkBOMError = ref([]);
   const SOCKET_URL = import.meta.env.VITE_SOCKET_URL; // Lấy URL từ .env
   const socket = io(SOCKET_URL) // chỉnh lại nếu deploy
-  // 👇 Linh hoạt theo IP hoặc domain
-  // const socket = io(getSocketUrl(), {
-  //   transports: ["websocket"],        // ✅ Rất quan trọng!
-  //   withCredentials: true,            // ✅ Nếu backend yêu cầu
-  //   path: "/socket.io",               // ✅ Nếu backend (hoặc nginx) cần path cụ thể
-  // });
   const fetchData = (id) => {
     socket.emit("getCheckBOM", id);
   }

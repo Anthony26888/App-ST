@@ -1,12 +1,17 @@
 <template lang="">
   <v-card variant="text" class="overflow-y-auto" height="100vh">
-    <v-card-title class="d-flex">
+    <v-card-title class="d-flex" v-if="lgAndUp">
       <ButtonBack :to="`/Du-an/Khach-hang/${CustomerID}`" />
       <p class="text-h4 font-weight-light ms-3">Chi tiết đơn hàng</p>
     </v-card-title>
+    <v-card-title class="d-flex" v-else>
+      <ButtonBack :to="`/Du-an/Khach-hang/${CustomerID}`" />
+      <v-icon icon="mdi mdi-cart-variant"></v-icon> &nbsp;
+      {{ NamePO }}
+    </v-card-title>
     <v-card-text>
       <v-card variant="text">
-        <v-card-title class="d-flex align-center pe-2">
+        <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
           <v-icon icon="mdi mdi-cart-variant"></v-icon> &nbsp;
           {{ NamePO }}
           
@@ -19,7 +24,13 @@
           <InputSearch v-model="search" />
         </v-card-title>
 
+        <v-card-title class="d-flex align-center pe-2" v-else>
+          <InputSearch v-model="search" />
+        </v-card-title>
+
+
         <v-data-table
+          v-if="lgAndUp"
           :search="search"
           :items="detailProjectPO"
           :headers="Headers"
@@ -80,6 +91,61 @@
             <div style="white-space: pre-line">{{ item.Note }}</div>
           </template>
         </v-data-table>
+
+        <v-data-table-virtual
+          v-else
+          :search="search"
+          :items="detailProjectPO"
+          :headers="Headers"
+          :items-per-page="itemsPerPage"
+          v-model:page="page"
+          :loading="DialogLoading"
+          loading-text="Đang tải dữ liệu..."
+          no-data-text="Không có dữ liệu"
+          no-results-text="Không tìm thấy kết quả"
+          :hover="true"
+          :dense="false"
+          :fixed-header="true"
+          height="calc(100vh - 200px)"
+        >
+
+          <template v-slot:item.id="{ item }">
+            <div class="d-flex">
+              <ButtonEdit
+                @edit="GetItem(item)"
+                v-if="LevelUser == 'Admin' || LevelUser == 'Quản lý kinh doanh'"
+              />
+              <v-btn
+                color="success"
+                icon="mdi-plus"
+                variant="text"
+                size="xs"
+                @click="GetItemManufacture(item)"
+              ></v-btn>
+            </div>
+          </template>
+
+          <template #item.Status="{ value }">
+            <div class="text-start">
+              <v-chip
+                :color="
+                  value === 'Hoàn thành'
+                    ? 'success'
+                    : value === 'Đang sản xuất'
+                    ? 'warning'
+                    : 'error'
+                "
+                variant="tonal"
+                class="text-caption"
+              >
+                {{ value }}
+              </v-chip>
+            </div>
+          </template>
+          <template #item.Note="{ item }">
+            <div style="white-space: pre-line">{{ item.Note }}</div>
+          </template>
+        </v-data-table-virtual>
       </v-card>
     </v-card-text>
   </v-card>
@@ -235,6 +301,7 @@ import { useRoute } from "vue-router";
 import { useRouter } from "vue-router";
 import { ref, watch, onMounted } from "vue";
 import { jwtDecode } from "jwt-decode";
+import { useDisplay } from "vuetify";
 // Components
 import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
@@ -263,7 +330,7 @@ const id = route.params.id;
 
 // Initialize composables
 const { detailProjectPO, detailProjectPOError } = useDetailProjectPO(id);
-
+const { mdAndDown, lgAndUp } = useDisplay();
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
 const DialogEdit = ref(false); // Edit dialog

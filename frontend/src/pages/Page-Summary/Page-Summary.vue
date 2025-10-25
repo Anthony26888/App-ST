@@ -1,5 +1,5 @@
 <template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="100vh" v-if="lgAndUp">
+  <v-card variant="text" class="overflow-y-auto" height="calc(100vh)" v-if="lgAndUp">
     <v-card-title class="d-flex justify-space-between align-center pa-4">
       <span class="text-h4 font-weight-light">Báo cáo hằng ngày</span>
       <v-spacer></v-spacer>
@@ -202,7 +202,7 @@
         :items="summary"
         :search="search"
         :group-by="[{ key: 'Type' }]"
-        class="mt-3"
+        class="mt-3 "
         fixed-header
         :header-props="{
           sortByText: 'Sắp xếp theo',
@@ -389,7 +389,7 @@
     </v-card-text>
   </v-card>
 
-  <v-card variant="text" class="overflow-y-auto" height="100vh" v-else>
+  <v-card variant="text" class="overflow-y-auto" height="calc(100vh - 80px)"v-else>
     <v-card-title class="d-flex justify-space-between align-center pa-4">
       <v-toolbar rounded="lg" border floating class="mt-3">
         <div class="d-flex align-center px-4">
@@ -1133,13 +1133,13 @@ function initializeChart() {
         x: {
           beginAtZero: true,
           stacked: false,
-          title: {
-            display: true,
-            text: "Số lượng",
-            font: {
-              weight: "bold",
-            },
-          },
+          // title: {
+          //   display: true,
+          //   text: "Số lượng",
+          //   font: {
+          //     weight: "bold",
+          //   },
+          // },
           ticks: {
             callback: function (value) {
               return new Intl.NumberFormat("vi-VN").format(value);
@@ -1151,13 +1151,13 @@ function initializeChart() {
         },
         y: {
           stacked: false,
-          title: {
-            display: true,
-            text: "Hạng mục",
-            font: {
-              weight: "bold",
-            },
-          },
+          // title: {
+          //   display: true,
+          //   text: "Hạng mục",
+          //   font: {
+          //     weight: "bold",
+          //   },
+          // },
           grid: {
             display: false,
           },

@@ -1,12 +1,12 @@
 <template lang="">
   <v-card variant="text" class="overflow-y-auto" height="100vh">
-    <v-card-title class="text-h4 font-weight-light"
-      >Danh sách dự án</v-card-title
-    >
+    <v-card-title class="text-h4 font-weight-light" v-if="lgAndUp"
+      >Danh sách dự án
+    </v-card-title>
     <v-card-text>
       <v-card variant="text">
         <v-card-title>
-          <v-row>
+          <v-row v-if="lgAndUp">
             <v-col cols="12" sm="6" md="3">
               <v-card class="rounded-lg" color="primary" variant="tonal">
                 <v-card-text>
@@ -38,8 +38,9 @@
                   <div class="text-subtitle-1">Tổng PO hoàn thành</div>
                   <div class="text-h4 font-weight-bold">
                     {{
-                      filteredProjectFind?.filter((p) => p.Status === "Hoàn thành")
-                        .length || 0
+                      filteredProjectFind?.filter(
+                        (p) => p.Status === "Hoàn thành"
+                      ).length || 0
                     }}
                   </div>
                 </v-card-text>
@@ -51,8 +52,65 @@
                   <div class="text-subtitle-1">Tổng PO đang sản xuất</div>
                   <div class="text-h4 font-weight-bold">
                     {{
-                      filteredProjectFind?.filter((p) => p.Status === "Đang sản xuất")
-                        .length || 0
+                      filteredProjectFind?.filter(
+                        (p) => p.Status === "Đang sản xuất"
+                      ).length || 0
+                    }}
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+          </v-row>
+
+          <v-row v-else>
+            <v-col cols="6">
+              <v-card class="rounded-lg" color="primary" variant="tonal">
+                <v-card-text>
+                  <div class="text-subtitle-1">Tổng khách hàng</div>
+                  <div class="text-h4 font-weight-bold">
+                    {{ project?.length || 0 }}
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-col cols="6">
+              <v-card class="rounded-lg" color="info" variant="tonal">
+                <v-card-text>
+                  <div class="text-subtitle-1">Tổng PO</div>
+                  <div class="text-h4 font-weight-bold">
+                    {{
+                      project?.reduce(
+                        (sum, p) => sum + (p.Quantity_PO || 0),
+                        0
+                      ) || 0
+                    }}
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-col cols="6">
+              <v-card class="rounded-lg" color="success" variant="tonal">
+                <v-card-text>
+                  <div class="text-subtitle-1">Hoàn thành</div>
+                  <div class="text-h4 font-weight-bold">
+                    {{
+                      filteredProjectFind?.filter(
+                        (p) => p.Status === "Hoàn thành"
+                      ).length || 0
+                    }}
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-col cols="6">
+              <v-card class="rounded-lg" color="warning" variant="tonal">
+                <v-card-text>
+                  <div class="text-subtitle-1">Đang sản xuất</div>
+                  <div class="text-h4 font-weight-bold">
+                    {{
+                      filteredProjectFind?.filter(
+                        (p) => p.Status === "Đang sản xuất"
+                      ).length || 0
                     }}
                   </div>
                 </v-card-text>
@@ -60,9 +118,12 @@
             </v-col>
           </v-row>
         </v-card-title>
-        <v-card-title class="d-flex align-center">
+        <v-card-title class="d-flex align-center" v-if="lgAndUp">
           <!-- <ButtonImportFile @import-file="Dialog = true" /> -->
-          <ButtonAdd @add="DialogAdd = true"  v-if="LevelUser == 'Admin' || LevelUser == 'Quản lý kinh doanh'" />
+          <ButtonAdd
+            @add="DialogAdd = true"
+            v-if="LevelUser == 'Admin' || LevelUser == 'Quản lý kinh doanh'"
+          />
           <v-menu :location="location">
             <template v-slot:activator="{ props }">
               <v-btn
@@ -101,8 +162,44 @@
           <InputSearch v-model="search" />
         </v-card-title>
 
+        <v-card-title class="d-flex align-center" v-else>
+          <!-- <ButtonImportFile @import-file="Dialog = true" /> -->
+          <v-row>
+            <v-col cols="1">
+              <v-menu :location="location">
+                <template v-slot:activator="{ props }">
+                  <v-btn
+                    color="orange"
+                    v-bind="props"
+                    class="ms-2 text-caption"
+                    icon="mdi-filter"
+                    variant="text"
+                  >
+                  </v-btn>
+                </template>
+
+                <v-list>
+                  <v-list-item
+                    v-for="(item, index) in itemsFilter"
+                    :key="index"
+                    :value="item.value"
+                    @click="search = item.value"
+                  >
+                    <v-list-item-title>{{ item.title }}</v-list-item-title>
+                  </v-list-item>
+                </v-list>
+              </v-menu>
+              
+            </v-col>
+            <v-col cols="11">
+              <InputSearch v-model="search" />
+            </v-col>
+          </v-row>
+        </v-card-title>
+
         <v-card-text class="overflow-auto">
           <v-data-table
+            v-if="lgAndUp"
             :headers="Headers"
             :items="project"
             :search="search"
@@ -158,7 +255,9 @@
                 <ButtonEdit
                   class="ms-2"
                   @edit="GetItem(value)"
-                  v-if="LevelUser == 'Admin' || LevelUser == 'Quản lý kinh doanh'"
+                  v-if="
+                    LevelUser == 'Admin' || LevelUser == 'Quản lý kinh doanh'
+                  "
                 />
                 <Button-Download-Icon
                   @click="DownloadProjectDetail(value)"
@@ -166,6 +265,66 @@
               </div>
             </template>
           </v-data-table>
+
+          <v-data-table-virtual
+            v-else
+            :headers="Headers"
+            :items="project"
+            :search="search"
+            :items-per-page="itemsPerPage"
+            v-model:page="page"
+            class="elevation-1"
+            :footer-props="{
+              'items-per-page-options': [10, 20, 50, 100],
+              'items-per-page-text': 'Số hàng mỗi trang',
+            }"
+            :header-props="{
+              sortByText: 'Sắp xếp theo',
+              sortDescText: 'Giảm dần',
+              sortAscText: 'Tăng dần',
+            }"
+            :loading="DialogLoading"
+            loading-text="Đang tải dữ liệu..."
+            no-data-text="Không có dữ liệu"
+            no-results-text="Không tìm thấy kết quả"
+            :hover="true"
+            :dense="false"
+            :fixed-header="true"
+            height="calc(100vh - 400px)"
+          >
+            <template v-slot:item.Status="{ value }">
+              <div>
+                <v-chip
+                  :color="
+                    value === 'Hoàn thành'
+                      ? 'success'
+                      : value === 'Đang sản xuất'
+                      ? 'warning'
+                      : 'error'
+                  "
+                  variant="tonal"
+                  class="text-caption"
+                >
+                  {{ value }}
+                </v-chip>
+              </div>
+            </template>
+            <template v-slot:item.id="{ value }">
+              <div class="d-flex align-center">
+                <ButtonEye @detail="PushItem(value)" />
+                <ButtonEdit
+                  class="ms-2"
+                  @edit="GetItem(value)"
+                  v-if="
+                    LevelUser == 'Admin' || LevelUser == 'Quản lý kinh doanh'
+                  "
+                />
+                <Button-Download-Icon
+                  @click="DownloadProjectDetail(value)"
+                ></Button-Download-Icon>
+              </div>
+            </template>
+          </v-data-table-virtual>
         </v-card-text>
       </v-card>
     </v-card-text>
@@ -376,7 +535,7 @@
 import axios from "axios";
 import { useRouter } from "vue-router";
 import { ref, reactive, computed } from "vue";
-
+import { useDisplay } from "vuetify";
 // Components
 import InputSearch from "@/components/Input-Search.vue";
 import InputFiles from "@/components/Input-Files.vue";
@@ -398,15 +557,14 @@ import { useProjectFind } from "@/composables/Project/useProjectFind";
 // ===== STATE MANAGEMENT =====
 // API Configuration
 const Url = import.meta.env.VITE_API_URL;
-
+// ===== STATE MANAGEMENT =====
+const { mdAndDown, lgAndUp } = useDisplay();
 // Router
 const router = useRouter();
 
 // Initialize composables
 const { project } = useProject();
-console.log(project)
 const { projectFind } = useProjectFind();
-
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
@@ -448,7 +606,12 @@ const HeadersFind = ref([
   { key: "CustomerName", title: "Khách hàng", width: "100" },
   { key: "PONumber", title: "Tên dự án", width: "150" },
   { key: "Date_Created_PO", title: "Ngày tạo PO", width: "150" },
-  { key: "Date_Delivery_PO", title: "Ngày giao PO", sortable: true, width: "150" },
+  {
+    key: "Date_Delivery_PO",
+    title: "Ngày giao PO",
+    sortable: true,
+    width: "150",
+  },
   { key: "ProductDetail", title: "Tên đơn hàng", sortable: false },
   { key: "Status", title: "Trạng thái đơn hàng", sortable: true },
   { key: "id", sortable: false, title: "Thao tác" },
@@ -476,7 +639,6 @@ const page = ref(1);
 const itemsPerPageFind = ref(15);
 const pageFind = ref(1);
 // ===== FILTER STATES =====
-
 
 // ===== User Information =====
 const UserInfo = ref(null);
@@ -739,5 +901,4 @@ export default {
   methods: {},
 };
 </script>
-<style scoped>
-</style>
+<style scoped></style>

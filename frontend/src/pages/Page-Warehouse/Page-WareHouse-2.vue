@@ -1,11 +1,11 @@
 <template lang="">
   <v-card variant="text" class="overflow-y-auto" height="100vh">
-    <v-card-title class="text-h4 font-weight-light"
+    <v-card-title class="text-h4 font-weight-light" v-if="lgAndUp"
       >Danh sách tồn kho Misa</v-card-title
     >
     <v-card-text>
       <v-card variant="text">
-        <v-card-title class="d-flex align-center pe-2">
+        <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
           <ButtonImportFile @import-file="Dialog = true" />
           <ButtonImportFile color="warning" class="ms-2" @import-file="DialogOutput = true" />
           <ButtonAdd @click="DialogAdd = true" />
@@ -16,8 +16,14 @@
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
         </v-card-title>
+
+        <v-card-title class="d-flex align-center pe-2" v-else>
+          <InputSearch v-model="search" />
+        </v-card-title>
+
         <v-card-text class="overflow-auto">
           <v-data-table
+            v-if="lgAndUp"
             :headers="Headers"
             :items="warehouse2"
             :search="search"
@@ -30,7 +36,7 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="calc(100vh - 200px)"
+            height="calc(100vh - 220px)"
           >
             <template v-slot:bottom>
               <div class="text-center pt-2">
@@ -47,6 +53,30 @@
               </div>
             </template>
           </v-data-table>
+
+          <v-data-table-virtual
+            v-else
+            :headers="Headers"
+            :items="warehouse2"
+            :search="search"
+            :items-per-page="itemsPerPage"
+            v-model:page="page"
+            :loading="DialogLoading"
+            loading-text="Đang tải dữ liệu..."
+            no-data-text="Không có dữ liệu"
+            no-results-text="Không tìm thấy kết quả"
+            :hover="true"
+            :dense="false"
+            :fixed-header="true"
+            height="calc(100vh - 150px)"
+          >
+            <template v-slot:item.id="{ value }">
+              <div>
+                <ButtonEdit @edit="GetItem(value)" v-if="LevelUser == 'Admin' || LevelUser == 'Thủ kho'" />
+                <ButtonSearch @search="getAccessToken(value)" />
+              </div>
+            </template>
+          </v-data-table-virtual>
         </v-card-text>
       </v-card>
     </v-card-text>
@@ -399,7 +429,7 @@ import axios from "axios";
 import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Buffer } from "buffer";
-
+import { useDisplay } from "vuetify";
 // Composables
 import { useWareHouse2 } from "@/composables/Warehouse/useWareHouse2";
 import { useTemporaryWareHouse2 } from "@/composables/Warehouse/useTemporaryWareHouse2";
@@ -424,7 +454,7 @@ import Loading from "@/components/Loading.vue";
 const { warehouse2 } = useWareHouse2();
 const { temporaryWarehouse2 } = useTemporaryWareHouse2();
 const router = useRouter();
-
+const { mdAndDown, lgAndUp } = useDisplay();
 // API Configuration
 const Url = import.meta.env.VITE_API_URL;
 const clientId = import.meta.env.VITE_DIGIKEY_CLIENT_ID;

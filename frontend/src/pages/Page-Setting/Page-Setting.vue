@@ -1,6 +1,6 @@
 <template lang="">
   <v-card variant="text" class="overflow-y-auto" height="100vh">
-    <v-card-title class="text-h4 font-weight-light">Cài đặt</v-card-title>
+    <v-card-title class="text-h4 font-weight-light"  v-if="lgAndUp">Cài đặt</v-card-title>
     <v-card-text>
       <v-container>
         <v-list density="compact">

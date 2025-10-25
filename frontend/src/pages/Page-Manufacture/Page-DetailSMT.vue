@@ -69,7 +69,7 @@
       <v-card-text>
         <!-- Thống kê -->
         <v-row class="mb-4">
-          <v-col cols="12" sm="4">
+          <v-col cols="12" sm="3">
             <v-card class="rounded-lg" color="primary" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu vào</div>
@@ -77,19 +77,49 @@
                 <div class="text-caption">Tổng số lượng đầu vào</div>
               </v-card-text>
             </v-card>
-          </v-col>
-          <v-col cols="12" sm="4">
+          </v-col> 
+          <v-col cols="12" sm="3">
             <v-card class="rounded-lg" color="success" variant="tonal">
-              <v-card-text>
-                <div class="text-subtitle-1">Đầu ra</div>
-                <div class="text-h4 font-weight-bold" v-if = "Line_SMT === 'Line 1'">
+              <v-card-text v-if = "Line_SMT === 'Line 1'">
+                <div class="text-subtitle-1">Máy Printer</div>
+                <div class="text-h4 font-weight-bold" >
+                  {{
+                    manufactureSMT.filter(
+                      (i) => i.Source === "Máy printer"
+                    ).length || 0
+                  }}
+                </div>
+                <div class="text-caption">Tổng số lượng đầu ra</div>
+              </v-card-text>
+              <v-card-text v-else>
+                <div class="text-subtitle-1">Máy gắp linh kiện Topaz</div>
+                <div class="text-h4 font-weight-bold">
+                  {{
+                    manufactureSMT.filter(
+                      (i) => i.Source === "Máy gắp linh kiện Topaz"
+                    ).length || 0
+                  }}
+                </div>
+                <div class="text-caption">Tổng số lượng đầu ra</div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" sm="3">
+            <v-card class="rounded-lg" color="success" variant="tonal">
+              <v-card-text v-if = "Line_SMT === 'Line 1'">
+                <div class="text-subtitle-1">Máy gắp linh kiện Juki</div>
+                <div class="text-h4 font-weight-bold" >
                   {{
                     manufactureSMT.filter(
                       (i) => i.Source === "Máy gắp linh kiện Juki"
                     ).length || 0
                   }}
                 </div>
-                <div class="text-h4 font-weight-bold" v-else>
+                <div class="text-caption">Tổng số lượng đầu ra</div>
+              </v-card-text>
+              <v-card-text v-else>
+                <div class="text-subtitle-1">Máy gắp linh kiện Yamaha</div>
+                <div class="text-h4 font-weight-bold" >
                   {{
                     manufactureSMT.filter(
                       (i) => i.Source === "Máy gắp linh kiện Yamaha"
@@ -100,7 +130,7 @@
               </v-card-text>
             </v-card>
           </v-col>
-          <v-col cols="12" sm="4">
+          <v-col cols="12" sm="3">
             <v-card class="rounded-lg" color="info" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra board</div>

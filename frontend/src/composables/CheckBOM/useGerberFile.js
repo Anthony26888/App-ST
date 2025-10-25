@@ -9,7 +9,6 @@ export function useGerberFile(id) {
   onMounted(() => {
     socket.emit("getGerberFile", id);
     socket.on("GerberFileData", (data) => {
-      console.log("Received gerber:", data);
       detailGerber.value = data;
     });
     socket.on("GerberFileError", (message) => {

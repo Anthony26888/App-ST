@@ -1,11 +1,11 @@
 <template lang="">
   <v-card variant="text" class="overflow-y-auto" height="100vh">
-    <v-card-title class="text-h4 font-weight-light"
+    <v-card-title class="text-h4 font-weight-light" v-if="lgAndUp"
       >Danh sách tồn kho</v-card-title
     >
     <v-card-text>
       <v-card variant="text">
-        <v-card-title class="d-flex align-center pe-2">
+        <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
           <ButtonImportFile @import-file="Dialog = true" />
           <ButtonImportFile
             color="warning"
@@ -24,8 +24,13 @@
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
         </v-card-title>
+
+        <v-card-title class="d-flex align-center pe-2" v-else>
+          <InputSearch v-model="search" />
+        </v-card-title>
         <v-card-text class="overflow-auto">
           <v-data-table
+            v-if="lgAndUp"
             :headers="Headers"
             :items="warehouse"
             :search="search"
@@ -48,7 +53,7 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="calc(100vh - 200px)"
+            height="calc(100vh - 220px)"
           >
             <template v-slot:bottom>
               <div class="text-center pt-2">
@@ -68,6 +73,43 @@
               </div>
             </template>
           </v-data-table>
+
+          <v-data-table-virtual
+            v-else
+            :headers="Headers"
+            :items="warehouse"
+            :search="search"
+            :items-per-page="itemsPerPage"
+            v-model:page="page"
+            class="elevation-1"
+            :footer-props="{
+              'items-per-page-options': [10, 20, 50, 100],
+              'items-per-page-text': 'Số hàng mỗi trang',
+            }"
+            :header-props="{
+              sortByText: 'Sắp xếp theo',
+              sortDescText: 'Giảm dần',
+              sortAscText: 'Tăng dần',
+            }"
+            :loading="DialogLoading"
+            loading-text="Đang tải dữ liệu..."
+            no-data-text="Không có dữ liệu"
+            no-results-text="Không tìm thấy kết quả"
+            :hover="true"
+            :dense="false"
+            :fixed-header="true"
+            height="calc(100vh - 150px)"
+          >
+            <template v-slot:item.id="{ value }">
+              <div>
+                <ButtonEdit
+                  @edit="GetItem(value)"
+                  v-if="LevelUser == 'Admin' || LevelUser == 'Thủ kho'"
+                />
+                <ButtonSearch @search="getAccessToken(value)" />
+              </div>
+            </template>
+          </v-data-table-virtual>
         </v-card-text>
       </v-card>
     </v-card-text>
@@ -519,7 +561,7 @@ import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Buffer } from "buffer";
 import { jwtDecode } from "jwt-decode";
-
+import { useDisplay } from "vuetify";
 // Composables
 import { useWareHouse } from "@/composables/Warehouse/useWareHouse";
 import { useTemporaryWareHouse } from "@/composables/Warehouse/useTemporaryWareHouse";
@@ -550,6 +592,7 @@ import Loading from "@/components/Loading.vue";
 const { warehouse } = useWareHouse();
 const { temporaryWarehouse } = useTemporaryWareHouse();
 const { warehouseLog, warehouseLogError } = useWareHouseLog();
+const { mdAndDown, lgAndUp } = useDisplay();
 const router = useRouter();
 
 // API Configuration

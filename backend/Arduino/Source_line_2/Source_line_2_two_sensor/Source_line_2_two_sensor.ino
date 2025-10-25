@@ -7,25 +7,25 @@
 #define EEPROM_SIZE 100
 
 // ===================== CẤU HÌNH =====================
-const char* ssid = "1B_5G";
-const char* password = "12345678910";
-const char* SERVER_HOST = "http://192.168.100.200";  // ✅ Đặt URL server tại đây
+const char* ssid = "KTNM2023";
+const char* password = "Sthuat@2023KTNM";
+const char* SERVER_HOST = "http://192.168.2.201:8080";  // ✅ Đặt URL server tại đây
 
 //Test
 // const char* ssid = "KTNM2023";
 // const char* password = "Sthuat@2023KTNM";
-// const char* SERVER_HOST = "http://192.168.2.221"; 
+// const char* SERVER_HOST = "http://192.168.1.221"; 
 // ====================================================
 
 // ⚙️ IP tĩnh cấu hình
-IPAddress local_IP(192, 168, 100, 206);
-IPAddress gateway(192, 168, 100, 1);
+IPAddress local_IP(192, 168, 2, 206);
+IPAddress gateway(192, 168, 2, 1);
 IPAddress subnet(255, 255, 255, 0);
 IPAddress primaryDNS(8, 8, 8, 8);
 IPAddress secondaryDNS(8, 8, 4, 4);
 
 // ⚙️ IP tĩnh cấu hình test
-// IPAddress local_IP(192, 168, 2, 83);
+// IPAddress local_IP(192, 168, 2, 82);
 // IPAddress gateway(192, 168, 2, 1);
 // IPAddress subnet(255, 255, 255, 0);
 // IPAddress primaryDNS(8, 8, 8, 8);
@@ -248,7 +248,7 @@ void loop() {
       delay(20);
       if (digitalRead(sensorPin1) == HIGH) {
         Serial.println("🚨 Sensor 1 triggered!");
-        sendSensorData(readProjectID(), readPlanID(), "source_4");
+        sendSensorData(readProjectID(), readPlanID(), "source_3");
         lastSentTime1 = now;
         waitingForLow1 = true;
       }
@@ -264,7 +264,7 @@ void loop() {
       delay(20);
       if (digitalRead(sensorPin2) == HIGH) {
         Serial.println("🚨 Sensor 2 triggered!");
-        sendSensorData(readProjectID(), readPlanID(), "source_5");
+        sendSensorData(readProjectID(), readPlanID(), "source_4");
         lastSentTime2 = now;
         waitingForLow2 = true;
       }

@@ -1,12 +1,17 @@
 <template>
   <v-card variant="text" class="overflow-y-auto" height="100vh">
-    <v-card-title class="d-flex">
+    <v-card-title class="d-flex" v-if="lgAndUp">
       <ButtonBack :to="`/Bao-tri/Chi-tiet/${route.params.id}`" />
-      <p class="text-h4 font-weight-light ms-3">Chi tiết sử dụng phụ tùng</p>
+      <p class="text-h4 font-weight-light ms-3" v-if="lgAndUp">Chi tiết sử dụng phụ tùng</p>
+    </v-card-title>
+    <v-card-title class="d-flex" v-else>
+      <ButtonBack :to="`/Bao-tri/Chi-tiet/${route.params.id}`" />
+      <v-icon icon="mdi mdi-cog"></v-icon> &nbsp;
+      {{ route.params.id }}
     </v-card-title>
     <v-card-text>
       <v-card variant="text">
-        <v-card-title class="d-flex align-center pe-2">
+        <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
           <v-icon icon="mdi mdi-cog"></v-icon> &nbsp;
           {{ route.params.id }}
 
@@ -18,7 +23,12 @@
           <InputSearch v-model="search" />
         </v-card-title>
 
+        <v-card-title class="d-flex align-center pe-2" v-else>
+          <InputSearch v-model="search" />
+        </v-card-title>
+
         <v-data-table
+          v-if="lgAndUp"
           :search="search"
           :items="sparePartUsage"
           :headers="Headers"
@@ -74,6 +84,56 @@
             <ButtonEdit @edit="GetItem(item)" />
           </template>
         </v-data-table>
+
+        <v-data-table-virtual
+          v-else
+          :search="search"
+          :items="sparePartUsage"
+          :headers="Headers"
+          :items-per-page="itemsPerPage"
+          v-model:page="page"
+          class="elevation-1"
+          :footer-props="{
+            'items-per-page-options': [10, 20, 50, 100],
+            'items-per-page-text': 'Số hàng mỗi trang',
+          }"
+          :header-props="{
+            sortByText: 'Sắp xếp theo',
+            sortDescText: 'Giảm dần',
+            sortAscText: 'Tăng dần',
+          }"
+          :loading="DialogLoading"
+          loading-text="Đang tải dữ liệu..."
+          no-data-text="Không có dữ liệu"
+          no-results-text="Không tìm thấy kết quả"
+          :hover="true"
+          :dense="false"
+          :fixed-header="true"
+          height="calc(100vh - 200px)"
+        >
+          <template v-slot:item.TrangThai="{ item }">
+            <div class="text-start">
+              <v-chip
+                v-if="item.TrangThai === 'Chờ phê duyệt'"
+                color="red"
+                text="Chờ phê duyệt"
+                size="small"
+              ></v-chip>
+              <v-chip
+                v-else-if="item.TrangThai === 'Đã sử dụng'"
+                color="green"
+                text="Đã sử dụng"
+                size="small"
+              ></v-chip>
+            </div>
+          </template>
+          <template v-slot:item.GhiChu="{ item }">
+            <div style="white-space: pre-line">{{ item.GhiChu }}</div>
+          </template>
+          <template v-slot:item.id="{ item }">
+            <ButtonEdit @edit="GetItem(item)" />
+          </template>
+        </v-data-table-virtual>
       </v-card>
     </v-card-text>
   </v-card>
@@ -209,6 +269,7 @@
 import axios from "axios";
 import { useRoute, useRouter } from "vue-router";
 import { ref, computed, reactive } from "vue";
+import { useDisplay } from "vuetify";
 
 // Components
 import InputSearch from "@/components/Input-Search.vue";
@@ -227,7 +288,7 @@ import Loading from "@/components/Loading.vue";
 
 // Composables
 import { useSparePartUsage } from "@/composables/Maintenance/useSparePartUsage";
-
+const { mdAndDown, lgAndUp } = useDisplay();
 // ===== STATE MANAGEMENT =====
 // API Configuration
 const Url = import.meta.env.VITE_API_URL;
