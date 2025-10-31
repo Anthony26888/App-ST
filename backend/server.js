@@ -39,9 +39,9 @@ const fetch = require("node-fetch");
 
 // Add processing flags at the top of the file
 const processingRequests = new Set();
-
-const ESP32_IP_LINE1 = "http://192.168.100.205"; // IP ESP32 (phải đổi đúng IP của bạn)
-const ESP32_IP_LINE2 = "http://192.168.100.206";
+const GATEWAY_URL = "http://192.168.1.201:8080";
+const ESP32_IP_LINE1 = "http://192.168.1.205"; // IP ESP32 (phải đổi đúng IP của bạn)
+const ESP32_IP_LINE2 = "http://192.168.1.206";
 const sessions = {}; // lưu theo socket.id
 // Khởi tạo Express và Socket.IO
 const PORT = 3000;
@@ -63,7 +63,7 @@ const allowedOrigins = new Set([
   "http://192.168.2.200",
   "http://192.168.1.201",
   "http://192.168.2.201",
-  "http://192.168.2.6",
+  "http://192.168.2.74",
 
   // Production domain – **đầy đủ biến thể**
   "http://erp.sieuthuat.com",
@@ -767,13 +767,13 @@ io.on("connection", (socket) => {
                         id,
                         PartNumber,
                         CASE
-                          WHEN Source = 'source_3' THEN 'Máy printer'
-                          WHEN Source = 'source_1' THEN 'Máy gắp linh kiện Juki'
-                          WHEN Source = 'source_4' THEN 'Máy gắp linh kiện Yamaha'
-                          ELSE 'Máy gắp linh kiện Topaz'
+                          WHEN Source = 'source_1' THEN 'Máy printer'
+                          WHEN Source = 'source_2' THEN 'Máy gắp linh kiện Juki'
+                          WHEN Source = 'source_3' THEN 'Máy gắp linh kiện Topaz'
+                          ELSE 'Máy gắp linh kiện Yamaha'
                         END AS Source,
                         CASE
-                          WHEN Source = 'source_3' THEN 'Line 1'
+                          WHEN Source = 'source_2' THEN 'Line 1'
                           WHEN Source = 'source_1' THEN 'Line 1'
                           ELSE 'Line 2'
                         END AS Line,
@@ -803,22 +803,34 @@ io.on("connection", (socket) => {
                             a.PONumber,
                             a.Time_Plan,
                             a.CycleTime_Plan,
-                            COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) AS Quantity_Real,
+                            CASE 
+                              WHEN a.Line_SMT = 'Line 1' THEN COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0 END), 0)
+                              WHEN a.Line_SMT = 'Line 2' THEN COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0 END), 0)
+                              ELSE COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) 
+                            END AS Quantity_Real,
                             COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) AS Quantity_Error,
                             COALESCE(SUM(CASE WHEN b.TimestampRW IS NOT NULL AND b.TimestampRW <> '' THEN 1 ELSE 0 END), 0) AS Quantity_RW,
                             COUNT(DISTINCT b.id) AS Total_Summary_ID,
                             COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) + COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) AS Total_Quantity,
-                            (COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) * 100) / COUNT(DISTINCT b.id) || 0 AS Percent_Error,
-                            ROUND(
-                              (CAST(COUNT(DISTINCT a.id) AS FLOAT) / NULLIF(a.Quantity_Plan, 0)) * 100,
-                              2
-                            ) AS Percent,
+                            (COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) * 100) / COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) + COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) || 0 AS Percent_Error,
+                              CASE
+                              WHEN a.Line_SMT = 'Line 1' THEN ROUND(COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0.0 END) * 100  / a.Quantity_Plan , 0.0), 1)
+                              WHEN a.Line_SMT = 'Line 2' THEN  ROUND(COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0.0 END) * 100  / a.Quantity_Plan, 0.0), 1)
+                            ELSE 
+                              ROUND(
+                                (
+                                  COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) 
+                                ) * 100.0 / a.Quantity_Plan, 1
+                              )
+                            END AS Percent,
                             strftime('%d-%m-%Y', a.Created_At, 'unixepoch', 'localtime') AS Created_At
                         FROM Summary a
                         LEFT JOIN ManufactureCounting b 
                           ON b.HistoryID = a.id
                         LEFT JOIN PlanManufacture c 
                           ON a.PlanID = c.id
+                        LEFT JOIN ManufactureSMT d
+						              ON d.HistoryID = a.id
                         WHERE a.Created_At BETWEEN ? AND ?
                         GROUP BY a.id
                         ORDER BY a.Created_At DESC`;
@@ -862,26 +874,40 @@ io.on("connection", (socket) => {
                           a.Quantity_Plan,
                           a.PlanID,
                           c.Name_Order,
+                          c.DelaySMT,
                           a.PONumber,
                           a.Line_SMT,
                           a.Time_Plan,
                           a.CycleTime_Plan,
-                          COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) AS Quantity_Real,
+                          a.Action,
+                          c.Quantity,
+                          CASE 
+                            WHEN a.Line_SMT = 'Line 1' THEN COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0 END), 0)
+                            WHEN a.Line_SMT = 'Line 2' THEN COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0 END), 0)
+                            ELSE COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) 
+                          END AS Quantity_Real,
                           COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) AS Quantity_Error,
-                          (
+                          CASE
+                            WHEN a.Line_SMT = 'Line 1' THEN ROUND(COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0.0 END) * 100  / a.Quantity_Plan , 0.0), 1)
+                            WHEN a.Line_SMT = 'Line 2' THEN  ROUND(COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0.0 END) * 100  / a.Quantity_Plan, 0.0), 1)
+                          ELSE 
+                            ROUND(
                               (
-                                  COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) +
-                                  COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0)
-                              ) * 100.0 / a.Quantity_Plan
-                          ) AS Percent,
+                                COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) +
+                                COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0)
+                              ) * 100.0 / a.Quantity_Plan, 1
+                            )
+                          END AS Percent,
                           COALESCE(SUM(CASE WHEN b.TimestampRW IS NOT NULL AND b.TimestampRW <> '' THEN 1 ELSE 0 END), 0) AS TimestampRW,
                           strftime('%d-%m-%Y', a.Created_At, 'unixepoch', 'localtime') AS Created_At,
                           strftime('%Y-%m-%d', a.Created_At, 'unixepoch', 'localtime') AS Created_At_unixepoch
                       FROM Summary a
                       LEFT JOIN ManufactureCounting b 
-                          ON b.HistoryID = a.id
+                        ON b.HistoryID = a.id
                       LEFT JOIN PlanManufacture c 
-                          ON a.PlanID = c.id
+                        ON a.PlanID = c.id
+                      LEFT JOIN ManufactureSMT d
+						            ON d.HistoryID = a.id
                       WHERE a.PlanID = ?
                       GROUP BY 
                           a.id,
@@ -3528,56 +3554,86 @@ app.delete("/api/PlanManufacture/Delete/:id", async (req, res) => {
   });
 });
 
-app.post("/api/esp-config", async (req, res) => {
-  const { project_id, delay, plan_id } = req.body;
+// app.post("/api/esp-config", async (req, res) => {
+//   const { project_id, delay, plan_id } = req.body;
+//   try {
+//     const response = await axios.post(
+//       `${ESP32_IP_LINE1}/set-project-delay`,
+//       {
+//         project_id,
+//         delay,
+//         plan_id,
+//       },
+//       {
+//         headers: { "Content-Type": "application/json" },
+//       }
+//     );
+
+//     res.json({
+//       status: "project_id sent to esp32",
+//       esp32Response: response.data,
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       error: "Failed to send project_id to esp32",
+//       detail: error.message,
+//     });
+//   }
+// });
+
+// app.post("/api/esp-config-line2", async (req, res) => {
+//   const { project_id, delay, plan_id } = req.body;
+//   try {
+//     const response = await axios.post(
+//       `${ESP32_IP_LINE2}/set-project-delay`,
+//       {
+//         project_id,
+//         delay,
+//         plan_id,
+//       },
+//       {
+//         headers: { "Content-Type": "application/json" },
+//       }
+//     );
+
+//     res.json({
+//       status: "project_id sent to esp32",
+//       esp32Response: response.data,
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       error: "Failed to send project_id to esp32",
+//       detail: error.message,
+//     });
+//   }
+// });
+
+app.post("/api/send-config-to-device", async (req, res) => {
+  const { project_id, plan_id, delay = 0, line = 1 } = req.body || {};
+
+  // if (!project_id || !plan_id) {
+  //   return res.status(400).json({ error: "project_id và plan_id là bắt buộc" });
+  // }
+
   try {
     const response = await axios.post(
-      `${ESP32_IP_LINE1}/set-project-delay`,
-      {
-        project_id,
-        delay,
-        plan_id,
-      },
-      {
-        headers: { "Content-Type": "application/json" },
-      }
+      `${GATEWAY_URL}/api/send-config`,
+      { project_id, plan_id, delay, line },
+      { headers: { "Content-Type": "application/json" } }
     );
 
-    res.json({
-      status: "project_id sent to esp32",
-      esp32Response: response.data,
-    });
-  } catch (error) {
-    res.status(500).json({
-      error: "Failed to send project_id to esp32",
-      detail: error.message,
-    });
-  }
-});
-
-app.post("/api/esp-config-line2", async (req, res) => {
-  const { project_id, delay, plan_id } = req.body;
-  try {
-    const response = await axios.post(
-      `${ESP32_IP_LINE2}/set-project-delay`,
-      {
-        project_id,
-        delay,
-        plan_id,
-      },
-      {
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    console.log("✅ Config sent to Gateway:", response.data);
 
     res.json({
-      status: "project_id sent to esp32",
-      esp32Response: response.data,
+      status: "Sent to Gateway",
+      gatewayResponse: response.data,
     });
   } catch (error) {
-    res.status(500).json({
-      error: "Failed to send project_id to esp32",
-      detail: error.message,
+    console.error("❌ Failed to send to Gateway:", error.message);
+
+    res.status(502).json({
+      error: "Gateway unreachable",
+      detail: error.response?.data || error.message,
     });
   }
 });
@@ -4192,7 +4248,8 @@ app.post("/api/upload-gerber/:id", upload.single("FileGerber"), (req, res) => {
             format,
             svg: svgData,
           });
-          io.emit("CombineBomUpdate");
+          io.emit("CombineBomUpdate", { project_id: projectId});
+          io.emit("GerberFileUpdate", { project_id: projectId});
           io.emit("PnPFileUpdate");
           res.json({ id: this.lastID, layer, unit, format });
         }

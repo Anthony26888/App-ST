@@ -11,7 +11,7 @@
         class="text-caption"
         color="primary"
         variant="tonal"
-        >Thêm file Bom</v-btn
+        >Bom</v-btn
       >
       <v-btn
         @click="DialogAddPnP = true"
@@ -19,7 +19,7 @@
         class="text-caption"
         color="primary ms-2"
         variant="tonal"
-        >Thêm file Pick & Place</v-btn
+        >Pick & Place</v-btn
       >
       <v-btn
         @click="DialogAddGerber = true"
@@ -27,7 +27,7 @@
         class="text-caption ms-2"
         color="primary"
         variant="tonal"
-        >Thêm file Gerber</v-btn
+        >Gerber</v-btn
       >
       <ButtonDownload @download-file="DownloadPnP()" />
       <p class="text-subtitle-1 font-weight-thin text-subtitle-1 ms-2">
@@ -362,8 +362,8 @@
       </template>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogEdit" width="500">
-    <v-card max-width="500">
+  <v-dialog v-model="DialogEdit" width="600">
+    <v-card max-width="600">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
         Chỉnh sửa Pick & Place
@@ -371,20 +371,13 @@
       <v-card-text>
         <v-row>
           <v-col cols="4">
-            <InputField label="Toạ độ X (mm)" v-model="PnP_X_Edit" />
+            <InputField label="Toạ độ X (mm)" v-model="PnP_X_Edit" hint="Toa độ X linh kiện"/>
           </v-col>
           <v-col cols="4">
-            <InputField label="Toạ độ Y (mm)" v-model="PnP_Y_Edit" />
+            <InputField label="Toạ độ Y (mm)" v-model="PnP_Y_Edit" hint="Toa độ Y linh kiện"/>
           </v-col>
           <v-col cols="4">
-            <InputSelect
-              label="Góc°"
-              v-model="PnP_Angle_Edit"
-              hint="Góc toạ độ các linh kiện"
-              :items="[0, 90, 180, 270]"
-              item-text="text"
-              item-value="value"
-            />
+            <InputField label="Góc" v-model="PnP_Angle_Edit" hint="Góc linh kiện"/>
           </v-col>
         </v-row>
 
@@ -532,10 +525,10 @@
         <!-- <v-divider class="my-3"></v-divider> -->
 
         <!-- Board rotation and flip controls -->
-        <p class="text-caption text-grey mb-2">Xoay & Lật Pick&Place:</p>
+        <!-- <p class="text-caption text-grey mb-2">Xoay & Lật Pick&Place:</p> -->
 
         <!-- Nút lật mặt -->
-        <div class="d-flex flex-wrap ga-2 mt-2">
+        <!-- <div class="d-flex flex-wrap ga-2 mt-2">
           <v-btn
             @click="flipX = !flipX"
             :color="flipX ? 'error' : 'default'"
@@ -563,11 +556,11 @@
           >
             {{ swapXY ? "✓" : "✗" }} Đổi X↔Y
           </v-btn>
-        </div>
+        </div> -->
 
         <!-- Custom angle rotation -->
         <!-- Chọn tâm xoay -->
-        <div class="d-flex flex-wrap ga-2 mt-3">
+        <!-- <div class="d-flex flex-wrap ga-2 mt-3">
           <InputField
             v-model.number="cx"
             label="cx (tâm X)"
@@ -582,10 +575,10 @@
             density="comfortable"
             variant="outlined"
           />
-        </div>
+        </div> -->
 
         <!-- Nút xoay nhanh -->
-        <div class="d-flex flex-wrap ga-2">
+        <!-- <div class="d-flex flex-wrap ga-2">
           <v-btn
             @click="quickRotate(90)"
             color="primary"
@@ -623,10 +616,10 @@
           >
             Xoay
           </v-btn>
-        </div>
+        </div> -->
 
         <!-- Điều chỉnh tọa độ thủ công -->
-        <v-divider class="my-3"></v-divider>
+        <!-- <v-divider class="my-3"></v-divider> -->
         <p class="text-caption text-grey mb-2">Điều chỉnh tọa độ thủ công:</p>
 
         <div class="ga-2">
@@ -791,9 +784,9 @@
         </div>
 
         <v-divider class="my-3"></v-divider>
-        <v-row>
+        <!-- <v-row> -->
           <!-- Điều khiển góc designator label -->
-          <v-col cols="6">
+          <!-- <v-col cols="6">
             <p class="text-caption text-grey mb-2">
               Điều khiển góc designator label:
             </p>
@@ -809,10 +802,10 @@
                 min="-360"
                 max="360"
               />
-            </div>
+            </div> -->
 
             <!-- Nút xoay nhanh designator label -->
-            <div class="d-flex flex-wrap ga-2 mt-2">
+            <!-- <div class="d-flex flex-wrap ga-2 mt-2">
               <v-btn
                 @click="rotateDesignatorLabel(90)"
                 color="info"
@@ -853,9 +846,9 @@
               </v-btn>
             </div>
           </v-col>
-          <v-col cols="6">
+          <v-col cols="6"> -->
             <!-- Điều khiển góc xoay component body rectangle -->
-            <p class="text-caption text-grey mb-2">
+            <!-- <p class="text-caption text-grey mb-2">
               Điều khiển góc xoay component body rectangle:
             </p>
 
@@ -870,10 +863,10 @@
                 min="-360"
                 max="360"
               />
-            </div>
+            </div> -->
 
             <!-- Nút xoay nhanh component body -->
-            <div class="d-flex flex-wrap ga-2 mt-2">
+            <!-- <div class="d-flex flex-wrap ga-2 mt-2">
               <v-btn
                 @click="rotateComponentBody(90)"
                 color="success"
@@ -914,11 +907,11 @@
               </v-btn>
             </div>
           </v-col>
-        </v-row>
+        </v-row> -->
 
         <!-- Điều khiển xoay SVG -->
-        <v-divider class="my-3"></v-divider>
-        <p class="text-caption text-grey mb-2">Điều khiển board:</p>
+        <!-- <v-divider class="my-3"></v-divider>
+        <p class="text-caption text-grey mb-2">Điều khiển board:</p> -->
         <!-- <div class="d-flex flex-wrap ga-2">
           <InputField
             v-model.number="panelFrameX"
@@ -941,7 +934,7 @@
           <p class="text-bold text-warning">Lưu ý:</p>
           <p class="font-weight-light ms-2">Trục Y tính từ dưới panel đến vị trị board có linh kiện, Trục X tính từ bên trái qua.</p>
         </div> -->
-        <div class="d-flex flex-wrap ga-2 mt-5">
+        <!-- <div class="d-flex flex-wrap ga-2 mt-5">
           <InputField
             v-model.number="svgRotation"
             label="Góc xoay board (°)"
@@ -980,7 +973,7 @@
             variant="outlined"
           >
             +180°
-          </v-btn>
+          </v-btn> -->
           <!-- <v-btn
             @click="autoRotateSvgToFitPnP"
             color="success"
@@ -991,7 +984,7 @@
           >
             Tự động xoay
           </v-btn> -->
-          <v-btn
+          <!-- <v-btn
             @click="resetSvgRotation"
             color="warning"
             prepend-icon="mdi-refresh"
@@ -1001,7 +994,7 @@
             class="text-caption"
           >
             Reset xoay
-          </v-btn>
+          </v-btn> -->
           <!-- <v-btn
             @click="testSvgRotation"
             color="info"
@@ -1011,12 +1004,12 @@
           >
             Test xoay
           </v-btn> -->
-        </div>
+        <!-- </div> -->
 
         <!-- Áp dụng tất cả biến đổi -->
-        <v-divider class="my-3"></v-divider>
+        <!-- <v-divider class="my-3"></v-divider> -->
 
-        <v-divider class="my-3"></v-divider>
+        <!-- <v-divider class="my-3"></v-divider> -->
         <div class="d-flex gap-2">
           <v-btn
             @click="resetCoordinates"
@@ -1135,6 +1128,9 @@ const coordinateOffsetY = ref(0);
 const coordinateRotation = ref(0);
 const showGrid = ref(false);
 const showComponentBoxes = ref(true);
+
+// Additional Y offset for PnP markers (in mm) to align with SVG
+const pnpYOffsetMm = ref(12);
 
 // Coordinate flip controls
 const flipX = ref(false);
@@ -1466,14 +1462,11 @@ const SaveEditPnP = async () => {
       `${Url}/PickPlace/Edit-item/${GetIDPnP.value}`,
       formData
     );
-    console.log(response.data.message);
-
     DialogLoading.value = false;
     DialogEdit.value = false;
     DialogSuccess.value = true;
     MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
   } catch (error) {
-    console.log(error);
     DialogLoading.value = false;
     DialogEdit.value = false;
     DialogFailed.value = true;
@@ -1489,14 +1482,12 @@ const SaveTransformPnP = async () => {
       `${Url}/PickPlace/Update-item`,
       filteredPnP.value
     );
-    console.log(response.data.message);
 
     DialogLoading.value = false;
     DialogEdit.value = false;
     DialogSuccess.value = true;
     MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
   } catch (error) {
-    console.log(error);
     DialogLoading.value = false;
     DialogEdit.value = false;
     DialogFailed.value = true;
@@ -1759,9 +1750,20 @@ const svgWithPnP = computed(() => {
       if (swapXY.value)
         [transformedX, transformedY] = [transformedY, transformedX];
 
-      // Invert Y to move origin to bottom-left of SVG if we know the height
-      if (svgHeight !== null) {
-        transformedY = svgHeight - transformedY;
+      // Invert Y to move origin to bottom-left of SVG and apply extra Y offset (in mm)
+      // Prefer inverting around PnP bounds (handles non-zero origins); fallback to SVG height
+      {
+        const extraYOffsetUnits =
+          ((unit === "mm" ? pnpYOffsetMm.value : pnpYOffsetMm.value / 25.4) *
+            coordinateScale.value);
+        if (pnpBounds.value && Number.isFinite(pnpBounds.value.minY) && Number.isFinite(pnpBounds.value.maxY)) {
+          const yRawInverted = (pnpBounds.value.maxY + pnpBounds.value.minY) - (pnp.y ?? 0);
+          transformedY = yRawInverted * coordinateScale.value + coordinateOffsetY.value + extraYOffsetUnits;
+        } else if (svgHeight !== null) {
+          transformedY = svgHeight - transformedY + extraYOffsetUnits;
+        } else {
+          transformedY = transformedY + extraYOffsetUnits;
+        }
       }
 
       const desiredRotation =
@@ -2548,7 +2550,7 @@ export default {
 
 .gerber-svg-container {
   width: 100%;
-  height: 70vh;
+  height: 85vh;
   overflow: hidden;
   background: white;
   border: 1px solid #e0e0e0;

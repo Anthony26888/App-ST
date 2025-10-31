@@ -136,7 +136,6 @@
             @update:model-value="Name_Edit = $event"
           />
           <InputField
-            :disabled="true"
             label="Tổng sản phẩm"
             type="number"
             :model-value="Total_Edit"

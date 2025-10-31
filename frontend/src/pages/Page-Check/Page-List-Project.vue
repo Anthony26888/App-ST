@@ -66,13 +66,13 @@
         Thêm tên dự án
       </v-card-title>
       <v-card-text>
-        <InputField label="Nhập tên dự án" v-model="FileName" />
-        <InputField label="Thời gian tạo" type="date" v-model="Created_at" />
+        <InputField label="Nhập tên dự án" :rules="requiredRule" v-model="FileName" />
+        <InputField label="Thời gian tạo" :rules="requiredRule" type="date" v-model="Created_at" />
         <InputTextarea label="Ghi chú" v-model="Note" />
       </v-card-text>
       <template v-slot:actions>
-        <ButtonCancel @cancel="DialogAdd = false" />
-        <ButtonSave @save="SaveAdd()" />
+        <ButtonCancel @cancel="DialogAdd = false"/>
+        <ButtonSave :disabled="!FileName || !Created_at" @save="SaveAdd()" />
       </template>
     </v-card>
   </v-dialog>
@@ -160,6 +160,7 @@ const FileName_Edit = ref("");
 const Created_at_Edit = ref("");
 const Note_Edit = ref("");
 
+const requiredRule = [(v) => !!v || "Dữ liệu này không được bỏ trống"];
 // Table status
 const Headers = [
   { key: "project_name", title: "Tên dự án" },

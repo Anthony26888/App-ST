@@ -77,16 +77,15 @@
                 <div class="text-caption">Tổng số lượng đầu vào</div>
               </v-card-text>
             </v-card>
-          </v-col> 
+          </v-col>
           <v-col cols="12" sm="3">
-            <v-card class="rounded-lg" color="success" variant="tonal">
-              <v-card-text v-if = "Line_SMT === 'Line 1'">
+            <v-card class="rounded-lg" color="info" variant="tonal">
+              <v-card-text v-if="Line_SMT === 'Line 1'">
                 <div class="text-subtitle-1">Máy Printer</div>
-                <div class="text-h4 font-weight-bold" >
+                <div class="text-h4 font-weight-bold">
                   {{
-                    manufactureSMT.filter(
-                      (i) => i.Source === "Máy printer"
-                    ).length || 0
+                    manufactureSMT.filter((i) => i.Source === "Máy printer")
+                      .length || 0
                   }}
                 </div>
                 <div class="text-caption">Tổng số lượng đầu ra</div>
@@ -105,10 +104,10 @@
             </v-card>
           </v-col>
           <v-col cols="12" sm="3">
-            <v-card class="rounded-lg" color="success" variant="tonal">
-              <v-card-text v-if = "Line_SMT === 'Line 1'">
+            <v-card class="rounded-lg" color="warning" variant="tonal">
+              <v-card-text v-if="Line_SMT === 'Line 1'">
                 <div class="text-subtitle-1">Máy gắp linh kiện Juki</div>
-                <div class="text-h4 font-weight-bold" >
+                <div class="text-h4 font-weight-bold">
                   {{
                     manufactureSMT.filter(
                       (i) => i.Source === "Máy gắp linh kiện Juki"
@@ -119,7 +118,7 @@
               </v-card-text>
               <v-card-text v-else>
                 <div class="text-subtitle-1">Máy gắp linh kiện Yamaha</div>
-                <div class="text-h4 font-weight-bold" >
+                <div class="text-h4 font-weight-bold">
                   {{
                     manufactureSMT.filter(
                       (i) => i.Source === "Máy gắp linh kiện Yamaha"
@@ -131,26 +130,15 @@
             </v-card>
           </v-col>
           <v-col cols="12" sm="3">
-            <v-card class="rounded-lg" color="info" variant="tonal">
+            <v-card class="rounded-lg" color="success" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra board</div>
-                <div class="text-h4 font-weight-bold" v-if = "Line_SMT == 'Line 1'">
-                  {{
-                    QuantityBoard *
-                      manufactureSMT.filter(
-                        (i) => i.Source === "Máy gắp linh kiện Juki"
-                      ).length || 0
-                  }}
+                <div class="text-h4 font-weight-bold">
+                  {{ PercentOutput }}
                 </div>
-                <div class="text-h4 font-weight-bold" v-else>
-                  {{
-                    QuantityBoard *
-                      manufactureSMT.filter(
-                        (i) => i.Source === "Máy gắp linh kiện Yamaha"
-                      ).length || 0
-                  }}
-                </div>
-                <div class="text-caption">Tổng số lượng board</div>
+                <v-progress-linear v-model="PercentOutput" height="20">
+                  <strong>{{ PercentOutput }}%</strong>
+                </v-progress-linear>
               </v-card-text>
             </v-card>
           </v-col>
@@ -192,19 +180,19 @@
                 size="small"
                 variant="tonal"
               >
-                {{ item.Status === "ok" ? "OK" : "Lỗi" }}
+                {{ item.Status === "ok" ? "Pass" : "Fail" }}
               </v-chip>
             </template>
             <template #[`item.Source`]="{ item }">
               <v-chip
                 :color="
                   item.Source === 'Máy printer'
-                    ? 'primary'
+                    ? 'info'
                     : item.Source === 'Máy gắp linh kiện Juki'
                     ? 'warning'
                     : item.Source === 'Máy gắp linh kiện Yamaha'
-                    ? 'info'
-                    : 'error'
+                    ? 'warning'
+                    : 'info'
                 "
                 size="small"
                 variant="tonal"
@@ -273,7 +261,6 @@ const currentStatus = computed(() =>
   Line_SMT.value === "Line 1" ? status.value : statusLine2.value
 );
 
-
 const { manufactureSMT } = useManufactureSMT(id);
 const { manufactureFound } = useManufacture();
 const { history } = useHistory(back);
@@ -281,7 +268,6 @@ const { status } = useDeviceStatusSocket("esp32-001");
 const { status: statusLine2 } = useDeviceStatusSocket("esp32-002");
 
 // Chọn trạng thái theo Line_SMT
-
 
 const DialogLoading = ref(false);
 const DialogSuccess = ref(false);
@@ -334,109 +320,181 @@ watch(
   { immediate: true, deep: true }
 );
 
+const PercentOutput = computed(() => {
+  const list = Array.isArray(manufactureSMT.value) ? manufactureSMT.value : []; // fallback array
+
+  const total = totalInput.value || 1; // tránh chia 0
+  const source =
+    Line_SMT.value === "Line 1"
+      ? "Máy gắp linh kiện Juki"
+      : "Máy gắp linh kiện Yamaha";
+
+  const count = list.filter((i) => i?.Source === source).length;
+
+  return Math.ceil((QuantityBoard.value * 100 * count) / total);
+});
+
 const showError = (msg) => {
   MessageErrorDialog.value = msg;
   DialogFailed.value = true;
 };
 
-// Action line 
+// Action line
+// const StartLine = async () => {
+//   if (Line_SMT.value == "Line 2") {
+//     if (!manufactureFound.value) {
+//       return showError("Không thể lấy dữ liệu sản xuất");
+//     }
+
+//     const delaySMT = Number(Delay.value);
+//     if (isNaN(delaySMT) || delaySMT < 0) {
+//       return showError("Giá trị độ trễ không hợp lệ");
+//     }
+
+//     const newAction = isRunning.value ? "stopped" : "running";
+
+//     try {
+//       isConnecting.value = true;
+
+//       // Nếu bắt đầu => dừng tất cả plan khác và ESP32 cũ
+//       if (newAction === "running") {
+//         await axios.put(`${Url}/Summary/Edit-item-action-stopped-line2`);
+//         await axios.post(`${Url}/esp-config-line2`, {
+//           project_id: "",
+//           delay: 0,
+//           plan_id: "",
+//         });
+//       }
+
+//       // Gửi config cho ESP32 hiện tại
+//       await axios.post(`${Url}/esp-config-line2`, {
+//         project_id: newAction === "running" ? route.params.id : "",
+//         delay: delaySMT,
+//         plan_id: localStorage.getItem("ManufactureID"),
+//       });
+
+//       // Cập nhật action
+//       await axios.put(`${Url}/Summary/Edit-item-action/${id}`, {
+//         Action: newAction,
+//       });
+//       Action.value = newAction;
+
+//       MessageDialog.value =
+//         newAction === "running"
+//           ? `Đã bắt đầu sản xuất với độ trễ ${delaySMT}ms`
+//           : "Đã dừng sản xuất";
+//       DialogSuccess.value = true;
+//     } catch (error) {
+//       showError(error.response?.data?.message || "Có lỗi xảy ra khi thực hiện");
+//     } finally {
+//       isConnecting.value = false;
+//     }
+//   } else {
+//     if (!manufactureFound.value) {
+//       return showError("Không thể lấy dữ liệu sản xuất");
+//     }
+
+//     const delaySMT = Number(Delay.value);
+//     if (isNaN(delaySMT) || delaySMT < 0) {
+//       return showError("Giá trị độ trễ không hợp lệ");
+//     }
+
+//     const newAction = isRunning.value ? "stopped" : "running";
+
+//     try {
+//       isConnecting.value = true;
+
+//       // Nếu bắt đầu => dừng tất cả plan khác và ESP32 cũ
+//       if (newAction === "running") {
+//         await axios.put(`${Url}/Summary/Edit-item-action-stopped-line1`);
+//         await axios.post(`${Url}/esp-config`, {
+//           project_id: "",
+//           delay: 0,
+//           plan_id: "",
+//         });
+//       }
+
+//       // Gửi config cho ESP32 hiện tại
+//       await axios.post(`${Url}/esp-config`, {
+//         project_id: newAction === "running" ? route.params.id : "",
+//         delay: delaySMT,
+//         plan_id: localStorage.getItem("ManufactureID"),
+//       });
+
+//       // Cập nhật action
+//       await axios.put(`${Url}/Summary/Edit-item-action/${id}`, {
+//         Action: newAction,
+//       });
+//       Action.value = newAction;
+
+//       MessageDialog.value =
+//         newAction === "running"
+//           ? `Đã bắt đầu sản xuất với độ trễ ${delaySMT}ms`
+//           : "Đã dừng sản xuất";
+//       DialogSuccess.value = true;
+//     } catch (error) {
+//       showError(error.response?.data?.message || "Có lỗi xảy ra khi thực hiện");
+//     } finally {
+//       isConnecting.value = false;
+//     }
+//   }
+// };
 const StartLine = async () => {
-  if (Line_SMT.value == "Line 2") {
-    if (!manufactureFound.value) {
-      return showError("Không thể lấy dữ liệu sản xuất");
-    }
+  if (!manufactureFound.value) {
+    return showError("Không thể lấy dữ liệu sản xuất");
+  }
 
-    const delaySMT = Number(Delay.value);
-    if (isNaN(delaySMT) || delaySMT < 0) {
-      return showError("Giá trị độ trễ không hợp lệ");
-    }
+  const delaySMT = Number(Delay.value);
+  if (isNaN(delaySMT) || delaySMT < 0) {
+    return showError("Giá trị độ trễ không hợp lệ");
+  }
 
-    const newAction = isRunning.value ? "stopped" : "running";
+  const isLine2 = Line_SMT.value === "Line 2";
+  const line = isLine2 ? 2 : 1;
+  const newAction = isRunning.value ? "stopped" : "running";
 
-    try {
-      isConnecting.value = true;
+  try {
+    isConnecting.value = true;
 
-      // Nếu bắt đầu => dừng tất cả plan khác và ESP32 cũ
-      if (newAction === "running") {
-        await axios.put(`${Url}/Summary/Edit-item-action-stopped-line2`);
-        await axios.post(`${Url}/esp-config-line2`, {
-          project_id: "",
-          delay: 0,
-          plan_id: "",
-        });
-      }
+    // Nếu bắt đầu => dừng tất cả plan khác trước
+    if (newAction === "running") {
+      await axios.put(`${Url}/Summary/Edit-item-action-stopped-line${line}`);
 
-      // Gửi config cho ESP32 hiện tại
-      await axios.post(`${Url}/esp-config-line2`, {
-        project_id: newAction === "running" ? route.params.id : "",
-        delay: delaySMT,
-        plan_id: localStorage.getItem("ManufactureID"),
+      // Reset ESP32 đang chạy cũ
+      await axios.post(`${Url}/send-config-to-device`, {
+        project_id: "",
+        delay: 0,
+        plan_id: "",
+        line,
       });
-
-      // Cập nhật action
-      await axios.put(`${Url}/Summary/Edit-item-action/${id}`, {
-        Action: newAction,
-      });
-      Action.value = newAction;
-
-      MessageDialog.value =
-        newAction === "running"
-          ? `Đã bắt đầu sản xuất với độ trễ ${delaySMT}ms`
-          : "Đã dừng sản xuất";
-      DialogSuccess.value = true;
-    } catch (error) {
-      showError(error.response?.data?.message || "Có lỗi xảy ra khi thực hiện");
-    } finally {
-      isConnecting.value = false;
-    }
-  } else {
-    if (!manufactureFound.value) {
-      return showError("Không thể lấy dữ liệu sản xuất");
     }
 
-    const delaySMT = Number(Delay.value);
-    if (isNaN(delaySMT) || delaySMT < 0) {
-      return showError("Giá trị độ trễ không hợp lệ");
-    }
+    // Gửi config cho line hiện tại
+    await axios.post(`${Url}/send-config-to-device`, {
+      project_id: newAction === "running" ? route.params.id : "",
+      delay: delaySMT,
+      plan_id: localStorage.getItem("ManufactureID"),
+      line,
+    });
 
-    const newAction = isRunning.value ? "stopped" : "running";
+    // Update trạng thái DB
+    await axios.put(`${Url}/Summary/Edit-item-action/${id}`, {
+      Action: newAction,
+    });
 
-    try {
-      isConnecting.value = true;
+    Action.value = newAction;
 
-      // Nếu bắt đầu => dừng tất cả plan khác và ESP32 cũ
-      if (newAction === "running") {
-        await axios.put(`${Url}/Summary/Edit-item-action-stopped-line1`);
-        await axios.post(`${Url}/esp-config`, {
-          project_id: "",
-          delay: 0,
-          plan_id: "",
-        });
-      }
+    MessageDialog.value =
+      newAction === "running"
+        ? `Đã bắt đầu sản xuất (Line ${line}) - Delay: ${delaySMT}ms`
+        : `Đã dừng sản xuất trên Line ${line}`;
 
-      // Gửi config cho ESP32 hiện tại
-      await axios.post(`${Url}/esp-config`, {
-        project_id: newAction === "running" ? route.params.id : "",
-        delay: delaySMT,
-        plan_id: localStorage.getItem("ManufactureID"),
-      });
-
-      // Cập nhật action
-      await axios.put(`${Url}/Summary/Edit-item-action/${id}`, {
-        Action: newAction,
-      });
-      Action.value = newAction;
-
-      MessageDialog.value =
-        newAction === "running"
-          ? `Đã bắt đầu sản xuất với độ trễ ${delaySMT}ms`
-          : "Đã dừng sản xuất";
-      DialogSuccess.value = true;
-    } catch (error) {
-      showError(error.response?.data?.message || "Có lỗi xảy ra khi thực hiện");
-    } finally {
-      isConnecting.value = false;
-    }
+    DialogSuccess.value = true;
+  } catch (error) {
+    console.error("⛔ Error:", error);
+    showError(error.response?.data?.error || "Có lỗi xảy ra khi thực hiện");
+  } finally {
+    isConnecting.value = false;
   }
 };
 </script>

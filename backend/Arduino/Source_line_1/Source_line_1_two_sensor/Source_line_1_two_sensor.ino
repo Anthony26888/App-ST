@@ -264,7 +264,7 @@ void loop() {
       delay(20);
       if (digitalRead(sensorPin2) == HIGH) {
         Serial.println("🚨 Sensor 2 triggered!");
-        sendSensorData(readProjectID(), readPlanID(), "source_3");
+        sendSensorData(readProjectID(), readPlanID(), "source_2");
         lastSentTime2 = now;
         waitingForLow2 = true;
       }
