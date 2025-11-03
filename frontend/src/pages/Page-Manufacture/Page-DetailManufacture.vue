@@ -26,7 +26,7 @@
       <v-card-text class="pa-6">
         <!-- Main Stats Overview -->
         <v-row class="mb-6">
-          <v-col cols="12" md="3">
+          <v-col cols="12" md="4">
             <v-card class="rounded-lg" color="primary" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu vào</div>
@@ -37,34 +37,29 @@
               </v-card-text>
             </v-card>
           </v-col>
-          <v-col cols="12" md="3">
+          <v-col cols="12" md="4">
             <v-card class="rounded-lg" color="success" variant="tonal">
               <v-card-text>
-                <div class="text-subtitle-1">Đầu ra</div>
+                <div class="text-subtitle-1">Hàng thành phẩm</div>
                 <div class="text-h4 font-weight-bold">
                   {{ totalOutput }}
                 </div>
-                <div class="text-caption">Tổng số lượng đầu ra</div>
+                <v-progress-linear v-model="PercentOutput" height="20" class="rounded-lg">
+                  <strong class="text-black">{{ PercentOutput }}%</strong>
+                </v-progress-linear>
               </v-card-text>
             </v-card>
           </v-col>
-          <v-col cols="12" md="3">
+          <v-col cols="12" md="4">
             <v-card class="rounded-lg" color="warning" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Hàng lỗi</div>
                 <div class="text-h4 font-weight-bold">
                   {{ totalError }}
                 </div>
-                <div class="text-caption">Tổng số lượng hàng lỗi</div>
-              </v-card-text>
-            </v-card>
-          </v-col>
-          <v-col cols="12" md="3">
-            <v-card class="rounded-lg" color="info" variant="tonal">
-              <v-card-text>
-                <div class="text-subtitle-1">Tỷ lệ</div>
-                <div class="text-h4 font-weight-bold">{{ (totalOutput*100)/totalInput }}%</div>
-                <div class="text-caption">Tỉ lệ hàng pass</div>
+                <v-progress-linear v-model="PercentError" height="20" class="rounded-lg">
+                  <strong class="text-black">{{ PercentError }}%</strong>
+                </v-progress-linear>
               </v-card-text>
             </v-card>
           </v-col>
@@ -86,48 +81,22 @@
                   <div
                     class="flex-grow-1 d-flex flex-column align-center mb-4 mb-sm-0"
                   >
-                    <div class="text-h6 font-weight-bold mb-2">Printer</div>
+                    <div class="text-h6 font-weight-bold mb-2">Printer G5</div>
                     <div class="text-h4 font-weight-bold mb-2">
                       <span class="text-primary">{{ totalInput }}</span> /
-                      <span class="text-success">{{ totalSMT_3 }}</span>
+                      <span class="text-success">{{ totalSMT_1 }}</span>
                     </div>
                     <v-progress-circular
-                      :model-value="(totalSMT_3 / totalInput) * 100"
+                      :model-value="(totalSMT_1 / totalInput) * 100"
                       color="primary"
                       size="48"
                     >
-                      {{ Math.round((totalSMT_3 / totalInput) * 100) }}%
+                      {{ Math.round((totalSMT_1 / totalInput) * 100) }}%
                     </v-progress-circular>
                     <div class="text-caption text-medium-emphasis mt-2">
                       Tổng số lượng SMT (Printer)
                     </div>
                   </div>
-                  <!-- <v-divider
-                    vertical
-                    class="mx-0 d-none d-sm-flex"
-                    style="height: 120px"
-                  ></v-divider>
-                  <div
-                    class="flex-grow-1 d-flex flex-column align-center mb-4 mb-sm-0"
-                  >
-                    <div class="text-h6 font-weight-bold mb-2">
-                      Gắp linh kiện
-                    </div>
-                    <div class="text-h4 font-weight-bold mb-2">
-                      <span class="text-primary">{{ totalInput }}</span> /
-                      <span class="text-success">{{ totalSMT_2 }}</span>
-                    </div>
-                    <v-progress-circular
-                      :model-value="(totalSMT_2 / totalInput) * 100"
-                      color="primary"
-                      size="48"
-                    >
-                      {{ Math.round((totalSMT_2 / totalInput) * 100) }}%
-                    </v-progress-circular>
-                    <div class="text-caption text-medium-emphasis mt-2">
-                      Tổng số lượng SMT (Gắp linh kiện)
-                    </div>
-                  </div> -->
                   <v-divider
                     vertical
                     class="mx-0 d-none d-sm-flex"
@@ -139,14 +108,14 @@
                     </div>
                     <div class="text-h4 font-weight-bold mb-2">
                       <span class="text-primary">{{ totalInput }}</span> /
-                      <span class="text-success">{{ totalSMT_1 }}</span>
+                      <span class="text-success">{{ totalSMT_2 }}</span>
                     </div>
                     <v-progress-circular
-                      :model-value="(totalSMT_1 / totalInput) * 100"
+                      :model-value="(totalSMT_2 / totalInput) * 100"
                       color="primary"
                       size="48"
                     >
-                      {{ Math.round((totalSMT_1 / totalInput) * 100) }}%
+                      {{ Math.round((totalSMT_2 / totalInput) * 100) }}%
                     </v-progress-circular>
                     <div class="text-caption text-medium-emphasis mt-2">
                       Tổng số lượng SMT (Gắp linh kiện)
@@ -178,14 +147,14 @@
                     </div>
                     <div class="text-h4 font-weight-bold mb-2">
                       <span class="text-primary">{{ totalInput }}</span> /
-                      <span class="text-success">{{ totalSMT_4 }}</span>
+                      <span class="text-success">{{ totalSMT_3 }}</span>
                     </div>
                     <v-progress-circular
-                      :model-value="(totalSMT_4 / totalInput) * 100"
+                      :model-value="(totalSMT_3 / totalInput) * 100"
                       color="primary"
                       size="48"
                     >
-                      {{ Math.round((totalSMT_4 / totalInput) * 100) }}%
+                      {{ Math.round((totalSMT_3 / totalInput) * 100) }}%
                     </v-progress-circular>
                     <div class="text-caption text-medium-emphasis mt-2">
                       Tổng số lượng SMT (Gắp linh kiện máy Topaz)
@@ -202,14 +171,14 @@
                     </div>
                     <div class="text-h4 font-weight-bold mb-2">
                       <span class="text-primary">{{ totalInput }}</span> /
-                      <span class="text-success">{{ totalSMT_5 }}</span>
+                      <span class="text-success">{{ totalSMT_4 }}</span>
                     </div>
                     <v-progress-circular
-                      :model-value="(totalSMT_5 / totalInput) * 100"
+                      :model-value="(totalSMT_4 / totalInput) * 100"
                       color="primary"
                       size="48"
                     >
-                      {{ Math.round((totalSMT_5 / totalInput) * 100) }}%
+                      {{ Math.round((totalSMT_4 / totalInput) * 100) }}%
                     </v-progress-circular>
                     <div class="text-caption text-medium-emphasis mt-2">
                       Tổng số lượng SMT (Gắp linh kiện Yahmaha)
@@ -905,7 +874,6 @@ const totalSMT_1 = ref(0);
 const totalSMT_2 = ref(0);
 const totalSMT_3 = ref(0);
 const totalSMT_4 = ref(0);
-const totalSMT_5 = ref(0);
 const totalAOI = ref(0);
 const totalRW = ref(0);
 const totalIPQC = ref(0);
@@ -932,6 +900,17 @@ const totalConformalCoatingError = ref(0);
 const totalWarehouseError = ref(0);
 const totalFixed = ref(0);
 
+const PercentOutput = computed(() =>
+  Number.parseFloat((totalOutput.value * 100) / totalInput.value).toFixed(1)
+);
+
+const PercentError = computed(() =>
+  Number.parseFloat((totalError.value * 100) / totalInput.value).toFixed(1)
+);
+
+const PercentFixed = computed(() =>
+  (totalFixed.value * 100) / totalError.value
+);
 // Level
 const Level_SMT = ref(false);
 const Level_AOI = ref(0);
@@ -1036,8 +1015,8 @@ const requiredRule = [(v) => !!v || "Dữ liệu này không được bỏ trố
 // Normalized historyPart: merge source_1 and source_4 as 'SMT'; hide source_2, source_3, source_5
 const normalizedHistoryPart = computed(() => {
   if (!historyPart.value || !Array.isArray(historyPart.value)) return [];
-  const hiddenSources = new Set(["source_2", "source_3", "source_5"]);
-  const smtSources = new Set(["source_1", "source_4"]);
+  const hiddenSources = new Set(["source_1", "source_3"]);
+  const smtSources = new Set(["source_2", "source_4"]);
 
   return historyPart.value
     .filter((item) => {
@@ -1114,18 +1093,9 @@ watch(
         totalSMT_1.value = data.SMT_1 || 0;
         totalSMT_2.value = data.SMT_2 || 0;
         totalSMT_3.value = data.SMT_3 || 0;
+        totalSMT_4.value = data.SMT_4 || 0;
         Quantity_Edit.value = data.Quantity;
         DelaySMT_Edit.value = data.DelaySMT;
-        (Quantity_AOI_Edit.value = data.Quantity_AOI),
-          (Quantity_Assembly_Edit.value = data.Quantity_Assembly),
-          (Quantity_ConformalCoating_Edit.value =
-            data.Quantity_ConformalCoating),
-          (Quantity_IPQCSMT_Edit.value = data.Quantity_IPQCSMT),
-          (Quantity_IPQC_Edit.value = data.Quantity_IPQC),
-          (Quantity_Test1_Edit.value = data.Quantity_Test1),
-          (Quantity_Test2_Edit.value = data.Quantity_Test2),
-          (Quantity_BoxBuild_Edit.value = data.Quantity_BoxBuild),
-          (Quantity_OQC_Edit.value = data.Quantity_OQC),
           (LevelSelectAdd.value = data.Level.split("-"));
         NameOrder.value = data.Name_Order;
         Name_Order_Add.value = data.Name_Order;
@@ -1242,30 +1212,6 @@ const chartData = computed(() => {
     switch (stage) {
       case "SMT":
         return md?.Quantity || 1;
-      case "IPQCSMT":
-      case "IPQC (SMT)":
-        return md?.Quantity_IPQCSMT || 1;
-      case "AOI":
-        return md?.Quantity_AOI || 1;
-      case "Assembly":
-        return md?.Quantity_Assembly || 1;
-      case "Test1":
-      case "Test 1":
-        return md?.Quantity_Test1 || 1;
-      case "Test2":
-      case "Test 2":
-        return md?.Quantity_Test2 || 1;
-      case "IPQC":
-        return md?.Quantity_IPQC || 1;
-      case "BoxBuild":
-      case "Box Build":
-        return md?.Quantity_BoxBuild || 1;
-      case "Tẩm phủ":
-        return md?.Quantity_ConformalCoating || 1;
-      case "OQC":
-        return md?.Quantity_OQC || 1;
-      case "Nhập kho":
-        return md?.Quantity_Warehouse || md?.Warehouse || 1;
       default:
         return 1;
     }
@@ -1348,30 +1294,6 @@ const chartDetailData = computed(() => {
     switch (stage) {
       case "SMT":
         return md?.Quantity || 1;
-      case "IPQCSMT":
-      case "IPQC (SMT)":
-        return md?.Quantity_IPQCSMT || 1;
-      case "AOI":
-        return md?.Quantity_AOI || 1;
-      case "Assembly":
-        return md?.Quantity_Assembly || 1;
-      case "Test1":
-      case "Test 1":
-        return md?.Quantity_Test1 || 1;
-      case "Test2":
-      case "Test 2":
-        return md?.Quantity_Test2 || 1;
-      case "IPQC":
-        return md?.Quantity_IPQC || 1;
-      case "BoxBuild":
-      case "Box Build":
-        return md?.Quantity_BoxBuild || 1;
-      case "Tẩm phủ":
-        return md?.Quantity_ConformalCoating || 1;
-      case "OQC":
-        return md?.Quantity_OQC || 1;
-      case "Nhập kho":
-        return md?.Quantity_Warehouse || md?.Warehouse || 1;
       default:
         return 1;
     }
@@ -1579,7 +1501,6 @@ const PushItem = (item) => {
 };
 
 const GetItem = (item) => {
-  console.log(item)
   DialogEdit.value = true;
   Type_Edit.value = item.Type;
   PONumber_Edit.value = item.PONumber;
@@ -1649,27 +1570,17 @@ const SaveEditSettingSMT = async () => {
   const formData = reactive({
     DelaySMT: DelaySMT_Edit.value,
     Quantity: Quantity_Edit.value,
-    Quantity_AOI: Quantity_AOI_Edit.value,
-    Quantity_IPQCSMT: Quantity_IPQCSMT_Edit.value,
-    Quantity_IPQC: Quantity_IPQC_Edit.value,
-    Quantity_Assembly: Quantity_Assembly_Edit.value,
-    Quantity_BoxBuild: Quantity_BoxBuild_Edit.value,
-    Quantity_ConformalCoating: Quantity_ConformalCoating_Edit.value,
-    Quantity_Test1: Quantity_Test1_Edit.value,
-    Quantity_Test2: Quantity_Test2_Edit.value,
-    Quantity_OQC: Quantity_OQC_Edit.value,
   });
+  console.log(formData)
   try {
     const response = await axios.put(
       `${Url}/PlanManufacture/Edit-Line/${id}`,
       formData
     );
-    console.log(response.data.message);
     DialogSuccess.value = true;
     MessageDialog.value = response.data.message;
     Reset();
   } catch (error) {
-    console.log(error);
     DialogFailed.value = true;
     MessageErrorDialog.value = error.response.data.message;
     Error();

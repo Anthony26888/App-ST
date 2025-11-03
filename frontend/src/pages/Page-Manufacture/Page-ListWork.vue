@@ -361,28 +361,8 @@ const PushItem = (item) => {
   localStorage.setItem("Go-Back-List-Work", true);
   if (item.Type === "SMT") {
     router.push(`/San-xuat/SMT/${item.id}`);
-  } else if (item.Type === "AOI") {
-    router.push(`/San-xuat/AOI/${item.id}`);
-  } else if (item.Type === "RW") {
-    router.push(`/San-xuat/RW/${item.id}`);
-  } else if (item.Type === "Assembly") {
-    router.push(`/San-xuat/Assembly/${item.id}`);
-  } else if (item.Type === "IPQC (Hàn tay)") {
-    router.push(`/San-xuat/IPQC/${item.id}`);
-  } else if (item.Type === "OQC") {
-    router.push(`/San-xuat/OQC/${item.id}`);
-  } else if (item.Type === "Test 1") {
-    router.push(`/San-xuat/Test1/${item.id}`);
-  } else if (item.Type === "Test 2") {
-    router.push(`/San-xuat/Test2/${item.id}`);
-  } else if (item.Type === "Box Build") {
-    router.push(`/San-xuat/BoxBuild/${item.id}`);
-  } else if (item.Type === "Tẩm phủ") {
-    router.push(`/San-xuat/Conformal-Coating/${item.id}`);
-  } else if (item.Type === "Nhập kho") {
-    router.push(`/San-xuat/Nhap-kho/${item.id}`);
-  } else if (item.Type === "IPQC (SMT)") {
-    router.push(`/San-xuat/IPQCSMT/${item.id}`);
+  } else{
+    router.push(`/San-xuat/${item.Type}/${item.id}`);
   }
 };
 </script>

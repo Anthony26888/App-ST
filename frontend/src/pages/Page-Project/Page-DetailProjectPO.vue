@@ -14,7 +14,7 @@
         <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
           <v-icon icon="mdi mdi-cart-variant"></v-icon> &nbsp;
           {{ NamePO }}
-          
+
           <ButtonAdd @add="DialogAdd = true" />
           <p class="ms-2 font-weight-thin text-subtitle-1">
             ( {{ detailProjectPO.length }} đơn hàng)
@@ -27,7 +27,6 @@
         <v-card-title class="d-flex align-center pe-2" v-else>
           <InputSearch v-model="search" />
         </v-card-title>
-
 
         <v-data-table
           v-if="lgAndUp"
@@ -92,6 +91,94 @@
           </template>
         </v-data-table>
 
+        <!-- <v-data-table
+          v-if="lgAndUp"
+          :group-by="groupBy"
+          :search="search"
+          :items="detailProjectPO"
+          :headers="Headers"
+          :items-per-page="itemsPerPage"
+          v-model:page="page"
+          :loading="DialogLoading"
+          loading-text="Đang tải dữ liệu..."
+          no-data-text="Không có dữ liệu"
+          no-results-text="Không tìm thấy kết quả"
+          :hover="true"
+          :dense="false"
+          :fixed-header="true"
+          height="calc(100vh - 200px)"
+        >
+          <template
+            v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }"
+          >
+            <tr>
+              <td
+                :colspan="columns.length"
+                class="cursor-pointer"
+                v-ripple
+                @click="toggleGroup(item)"
+              >
+                <div class="d-flex align-center">
+                  <v-btn
+                    :icon="isGroupOpen(item) ? '$expand' : '$next'"
+                    color="medium-emphasis"
+                    density="comfortable"
+                    size="small"
+                    variant="outlined"
+                  ></v-btn>
+
+                  <span class="ms-4">{{ item.value }}</span>
+                </div>
+              </td>
+            </tr>
+          </template>
+          <template v-slot:bottom>
+            <div class="text-center pt-2">
+              <v-pagination
+                v-model="page"
+                :length="Math.ceil(detailProjectPO.length / itemsPerPage)"
+              ></v-pagination>
+            </div>
+          </template>
+
+          <template v-slot:item.id="{ item }">
+            <div class="d-flex">
+              <ButtonEdit
+                @edit="GetItem(item)"
+                v-if="LevelUser == 'Admin' || LevelUser == 'Quản lý kinh doanh'"
+              />
+              <v-btn
+                color="success"
+                icon="mdi-plus"
+                variant="text"
+                size="xs"
+                @click="GetItemManufacture(item)"
+              ></v-btn>
+            </div>
+          </template>
+
+          <template #item.Status="{ value }">
+            <div class="text-start">
+              <v-chip
+                :color="
+                  value === 'Hoàn thành'
+                    ? 'success'
+                    : value === 'Đang sản xuất'
+                    ? 'warning'
+                    : 'error'
+                "
+                variant="tonal"
+                class="text-caption"
+              >
+                {{ value }}
+              </v-chip>
+            </div>
+          </template>
+          <template #item.Note="{ item }">
+            <div style="white-space: pre-line">{{ item.Note }}</div>
+          </template>
+        </v-data-table> -->
+
         <v-data-table-virtual
           v-else
           :search="search"
@@ -108,7 +195,6 @@
           :fixed-header="true"
           height="calc(100vh - 200px)"
         >
-
           <template v-slot:item.id="{ item }">
             <div class="d-flex">
               <ButtonEdit
@@ -245,18 +331,18 @@
       </v-card-title>
       <v-card-text>
         <InputField
-          disabled=true
+          disabled="true"
           label="Tên dự án"
-          v-model="Name_Manufacture_Add"
+          v-model="NamePO"
         />
         <InputField
-          disabled=true
+          disabled="true"
           label="Tên đơn hàng"
           v-model="Name_Order_Manufacture"
           @update:model-value="Name_Order_Manufacture = $event"
         />
         <InputField
-          disabled=true
+          disabled="true"
           label="Tổng sản phẩm"
           type="number"
           :model-value="Total_Manufacture_Add"
@@ -264,13 +350,65 @@
         />
         <InputSelect
           label="Quy trình"
-          :items="['SMT', 'AOI', 'IPQC (SMT)', 'Assembly', 'IPQC', 'Test 1', 'Test 2', 'Box Build', 'Tẩm phủ', 'OQC', 'RW', 'Nhập kho']"
+          :items="[
+            'SMT',
+            'AOI',
+            'IPQC (SMT)',
+            'Assembly',
+            'IPQC',
+            'Test 1',
+            'Test 2',
+            'Box Build',
+            'Tẩm phủ',
+            'OQC',
+            'RW',
+            'Thành phẩm',
+          ]"
           multiple
           chips
           hint="Lựa chọn quy trình phù hợp"
           v-model="Level_Manufacture_Add"
-          @update:model-value="(val) => Level_Manufacture_Add = val"
+          @update:model-value="(val) => (Level_Manufacture_Add = val)"
         />
+        
+        <!-- Thêm input cho quy trình khác (giống DialogAdd ở Page-Manufacture.vue) -->
+        <div class="mt-3">
+          <InputField
+            label="Thêm quy trình khác"
+            v-model="customProcess"
+            placeholder="Nhập tên quy trình và nhấn Enter"
+            @keyup.enter="addCustomProcess"
+            hint="Nhập và nhấn Enter để thêm nhiều quy trình"
+          >
+            <template #append>
+              <v-btn
+                icon="mdi-plus-circle"
+                size="small"
+                color="primary"
+                variant="text"
+                @click="addCustomProcess"
+                :disabled="!customProcess || !customProcess.trim()"
+              ></v-btn>
+            </template>
+          </InputField>
+
+          <!-- Hiển thị danh sách quy trình tùy chỉnh đã thêm -->
+          <div v-if="customProcessList.length > 0" class="mt-2">
+            <div class="text-caption text-grey mb-1">Quy trình đã thêm:</div>
+            <div class="d-flex flex-wrap ga-2">
+              <v-chip
+                v-for="(process, index) in customProcessList"
+                :key="index"
+                closable
+                color="secondary"
+                size="small"
+                @click:close="removeCustomProcess(index)"
+              >
+                {{ process }}
+              </v-chip>
+            </div>
+          </div>
+        </div>
         <InputField
           label="Ngày tạo"
           type="date"
@@ -299,13 +437,14 @@
 import axios from "axios";
 import { useRoute } from "vue-router";
 import { useRouter } from "vue-router";
-import { ref, watch, onMounted } from "vue";
+import { ref, watch, onMounted, reactive } from "vue";
 import { jwtDecode } from "jwt-decode";
 import { useDisplay } from "vuetify";
 // Components
 import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";
+import InputSelect from "@/components/Input-Select.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
@@ -364,11 +503,15 @@ const Note_Add = ref(""); // Note for adding new
 
 // Khởi tạo các biến ref cho form thêm mới
 const Name_Manufacture_Add = ref("");
-const Name_Order_Manufacture =ref("");
+const Name_Order_Manufacture = ref("");
 const Date_Manufacture_Add = ref("");
-const Note_Manufacture_Add = ref("");
+const Note_Add_Manufacture = ref("");
 const Total_Manufacture_Add = ref(0);
 const Level_Manufacture_Add = ref(null);
+
+// Quy trình tùy chỉnh (giống DialogAdd ở Page-Manufacture.vue)
+const customProcess = ref("");
+const customProcessList = ref([]);
 
 // Customer and PO information
 const CustomerID = ref(null); // Customer ID from localStorage
@@ -376,12 +519,14 @@ const NamePO = ref(null); // PO name from localStorage
 const NameCustomer = ref(null); // Customer name from localStorage
 
 // Table states
+// const groupBy = [{ key: 'Product_Detail', order: 'asc',  title: "Chi tiết đơn hàng" }]
 const Headers = ref([
   { key: "Product_Detail", title: "Chi tiết đơn hàng" },
   { key: "Status", title: "Trạng thái" },
   { key: "Quantity_Product", title: "SL đơn hàng" },
   { key: "Quantity_Delivered", title: "SL đã giao" },
   { key: "Quantity_Amount", title: "SL còn nợ" },
+  { key: "Quantity_Manufacture", title: "SL sản xuất" },
   { key: "Note", title: "Ghi chú" },
   { key: "id", title: "Sửa" },
 ]);
@@ -398,7 +543,6 @@ const Date_Expired = ref("");
  * Initializes component data from localStorage
  * Retrieves customer ID, PO name, and customer name
  */
-
 
 onMounted(() => {
   const storedData = localStorage.getItem("CustomersID");
@@ -447,8 +591,8 @@ function GetItemManufacture(item) {
   DialogAddManufacture.value = true;
   Name_Manufacture_Add.value = item.PO;
   Name_Order_Manufacture.value = item.Product_Detail;
-  Total_Manufacture_Add.value = item.Quantity_Product
-  GetIDManufacture.value = item.id
+  Total_Manufacture_Add.value = item.Quantity_Product;
+  GetIDManufacture.value = item.id;
 }
 
 /**
@@ -470,11 +614,9 @@ const SaveEdit = async () => {
       `${Url}/Project/Customer/Edit-Item/${GetID.value}`,
       formData
     );
-    console.log(response.data.message);
     MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
     Reset();
   } catch (error) {
-    console.log(error);
     MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
     Error();
   }
@@ -501,11 +643,9 @@ const SaveAdd = async () => {
       `${Url}/Project/Customer/Add-Item`,
       formData
     );
-    console.log(response.data);
     MessageDialog.value = "Thêm dữ liệu thành công";
     Reset();
   } catch (error) {
-    console.log(error);
     MessageErrorDialog.value = "Thêm dữ liệu thất bại";
     Error();
   }
@@ -521,11 +661,9 @@ const RemoveItem = async () => {
     const response = await axios.delete(
       `${Url}/Project/Customer/Delete-Item/${GetID.value}`
     );
-    console.log(response.data.message);
     MessageDialog.value = "Xoá dữ liệu thành công";
     Reset();
   } catch (error) {
-    console.log(error);
     MessageErrorDialog.value = "Xoá dữ liệu thất bại";
     Error();
   }
@@ -535,26 +673,28 @@ const RemoveItem = async () => {
 const SaveAddManufacture = async () => {
   DialogLoading.value = true;
   const formData = reactive({
-    Name: Name_Manufacture_Add.value,
+    Name: NamePO.value,
     Name_Order: Name_Order_Manufacture.value,
-    Date: Date_Manufacture_Add,
+    Date: Date_Manufacture_Add.value,
     Total: Total_Manufacture_Add.value,
-    Note: Note_Manufacture_Add.value,
+    Note: Note_Add_Manufacture.value,
     Creater: UserInfo.value,
-    DelaySMT:5000,
+    DelaySMT: 10000,
     Quantity: 1,
     Level: Level_Manufacture_Add.value,
-    ProjectID: GetIDManufacture.value
+    ProjectID: GetIDManufacture.value,
   });
   try {
     const response = await axios.post(`${Url}/PlanManufacture/Add`, formData);
-    console.log(response.data);
+    DialogLoading.value = false;
+    DialogSuccess.value = true;
+    DialogAddManufacture.value = false;
     MessageDialog.value = response.data.message;
-    Reset();
   } catch (error) {
-    console.log(error);
-    MessageErrorDialog.value = error.response.data.message;
-    Error();
+    DialogAddManufacture.value = false;
+    DialogFailed.value = true;
+    DialogLoading.value = false;
+    MessageErrorDialog.value = error;
   }
 };
 
@@ -610,6 +750,16 @@ function Reset() {
   Quantity_Product_Add.value = "";
   Quantity_Delivered_Add.value = "";
   Quantity_Amount_Add.value = "";
+
+  // Reset các trường thêm mới sản xuất
+  Name_Manufacture_Add.value = "";
+  Name_Order_Manufacture.value = "";
+  Date_Manufacture_Add.value = "";
+  Note_Add_Manufacture.value = "";
+  Total_Manufacture_Add.value = 0;
+  Level_Manufacture_Add.value = null;
+  customProcess.value = "";
+  customProcessList.value = [];
 }
 
 /**
@@ -620,6 +770,45 @@ function Error() {
   DialogFailed.value = true;
   DialogLoading.value = false;
 }
+
+// ===== CUSTOM PROCESS HANDLERS (giống Page-Manufacture.vue) =====
+const addCustomProcess = () => {
+  if (customProcess.value && customProcess.value.trim()) {
+    const processName = customProcess.value.trim();
+    if (!customProcessList.value.includes(processName)) {
+      customProcessList.value.push(processName);
+
+      if (!Level_Manufacture_Add.value) {
+        Level_Manufacture_Add.value = [];
+      }
+      if (!Level_Manufacture_Add.value.includes(processName)) {
+        Level_Manufacture_Add.value.push(processName);
+      }
+    }
+    customProcess.value = "";
+  }
+};
+
+const removeCustomProcess = (index) => {
+  if (index >= 0 && index < customProcessList.value.length) {
+    const processName = customProcessList.value[index];
+    customProcessList.value.splice(index, 1);
+    if (Level_Manufacture_Add.value) {
+      const levelIndex = Level_Manufacture_Add.value.indexOf(processName);
+      if (levelIndex > -1) {
+        Level_Manufacture_Add.value.splice(levelIndex, 1);
+      }
+    }
+  }
+};
+
+// Reset danh sách quy trình tùy chỉnh khi đóng dialog
+watch(DialogAddManufacture, (newVal) => {
+  if (!newVal) {
+    customProcess.value = "";
+    customProcessList.value = [];
+  }
+});
 </script>
 <script>
 export default {

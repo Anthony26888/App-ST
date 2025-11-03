@@ -1,7 +1,6 @@
 <template>
   <v-navigation-drawer
     theme="light"
-
     color="#1E293B"
     class="custom-nav"
     elevation="2" 
@@ -124,7 +123,7 @@ const DialogLoading = ref(false);
 const DialogFailed = ref(false);
 
 //
-const drawer = ref(true);
+const drawer = ref(false);
 const rail = ref(false);
 const TitleNavigation = ref(localStorage.getItem("titleNavigation"));
 

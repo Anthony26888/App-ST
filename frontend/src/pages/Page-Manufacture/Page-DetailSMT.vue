@@ -23,46 +23,47 @@
           </template>
         </v-breadcrumbs>
         <v-spacer></v-spacer>
+        <div class="me-5">
+          <!-- Trạng thái kết nối -->
+          <v-chip
+            :prepend-icon="
+              currentStatus === 'Online'
+                ? 'mdi-contactless-payment-circle'
+                : 'mdi-web-off'
+            "
+            :color="currentStatus === 'Online' ? 'green' : 'red'"
+            class="ma-2"
+            dark
+            size="large"
+          >
+            {{ currentStatus }}
+          </v-chip>
 
-        <!-- Trạng thái kết nối -->
-        <v-chip
-          :prepend-icon="
-            currentStatus === 'Online'
-              ? 'mdi-contactless-payment-circle'
-              : 'mdi-web-off'
-          "
-          :color="currentStatus === 'Online' ? 'green' : 'red'"
-          class="ma-2"
-          dark
-          size="large"
-        >
-          {{ currentStatus }}
-        </v-chip>
+          <!-- Delay -->
+          <v-chip
+            prepend-icon="mdi-clock-outline"
+            color="orange"
+            class="ma-2"
+            variant="tonal"
+            dark
+            size="large"
+          >
+            Độ trễ: {{ Delay }} ms
+          </v-chip>
 
-        <!-- Delay -->
-        <v-chip
-          prepend-icon="mdi-clock-outline"
-          color="orange"
-          class="ma-2"
-          variant="tonal"
-          dark
-          size="large"
-        >
-          Độ trễ: {{ Delay }} ms
-        </v-chip>
-
-        <!-- Nút bắt đầu / dừng -->
-        <v-btn
-          class="text-caption ms-2"
-          variant="tonal"
-          @click="StartLine()"
-          :color="isRunning ? 'error' : 'success'"
-          :loading="isConnecting"
-        >
-          <v-icon :icon="isRunning ? 'mdi-stop' : 'mdi-play'"></v-icon>
-          &nbsp;
-          {{ isRunning ? "Dừng" : "Bắt đầu" }}
-        </v-btn>
+          <!-- Nút bắt đầu / dừng -->
+          <v-btn
+            class="text-caption ms-2 rounded-lg"
+            variant="tonal"
+            @click="StartLine()"
+            :color="isRunning ? 'error' : 'success'"
+            :loading="isConnecting"
+          >
+            <v-icon :icon="isRunning ? 'mdi-stop' : 'mdi-play'"></v-icon>
+            &nbsp;
+            {{ isRunning ? "Dừng" : "Bắt đầu" }}
+          </v-btn>
+        </div>
       </v-card-title>
 
       <!-- Nội dung chính -->
@@ -133,11 +134,31 @@
             <v-card class="rounded-lg" color="success" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra board</div>
-                <div class="text-h4 font-weight-bold">
-                  {{ PercentOutput }}
+                <div
+                  class="text-h4 font-weight-bold"
+                  v-if="Line_SMT == 'Line 1'"
+                >
+                  {{
+                    QuantityBoard *
+                      manufactureSMT.filter(
+                        (i) => i.Source === "Máy gắp linh kiện Juki"
+                      ).length || 0
+                  }}
                 </div>
-                <v-progress-linear v-model="PercentOutput" height="20">
-                  <strong>{{ PercentOutput }}%</strong>
+                <div class="text-h4 font-weight-bold" v-else>
+                  {{
+                    QuantityBoard *
+                      manufactureSMT.filter(
+                        (i) => i.Source === "Máy gắp linh kiện Yamaha"
+                      ).length || 0
+                  }}
+                </div>
+                <v-progress-linear
+                  v-model="PercentOutput"
+                  height="20"
+                  class="rounded-lg"
+                >
+                  <strong class="text-black">{{ PercentOutput }}%</strong>
                 </v-progress-linear>
               </v-card-text>
             </v-card>
@@ -331,7 +352,7 @@ const PercentOutput = computed(() => {
 
   const count = list.filter((i) => i?.Source === source).length;
 
-  return Math.ceil((QuantityBoard.value * 100 * count) / total);
+  return Number.parseFloat((QuantityBoard.value * 100 * count) / total).toFixed(1);
 });
 
 const showError = (msg) => {

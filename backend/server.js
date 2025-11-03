@@ -525,42 +525,27 @@ io.on("connection", (socket) => {
     socket.on("getDetailProjectPO", async (id) => {
       try {
         const query = `SELECT 
-                        o.id, 
-                        p.PONumber AS PO, 
-                        o.ProductDetail AS Product_Detail,
+                        a.id,
+                        a.POID,
+                        a.ProductDetail AS Product_Detail,
+                        a.QuantityProduct AS Quantity_Product, 
+                        IFNULL(a.QuantityDelivered, 0) AS Quantity_Delivered, 
+                        IFNULL(a.QuantityProduct - a.QuantityDelivered, 0) AS Quantity_Amount,
+                        COALESCE(COUNT(DISTINCT CASE WHEN LOWER(TRIM(c.Type)) = 'thành phẩm' THEN c.id END), 0) AS Quantity_Manufacture,
+                          a.Note AS Note,
                         CASE
-                          WHEN o.QuantityProduct = o.QuantityDelivered THEN 'Hoàn thành'
-                          ELSE 'Đang sản xuất'
-                        END AS Status,
-                        o.QuantityProduct AS Quantity_Product, 
-                        IFNULL(o.QuantityDelivered, 0) AS Quantity_Delivered, 
-                        IFNULL(o.QuantityProduct - o.QuantityDelivered, 0) AS Quantity_Amount,
-                        o.Note AS Note 
-                      FROM ProductDetails o 
-                      LEFT JOIN PurchaseOrders p ON o.POID = p.id 
-                      LEFT JOIN (
-                        SELECT DISTINCT 
-                        z.id,
-                        z.ProjectID,
-                        IFNULL(b.Total_Output, 0) AS Total_Output
-                        FROM PlanManufacture z
-                        LEFT JOIN (
-                        SELECT 
-                          a.id,
-                          a.Type,
-                          a.PlanID,
-                            SUM(o.Warehouse) AS Total_Output
-                          FROM Summary a
-                          LEFT JOIN (
-                            SELECT HistoryID, COUNT(*) AS Warehouse
-                          FROM ManufactureWarehouse
-                          WHERE Status = 'ok'
-                              GROUP BY HistoryID
-                          ) o ON a.id = o.HistoryID
-                        ) b ON z.id = b.PlanID
-                      ) c ON o.id = c.ProjectID
-                      WHERE o.POID = ?
-                      ORDER BY Status DESC, Product_Detail ASC`;
+                            WHEN a.QuantityProduct = a.QuantityDelivered THEN 'Hoàn thành'
+                            ELSE 'Đang sản xuất'
+                        END AS Status
+                      FROM ProductDetails a
+                      LEFT JOIN PlanManufacture b ON b.ProjectID = a.id
+                      LEFT JOIN ManufactureCounting c ON c.PlanID = b.id
+                      WHERE a.POID = ?
+                      GROUP BY 
+                        a.id, a.POID, a.ProductDetail, 
+                        a.QuantityProduct, a.QuantityDelivered, 
+                        a.Note
+                      ORDER  BY Status DESC, Product_Detail ASC;`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("DetailProjectPOError", err);
           socket.emit("DetailProjectPOData", rows);
@@ -650,14 +635,14 @@ io.on("connection", (socket) => {
                           z.Name,
                           z.Name_Order,
                           z.Total,
-                          COALESCE(SUM(CASE WHEN LOWER(TRIM(b.Type)) = 'nhập kho' THEN 1 ELSE 0 END), 0) AS Total_Output,
+                          COALESCE(SUM(CASE WHEN LOWER(TRIM(b.Type)) = 'thành phẩm' THEN 1 ELSE 0 END), 0) AS Total_Output,
                           CASE
-                              WHEN z.Total = COALESCE(SUM(CASE WHEN LOWER(TRIM(b.Type)) = 'nhập kho' THEN 1 ELSE 0 END), 0)
+                              WHEN z.Total = COALESCE(SUM(CASE WHEN LOWER(TRIM(b.Type)) = 'thành phẩm' THEN 1 ELSE 0 END), 0)
                               THEN 'Hoàn thành'
                               ELSE 'Đang sản xuất'
                           END AS Status_Output,
                           z.Level,
-                          strftime('%Y-%m-%d', z.Date, 'unixepoch', 'localtime') AS Date,
+                          strftime('%d-%m-%Y', z.Date, 'unixepoch', 'localtime') AS Date,
                           z.Date AS Date_unixepoch,
                           z.Note,
                           z.Creater,
@@ -696,11 +681,18 @@ io.on("connection", (socket) => {
                         a.Quantity,
                         a.Level,
                         a.Date,
-                        COALESCE(SUM(CASE WHEN LOWER(TRIM(b.Type)) = 'nhập kho' THEN 1 ELSE 0 END), 0) AS Quantity_Pass,
-                        COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) AS Quantity_Error
+                        COALESCE(COUNT(DISTINCT CASE WHEN c.Source = 'source_1' THEN c.id END), 0) AS SMT_1,
+                        COALESCE(COUNT(DISTINCT CASE WHEN c.Source = 'source_2' THEN c.id END), 0) AS SMT_2,
+                        COALESCE(COUNT(DISTINCT CASE WHEN c.Source = 'source_3' THEN c.id END), 0) AS SMT_3,
+                        COALESCE(COUNT(DISTINCT CASE WHEN c.Source = 'source_4' THEN c.id END), 0) AS SMT_4,
+                        COALESCE(COUNT(DISTINCT CASE WHEN LOWER(TRIM(b.Type)) = 'thành phẩm' THEN b.id END), 0) AS Quantity_Pass,
+                        COALESCE(COUNT(DISTINCT CASE WHEN b.Status = 'fail' THEN b.id END), 0) AS Quantity_Error
                       FROM PlanManufacture a
                       LEFT JOIN ManufactureCounting b ON a.id = b.PlanID
-                      WHERE a.id = ?`;
+                      LEFT JOIN ManufactureSMT c ON a.id = c.PlanID
+                      WHERE a.id = ?
+                      GROUP BY
+                        a.id, a.Name, a.Name_Order, a.Total, a.DelaySMT, a.Quantity, a.Level, a.Date;`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("ManufactureDetailsError", err);
           socket.emit("ManufactureDetailsData", rows);
@@ -846,13 +838,18 @@ io.on("connection", (socket) => {
       try {
         const query = `SELECT 
                             a.Type,
-                            COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) AS Quantity_Pass,
+                            CASE 
+                              WHEN a.Type = 'SMT' THEN COALESCE(SUM(CASE WHEN c.Source = 'source_2' THEN 1 ELSE 0 END), 0) + COALESCE(SUM(CASE WHEN c.Source = 'source_4' THEN 1 ELSE 0 END), 0)
+                              ELSE COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) 
+                            END AS Quantity_Pass,
                             COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) AS Quantity_Fail,
                             COALESCE(SUM(CASE WHEN b.TimestampRW IS NOT NULL AND b.TimestampRW <> '' THEN 1 ELSE 0 END), 0) AS Quantity_RW,
                             COUNT(DISTINCT a.id) AS Total_Summary_ID
                         FROM Summary a
                         LEFT JOIN ManufactureCounting b 
-                            ON b.HistoryID = a.id
+                          ON b.HistoryID = a.id
+                        LEFT JOIN ManufactureSMT c
+                          ON c.HistoryID = a.id
                         WHERE a.PlanID = ?
                         GROUP BY a.Type
                         ORDER BY a.Type;`;
@@ -3384,7 +3381,7 @@ app.post("/api/PlanManufacture/Add", async (req, res) => {
     Creater,
     Note,
     Total,
-    DelaySMT = 50, // default value if undefined
+    DelaySMT = 10000, // default value if undefined
     Level,
     Quantity,
     ProjectID,
@@ -3403,17 +3400,9 @@ app.post("/api/PlanManufacture/Add", async (req, res) => {
       Level, 
       Quantity, 
       ProjectID, 
-      Name_Order,
-      Quantity_IPQCSMT,
-      Quantity_IPQC,
-      Quantity_AOI,
-      Quantity_Test1,
-      Quantity_Test2,
-      Quantity_BoxBuild,
-      Quantity_ConformalCoating,
-      Quantity_OQC,
-      Quantity_Assembly)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+      Name_Order
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.run(
@@ -3428,7 +3417,7 @@ app.post("/api/PlanManufacture/Add", async (req, res) => {
       LevelCleaned,
       Quantity,
       ProjectID,
-      Name_Order,
+      Name_Order
     ],
     function (err) {
       if (err) {
@@ -3509,7 +3498,7 @@ app.put("/api/PlanManufacture/Edit-Line/:id", async (req, res) => {
   const query = `
       UPDATE PlanManufacture 
       SET DelaySMT = ?, 
-          Quantity = ?, 
+          Quantity = ? 
       WHERE id = ?
     `;
   db.run(
@@ -3525,8 +3514,7 @@ app.put("/api/PlanManufacture/Edit-Line/:id", async (req, res) => {
           .status(500)
           .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
       }
-      io.emit("ManufactureUpdate");
-      io.emit("updateManufactureDetails");
+      io.emit("updateManufactureDetails", id);
       io.emit("UpdateHistory");
       io.emit("UpdateSummary");
       res.json({ message: "Đã cập nhật dữ liệu dự án sản xuất thành công" });
@@ -3739,6 +3727,8 @@ app.post("/api/ManufactureCounting", (req, res) => {
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
       io.emit("ActivedUpdate");
+      io.emit("updateDetailProjectPO");
+      
       res.json({ message: "ManufactureCounting received" });
     }
   );

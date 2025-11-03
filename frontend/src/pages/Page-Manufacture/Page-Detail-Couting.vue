@@ -43,9 +43,9 @@
                 <div class="text-h4 font-weight-bold">
                   {{ totalOutput }}
                 </div>
-                <div class="text-caption">
-                  Tổng số lượng đầu ra ( {{ Quantity_Counting }} pcs/ panel )
-                </div>
+                <v-progress-linear v-model="PercentOutput" height="20" class="rounded-lg">
+                  <strong class="text-black">{{ PercentOutput }}%</strong>
+                </v-progress-linear>
               </v-card-text>
             </v-card>
           </v-col>
@@ -56,18 +56,22 @@
                 <div class="text-h4 font-weight-bold">
                   {{ totalErrors }}
                 </div>
-                <div class="text-caption">Tổng số lượng lỗi</div>
+                <v-progress-linear v-model="PercentError" height="20" class="rounded-lg">
+                  <strong class="text-black">{{ PercentError }}%</strong>
+                </v-progress-linear>
               </v-card-text>
             </v-card>
           </v-col>
           <v-col cols="12" sm="3">
-            <v-card class="rounded-lg" color="info" variant="tonal">
+            <v-card class="rounded-lg" color="info" variant="tonal" >
               <v-card-text>
                 <div class="text-subtitle-1">Đã sửa</div>
                 <div class="text-h4 font-weight-bold">
                   {{ totalFixed }}
                 </div>
-                <div class="text-caption">Tổng số lượng đã sửa</div>
+                <v-progress-linear v-model="PercentFixed" height="20" class="rounded-lg">
+                  <strong class="text-black">{{ PercentFixed }}%</strong>
+                </v-progress-linear>
               </v-card-text>
             </v-card>
           </v-col>
@@ -352,6 +356,18 @@ const totalOutput = ref(0);
 const totalErrors = ref(0);
 const totalFixed = ref(0);
 
+const PercentOutput = computed(() =>
+  Number.parseFloat((totalOutput.value * 100)/totalInput.value).toFixed(1)
+);
+
+const PercentError = computed(() =>
+  Number.parseFloat((totalErrors.value * 100)/totalInput.value).toFixed(1)
+);
+
+const PercentFixed = computed(() =>
+  Number.parseFloat((totalFixed.value * 100)/totalInput.value).toFixed(1)
+);
+
 // Production Info
 const NameManufacture = ref("");
 const Name_Order = ref("");
@@ -394,7 +410,7 @@ watch(
     if (foundHistory) {
       Name_Order.value = foundHistory.Name_Order ?? "";
       NameManufacture.value = foundHistory.PONumber ?? "";
-      Name_Category.value = foundHistory.Category ?? "";
+      Name_Category.value = foundHistory.Type ?? "";
       PlanID.value = foundHistory.PlanID ?? "";
       totalInput.value = foundHistory.Quantity_Plan ?? 0;
     } else {

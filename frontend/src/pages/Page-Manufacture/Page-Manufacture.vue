@@ -155,7 +155,7 @@
               'Tẩm phủ',
               'OQC',
               'RW',
-              'Nhập kho',
+              'Thành phẩm',
             ]"
             multiple
             chips

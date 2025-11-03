@@ -814,7 +814,7 @@ import Loading from "@/components/Loading.vue";
 
 // Composables
 import { useSummary } from "@/composables/Summary/useSummary";
-import { useActived } from "@/composables/Summary/useActived";
+// import { useActived } from "@/composables/Summary/useActived";
 
 // ===== STATE MANAGEMENT =====
 const { mdAndDown, lgAndUp } = useDisplay();
@@ -969,7 +969,7 @@ const formattedWeekDate = computed(() => {
 // Pass the computed ref to useSummary
 
 const { summary, summaryError } = useSummary(formattedSelectedDate);
-const { status, statusError } = useActived();
+// const { status, statusError } = useActived();
 
 // Hàm tính số giây chênh lệch giữa hiện tại và timestamp dạng dd/MM/yyyy HH:mm:ss
 const getTimeDifference = (timestamp) => {
@@ -992,13 +992,6 @@ watch(summaryError, (error) => {
 });
 
 // Add debug logging
-watch(
-  summary,
-  (newValue) => {
-    console.log("Summary data updated:", newValue);
-  },
-  { deep: true }
-);
 
 // ===== CHART CONFIGURATION =====
 const summaryChart = ref(null);
