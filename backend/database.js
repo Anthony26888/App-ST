@@ -404,6 +404,20 @@ db.serialize(() => {
       last_seen INTEGER
     )
   `);
+  
+  db.run(`
+    CREATE TABLE IF NOT EXISTS configs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id TEXT NOT NULL,
+      plan_id TEXT NOT NULL,
+      delay INTEGER DEFAULT 0,
+      line INTEGER DEFAULT 1,
+      status TEXT DEFAULT 'pending',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      sent_at DATETIME
+    )
+  `);
+
   db.run(`
     CREATE TABLE IF NOT EXISTS Users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

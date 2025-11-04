@@ -292,8 +292,8 @@ nmcli con show
 - Xem tên kết nối Wlan0 thường preconfigured
 
 - sudo nmcli con mod preconfigured \
-ipv4.addresses 192.168.2.201/24 \
-ipv4.gateway 192.168.2.1 \
+ipv4.addresses 192.168.1.201/24 \
+ipv4.gateway 192.168.1.1 \
 ipv4.dns "8.8.8.8 8.8.4.4" \
 ipv4.method manual
 
@@ -329,8 +329,11 @@ docker save frontend:latest -o frontend.tar
 docker save backend:latest -o backend.tar
 
 # Copy to Raspberry Pi (thay IP và user nếu cần)
-scp frontend.tar sieuthuat@sieuthuat.local:/home/sieuthuat/
-scp backend.tar sieuthuat@sieuthuat.local:/home/sieuthuat/
+scp frontend.tar sieuthuat@sieuthuat.local:/home/sieuthuat/esp32-gateway
+scp backend.tar sieuthuat@sieuthuat.local:/home/sieuthuat/esp32-gateway
+scp -r /Users/anthony/Desktop/code/App-ST/backend/esp32-gateway/server-raspberry.js  sieuthuat@192.168.1.201:/home/sieuthuat/esp32-gateway
+
+
 
 # Load file 
 docker load -i frontend.tar

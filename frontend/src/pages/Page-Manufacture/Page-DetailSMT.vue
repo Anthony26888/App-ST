@@ -460,6 +460,65 @@ const showError = (msg) => {
 //     }
 //   }
 // };
+// const StartLine = async () => {
+//   if (!manufactureFound.value) {
+//     return showError("Không thể lấy dữ liệu sản xuất");
+//   }
+
+//   const delaySMT = Number(Delay.value);
+//   if (isNaN(delaySMT) || delaySMT < 0) {
+//     return showError("Giá trị độ trễ không hợp lệ");
+//   }
+
+//   const isLine2 = Line_SMT.value === "Line 2";
+//   const line = isLine2 ? 2 : 1;
+//   const newAction = isRunning.value ? "stopped" : "running";
+
+//   try {
+//     isConnecting.value = true;
+
+//     // Nếu bắt đầu => dừng tất cả plan khác trước
+//     if (newAction === "running") {
+//       await axios.put(`${Url}/Summary/Edit-item-action-stopped-line${line}`);
+
+//       // Reset ESP32 đang chạy cũ
+//       await axios.post(`${Url}/send-config-to-device`, {
+//         project_id: "",
+//         delay: 0,
+//         plan_id: "",
+//         line,
+//       });
+//     }
+
+//     // Gửi config cho line hiện tại
+//     await axios.post(`${Url}/send-config-to-device`, {
+//       project_id: newAction === "running" ? route.params.id : "",
+//       delay: delaySMT,
+//       plan_id: localStorage.getItem("ManufactureID"),
+//       line,
+//     });
+
+//     // Update trạng thái DB
+//     await axios.put(`${Url}/Summary/Edit-item-action/${id}`, {
+//       Action: newAction,
+//     });
+
+//     Action.value = newAction;
+
+//     MessageDialog.value =
+//       newAction === "running"
+//         ? `Đã bắt đầu sản xuất (Line ${line}) - Delay: ${delaySMT}ms`
+//         : `Đã dừng sản xuất trên Line ${line}`;
+
+//     DialogSuccess.value = true;
+//   } catch (error) {
+//     console.error("⛔ Error:", error);
+//     showError(error.response?.data?.error || "Có lỗi xảy ra khi thực hiện");
+//   } finally {
+//     isConnecting.value = false;
+//   }
+// };
+
 const StartLine = async () => {
   if (!manufactureFound.value) {
     return showError("Không thể lấy dữ liệu sản xuất");
@@ -470,8 +529,7 @@ const StartLine = async () => {
     return showError("Giá trị độ trễ không hợp lệ");
   }
 
-  const isLine2 = Line_SMT.value === "Line 2";
-  const line = isLine2 ? 2 : 1;
+  const line = Line_SMT.value === "Line 2" ? 2 : 1;
   const newAction = isRunning.value ? "stopped" : "running";
 
   try {
@@ -481,24 +539,24 @@ const StartLine = async () => {
     if (newAction === "running") {
       await axios.put(`${Url}/Summary/Edit-item-action-stopped-line${line}`);
 
-      // Reset ESP32 đang chạy cũ
-      await axios.post(`${Url}/send-config-to-device`, {
+      // Reset config cũ trong gateway
+      await axios.post(`${Url}/api/add-config`, {
         project_id: "",
-        delay: 0,
         plan_id: "",
+        delay: 0,
         line,
       });
     }
 
-    // Gửi config cho line hiện tại
-    await axios.post(`${Url}/send-config-to-device`, {
+    // Gửi config mới lên ERPST server queue
+    await axios.post(`${Url}/api/add-config`, {
       project_id: newAction === "running" ? route.params.id : "",
-      delay: delaySMT,
       plan_id: localStorage.getItem("ManufactureID"),
+      delay: delaySMT,
       line,
     });
 
-    // Update trạng thái DB
+    // Update trạng thái sản xuất trong DB
     await axios.put(`${Url}/Summary/Edit-item-action/${id}`, {
       Action: newAction,
     });
@@ -518,4 +576,5 @@ const StartLine = async () => {
     isConnecting.value = false;
   }
 };
+
 </script>

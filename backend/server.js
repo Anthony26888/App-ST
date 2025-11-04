@@ -701,6 +701,21 @@ io.on("connection", (socket) => {
         socket.emit("ManufactureDetailsError", error);
       }
     }),
+
+    socket.on("getConfigs", async () => {
+      try {
+        const query = `SELECT * FROM configs ORDER BY id DESC`;
+        db.all(query, [], (err, rows) => {
+          if (err) return socket.emit("ConfigsError", err);
+          socket.emit("ConfigsData", rows);
+        });
+      } catch (error) {
+        socket.emit("ManufactureDetailsError", error);
+      }
+    }),
+
+
+    // ========== SET PROJECT ==========
     socket.on("setProject", (id) => {
       console.log(`Client ${socket.id} chọn project_id = ${id}`);
       userProjects.set(socket.id, id);
@@ -3596,34 +3611,85 @@ app.delete("/api/PlanManufacture/Delete/:id", async (req, res) => {
 //   }
 // });
 
-app.post("/api/send-config-to-device", async (req, res) => {
+// app.post("/api/send-config-to-device", async (req, res) => {
+//   const { project_id, plan_id, delay = 0, line = 1 } = req.body || {};
+
+//   // if (!project_id || !plan_id) {
+//   //   return res.status(400).json({ error: "project_id và plan_id là bắt buộc" });
+//   // }
+
+//   try {
+//     const response = await axios.post(
+//       `${GATEWAY_URL}/api/send-config`,
+//       { project_id, plan_id, delay, line },
+//       { headers: { "Content-Type": "application/json" } }
+//     );
+
+//     console.log("✅ Config sent to Gateway:", response.data);
+
+//     res.json({
+//       status: "Sent to Gateway",
+//       gatewayResponse: response.data,
+//     });
+//   } catch (error) {
+//     console.error("❌ Failed to send to Gateway:", error.message);
+
+//     res.status(502).json({
+//       error: "Gateway unreachable",
+//       detail: error.response?.data || error.message,
+//     });
+//   }
+// });
+
+// ========== ADD CONFIG ==========
+app.post("/api/add-config", (req, res) => {
   const { project_id, plan_id, delay = 0, line = 1 } = req.body || {};
+  if (!project_id || !plan_id)
+    return res.status(400).json({ error: "project_id và plan_id là bắt buộc" });
 
-  // if (!project_id || !plan_id) {
-  //   return res.status(400).json({ error: "project_id và plan_id là bắt buộc" });
-  // }
+  db.run(
+    `INSERT INTO configs (project_id, plan_id, delay, line)
+     VALUES (?, ?, ?, ?)`,
+    [project_id, plan_id, delay, line],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ status: "ok", id: this.lastID });
+    }
+  );
+});
 
-  try {
-    const response = await axios.post(
-      `${GATEWAY_URL}/api/send-config`,
-      { project_id, plan_id, delay, line },
-      { headers: { "Content-Type": "application/json" } }
-    );
+// ========== GATEWAY POLLING ==========
+app.get("/api/get-config", (req, res) => {
+  const line = parseInt(req.query.line || "1", 10);
 
-    console.log("✅ Config sent to Gateway:", response.data);
+  db.get(
+    `SELECT * FROM configs
+     WHERE status = 'pending' AND line = ?
+     ORDER BY id ASC LIMIT 1`,
+    [line],
+    (err, row) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!row) return res.json({}); // Không có config mới
+      res.json(row);
+    }
+  );
+});
 
-    res.json({
-      status: "Sent to Gateway",
-      gatewayResponse: response.data,
-    });
-  } catch (error) {
-    console.error("❌ Failed to send to Gateway:", error.message);
+// ========== CONFIRM SENT ==========
+app.post("/api/config-confirm", (req, res) => {
+  const { project_id, plan_id, line } = req.body || {};
+  if (!project_id || !plan_id || !line)
+    return res.status(400).json({ error: "project_id, plan_id và line là bắt buộc" });
 
-    res.status(502).json({
-      error: "Gateway unreachable",
-      detail: error.response?.data || error.message,
-    });
-  }
+  db.run(
+    `UPDATE configs SET status='sent', sent_at=CURRENT_TIMESTAMP
+     WHERE project_id=? AND plan_id=? AND line=? AND status='pending'`,
+    [project_id, plan_id, line],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ status: "ok", updated: this.changes });
+    }
+  );
 });
 
 app.post("/api/sensor", (req, res) => {
