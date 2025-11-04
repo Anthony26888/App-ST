@@ -15,10 +15,10 @@ app.use(bodyParser.json({ limit: "1mb" }));
 
 // ========== CẤU HÌNH ==========
 const PORT = process.env.PORT || 8080;
-const TARGET_SERVER = process.env.TARGET_SERVER || "https://erpst.io.vn"; // ERPST public
+const TARGET_SERVER = "https://erpst.io.vn"; // ERPST public
 
-const ESP32_IP_LINE1 = process.env.ESP32_LINE1 || "http://192.168.1.205";
-const ESP32_IP_LINE2 = process.env.ESP32_LINE2 || "http://192.168.1.206";
+const ESP32_IP_LINE1 = "http://192.168.1.205";
+const ESP32_IP_LINE2 = "http://192.168.1.206";
 
 const PENDING_RETRY_INTERVAL_MS = parseInt(process.env.PENDING_RETRY_INTERVAL_MS || "60000", 10);
 const POLL_INTERVAL_MS = 5000;
@@ -171,23 +171,34 @@ async function pollConfigFromERP() {
     for (let line = 1; line <= 2; line++) {
       const resp = await axios.get(`${TARGET_SERVER}/api/get-config?line=${line}`, { timeout: 10000 });
       const cfg = resp.data;
-      if (!cfg || !cfg.project_id || !cfg.plan_id) continue;
+      console.log("Polling config:", cfg);
 
-      // ✅ So sánh và chỉ gửi ESP32 nếu config thực sự thay đổi
+      if (!cfg) continue; // Không có config mới
+
       const prev = lastConfig[line];
+
+      // Nếu config giống hệt config trước đó => bỏ qua
       if (prev &&
           prev.project_id === cfg.project_id &&
           prev.plan_id === cfg.plan_id &&
           prev.delay === cfg.delay) continue;
 
+      // Lưu config mới để so sánh lần sau
       lastConfig[line] = cfg;
+
+      // Gửi config cho ESP32 (có thể rỗng để reset)
       const result = await sendConfigToEsp(cfg.project_id, cfg.plan_id, cfg.delay, line);
 
+      // Nếu gửi thành công, confirm config trên ERPST
       if (result.ok) {
         await axios.post(`${TARGET_SERVER}/api/config-confirm`, {
-          id: cfg.id
+          project_id: cfg.project_id,
+          plan_id: cfg.plan_id,
+          line: cfg.line
         }, { timeout: 10000 });
+        
       } else {
+        // Nếu ESP32 không phản hồi, lưu vào pending
         savePendingConfig(cfg.project_id, cfg.plan_id, cfg.delay, line, result.error);
       }
     }
@@ -195,6 +206,7 @@ async function pollConfigFromERP() {
     console.error("❌ Poll ERP error:", err.message);
   }
 }
+
 setInterval(pollConfigFromERP, POLL_INTERVAL_MS);
 pollConfigFromERP().catch(() => {});
 

@@ -1024,10 +1024,12 @@ function initializeChart() {
         acc[item.Category] = {
           plan: 0,
           real: 0,
+          error: 0,
         };
       }
       acc[item.Category].plan += Number(item.Quantity_Plan) || 0;
       acc[item.Category].real += Number(item.Quantity_Real) || 0;
+      acc[item.Category].error += Number(item.Quantity_Error) || 0;
       return acc;
     }, {}) || {};
 
@@ -1058,6 +1060,16 @@ function initializeChart() {
         data: Object.values(sortedCategories).map((item) => item.real),
         backgroundColor: "rgba(76, 175, 80, 0.8)",
         borderColor: "#4CAF50",
+        borderWidth: 1,
+        borderRadius: 4,
+        barPercentage: 0.8,
+        categoryPercentage: 0.9,
+      },
+      {
+        label: "Hàng lỗi",
+        data: Object.values(sortedCategories).map((item) => item.error),
+        backgroundColor: "rgba(244, 67, 54, 0.8)",
+        borderColor: "#F44336",
         borderWidth: 1,
         borderRadius: 4,
         barPercentage: 0.8,
@@ -1102,10 +1114,12 @@ function initializeChart() {
           callbacks: {
             title: function (tooltipItems) {
               const category = tooltipItems[0].label;
-              const planValue =
-                tooltipItems[0].dataset.data[tooltipItems[0].dataIndex];
-              const realValue =
-                tooltipItems[1].dataset.data[tooltipItems[0].dataIndex];
+              const dataIndex = tooltipItems[0].dataIndex;
+              const datasets = tooltipItems[0].chart.data.datasets;
+              const planIdx = datasets.findIndex((ds) => ds.label === "Kế hoạch");
+              const realIdx = datasets.findIndex((ds) => ds.label === "Thực tế");
+              const planValue = planIdx >= 0 ? datasets[planIdx].data[dataIndex] : 0;
+              const realValue = realIdx >= 0 ? datasets[realIdx].data[dataIndex] : 0;
               const percentage = ((realValue / planValue) * 100).toFixed(1);
 
               return [
@@ -1334,10 +1348,12 @@ watch(
             acc[item.Category] = {
               plan: 0,
               real: 0,
+              error: 0,
             };
           }
           acc[item.Category].plan += Number(item.Quantity_Plan) || 0;
           acc[item.Category].real += Number(item.Quantity_Real) || 0;
+          acc[item.Category].error += Number(item.Quantity_Error) || 0;
           return acc;
         }, {});
 
@@ -1355,6 +1371,23 @@ watch(
         chart.data.datasets[1].data = Object.values(sortedCategories).map(
           (item) => item.real
         );
+        // Ensure error dataset exists and update it
+        if (chart.data.datasets[2]) {
+          chart.data.datasets[2].data = Object.values(sortedCategories).map(
+            (item) => item.error
+          );
+        } else {
+          chart.data.datasets.push({
+            label: "Hàng lỗi",
+            data: Object.values(sortedCategories).map((item) => item.error),
+            backgroundColor: "rgba(244, 67, 54, 0.8)",
+            borderColor: "#F44336",
+            borderWidth: 1,
+            borderRadius: 4,
+            barPercentage: 0.8,
+            categoryPercentage: 0.9,
+          });
+        }
         chart.update();
       }
 

@@ -681,11 +681,11 @@ io.on("connection", (socket) => {
                         a.Quantity,
                         a.Level,
                         a.Date,
-                        COALESCE(COUNT(DISTINCT CASE WHEN c.Source = 'source_1' THEN c.id END), 0) AS SMT_1,
-                        COALESCE(COUNT(DISTINCT CASE WHEN c.Source = 'source_2' THEN c.id END), 0) AS SMT_2,
-                        COALESCE(COUNT(DISTINCT CASE WHEN c.Source = 'source_3' THEN c.id END), 0) AS SMT_3,
-                        COALESCE(COUNT(DISTINCT CASE WHEN c.Source = 'source_4' THEN c.id END), 0) AS SMT_4,
-                        COALESCE(COUNT(DISTINCT CASE WHEN LOWER(TRIM(b.Type)) = 'thành phẩm' THEN b.id END), 0) AS Quantity_Pass,
+                        a.Quantity * COALESCE(COUNT(DISTINCT CASE WHEN c.Source = 'source_1' THEN c.id END), 0) AS SMT_1,
+                        a.Quantity * COALESCE(COUNT(DISTINCT CASE WHEN c.Source = 'source_2' THEN c.id END), 0) AS SMT_2,
+                        a.Quantity * COALESCE(COUNT(DISTINCT CASE WHEN c.Source = 'source_3' THEN c.id END), 0) AS SMT_3,
+                        a.Quantity * COALESCE(COUNT(DISTINCT CASE WHEN c.Source = 'source_4' THEN c.id END), 0) AS SMT_4,
+                        COALESCE(COUNT(DISTINCT CASE WHEN LOWER(TRIM(b.Type)) = 'thành phẩm' AND b.Status = 'pass' THEN b.id END), 0) AS Quantity_Pass,
                         COALESCE(COUNT(DISTINCT CASE WHEN b.Status = 'fail' THEN b.id END), 0) AS Quantity_Error
                       FROM PlanManufacture a
                       LEFT JOIN ManufactureCounting b ON a.id = b.PlanID
@@ -785,7 +785,7 @@ io.on("connection", (socket) => {
                           ELSE 'Line 2'
                         END AS Line,
                         Status,
-                        datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp,
+                        strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch', 'localtime') AS Timestamp,
                         HistoryID
                       FROM ManufactureSMT
                       WHERE HistoryID = ?
@@ -811,8 +811,8 @@ io.on("connection", (socket) => {
                             a.Time_Plan,
                             a.CycleTime_Plan,
                             CASE 
-                              WHEN a.Line_SMT = 'Line 1' THEN COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0 END), 0)
-                              WHEN a.Line_SMT = 'Line 2' THEN COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0 END), 0)
+                              WHEN a.Line_SMT = 'Line 1' THEN c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0 END), 0)
+                              WHEN a.Line_SMT = 'Line 2' THEN c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0 END), 0)
                               ELSE COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) 
                             END AS Quantity_Real,
                             COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) AS Quantity_Error,
@@ -820,9 +820,9 @@ io.on("connection", (socket) => {
                             COUNT(DISTINCT b.id) AS Total_Summary_ID,
                             COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) + COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) AS Total_Quantity,
                             (COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) * 100) / COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) + COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) || 0 AS Percent_Error,
-                              CASE
-                              WHEN a.Line_SMT = 'Line 1' THEN ROUND(COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0.0 END) * 100  / a.Quantity_Plan , 0.0), 1)
-                              WHEN a.Line_SMT = 'Line 2' THEN  ROUND(COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0.0 END) * 100  / a.Quantity_Plan, 0.0), 1)
+                            CASE
+                              WHEN a.Line_SMT = 'Line 1' THEN ROUND(c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0.0 END) * 100  / a.Quantity_Plan , 0.0), 1)
+                              WHEN a.Line_SMT = 'Line 2' THEN  ROUND(c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0.0 END) * 100  / a.Quantity_Plan, 0.0), 1)
                             ELSE 
                               ROUND(
                                 (
@@ -894,14 +894,14 @@ io.on("connection", (socket) => {
                           a.Action,
                           c.Quantity,
                           CASE 
-                            WHEN a.Line_SMT = 'Line 1' THEN COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0 END), 0)
-                            WHEN a.Line_SMT = 'Line 2' THEN COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0 END), 0)
+                            WHEN a.Line_SMT = 'Line 1' THEN c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0 END), 0)
+                            WHEN a.Line_SMT = 'Line 2' THEN c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0 END), 0)
                             ELSE COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) 
                           END AS Quantity_Real,
                           COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) AS Quantity_Error,
                           CASE
-                            WHEN a.Line_SMT = 'Line 1' THEN ROUND(COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0.0 END) * 100  / a.Quantity_Plan , 0.0), 1)
-                            WHEN a.Line_SMT = 'Line 2' THEN  ROUND(COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0.0 END) * 100  / a.Quantity_Plan, 0.0), 1)
+                            WHEN a.Line_SMT = 'Line 1' THEN ROUND(c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0.0 END) * 100  / a.Quantity_Plan , 0.0), 1)
+                            WHEN a.Line_SMT = 'Line 2' THEN  ROUND(c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0.0 END) * 100  / a.Quantity_Plan, 0.0), 1)
                           ELSE 
                             ROUND(
                               (
@@ -3644,8 +3644,6 @@ app.delete("/api/PlanManufacture/Delete/:id", async (req, res) => {
 // ========== ADD CONFIG ==========
 app.post("/api/add-config", (req, res) => {
   const { project_id, plan_id, delay = 0, line = 1 } = req.body || {};
-  if (!project_id || !plan_id)
-    return res.status(400).json({ error: "project_id và plan_id là bắt buộc" });
 
   db.run(
     `INSERT INTO configs (project_id, plan_id, delay, line)

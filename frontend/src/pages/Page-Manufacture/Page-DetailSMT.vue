@@ -85,6 +85,7 @@
                 <div class="text-subtitle-1">Máy Printer</div>
                 <div class="text-h4 font-weight-bold">
                   {{
+                    QuantityBoard *
                     manufactureSMT.filter((i) => i.Source === "Máy printer")
                       .length || 0
                   }}
@@ -95,6 +96,7 @@
                 <div class="text-subtitle-1">Máy gắp linh kiện Topaz</div>
                 <div class="text-h4 font-weight-bold">
                   {{
+                    QuantityBoard *
                     manufactureSMT.filter(
                       (i) => i.Source === "Máy gắp linh kiện Topaz"
                     ).length || 0
@@ -110,6 +112,7 @@
                 <div class="text-subtitle-1">Máy gắp linh kiện Juki</div>
                 <div class="text-h4 font-weight-bold">
                   {{
+                    QuantityBoard *
                     manufactureSMT.filter(
                       (i) => i.Source === "Máy gắp linh kiện Juki"
                     ).length || 0
@@ -121,6 +124,7 @@
                 <div class="text-subtitle-1">Máy gắp linh kiện Yamaha</div>
                 <div class="text-h4 font-weight-bold">
                   {{
+                    QuantityBoard *
                     manufactureSMT.filter(
                       (i) => i.Source === "Máy gắp linh kiện Yamaha"
                     ).length || 0
@@ -540,7 +544,7 @@ const StartLine = async () => {
       await axios.put(`${Url}/Summary/Edit-item-action-stopped-line${line}`);
 
       // Reset config cũ trong gateway
-      await axios.post(`${Url}/api/add-config`, {
+      await axios.post(`${Url}/add-config`, {
         project_id: "",
         plan_id: "",
         delay: 0,
@@ -549,7 +553,7 @@ const StartLine = async () => {
     }
 
     // Gửi config mới lên ERPST server queue
-    await axios.post(`${Url}/api/add-config`, {
+    await axios.post(`${Url}/add-config`, {
       project_id: newAction === "running" ? route.params.id : "",
       plan_id: localStorage.getItem("ManufactureID"),
       delay: delaySMT,
