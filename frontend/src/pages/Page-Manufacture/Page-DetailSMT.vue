@@ -70,7 +70,7 @@
       <v-card-text>
         <!-- Thống kê -->
         <v-row class="mb-4">
-          <v-col cols="12" sm="3">
+          <v-col cols="12" sm="4">
             <v-card class="rounded-lg" color="primary" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu vào</div>
@@ -79,69 +79,54 @@
               </v-card-text>
             </v-card>
           </v-col>
-          <v-col cols="12" sm="3">
+          <v-col cols="12" sm="4">
             <v-card class="rounded-lg" color="info" variant="tonal">
               <v-card-text v-if="Line_SMT === 'Line 1'">
                 <div class="text-subtitle-1">Máy Printer</div>
                 <div class="text-h4 font-weight-bold">
                   {{
                     QuantityBoard *
-                    manufactureSMT.filter((i) => i.Source === "Máy printer")
-                      .length || 0
+                      manufactureSMT.filter((i) => i.Source === "Máy printer")
+                        .length || 0
                   }}
                 </div>
-                <div class="text-caption">Tổng số lượng đầu ra</div>
+                <v-progress-linear
+                  v-model="PercentOutput_Source_1"
+                  height="20"
+                  class="rounded-lg"
+                >
+                  <strong class="text-black"
+                    >{{ PercentOutput_Source_1 }}%</strong
+                  >
+                </v-progress-linear>
               </v-card-text>
               <v-card-text v-else>
                 <div class="text-subtitle-1">Máy gắp linh kiện Topaz</div>
                 <div class="text-h4 font-weight-bold">
                   {{
                     QuantityBoard *
-                    manufactureSMT.filter(
-                      (i) => i.Source === "Máy gắp linh kiện Topaz"
-                    ).length || 0
+                      manufactureSMT.filter(
+                        (i) => i.Source === "Máy gắp linh kiện Topaz"
+                      ).length || 0
                   }}
                 </div>
-                <div class="text-caption">Tổng số lượng đầu ra</div>
+                <v-progress-linear
+                  v-model="PercentOutput_Source_3"
+                  height="20"
+                  class="rounded-lg"
+                >
+                  <strong class="text-black"
+                    >{{ PercentOutput_Source_3 }}%</strong
+                  >
+                </v-progress-linear>
               </v-card-text>
             </v-card>
           </v-col>
-          <v-col cols="12" sm="3">
+          <v-col cols="12" sm="4">
             <v-card class="rounded-lg" color="warning" variant="tonal">
               <v-card-text v-if="Line_SMT === 'Line 1'">
                 <div class="text-subtitle-1">Máy gắp linh kiện Juki</div>
                 <div class="text-h4 font-weight-bold">
-                  {{
-                    QuantityBoard *
-                    manufactureSMT.filter(
-                      (i) => i.Source === "Máy gắp linh kiện Juki"
-                    ).length || 0
-                  }}
-                </div>
-                <div class="text-caption">Tổng số lượng đầu ra</div>
-              </v-card-text>
-              <v-card-text v-else>
-                <div class="text-subtitle-1">Máy gắp linh kiện Yamaha</div>
-                <div class="text-h4 font-weight-bold">
-                  {{
-                    QuantityBoard *
-                    manufactureSMT.filter(
-                      (i) => i.Source === "Máy gắp linh kiện Yamaha"
-                    ).length || 0
-                  }}
-                </div>
-                <div class="text-caption">Tổng số lượng đầu ra</div>
-              </v-card-text>
-            </v-card>
-          </v-col>
-          <v-col cols="12" sm="3">
-            <v-card class="rounded-lg" color="success" variant="tonal">
-              <v-card-text>
-                <div class="text-subtitle-1">Đầu ra board</div>
-                <div
-                  class="text-h4 font-weight-bold"
-                  v-if="Line_SMT == 'Line 1'"
-                >
                   {{
                     QuantityBoard *
                       manufactureSMT.filter(
@@ -149,7 +134,19 @@
                       ).length || 0
                   }}
                 </div>
-                <div class="text-h4 font-weight-bold" v-else>
+                <v-progress-linear
+                  v-model="PercentOutput_Source_2"
+                  height="20"
+                  class="rounded-lg"
+                >
+                  <strong class="text-black"
+                    >{{ PercentOutput_Source_2 }}%</strong
+                  >
+                </v-progress-linear>
+              </v-card-text>
+              <v-card-text v-else>
+                <div class="text-subtitle-1">Máy gắp linh kiện Yamaha</div>
+                <div class="text-h4 font-weight-bold">
                   {{
                     QuantityBoard *
                       manufactureSMT.filter(
@@ -158,11 +155,13 @@
                   }}
                 </div>
                 <v-progress-linear
-                  v-model="PercentOutput"
+                  v-model="PercentOutput_Source_4"
                   height="20"
                   class="rounded-lg"
                 >
-                  <strong class="text-black">{{ PercentOutput }}%</strong>
+                  <strong class="text-black"
+                    >{{ PercentOutput_Source_4 }}%</strong
+                  >
                 </v-progress-linear>
               </v-card-text>
             </v-card>
@@ -194,7 +193,7 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="calc(100vh - 300px)"
+            height="53vh"
           >
             <template v-slot:item.stt="{ index }">
               {{ (page - 1) * itemsPerPage + index + 1 }}
@@ -242,6 +241,15 @@
               <p v-if="item.PartNumber == 1">{{ Name_Order }}</p>
               <p v-else>{{ item.PartNumber }}</p>
             </template>
+            <template #item.id="{ item }">
+              <v-btn
+                size="small"
+                variant="text"
+                color="error"
+                icon="mdi-trash-can"
+                @click="GetItemHistory(item)"
+              ></v-btn>
+            </template>
             <template #[`bottom`]>
               <div class="text-center pt-2">
                 <v-pagination
@@ -254,6 +262,17 @@
         </v-card>
       </v-card-text>
     </v-card>
+
+    <!-- Dialog xác nhận xóa dữ liệu lịch sử sản xuất -->
+    <v-dialog v-model="DialogRemoveHistory" width="400">
+      <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
+        <v-card-text> Bạn có chắc chắn muốn xoá dữ liệu ? </v-card-text>
+        <template v-slot:actions>
+          <ButtonCancel @cancel="DialogRemoveHistory = false" />
+          <ButtonDelete @delete="RemoveItemHistory()" />
+        </template>
+      </v-card>
+    </v-dialog>
 
     <!-- Thông báo -->
     <Loading v-model="DialogLoading" />
@@ -297,6 +316,7 @@ const { status: statusLine2 } = useDeviceStatusSocket("esp32-002");
 const DialogLoading = ref(false);
 const DialogSuccess = ref(false);
 const DialogFailed = ref(false);
+const DialogRemoveHistory = ref(false);
 const MessageDialog = ref("");
 const MessageErrorDialog = ref("");
 
@@ -308,11 +328,14 @@ const Headers = [
   { title: "Thiết bị", key: "Source" },
   { title: "Vị trí", key: "Line" },
   { title: "Thời gian", key: "Timestamp" },
+  { title: "Thao tác", key: "id" },
 ];
 
 const search = ref("");
 const page = ref(1);
 const itemsPerPage = ref(15);
+
+const GetID = ref("");
 
 const totalInput = ref(0);
 const NameManufacture = ref("");
@@ -356,8 +379,86 @@ const PercentOutput = computed(() => {
 
   const count = list.filter((i) => i?.Source === source).length;
 
-  return Number.parseFloat((QuantityBoard.value * 100 * count) / total).toFixed(1);
+  return Number.parseFloat((QuantityBoard.value * 100 * count) / total).toFixed(
+    1
+  );
 });
+
+const PercentOutput_Source_4 = computed(() => {
+  const list = Array.isArray(manufactureSMT.value) ? manufactureSMT.value : []; // fallback array
+
+  const total = totalInput.value || 1; // tránh chia 0
+  const source = "Máy gắp linh kiện Yamaha";
+
+  const count = list.filter((i) => i?.Source === source).length;
+
+  return Number.parseFloat((QuantityBoard.value * 100 * count) / total).toFixed(
+    1
+  );
+});
+
+const PercentOutput_Source_3 = computed(() => {
+  const list = Array.isArray(manufactureSMT.value) ? manufactureSMT.value : []; // fallback array
+
+  const total = totalInput.value || 1; // tránh chia 0
+  const source = "Máy gắp linh kiện Topaz";
+
+  const count = list.filter((i) => i?.Source === source).length;
+
+  return Number.parseFloat((QuantityBoard.value * 100 * count) / total).toFixed(
+    1
+  );
+});
+
+const PercentOutput_Source_2 = computed(() => {
+  const list = Array.isArray(manufactureSMT.value) ? manufactureSMT.value : []; // fallback array
+
+  const total = totalInput.value || 1; // tránh chia 0
+  const source = "Máy gắp linh kiện Juki";
+
+  const count = list.filter((i) => i?.Source === source).length;
+
+  return Number.parseFloat((QuantityBoard.value * 100 * count) / total).toFixed(
+    1
+  );
+});
+
+const PercentOutput_Source_1 = computed(() => {
+  const list = Array.isArray(manufactureSMT.value) ? manufactureSMT.value : []; // fallback array
+
+  const total = totalInput.value || 1; // tránh chia 0
+  const source = "Máy printer";
+
+  const count = list.filter((i) => i?.Source === source).length;
+
+  return Number.parseFloat((QuantityBoard.value * 100 * count) / total).toFixed(
+    1
+  );
+});
+
+const GetItemHistory = (item) => {
+  DialogRemoveHistory.value = true;
+  GetID.value = item.id;
+};
+// Hàm xóa item lịch sử sản xuất
+const RemoveItemHistory = async () => {
+  DialogLoading.value = true;
+  try {
+    const response = await axios.delete(
+      `${Url}/ManufactureSMT/Delete-item-history/${GetID.value}`
+    );
+    DialogSuccess.value = true;
+    DialogLoading.value = false;
+    DialogRemoveHistory.value = false;
+    MessageDialog.value = "Xoá dữ liệu thành công";
+  } catch (error) {
+    DialogFailed.value = true;
+    DialogLoading.value = false;
+    DialogRemoveHistory.value = false;
+    MessageErrorDialog.value = error;
+    Error();
+  }
+};
 
 const showError = (msg) => {
   MessageErrorDialog.value = msg;
@@ -580,5 +681,4 @@ const StartLine = async () => {
     isConnecting.value = false;
   }
 };
-
 </script>

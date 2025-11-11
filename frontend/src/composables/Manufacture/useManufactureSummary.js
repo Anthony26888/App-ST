@@ -1,34 +1,61 @@
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, watch, computed } from "vue";
 import { io } from "socket.io-client";
 
-export function useManufactureSummary(id) {
-  const manufactureSummary = ref([]);  // Initialize as empty array
+export function useManufactureSummary(id, typeFilter = ref(null)) {
+  const manufactureSummary = ref([]);
   const manufactureSummaryError = ref(null);
-  const SOCKET_URL = import.meta.env.VITE_SOCKET_URL; // Lấy URL từ .env
-  const socket = io(SOCKET_URL) // chỉnh lại nếu deploy
+
+  const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
+  const socket = io(SOCKET_URL, { autoConnect: false });
+
+  const fetchData = () => {
+    if (!id) return;
+    socket.emit("getManufactureSummary", id);
+  };
+
+  // ✅ Computed filtered data
+  const filteredManufactureSummary = computed(() => {
+    if (!typeFilter.value) return manufactureSummary.value;
+    return manufactureSummary.value.filter(
+      (item) => item.Type === typeFilter.value
+    );
+  });
 
   onMounted(() => {
-    socket.emit("getManufactureSummary", id);
+    socket.connect();
+
+    socket.on("connect", () => fetchData());
+
     socket.on("ManufactureSummaryData", (data) => {
-      // Ensure data is an array before assigning
-      manufactureSummary.value = data;
+      manufactureSummary.value = Array.isArray(data) ? data : [];
     });
 
     socket.on("ManufactureSummaryError", (message) => {
       manufactureSummaryError.value = message;
     });
 
-    socket.on("UpdateManufactureSummary", () => {
-      socket.emit("getManufactureSummary", id);
-    });
+    socket.on("UpdateManufactureSummary", () => fetchData());
 
-    socket.on("connect", () => console.log("Socket connected:", socket.id));
-    socket.on("disconnect", () => console.log("Socket disconnected"));
+    socket.on("disconnect", () => {
+      console.warn("Socket disconnected");
+    });
+  });
+
+  // ✅ Fetch lại khi Type thay đổi
+  watch(typeFilter, () => {
+    console.log("Filter Type changed → updating filtered summary");
   });
 
   onUnmounted(() => {
-    if (socket) socket.disconnect();
+    socket.off("ManufactureSummaryData");
+    socket.off("ManufactureSummaryError");
+    socket.off("UpdateManufactureSummary");
+    socket.disconnect();
   });
 
-  return { manufactureSummary, manufactureSummaryError };
+  return {
+    manufactureSummary: filteredManufactureSummary,
+    manufactureSummaryError,
+    refresh: fetchData
+  };
 }

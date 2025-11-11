@@ -28,6 +28,7 @@ import PageSummary from "@/pages/Page-Summary/Page-Summary.vue"
 import PageListWork from "@/pages/Page-Manufacture/Page-ListWork.vue";
 import PageAI from "@/pages/Page-AI-Chatbox/Page-AI.vue"
 import PageDetailCounting from "@/pages/Page-Manufacture/Page-Detail-Couting.vue"
+import PageDetailRW from "@/pages/Page-Manufacture/Page-DetailRW.vue"
 
 const routes = [
   {
@@ -159,6 +160,12 @@ const routes = [
         name: "DetailSMT",
         meta: { requiresAuth: true },
         component: PageDetailSMT,
+      },
+      {
+        path: "/San-xuat/RW/:id",
+        name: "DetailRW",
+        meta: { requiresAuth: true },
+        component: PageDetailRW,
       },
       {
         path: "/San-xuat/:process/:id",

@@ -77,23 +77,33 @@
             <template #[`item.Status`]="{ item }">
               <v-chip
                 :color="
-                  item.Status === 'error'
+                  item.Status === 'fail'
                     ? 'warning'
-                    : item.Status === 'fixed'
-                    ? 'info'
-                    : 'success'
+                    : 'infor'
                 "
                 size="small"
                 variant="tonal"
               >
                 {{
-                  item.Status === "error"
-                    ? "Lỗi"
-                    : item.Status === "fixed"
-                    ? "Đã sửa"
-                    : "OK"
+                  item.Status === "fail"
+                    ? "Fail"
+                    : "Fixed"
                 }}
               </v-chip>
+            </template>
+            <template #[`item.RWID`]="{ item }">
+              <v-chip color ="success" variant="tonal" v-if="item.RWID">
+                <v-icon>mdi-check</v-icon>
+              </v-chip>
+              <v-chip v-else variant="tonal" color="error">
+                <v-icon>mdi-alert</v-icon>
+              </v-chip>
+            </template>
+            <template #[`item.Note`]="{ item }">
+              <p class="text-error" style="white-space: pre-line">{{ item.Note }}</p>
+            </template>
+            <template #[`item.Note_RW`]="{ item }">
+              <p class="text-primary" style="white-space: pre-line">{{ item.Note_RW }}</p>
             </template>
             <template #[`item.id`]="{ item }">
               <v-btn
@@ -128,17 +138,19 @@
     <v-dialog
       :model-value="DialogFix"
       @update:model-value="DialogFix = $event"
-      width="400"
+      width="600"
     >
       <v-card
-        max-width="400"
-        prepend-icon="mdi-update"
-        title="Sửa lỗi sản phẩm"
+        max-width="600"
+        prepend-icon="mdi-wrench-clock"
+        title="Sản phẩm đã sửa chữa hoàn tất ?"
       >
-        <v-card-text> Sản phẩm đã sửa chữa hoàn tất ? </v-card-text>
+        <v-card-text> 
+          <InputTextarea label="Ghi chú sửa" v-model="Note_RW_Edit"></InputTextarea>
+        </v-card-text>
         <template #actions>
           <ButtonCancel @cancel="DialogFix = false" />
-          <ButtonAgree @agree="FixedError()" />
+          <ButtonSave @save="FixedError()" />
         </template>
       </v-card>
     </v-dialog>
@@ -167,6 +179,7 @@ import InputSearch from "@/components/Input-Search.vue";
 import ButtonBack from "@/components/Button-Back.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputFiles from "@/components/Input-Files.vue";
+import InputTextarea from "@/components/Input-Textarea.vue"
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
@@ -186,10 +199,12 @@ const { manufactureRW, manufactureRWError } = useManufactureRW(back);
 // Table configuration
 const Headers = [
   { title: "Vị trí", key: "Type" },
-  { title: "Danh mục", key: "Category" },
   { title: "Mã sản phẩm", key: "PartNumber" },
-  { title: "Trạng thái", key: "Status" },
-  { title: "Thời gian", key: "Timestamp" },
+  // { title: "Trạng thái", key: "Status" },
+  // { title: "Thời gian", key: "Timestamp" },
+  { title: "RW đã sửa", key: "RWID" },
+  { title: "Ghi chú lỗi", key: "Note" }, 
+  { title: "Ghi chú sửa", key: "Note_RW" },
   { title: "Thời gian RW", key: "TimestampRW" },
   { title: "Thao tác", key: "id" },
 ];
@@ -232,6 +247,7 @@ const isError = ref(false);
 const NameManufacture = ref("");
 const Name_Order = ref("");
 const Name_Category = ref("");
+const Note_RW_Edit = ref("");
 
 // ===== User Information =====
 const LevelUser = localStorage.getItem("LevelUser");
@@ -246,9 +262,10 @@ watch(
         (item) => item.Status === "error"
       ).length;
       totalFixed.value = newValue.filter(
-        (item) => item.Status === "fixed"
+        (item) => item.RWID === "Done"
       ).length;
-    }
+    };
+
   },
   { deep: true }
 );
@@ -272,7 +289,6 @@ watch(
     const foundHistory = newData.value.find(
       (item) => Number(item.id) === numericId
     );
-    console.log("Found history item:", foundHistory);
 
     if (foundHistory) {
       Name_Order.value = foundHistory.Name_Order ?? "";
@@ -280,7 +296,7 @@ watch(
       Name_Category.value = foundHistory.Category ?? "";
       totalInput.value = foundHistory.Quantity_Plan ?? 0;
     } else {
-      console.log("No matching history found for ID:", id);
+
       // Set default values if no match found
       Name_Order.value = "";
       NameManufacture.value = "";
@@ -317,51 +333,22 @@ const GetItem = (item) => {
   Category.value = item.Category;
   Timestamp.value = item.Timestamp;
   Status.value = item.Status;
-  if (item.Type === "AOI") {
-    ConditionType.value = "AOI-Fixed";
-  } else if (item.Type === "IPQC (SMT)") {
-    ConditionType.value = "IPQC-SMT-Fixed";
-  } else if (item.Type === "IPQC") {
-    ConditionType.value = "IPQC-Fixed";
-  } else if (item.Type === "Test 1") {
-    ConditionType.value = "Test1-Fixed";
-  } else if (item.Type === "Test 2") {
-    ConditionType.value = "Test2-Fixed";
-  } else if (item.Type === "OQC") {
-    ConditionType.value = "OQC-Fixed";
-  } else {
-    ConditionType.value = "";
-  }
-  console.log(ConditionType.value);
+  Note_RW_Edit = item.Note_RW;
 };
 
 const FixedError = async () => {
   DialogLoading.value = true;
   const formData = reactive({
-    Status: "fixed",
-    RWID: id,
-    TimestampRW: new Date().toLocaleString("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-      timeZone: "Asia/Bangkok",
-    }),
+    Note_RW: Note_RW_Edit.value
   });
   try {
     const response = await axios.put(
-      `${Url}/Manufacture/${ConditionType.value}/Edit-status/${GetID.value}`,
-      formData
+      `${Url}/ManufactureCounting/Edit-status-rw/${GetID.value}`, formData 
     );
-    console.log(response.data.message);
     MessageDialog.value = "Sữa lỗi thành công";
     // Refresh data after successful update
     Reset();
   } catch (error) {
-    console.log(error);
     MessageErrorDialog.value = "Lỗi hệ thống";
     Error();
   }
@@ -395,7 +382,6 @@ const submitBarcode = async () => {
 
   try {
     const response = await axios.post(`${Url}/Manufacture/RW`, formData);
-    console.log(response.data);
     Input.value = "";
     isError.value = false;
   } catch (error) {

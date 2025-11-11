@@ -30,7 +30,6 @@ const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 const timezone = require("dayjs/plugin/timezone");
 
-
 // const {queryWithLangChain } = require("./Ollama-AI/queryEngine.js");
 // const queryMap = require("./Ollama-AI/queryMap")
 const fetch = require("node-fetch");
@@ -661,7 +660,7 @@ io.on("connection", (socket) => {
                           z.Creater,
                           z.DelaySMT,
                           z.Quantity
-                      ORDER BY z.Date DESC;`;
+                      ORDER BY Date_unixepoch DESC;`;
         db.all(query, [], (err, rows) => {
           if (err) return socket.emit("ManufactureError", err);
           socket.emit("ManufactureData", rows);
@@ -686,6 +685,7 @@ io.on("connection", (socket) => {
                         a.Quantity * COALESCE(COUNT(DISTINCT CASE WHEN c.Source = 'source_3' THEN c.id END), 0) AS SMT_3,
                         a.Quantity * COALESCE(COUNT(DISTINCT CASE WHEN c.Source = 'source_4' THEN c.id END), 0) AS SMT_4,
                         COALESCE(COUNT(DISTINCT CASE WHEN LOWER(TRIM(b.Type)) = 'thành phẩm' AND b.Status = 'pass' THEN b.id END), 0) AS Quantity_Pass,
+                        COALESCE(COUNT(DISTINCT CASE WHEN LOWER(TRIM(b.Type)) = 'thành phẩm' AND b.Status = 'fail' THEN b.id END), 0) AS Quantity_Output_Fail,
                         COALESCE(COUNT(DISTINCT CASE WHEN b.Status = 'fail' THEN b.id END), 0) AS Quantity_Error
                       FROM PlanManufacture a
                       LEFT JOIN ManufactureCounting b ON a.id = b.PlanID
@@ -701,7 +701,6 @@ io.on("connection", (socket) => {
         socket.emit("ManufactureDetailsError", error);
       }
     }),
-
     socket.on("getConfigs", async () => {
       try {
         const query = `SELECT * FROM configs ORDER BY id DESC`;
@@ -713,53 +712,50 @@ io.on("connection", (socket) => {
         socket.emit("ManufactureDetailsError", error);
       }
     }),
-
-
     // ========== SET PROJECT ==========
     socket.on("setProject", (id) => {
       console.log(`Client ${socket.id} chọn project_id = ${id}`);
       userProjects.set(socket.id, id);
     });
 
-    socket.on("getManufactureCounting", async (id) => {
-      try {
-        const query = `SELECT 
-                        id,
-                        PartNumber,
-                        Status,
-                        Status_Fixed,
-                        RWID,
-                        strftime('%d-%m-%Y %H:%M:%S', TimestampRW, 'unixepoch', 'localtime') AS TimestampRW,
-                        Note,
-                        strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch', 'localtime') AS Timestamp
+  socket.on("getManufactureCounting", async (id) => {
+    try {
+      const query = `SELECT 
+                          id,
+                          PartNumber,
+                          Status,
+                          Status_Fixed,
+                          RWID,
+                          strftime('%d-%m-%Y %H:%M:%S', TimestampRW, 'unixepoch', 'localtime') AS TimestampRW,
+                          Note,
+                          strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch', 'localtime') AS Timestamp
                         FROM ManufactureCounting
                         WHERE HistoryID = ?
                         ORDER BY Timestamp DESC`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("ManufactureCountingError", err);
-          socket.emit("ManufactureCountingData", rows);
-        });
-      } catch (error) {
-        socket.emit("ManufactureCountingError", error);
-      }
-    }),
+      db.all(query, [id], (err, rows) => {
+        if (err) return socket.emit("ManufactureCountingError", err);
+        socket.emit("ManufactureCountingData", rows);
+      });
+    } catch (error) {
+      socket.emit("ManufactureCountingError", error);
+    }
+  }),
     socket.on("getManufactureRW", async (id) => {
       try {
-        const query = `SELECT a.id, b.Type, a.PartNumber, a.Status, b.Category, a.Timestamp, a.HistoryID, a.TimestampRW FROM (
-                          SELECT id, PartNumber, Status, HistoryID, datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, TimestampRW FROM ManufactureAOI WHERE Status IN ('error', 'fixed')
-                          UNION ALL
-                          SELECT id, PartNumber, Status, HistoryID, datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, TimestampRW FROM ManufactureIPQCSMT WHERE Status IN ('error', 'fixed')
-                          UNION ALL
-                            SELECT id, PartNumber, Status, HistoryID, datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, TimestampRW FROM ManufactureIPQC WHERE Status IN ('error', 'fixed')
-                          UNION ALL
-                            SELECT id, PartNumber, Status, HistoryID, datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, TimestampRW FROM ManufactureTest1 WHERE Status IN ('error', 'fixed')
-                          UNION ALL
-                            SELECT id, PartNumber, Status, HistoryID, datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, TimestampRW FROM ManufactureTest2 WHERE Status IN ('error', 'fixed')
-                          UNION ALL
-                            SELECT id, PartNumber, Status, HistoryID, datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, TimestampRW FROM ManufactureOQC WHERE Status IN ('error', 'fixed')
-                        ) a LEFT JOIN Summary b ON a.HistoryID = b.id
-                        WHERE PlanID = ?
-                        ORDER BY a.Timestamp DESC`;
+        const query = `SELECT 
+                          id,
+                          PartNumber,
+                          Type,
+                          Status,
+                          Status_Fixed,
+                          RWID,
+                          strftime('%d-%m-%Y %H:%M:%S', TimestampRW, 'unixepoch', 'localtime') AS TimestampRW,
+                          Note,
+                          Note_RW,
+                          strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch', 'localtime') AS Timestamp
+                        FROM ManufactureCounting
+                        WHERE PlanID = ? AND Status = 'fail'
+                        ORDER BY RWID ASC, Timestamp DESC`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("ManufactureRWError", err);
           socket.emit("ManufactureRWData", rows);
@@ -785,7 +781,7 @@ io.on("connection", (socket) => {
                           ELSE 'Line 2'
                         END AS Line,
                         Status,
-                        strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch', 'localtime') AS Timestamp,
+                        strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch') AS Timestamp,
                         HistoryID
                       FROM ManufactureSMT
                       WHERE HistoryID = ?
@@ -801,46 +797,78 @@ io.on("connection", (socket) => {
     socket.on("getSummary", async ({ start, end }) => {
       try {
         const query = `SELECT 
-                            a.id,
-                            a.Type,
-                            a.Category,
-                            a.Quantity_Plan,
-                            a.PlanID,
-                            c.Name_Order,
-                            a.PONumber,
-                            a.Time_Plan,
-                            a.CycleTime_Plan,
-                            CASE 
-                              WHEN a.Line_SMT = 'Line 1' THEN c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0 END), 0)
-                              WHEN a.Line_SMT = 'Line 2' THEN c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0 END), 0)
-                              ELSE COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) 
-                            END AS Quantity_Real,
-                            COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) AS Quantity_Error,
-                            COALESCE(SUM(CASE WHEN b.TimestampRW IS NOT NULL AND b.TimestampRW <> '' THEN 1 ELSE 0 END), 0) AS Quantity_RW,
-                            COUNT(DISTINCT b.id) AS Total_Summary_ID,
-                            COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) + COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) AS Total_Quantity,
-                            (COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) * 100) / COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) + COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) || 0 AS Percent_Error,
-                            CASE
-                              WHEN a.Line_SMT = 'Line 1' THEN ROUND(c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0.0 END) * 100  / a.Quantity_Plan , 0.0), 1)
-                              WHEN a.Line_SMT = 'Line 2' THEN  ROUND(c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0.0 END) * 100  / a.Quantity_Plan, 0.0), 1)
+                          a.id,
+                          a.Type,
+                          a.Category,
+                          a.Quantity_Plan,
+                          a.PlanID,
+                          c.Name_Order,
+                          a.PONumber,
+                          a.Time_Plan,
+                          a.CycleTime_Plan,
+                          
+                          -- Quantity_Real (Thực tế)
+                          CASE 
+                            WHEN a.Line_SMT = 'Line 1' THEN c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0 END), 0)
+                            WHEN a.Line_SMT = 'Line 2' THEN c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0 END), 0)
+                            ELSE COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) 
+                          END AS Quantity_Real,
+                          
+                          COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) AS Quantity_Error,
+                          COALESCE(SUM(CASE WHEN b.TimestampRW IS NOT NULL AND b.TimestampRW <> '' THEN 1 ELSE 0 END), 0) AS Quantity_RW,
+                          COUNT(DISTINCT b.id) AS Total_Summary_ID,
+                          
+                          -- Tổng số lượng (Pass + Fail)
+                          COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) + COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) AS Total_Quantity,
+                          
+                          -- Tỷ lệ Lỗi (Percent_Error): Lỗi / Tổng Sản lượng (Pass + Fail). Xử lý chia cho 0.
+                          COALESCE(
+                            ROUND(
+                              (COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) * 100.0) 
+                              / NULLIF(
+                                COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) + COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0), 
+                                0
+                              ), 
+                            1)
+                          , 0.0) AS Percent_Error,
+                          
+                          -- Tỷ lệ Hoàn thành (Percent): Thực tế / Kế hoạch
+                          CASE
+                            -- Line 1/2: Lấy số lượng thực tế tính toán từ ManufactureSMT (d.Source)
+                            WHEN a.Line_SMT = 'Line 1' THEN 
+                              ROUND(
+                                (c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0.0 END), 0.0) * 100.0) 
+                                / NULLIF(a.Quantity_Plan, 0.0), 
+                              1)
+                            WHEN a.Line_SMT = 'Line 2' THEN  
+                              ROUND(
+                                (c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0.0 END), 0.0) * 100.0) 
+                                / NULLIF(a.Quantity_Plan, 0.0), 
+                              1)
+                            -- Khác: Lấy tổng Pass từ ManufactureCounting (b.Status)
                             ELSE 
                               ROUND(
-                                (
-                                  COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) 
-                                ) * 100.0 / a.Quantity_Plan, 1
-                              )
-                            END AS Percent,
-                            strftime('%d-%m-%Y', a.Created_At, 'unixepoch', 'localtime') AS Created_At
-                        FROM Summary a
-                        LEFT JOIN ManufactureCounting b 
-                          ON b.HistoryID = a.id
-                        LEFT JOIN PlanManufacture c 
-                          ON a.PlanID = c.id
-                        LEFT JOIN ManufactureSMT d
-						              ON d.HistoryID = a.id
-                        WHERE a.Created_At BETWEEN ? AND ?
-                        GROUP BY a.id
-                        ORDER BY a.Created_At DESC`;
+                                (COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) * 100.0) 
+                                / NULLIF(a.Quantity_Plan, 0.0), 
+                              1)
+                          END AS Percent,
+                          
+                          -- Định dạng ngày
+                          strftime('%d-%m-%Y', a.Created_At, 'unixepoch', 'localtime') AS Created_At
+                      FROM 
+                          Summary a
+                      LEFT JOIN 
+                          ManufactureCounting b ON b.HistoryID = a.id
+                      LEFT JOIN 
+                          PlanManufacture c ON a.PlanID = c.id
+                      LEFT JOIN 
+                          ManufactureSMT d ON d.HistoryID = a.id
+                      WHERE 
+                          a.Created_At BETWEEN ? AND ?
+                      GROUP BY 
+                          a.id, a.Line_SMT -- GROUP BY cần bao gồm cột Line_SMT nếu nó ảnh hưởng đến logic
+                      ORDER BY 
+                          a.Created_At DESC;`;
         db.all(query, [start, end], (err, rows) => {
           if (err) return socket.emit("SummaryError", err);
           socket.emit("SummaryData", rows);
@@ -876,10 +904,56 @@ io.on("connection", (socket) => {
         socket.emit("ManufactureSummaryError", error);
       }
     }),
-
-    socket.on("getHistory", async (id) => {
+    socket.on("getCompareSummary", async (endDay) => {
       try {
-        const query = `SELECT 
+        const query = `
+          WITH TodayData AS (
+            SELECT
+              COUNT(DISTINCT a.PONumber) AS Today_Total_PONumber,
+              COUNT(DISTINCT a.Category) AS Today_Total_Category
+            FROM Summary a
+            WHERE strftime('%Y-%m-%d', a.Created_At, 'unixepoch', '+7 hours') =
+                  strftime('%Y-%m-%d', ?, 'unixepoch', '+7 hours')
+          ),
+          
+          YesterdayData AS (
+            SELECT
+              COUNT(DISTINCT a.PONumber) AS Yesterday_Total_PONumber,
+              COUNT(DISTINCT a.Category) AS Yesterday_Total_Category
+            FROM Summary a
+            WHERE strftime('%Y-%m-%d', a.Created_At, 'unixepoch', '+7 hours') =
+                  strftime('%Y-%m-%d', ?, 'unixepoch', '+7 hours', '-1 day')
+          )
+    
+          SELECT
+            T.Today_Total_PONumber,
+            Y.Yesterday_Total_PONumber,
+            ROUND(
+              (T.Today_Total_PONumber - Y.Yesterday_Total_PONumber) * 100.0
+              / NULLIF(Y.Yesterday_Total_PONumber, 0),
+            1) AS PONumber_Trend_Percent,
+    
+            T.Today_Total_Category,
+            Y.Yesterday_Total_Category,
+            ROUND(
+              (T.Today_Total_Category - Y.Yesterday_Total_Category) * 100.0
+              / NULLIF(Y.Yesterday_Total_Category, 0),
+            1) AS Category_Trend_Percent
+          FROM TodayData T CROSS JOIN YesterdayData Y;
+        `;
+
+        db.all(query, [endDay, endDay], (err, rows) => {
+          if (err) return socket.emit("CompareSummaryError", err.message);
+          socket.emit("CompareSummaryData", rows);
+        });
+      } catch (error) {
+        socket.emit("CompareSummaryError", error.message);
+      }
+    });
+
+  socket.on("getHistory", async (id) => {
+    try {
+      const query = `SELECT 
                           a.id,
                           a.Type,
                           a.Category,
@@ -899,6 +973,7 @@ io.on("connection", (socket) => {
                             ELSE COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) 
                           END AS Quantity_Real,
                           COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) AS Quantity_Error,
+                          COALESCE(SUM(CASE WHEN b.RWID = 'Done' THEN 1 ELSE 0 END), 0) AS Quantity_Fixed_Done,
                           CASE
                             WHEN a.Line_SMT = 'Line 1' THEN ROUND(c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0.0 END) * 100  / a.Quantity_Plan , 0.0), 1)
                             WHEN a.Line_SMT = 'Line 2' THEN  ROUND(c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0.0 END) * 100  / a.Quantity_Plan, 0.0), 1)
@@ -935,31 +1010,53 @@ io.on("connection", (socket) => {
                           a.Created_At
                       ORDER BY a.Created_At DESC;
                       `;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("HistoryError", err);
-          socket.emit("HistoryData", rows);
-        });
-      } catch (error) {
-        socket.emit("HistoryError", error);
-      }
-    }),
+      db.all(query, [id], (err, rows) => {
+        if (err) return socket.emit("HistoryError", err);
+        socket.emit("HistoryData", rows);
+      });
+    } catch (error) {
+      socket.emit("HistoryError", error);
+    }
+  }),
     socket.on("getHistoryPart", async (id) => {
       try {
         const query = `
-                      SELECT 
-                        a.id,
-                        a.PartNumber,
-                        a.Status,
-                        a.RWID,
-                        a.TimestampRW, 
-                        a.Note,
-                        b.Type AS Source,
-                        strftime('%d-%m-%Y %H:%M:%S', a.Timestamp, 'unixepoch', 'localtime') AS Timestamp
-                      FROM ManufactureCounting a
-                      LEFT JOIN Summary b ON a.HistoryID = b.id
-                      WHERE a.PlanID = ?
-                      ORDER BY a.id DESC`;
-        db.all(query, [id], (err, rows) => {
+                      SELECT *
+                      FROM (
+                          SELECT 
+                            id,
+                            PlanID,
+                            PartNumber,
+                            CASE 
+                              WHEN Source = 'source_1' THEN 'Máy printer G5'
+                              WHEN Source = 'source_2' THEN 'Máy gắp linh kiện Juki'
+                              WHEN Source = 'source_3' THEN 'Máy gắp linh kiện Topaz'
+                              ELSE 'Máy gắp linh kiện Yamaha'
+                            END AS Source,
+                            CASE 
+                              WHEN Status = 'ok' THEN 'pass'
+                              ELSE 'fail'
+                            END AS Status,
+                            strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch', 'localtime') AS Timestamp,
+                            Note
+                          FROM ManufactureSMT
+                          WHERE PlanID = ?
+
+                          UNION ALL
+
+                          SELECT 
+                            id,
+                            PlanID,
+                            PartNumber,
+                            Type AS Source,       -- ✅ Đổi tên để match 2 bảng
+                            Status,
+                            strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch', 'localtime') AS Timestamp,
+                            Note
+                          FROM ManufactureCounting
+                          WHERE PlanID = ?
+                      )
+                      ORDER BY Timestamp DESC;`;
+        db.all(query, [id, id], (err, rows) => {
           if (err) return socket.emit("HistoryPartError", err);
           socket.emit("HistoryPartData", rows);
         });
@@ -1110,7 +1207,6 @@ io.on("connection", (socket) => {
         socket.emit("CombineBomError", error);
       }
     }),
-
     socket.on("getGerberFile", async (id) => {
       try {
         const query = `SELECT DISTINCT  *
@@ -1173,7 +1269,7 @@ io.on("connection", (socket) => {
                         AND pm.rn = 1
                       LEFT JOIN Component_overrides o
                           ON b.mpn = o.mpn
-                      WHERE p.project_id = ?`; 
+                      WHERE p.project_id = ?`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("PnPFileError", err);
           socket.emit("PnPFileData", rows);
@@ -1182,7 +1278,6 @@ io.on("connection", (socket) => {
         socket.emit("PnPFileError", error);
       }
     }),
-
     socket.on("getSettingSVG", async (id) => {
       try {
         const query = `SELECT DISTINCT  *
@@ -1191,13 +1286,11 @@ io.on("connection", (socket) => {
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("SettingSVGError", err);
           socket.emit("SettingSVGData", rows);
-
         });
       } catch (error) {
         socket.emit("SettingSVGError", error);
       }
     }),
-
     socket.on("getOrderTracking", async (id) => {
       try {
         const query = `SELECT 
@@ -1225,7 +1318,6 @@ io.on("connection", (socket) => {
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("OrderTrackingError", err);
           socket.emit("OrderTrackingData", rows);
-
         });
       } catch (error) {
         socket.emit("OrderTrackingError", error);
@@ -3432,7 +3524,7 @@ app.post("/api/PlanManufacture/Add", async (req, res) => {
       LevelCleaned,
       Quantity,
       ProjectID,
-      Name_Order
+      Name_Order,
     ],
     function (err) {
       if (err) {
@@ -3452,16 +3544,8 @@ app.post("/api/PlanManufacture/Add", async (req, res) => {
 // Router update item in PlanManufacture table
 app.put("/api/PlanManufacture/Edit/:id", async (req, res) => {
   const { id } = req.params;
-  const {
-    Name,
-    Date,
-    Creater,
-    Note,
-    Total,
-    DelaySMT,
-    Level,
-    Quantity
-  } = req.body;
+  const { Name, Date, Creater, Note, Total, DelaySMT, Level, Quantity } =
+    req.body;
   const LevelString = JSON.stringify(Level);
   const LevelCleaned = LevelString.replace(/[\[\]"]/g, "").replace(/,/g, "-");
   // Insert data into SQLite database
@@ -3479,17 +3563,7 @@ app.put("/api/PlanManufacture/Edit/:id", async (req, res) => {
     `;
   db.run(
     query,
-    [
-      Name,
-      Date,
-      Creater,
-      Note,
-      Total,
-      DelaySMT,
-      LevelCleaned,
-      Quantity,
-      id
-    ],
+    [Name, Date, Creater, Note, Total, DelaySMT, LevelCleaned, Quantity, id],
     function (err) {
       if (err) {
         return res
@@ -3505,10 +3579,7 @@ app.put("/api/PlanManufacture/Edit/:id", async (req, res) => {
 // Router update item in PlanManufacture table for setting SMT
 app.put("/api/PlanManufacture/Edit-Line/:id", async (req, res) => {
   const { id } = req.params;
-  const {
-    DelaySMT,
-    Quantity,
-  } = req.body;
+  const { DelaySMT, Quantity } = req.body;
   // Insert data into SQLite database
   const query = `
       UPDATE PlanManufacture 
@@ -3516,28 +3587,18 @@ app.put("/api/PlanManufacture/Edit-Line/:id", async (req, res) => {
           Quantity = ? 
       WHERE id = ?
     `;
-  db.run(
-    query,
-    [
-      DelaySMT,
-      Quantity,
-      id,
-    ],
-    function (err) {
-      if (err) {
-        return res
-          .status(500)
-          .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
-      }
-      io.emit("updateManufactureDetails", id);
-      io.emit("UpdateHistory");
-      io.emit("UpdateSummary");
-      res.json({ message: "Đã cập nhật dữ liệu dự án sản xuất thành công" });
+  db.run(query, [DelaySMT, Quantity, id], function (err) {
+    if (err) {
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
     }
-  );
+    io.emit("updateManufactureDetails", id);
+    io.emit("UpdateHistory");
+    io.emit("UpdateSummary");
+    res.json({ message: "Đã cập nhật dữ liệu dự án sản xuất thành công" });
+  });
 });
-
-
 
 // Router delete item in PlanManufacture table
 app.delete("/api/PlanManufacture/Delete/:id", async (req, res) => {
@@ -3662,8 +3723,8 @@ app.get("/api/get-config", (req, res) => {
 
   db.get(
     `SELECT * FROM configs
-     WHERE status = 'pending' AND line = ?
-     ORDER BY id ASC LIMIT 1`,
+     WHERE line = ?
+     ORDER BY id DESC LIMIT 1`,
     [line],
     (err, row) => {
       if (err) return res.status(500).json({ error: err.message });
@@ -3677,7 +3738,9 @@ app.get("/api/get-config", (req, res) => {
 app.post("/api/config-confirm", (req, res) => {
   const { project_id, plan_id, line } = req.body || {};
   if (!project_id || !plan_id || !line)
-    return res.status(400).json({ error: "project_id, plan_id và line là bắt buộc" });
+    return res
+      .status(400)
+      .json({ error: "project_id, plan_id và line là bắt buộc" });
 
   db.run(
     `UPDATE configs SET status='sent', sent_at=CURRENT_TIMESTAMP
@@ -3692,7 +3755,7 @@ app.post("/api/config-confirm", (req, res) => {
 
 app.post("/api/sensor", (req, res) => {
   const { project_id, input_value, source, plan_id } = req.body;
-  const Timestamp = Math.floor(Date.now() / 1000); 
+  const Timestamp = Math.floor(Date.now() / 1000);
   if (
     typeof project_id === "undefined" ||
     typeof input_value === "undefined" ||
@@ -3786,13 +3849,15 @@ app.post("/api/ManufactureCounting", (req, res) => {
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureCounting");
+      io.emit("UpdateHistoryFiltered", { PlanID, Type });
+      io.emit("UpdateManufactureSummary", { PlanID, Type });
       io.emit("updateManufactureDetails");
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
       io.emit("ActivedUpdate");
       io.emit("updateDetailProjectPO");
-      
+
       res.json({ message: "ManufactureCounting received" });
     }
   );
@@ -3817,7 +3882,6 @@ app.put("/api/ManufactureCounting/Edit-status-fixed/:id", (req, res) => {
   );
 });
 
-
 app.delete("/api/ManufactureCounting/Delete-item-history/:id", (req, res) => {
   const { id } = req.params;
   const query = `
@@ -3831,6 +3895,51 @@ app.delete("/api/ManufactureCounting/Delete-item-history/:id", (req, res) => {
         .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
     }
     io.emit("UpdateManufactureCounting");
+    io.emit("updateManufactureDetails");
+    io.emit("updateHistoryPart");
+    io.emit("ActivedUpdate");
+    res.json({ message: "Đã xoá dữ liệu sản xuất thành công" });
+  });
+});
+
+// Update value status fixed in ManufactureCounting table
+app.put("/api/ManufactureCounting/Edit-status-rw/:id", (req, res) => {
+  const { id } = req.params;
+  const { Note_RW } = req.body;
+  const Timestamp = Math.floor(Date.now() / 1000);
+  db.run(
+    `UPDATE ManufactureCounting
+      SET RWID = 'Done', 
+      TimestampRW = ?,
+      Note_RW = ?
+    WHERE id=?`,
+    [Timestamp, Note_RW, id],
+    (err) => {
+      if (err) return res.status(500).json({ error: "Database error" });
+      io.emit("UpdateManufactureCounting");
+      io.emit("UpdateManufactureRW");
+      io.emit("updateManufactureDetails");
+      io.emit("UpdateSummary");
+      io.emit("UpdateHistory");
+      res.json({ message: "Summary received" });
+    }
+  );
+});
+
+// Delete item history in ManufactureSMT
+app.delete("/api/ManufactureSMT/Delete-item-history/:id", (req, res) => {
+  const { id } = req.params;
+  const query = `
+    DELETE FROM ManufactureSMT
+    WHERE id = ?
+  `;
+  db.run(query, [id], function (err) {
+    if (err) {
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
+    }
+    io.emit("UpdateManufactureSMT");
     io.emit("updateManufactureDetails");
     io.emit("updateHistoryPart");
     io.emit("ActivedUpdate");
@@ -3915,7 +4024,7 @@ app.post("/api/Summary/Add-item", (req, res) => {
       CycleTime_Plan,
       Time_Plan,
       Note,
-      Timestamp
+      Timestamp,
     ],
     (err) => {
       if (err) {
@@ -3926,6 +4035,8 @@ app.post("/api/Summary/Add-item", (req, res) => {
       }
       io.emit("UpdateSummary");
       io.emit("UpdateHistory");
+      io.emit("UpdateHistoryFiltered", { PlanID, Type });
+      io.emit("UpdateManufactureSummary", { PlanID, Type });
       res.json({ message: "Summary received" });
     }
   );
@@ -3990,7 +4101,6 @@ app.delete("/api/Summary/Delete-item/:id", async (req, res) => {
     res.json({ message: "Đã xoá dữ liệu bảo trì định kỳ thành công" });
   });
 });
-
 
 // Bom , Pick&Place table
 
@@ -4130,7 +4240,7 @@ app.post(
       stmt.finalize();
       io.emit("CombineBomUpdate");
       fs.unlinkSync(filePath);
-      
+
       res.json({
         message: "BOM uploaded & formatted successfully, duplicates removed",
       });
@@ -4144,89 +4254,89 @@ app.post(
 const XLSX = require("xlsx");
 
 // Router post item in Pick & Place table
-app.post("/api/upload-pickplace/:id", upload.single("FilePnP"), async (req, res) => {
-  const { id } = req.params;
+app.post(
+  "/api/upload-pickplace/:id",
+  upload.single("FilePnP"),
+  async (req, res) => {
+    const { id } = req.params;
 
-  try {
-    const ppFile = req.file;
-    if (!ppFile) {
-      return res.status(400).json({ error: "Thiếu file Pick&Place" });
-    }
+    try {
+      const ppFile = req.file;
+      if (!ppFile) {
+        return res.status(400).json({ error: "Thiếu file Pick&Place" });
+      }
 
-    // --- 1️⃣ Đọc file Excel
-    const workbook = xlsx.readFile(ppFile.path);
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    const ppData = xlsx.utils.sheet_to_json(sheet, {
-      defval: "",
-      raw: false,
-      blankrows: false,
-    });
-
-    // --- 2️⃣ Chuyển đổi và lọc dữ liệu
-    const uniqueRows = [];
-    const seenRefs = new Set();
-    for (const row of ppData) {
-      const designator = (row.Ref || row.Designator)?.trim();
-      if (!designator || seenRefs.has(designator)) continue;
-      seenRefs.add(designator);
-
-      uniqueRows.push({
-        designator,
-        layer: row.Side || row.Layer || "",
-        posX: parseFloat(row.PosX || 0),
-        posY: parseFloat(row.PosY || 0),
-        rotation: parseFloat(row.Rotation || 0),
-        project_id: id,
+      // --- 1️⃣ Đọc file Excel
+      const workbook = xlsx.readFile(ppFile.path);
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const ppData = xlsx.utils.sheet_to_json(sheet, {
+        defval: "",
+        raw: false,
+        blankrows: false,
       });
-    }
 
-    // --- 3️⃣ Chèn dữ liệu vào SQLite và CHỜ hoàn tất
-    await new Promise((resolve, reject) => {
-      db.serialize(() => {
-        const stmt = db.prepare(`
+      // --- 2️⃣ Chuyển đổi và lọc dữ liệu
+      const uniqueRows = [];
+      const seenRefs = new Set();
+      for (const row of ppData) {
+        const designator = (row.Ref || row.Designator)?.trim();
+        if (!designator || seenRefs.has(designator)) continue;
+        seenRefs.add(designator);
+
+        uniqueRows.push({
+          designator,
+          layer: row.Side || row.Layer || "",
+          posX: parseFloat(row.PosX || 0),
+          posY: parseFloat(row.PosY || 0),
+          rotation: parseFloat(row.Rotation || 0),
+          project_id: id,
+        });
+      }
+
+      // --- 3️⃣ Chèn dữ liệu vào SQLite và CHỜ hoàn tất
+      await new Promise((resolve, reject) => {
+        db.serialize(() => {
+          const stmt = db.prepare(`
           INSERT INTO Pickplace (designator, layer, x, y, rotation, project_id, type)
           VALUES (?, ?, ?, ?, ?, ?, 'SMT')
         `);
 
-        for (const r of uniqueRows) {
-          stmt.run(
-            r.designator,
-            r.layer,
-            r.posX,
-            r.posY,
-            r.rotation,
-            r.project_id
-          );
-        }
+          for (const r of uniqueRows) {
+            stmt.run(
+              r.designator,
+              r.layer,
+              r.posX,
+              r.posY,
+              r.rotation,
+              r.project_id
+            );
+          }
 
-        stmt.finalize((err) => {
-          if (err) reject(err);
-          else resolve();
+          stmt.finalize((err) => {
+            if (err) reject(err);
+            else resolve();
+          });
         });
       });
-    });
 
-    // --- 4️⃣ Xóa file tạm
-    fs.unlinkSync(ppFile.path);
+      // --- 4️⃣ Xóa file tạm
+      fs.unlinkSync(ppFile.path);
 
-    // --- 5️⃣ Emit chỉ sau khi DB insert hoàn tất
-    io.emit("CombineBomUpdate", { project_id: id });
+      // --- 5️⃣ Emit chỉ sau khi DB insert hoàn tất
+      io.emit("CombineBomUpdate", { project_id: id });
 
-    // --- 6️⃣ Gửi phản hồi
-    res.json({
-      message: "Pick&Place đã upload & lưu thành công (Excel, mils → mm)",
-      inserted: uniqueRows.length,
-    });
-
-  } catch (error) {
-    console.error("Lỗi xử lý Pick&Place:", error);
-    res.status(500).json({ error: "Lỗi xử lý file Pick&Place (Excel)" });
+      // --- 6️⃣ Gửi phản hồi
+      res.json({
+        message: "Pick&Place đã upload & lưu thành công (Excel, mils → mm)",
+        inserted: uniqueRows.length,
+      });
+    } catch (error) {
+      console.error("Lỗi xử lý Pick&Place:", error);
+      res.status(500).json({ error: "Lỗi xử lý file Pick&Place (Excel)" });
+    }
   }
-});
-
-
-
+);
 
 // Detect layer by file extension
 function detectLayer(filename) {
@@ -4302,8 +4412,8 @@ app.post("/api/upload-gerber/:id", upload.single("FileGerber"), (req, res) => {
             format,
             svg: svgData,
           });
-          io.emit("CombineBomUpdate", { project_id: projectId});
-          io.emit("GerberFileUpdate", { project_id: projectId});
+          io.emit("CombineBomUpdate", { project_id: projectId });
+          io.emit("GerberFileUpdate", { project_id: projectId });
           io.emit("PnPFileUpdate");
           res.json({ id: this.lastID, layer, unit, format });
         }
@@ -4369,16 +4479,19 @@ app.put("/api/PickPlace/Update-item", (req, res) => {
   `);
 
   db.serialize(() => {
-    updates.forEach(item => {
+    updates.forEach((item) => {
       stmt.run(item.x, item.y, item.id, item.project_id);
     });
 
-    stmt.finalize(err => {
+    stmt.finalize((err) => {
       if (err) {
         console.error("Update error:", err);
         return res.status(500).json({ error: "Lỗi khi update" });
       }
-      res.json({ message: "Update Pickplace thành công", count: updates.length });
+      res.json({
+        message: "Update Pickplace thành công",
+        count: updates.length,
+      });
     });
   });
 });
@@ -4386,7 +4499,21 @@ app.put("/api/PickPlace/Update-item", (req, res) => {
 // Put value in table SettingSVG table
 app.put("/api/SettingSVG/Edit-item-top/:id", (req, res) => {
   const { id } = req.params;
-  const { cx, cy, rotation, rotationSVG, manualOffsetX, manualOffsetY, flipX, flipY, swapXY, labelAngle, componentBodyAngle, panelFrameX, panelFrameY } = req.body;
+  const {
+    cx,
+    cy,
+    rotation,
+    rotationSVG,
+    manualOffsetX,
+    manualOffsetY,
+    flipX,
+    flipY,
+    swapXY,
+    labelAngle,
+    componentBodyAngle,
+    panelFrameX,
+    panelFrameY,
+  } = req.body;
   db.run(
     `UPDATE FilterBom
     SET 
@@ -4404,7 +4531,22 @@ app.put("/api/SettingSVG/Edit-item-top/:id", (req, res) => {
       panel_frame_X = ?,
       panel_frame_Y = ?
     WHERE id = ?`,
-    [flipX, flipY, swapXY, cx, cy, rotation, rotationSVG, manualOffsetX, manualOffsetY, labelAngle, componentBodyAngle, panelFrameX, panelFrameY, id],
+    [
+      flipX,
+      flipY,
+      swapXY,
+      cx,
+      cy,
+      rotation,
+      rotationSVG,
+      manualOffsetX,
+      manualOffsetY,
+      labelAngle,
+      componentBodyAngle,
+      panelFrameX,
+      panelFrameY,
+      id,
+    ],
     (err) => {
       if (err) {
         console.error("Database error:", err);
@@ -4422,7 +4564,21 @@ app.put("/api/SettingSVG/Edit-item-top/:id", (req, res) => {
 
 app.put("/api/SettingSVG/Edit-item-bottom/:id", (req, res) => {
   const { id } = req.params;
-  const { cx, cy, rotation, rotationSVG, manualOffsetX, manualOffsetY, flipX, flipY, swapXY, labelAngle, componentBodyAngle, panelFrameX, panelFrameY } = req.body;
+  const {
+    cx,
+    cy,
+    rotation,
+    rotationSVG,
+    manualOffsetX,
+    manualOffsetY,
+    flipX,
+    flipY,
+    swapXY,
+    labelAngle,
+    componentBodyAngle,
+    panelFrameX,
+    panelFrameY,
+  } = req.body;
   db.run(
     `UPDATE FilterBom
     SET 
@@ -4440,7 +4596,22 @@ app.put("/api/SettingSVG/Edit-item-bottom/:id", (req, res) => {
       panel_frame_X = ?,
       panel_frame_Y = ?
     WHERE id = ?`,
-    [flipX, flipY, swapXY, cx, cy, rotation, rotationSVG, manualOffsetX, manualOffsetY, labelAngle, componentBodyAngle, panelFrameX, panelFrameY, id],
+    [
+      flipX,
+      flipY,
+      swapXY,
+      cx,
+      cy,
+      rotation,
+      rotationSVG,
+      manualOffsetX,
+      manualOffsetY,
+      labelAngle,
+      componentBodyAngle,
+      panelFrameX,
+      panelFrameY,
+      id,
+    ],
     (err) => {
       if (err) {
         console.error("Database error:", err);
@@ -4536,9 +4707,6 @@ app.put("/api/Component/Edit-item/:id", (req, res) => {
     }
   );
 });
-
-
-
 
 // Serve static files from frontend/dist
 app.use(express.static(path.join(__dirname, "../frontend/dist")));

@@ -263,7 +263,7 @@
               'Tẩm phủ',
               'OQC',
               'RW',
-              'Nhập kho',
+              'Thành phẩm',
             ]"
             multiple
             chips
@@ -654,7 +654,7 @@ function GetItem(value) {
     'Tẩm phủ',
     'OQC',
     'RW',
-    'Nhập kho',
+    'Thành phẩm',
   ];
   
   const customProcesses = levelArray.filter(process => !standardProcesses.includes(process));
@@ -666,24 +666,41 @@ function GetItem(value) {
   Note_Edit.value = found.Note;
   DelaySMT_Edit.value = found.DelaySMT;
   Quantity_Edit.value = found.Quantity;
-  Quantity_IPQCSMT_Edit.value = found.Quantity_IPQCSMT;
-  Quantity_IPQC_Edit.value = found.Quantity_IPQC;
-  Quantity_AOI_Edit.value = found.Quantity_AOI;
-  Quantity_Assembly_Edit.value = found.Quantity_Assembly;
-  Quantity_BoxBuild_Edit.value = found.Quantity_BoxBuild;
-  Quantity_Test1_Edit.value = found.Quantity_Test1;
-  Quantity_Test2_Edit.value = found.Quantity_Test2;
-  Quantity_ConformalCoating_Edit.value = found.Quantity_ConformalCoating;
-  Quantity_OQC_Edit.value = found.Quantity_OQC;
 }
 
 // Hàm lưu thông tin chỉnh sửa
 const SaveEdit = async () => {
   DialogLoading.value = true;
-  
-  // Kết hợp quy trình chuẩn và quy trình tùy chỉnh
-  const allProcesses = [...(Level_Edit.value || []), ...customProcessListEdit.value];
-  const levelString = allProcesses.join("-");
+
+  // ✅ Quy tắc ưu tiên
+  const processPriority = {
+    SMT: 1,
+    RW: 99,
+    "Thành phẩm": 100,
+  };
+
+  // ✅ allProcesses là dữ liệu thực tế người dùng chọn và chỉnh sửa
+  const allProcesses = [
+    ...(Array.isArray(Level_Edit.value) ? Level_Edit.value : []),
+    ...(Array.isArray(customProcessListEdit.value) ? customProcessListEdit.value : []),
+  ];
+
+  // ✅ loại bỏ khoảng trắng và phần tử rỗng
+  const cleaned = allProcesses.map(p => p.trim()).filter(p => p);
+
+  // ✅ loại trùng
+  const uniqueLevels = [...new Set(cleaned)];
+
+  // ✅ Sắp xếp theo ưu tiên
+  const sortedLevels = uniqueLevels.sort((a, b) => {
+    const pa = processPriority[a] ?? 50;
+    const pb = processPriority[b] ?? 50;
+    return pa - pb;
+  });
+
+  // ✅ Convert về string để lưu DB
+  const levelString = sortedLevels.join("-");
+
   const formData = reactive({
     Name: Name_Edit.value,
     Date: dateStringToUnix(Date_Edit.value),
@@ -691,49 +708,79 @@ const SaveEdit = async () => {
     Note: Note_Edit.value,
     Total: Total_Edit.value,
     DelaySMT: DelaySMT_Edit.value,
-    Level: levelString,
-    Quantity: Quantity_Edit.value
+    Level: levelString, // ✅ Dùng giá trị mới đã sắp xếp
+    Quantity: Quantity_Edit.value,
   });
+
   try {
-    const response = await axios.put(
-      `${Url}/PlanManufacture/Edit/${GetID.value}`,
-      formData
-    );
+    const response = await axios.put(`${Url}/PlanManufacture/Edit/${GetID.value}`, formData);
     MessageDialog.value = response.data.message;
     Reset();
   } catch (error) {
-    console.log(error);
-    MessageErrorDialog.value = error.response.data.message;
+    MessageErrorDialog.value = error.response?.data?.message || "Có lỗi xảy ra!";
     Error();
+  } finally {
+    DialogLoading.value = false;
   }
 };
+
 
 // Hàm lưu thông tin thêm mới
 const SaveAdd = async () => {
   DialogLoading.value = true;
-  const formData = reactive({
+
+  // ✅ Quy tắc sắp xếp ưu tiên
+  const processPriority = {
+    SMT: 1,
+    RW: 99,
+    "Thành phẩm": 100,
+  };
+
+  // ✅ Gom các quy trình người dùng đã chọn
+  const mergedLevels = [
+    ...(Array.isArray(Level_Manufacture_Add.value) ? Level_Manufacture_Add.value : []),
+    ...(Array.isArray(customProcessList.value) ? customProcessList.value : []),
+  ];
+
+  // ✅ Loại bỏ trùng lặp
+  const uniqueLevels = [...new Set(mergedLevels)];
+
+  // ✅ Sắp xếp theo ưu tiên
+  const sortedLevels = uniqueLevels.sort((a, b) => {
+    const pa = processPriority[a] ?? 50; // mặc định priority trung bình
+    const pb = processPriority[b] ?? 50;
+    if (pa === pb) {
+      // Nếu cùng priority → giữ nguyên thứ tự gốc
+      return mergedLevels.indexOf(a) - mergedLevels.indexOf(b);
+    }
+    return pa - pb;
+  });
+
+  const formData = {
     Name: Name_Manufacture_Add.value,
     Name_Order: Name_Order_Manufacture.value,
-    Date: Date_Manufacture_Add,
+    Date: Date_Manufacture_Add.value,
     Total: Total_Manufacture_Add.value,
     Note: Note_Manufacture_Add.value,
     Creater: UserInfo.value,
-    DelaySMT: 5000,
+    DelaySMT: 10000,
     Quantity: 1,
-    Level: Level_Manufacture_Add.value,
+    Level: sortedLevels, // ✅ ĐÃ SẮP XẾP
     ProjectID: 1,
-  });
+  };
+
   try {
     const response = await axios.post(`${Url}/PlanManufacture/Add`, formData);
-    console.log(response.data);
     MessageDialog.value = "Đã thêm dữ liệu thành công";
     Reset();
   } catch (error) {
-    console.log(error);
     MessageErrorDialog.value = "Thêm dữ liệu thất bại";
     Error();
+  } finally {
+    DialogLoading.value = false;
   }
 };
+
 
 // Hàm xóa item
 const RemoveItem = async () => {
@@ -742,11 +789,9 @@ const RemoveItem = async () => {
     const response = await axios.delete(
       `${Url}/PlanManufacture/Delete/${GetID.value}`
     );
-    console.log(response.data.message);
     MessageDialog.value = response.data.message;
     Reset();
   } catch (error) {
-    console.log(error);
     MessageErrorDialog.value = error.response.data.message;
     Error();
   }

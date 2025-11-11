@@ -216,7 +216,7 @@
               <div class="text-primary">{{ item.TimestampRW }}</div>
             </template>
             <template #item.Note="{ item }">
-              <div style="white-space: pre-line">{{ item.Note }}</div>
+              <div style="white-space: pre-line" class="text-error">{{ item.Note }}</div>
             </template>
             <template #item.id="{ item }">
               <v-btn

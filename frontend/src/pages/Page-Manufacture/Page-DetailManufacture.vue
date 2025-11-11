@@ -44,7 +44,11 @@
                 <div class="text-h4 font-weight-bold">
                   {{ totalOutput }}
                 </div>
-                <v-progress-linear v-model="PercentOutput" height="20" class="rounded-lg">
+                <v-progress-linear
+                  v-model="PercentOutput"
+                  height="20"
+                  class="rounded-lg"
+                >
                   <strong class="text-black">{{ PercentOutput }}%</strong>
                 </v-progress-linear>
               </v-card-text>
@@ -57,281 +61,365 @@
                 <div class="text-h4 font-weight-bold">
                   {{ totalError }}
                 </div>
-                <v-progress-linear v-model="PercentError" height="20" class="rounded-lg">
+                <v-progress-linear
+                  v-model="PercentError"
+                  height="20"
+                  class="rounded-lg"
+                >
                   <strong class="text-black">{{ PercentError }}%</strong>
                 </v-progress-linear>
               </v-card-text>
             </v-card>
           </v-col>
         </v-row>
+        <div class="d-flex align-center justify-start flex-wrap">
+          <template v-for="(card, index) in manufactureSummary" :key="card.id">
+            <ProcessCard
+              :title="card.Type"
+              :pass="
+                Number.parseFloat(
+                  (card.Quantity_Pass / totalInput) * 100
+                ).toFixed(1) + '%'
+              "
+              :fail="
+                Number.parseFloat(
+                  (card.Quantity_Fail / totalInput) * 100
+                ).toFixed(1) + '%'
+              "
+              color="success"
+              :is-selected="selectedTitle === card.Type"
+              @card-click="selectCard"
+              @toggle-bottleneck="toggleBottleneck"
+              class="mb-4"
+            />
 
-        <!-- SMT Cards Grouped with Title and Vertical Dividers -->
-        <v-row v-if="Level_SMT" class="mb-6 align-center">
-          <v-col cols="12">
-            <v-card class="rounded-lg">
-              <v-card-title
-                class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
-              >
-                SMT Line 1
-              </v-card-title>
-              <v-card-text class="pa-4">
-                <div
-                  class="d-flex align-center flex-wrap-sm-nowrap flex-column flex-sm-row"
-                >
-                  <div
-                    class="flex-grow-1 d-flex flex-column align-center mb-4 mb-sm-0"
-                  >
-                    <div class="text-h6 font-weight-bold mb-2">Printer G5</div>
-                    <div class="text-h4 font-weight-bold mb-2">
-                      <span class="text-primary">{{ totalInput }}</span> /
-                      <span class="text-success">{{ totalSMT_1 }}</span>
-                    </div>
-                    <v-progress-circular
-                      :model-value="(totalSMT_1 / totalInput) * 100"
-                      color="primary"
-                      size="48"
-                    >
-                      {{ Math.round((totalSMT_1 / totalInput) * 100) }}%
-                    </v-progress-circular>
-                    <div class="text-caption text-medium-emphasis mt-2">
-                      Tổng số lượng SMT (Printer)
-                    </div>
-                  </div>
-                  <v-divider
-                    vertical
-                    class="mx-0 d-none d-sm-flex"
-                    style="height: 120px"
-                  ></v-divider>
-                  <div class="flex-grow-1 d-flex flex-column align-center">
-                    <div class="text-h6 font-weight-bold mb-2">
-                      Gắp linh kiện Juki
-                    </div>
-                    <div class="text-h4 font-weight-bold mb-2">
-                      <span class="text-primary">{{ totalInput }}</span> /
-                      <span class="text-success">{{ totalSMT_2 }}</span>
-                    </div>
-                    <v-progress-circular
-                      :model-value="(totalSMT_2 / totalInput) * 100"
-                      color="primary"
-                      size="48"
-                    >
-                      {{ Math.round((totalSMT_2 / totalInput) * 100) }}%
-                    </v-progress-circular>
-                    <div class="text-caption text-medium-emphasis mt-2">
-                      Tổng số lượng SMT (Gắp linh kiện)
-                    </div>
-                  </div>
-                </div>
-              </v-card-text>
-            </v-card>
-          </v-col>
-        </v-row>
-
-        <v-row v-if="Level_SMT" class="mb-6 align-center">
-          <v-col cols="12">
-            <v-card class="rounded-lg">
-              <v-card-title
-                class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
-              >
-                SMT Line 2
-              </v-card-title>
-              <v-card-text class="pa-4">
-                <div
-                  class="d-flex align-center flex-wrap-sm-nowrap flex-column flex-sm-row"
-                >
-                  <div
-                    class="flex-grow-1 d-flex flex-column align-center mb-4 mb-sm-0"
-                  >
-                    <div class="text-h6 font-weight-bold mb-2">
-                      Gắp linh kiện Topaz
-                    </div>
-                    <div class="text-h4 font-weight-bold mb-2">
-                      <span class="text-primary">{{ totalInput }}</span> /
-                      <span class="text-success">{{ totalSMT_3 }}</span>
-                    </div>
-                    <v-progress-circular
-                      :model-value="(totalSMT_3 / totalInput) * 100"
-                      color="primary"
-                      size="48"
-                    >
-                      {{ Math.round((totalSMT_3 / totalInput) * 100) }}%
-                    </v-progress-circular>
-                    <div class="text-caption text-medium-emphasis mt-2">
-                      Tổng số lượng SMT (Gắp linh kiện máy Topaz)
-                    </div>
-                  </div>
-                  <v-divider
-                    vertical
-                    class="mx-0 d-none d-sm-flex"
-                    style="height: 120px"
-                  ></v-divider>
-                  <div class="flex-grow-1 d-flex flex-column align-center">
-                    <div class="text-h6 font-weight-bold mb-2">
-                      Gắp linh kiện Yahmaha
-                    </div>
-                    <div class="text-h4 font-weight-bold mb-2">
-                      <span class="text-primary">{{ totalInput }}</span> /
-                      <span class="text-success">{{ totalSMT_4 }}</span>
-                    </div>
-                    <v-progress-circular
-                      :model-value="(totalSMT_4 / totalInput) * 100"
-                      color="primary"
-                      size="48"
-                    >
-                      {{ Math.round((totalSMT_4 / totalInput) * 100) }}%
-                    </v-progress-circular>
-                    <div class="text-caption text-medium-emphasis mt-2">
-                      Tổng số lượng SMT (Gắp linh kiện Yahmaha)
-                    </div>
-                  </div>
-                </div>
-              </v-card-text>
-            </v-card>
-          </v-col>
-        </v-row>
-        <!-- End SMT Cards Group -->
-
-        <!-- Process Cards Grid (Dynamic from DataManufacture) -->
-        <v-row class="mb-6">
-          <v-col
-            v-for="card in dynamicProcessCards"
-            :key="card.key"
-            cols="12"
-            sm="6"
-            md="4"
-          >
-            <v-card class="h-100" rounded="lg">
-              <v-card-title
-                class="d-flex align-center pa-4 bg-grey-lighten-2 text-primary rounded-t-lg"
-              >
-                {{ card.title }}
-              </v-card-title>
-              <v-card-text class="pa-4">
-                <div class="d-flex justify-space-between align-center mb-4">
-                  <div class="text-h4 font-weight-bold">
-                    <span class="text-primary">{{ totalInput }}</span>
-                    <span v-if="card.ok !== null"> / </span>
-                    <span class="text-success" v-if="card.ok !== null">{{ card.ok }}</span>
-                    <template v-if="card.error !== null">
-                      <span> / </span>
-                      <span class="text-error">{{ card.error }}</span>
-                    </template>
-                  </div>
-                  <v-progress-circular
-                    :model-value="card.progress"
-                    color="primary"
-                    size="48"
-                  >
-                    {{ Math.round(card.progress) }}%
-                  </v-progress-circular>
-                </div>
-                <div class="text-caption text-medium-emphasis">
-                  Tổng số lượng {{ card.title }}
-                </div>
-              </v-card-text>
-            </v-card>
-          </v-col>
-        </v-row>
-
-        <!-- Data Table Section -->
-        <v-card class="rounded-lg" elevation="2">
-          <v-data-table-virtual
-            :headers="HeadersHistory"
-            :items="history"
-            :group-by="[{ key: 'Type' }]"
-            fixed-header
-            class="elevation-0"
-          >
-            <template v-slot:top>
-              <v-toolbar flat dense class="rounded-t-lg">
-                <v-toolbar-title class="d-flex align-center">
-                  <v-icon
-                    color="primary"
-                    icon="mdi-book-multiple"
-                    size="small"
-                    class="me-2"
-                  ></v-icon>
-                  <span class="text-h6">Kế hoạch sản xuất</span>
-                </v-toolbar-title>
-
-                <v-spacer></v-spacer>
-
-                <ButtonAdd
-                  label="Thêm"
-                  class="mr-2"
-                  @click="DialogAdd = true"
-                />
-              </v-toolbar>
-            </template>
-
-            <template
-              v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }"
+            <div
+              v-if="index < manufactureSummary.length - 1"
+              class="flow-arrow mx-4"
             >
-              <tr>
-                <td :colspan="columns.length">
-                  <v-btn
-                    variant="text"
-                    :icon="isGroupOpen ? 'mdi-chevron-down' : 'mdi-chevron-up'"
-                    @click="toggleGroup(item)"
-                    class="me-2"
-                  ></v-btn>
-                  <span class="font-weight-bold text-primary">{{
-                    item.value
-                  }}</span>
-                </td>
-              </tr>
-            </template>
+              →
+            </div>
+          </template>
+        </div>
+        <v-card v-show="Detail_Popup_Card">
+          <v-card-title
+            class="d-flex align-center pa-4 bg-grey-lighten-2 rounded-t-lg"
+          >
+            <v-icon
+              icon="mdi-information"
+              color="primary"
+              class="me-2"
+            ></v-icon>
+            Chi tiết công đoạn sản xuất
+          </v-card-title>
+          <v-card-text>
+            <v-row>
+              <v-col cols="3">
+                <v-card variant="text">
+                  <v-card-title
+                    ><h1 class="text-bold font-italic">
+                      {{ Quantity_Detail_Title }}
+                    </h1></v-card-title
+                  >
+                  <v-divider width="200px"></v-divider>
+                  <v-card-text>
+                    <div class="d-flex">
+                      <h1 class="text-success">Pass:</h1>
+                      <h1 class="ms-2 font-weight-light">
+                        {{ Quantity_Detail_Pass }} pcs
+                      </h1>
+                    </div>
+                    <div class="d-flex">
+                      <h1 class="text-error">Fail:</h1>
+                      <h1 class="ms-2 font-weight-light">
+                        {{ Quantity_Detail_Fail }} pcs
+                      </h1>
+                    </div>
+                    <div class="d-flex">
+                      <h1 class="text-info">Fixed:</h1>
+                      <h1 class="ms-2 font-weight-light">
+                        {{ Quantity_Detail_Fixed }} pcs
+                      </h1>
+                    </div>
+                    <div class="d-flex">
+                      <h1 class="text-warning">Remain:</h1>
+                      <h1 class="ms-2 font-weight-light">
+                        {{ Quantity_Detail_Remain }} pcs
+                      </h1>
+                    </div>
+                  </v-card-text>
+                </v-card>
+              </v-col>
+              <v-col cols="3">
+                <v-pie
+                  title="Biểu đồ phần trăm %"
+                  animation
+                  legend
+                  tooltip
+                  reveal
+                  :palette="['#048BA8', '#99C24D', '#ffa600']"
+                  :items="VPieData"
+                />
+                <div class="h-0">
+                  <svg
+                    height="0"
+                    version="1.1"
+                    width="0"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <defs>
+                      <pattern
+                        id="pattern-0"
+                        height="20"
+                        patternTransform="rotate(145) scale(.2)"
+                        patternUnits="userSpaceOnUse"
+                        width="20"
+                      >
+                        <path
+                          d="M0 10h20zm0 20h20zm0 20h20zm0 20h20z"
+                          fill="none"
+                          stroke="rgb(var(--v-theme-surface))"
+                          stroke-width="3"
+                        />
+                      </pattern>
+                    </defs>
+                  </svg>
+                </div>
+              </v-col>
+              <v-col cols="6">
+                <v-card variant="text" title="Danh sách hàng lỗi">
+                  <v-data-table
+                    :headers="HeadersHistoryPartError"
+                    :items="manufactureRW"
+                    fixed-header
+                    v-model:page="pageRW"
+                    v-model:items-per-page="itemsPerPageRW"
+                    class="elevation-0"
+                    :footer-props="{
+                      'items-per-page-options': [10, 20, 50, 100],
+                      'items-per-page-text': 'Số hàng mỗi trang',
+                    }"
+                    :header-props="{
+                      sortByText: 'Sắp xếp theo',
+                      sortDescText: 'Giảm dần',
+                      sortAscText: 'Tăng dần',
+                    }"
+                    :loading="DialogLoading"
+                    loading-text="Đang tải dữ liệu..."
+                    no-data-text="Không có dữ liệu"
+                    no-results-text="Không tìm thấy kết quả"
+                    :hover="true"
+                    :dense="false"
+                    :fixed-header="true"
+                  >
+                    <template v-slot:item.stt="{ index }">
+                      {{ (page - 1) * itemsPerPage + index + 1 }}
+                    </template>
+                    <template #[`item.Status`]="{ item }">
+                      <v-chip
+                        :color="
+                          item.Status === 'fail'
+                            ? 'warning'
+                            : item.Status === 'fixed'
+                            ? 'info'
+                            : 'success'
+                        "
+                        size="small"
+                        variant="tonal"
+                      >
+                        {{
+                          item.Status === "fail"
+                            ? "Fail"
+                            : item.Status === "fixed"
+                            ? "Fixed"
+                            : "Pass"
+                        }}
+                      </v-chip>
+                      <v-chip
+                        class="ms-2"
+                        size="small"
+                        color="info"
+                        variant="tonal"
+                        v-if="item.Note"
+                        >Fixed</v-chip
+                      >
+                    </template>
+                    <template #[`item.PartNumber`]="{ item }">
+                      <p v-if="item.PartNumber == 1">{{ NameOrder }}</p>
+                      <p v-else>{{ item.PartNumber }}</p>
+                    </template>
+                    <template #[`item.RWID`]="{ item }">
+                      <v-chip color="success" variant="tonal" v-if="item.RWID">
+                        <v-icon>mdi-check</v-icon>
+                      </v-chip>
+                      <v-chip v-else variant="tonal" color="error">
+                        <v-icon>mdi-alert</v-icon>
+                      </v-chip>
+                    </template>
+                    <template #item.Note="{ item }">
+                      <div style="white-space: pre-line" class="text-error">
+                        {{ item.Note }}
+                      </div>
+                    </template>
+                    <template #item.id="{ item }">
+                      <v-btn
+                        size="small"
+                        variant="text"
+                        color="error"
+                        icon="mdi-trash-can"
+                        @click="GetItemHistory(item)"
+                      ></v-btn>
+                    </template>
+                    <template #[`bottom`]>
+                      <div class="text-center pt-2">
+                        <v-pagination
+                          v-model="pageRW"
+                          :length="
+                            Math.ceil(manufactureRW.length / itemsPerPageRW)
+                          "
+                        ></v-pagination>
+                      </div>
+                    </template>
+                  </v-data-table>
+                </v-card>
+              </v-col>
+              <v-divider class="my-5"></v-divider>
+              <v-col cols="12">
+                <v-data-table
+                  :headers="HeadersHistory"
+                  :items="history"
+                  fixed-header
+                  loading-text="Đang tải dữ liệu..."
+                  no-data-text="Không có dữ liệu"
+                  no-results-text="Không tìm thấy kết quả"
+                  class="elevation-0"
+                  v-model:page="pageDetail"
+                  v-model:items-per-page="itemsPerPageDetail"
+                >
+                  <template v-slot:top>
+                    <v-toolbar flat dense class="rounded-t-lg" color="white">
+                      <v-toolbar-title class="d-flex align-center">
+                        <v-icon
+                          color="primary"
+                          icon="mdi-book-multiple"
+                          size="small"
+                          class="me-2"
+                        ></v-icon>
+                        <span class="text-h6">Kế hoạch sản xuất</span>
+                      </v-toolbar-title>
 
-            <template #[`item.id`]="{ item }">
-              <div class="d-flex gap-2">
-                <ButtonEye @click="PushItem(item)" />
-                <ButtonEdit @click="GetItem(item)" />
-              </div>
-            </template>
+                      <v-spacer></v-spacer>
 
-            <template #[`item.Category`]="{ item }">
-              {{ item.Category }}
-              <v-chip
-                v-if="item?.Line_SMT"
-                :color="item.Line_SMT === 'Line 1' ? 'brown' : 'deep-orange'"
-                size="small"
-                variant="tonal"
-                class="ms-2"
-              >
-                {{ item.Line_SMT }}
-              </v-chip>
-            </template>
+                      <ButtonAdd
+                        label="Thêm"
+                        class="mr-2"
+                        @click="DialogAdd = true"
+                      />
+                    </v-toolbar>
+                  </template>
 
-            <template #[`item.Quantity_Plan`]="{ item }">
-              <v-chip color="primary" variant="tonal">{{
-                item.Quantity_Plan
-              }}</v-chip>
-            </template>
+                  <template
+                    v-slot:group-header="{
+                      item,
+                      columns,
+                      toggleGroup,
+                      isGroupOpen,
+                    }"
+                  >
+                    <tr>
+                      <td :colspan="columns.length">
+                        <v-btn
+                          variant="text"
+                          :icon="
+                            isGroupOpen ? 'mdi-chevron-down' : 'mdi-chevron-up'
+                          "
+                          @click="toggleGroup(item)"
+                          class="me-2"
+                        ></v-btn>
+                        <span class="font-weight-bold text-primary">{{
+                          item.value
+                        }}</span>
+                      </td>
+                    </tr>
+                  </template>
 
-            <template #[`item.Quantity_Real`]="{ item }">
-              <v-chip color="success" variant="tonal">{{
-                item.Quantity_Real
-              }}</v-chip>
-            </template>
+                  <template #[`item.id`]="{ item }">
+                    <div class="d-flex gap-2">
+                      <ButtonEye @click="PushItem(item)" />
+                      <ButtonEdit @click="GetItem(item)" />
+                    </div>
+                  </template>
 
-            <template #[`item.Quantity_Error`]="{ item }">
-              <v-chip color="warning" variant="tonal">{{
-                item.Quantity_Error
-              }}</v-chip>
-            </template>
+                  <template #[`item.Category`]="{ item }">
+                    {{ item.Category }}
+                    <v-chip
+                      v-if="item?.Line_SMT"
+                      :color="
+                        item.Line_SMT === 'Line 1' ? 'brown' : 'deep-orange'
+                      "
+                      size="small"
+                      variant="tonal"
+                      class="ms-2"
+                    >
+                      {{ item.Line_SMT }}
+                    </v-chip>
+                  </template>
 
-            <template #[`item.Percent`]="{ item }">
-              <v-progress-linear
-                v-model="item.Percent"
-                height="25"
-                color="success"
-                rounded
-                class="rounded-lg"
-              >
-                <strong>{{ Math.ceil(item.Percent).toFixed(1) }}%</strong>
-              </v-progress-linear>
-            </template>
-          </v-data-table-virtual>
+                  <template #[`item.Quantity_Plan`]="{ item }">
+                    <v-chip color="primary" variant="tonal">{{
+                      item.Quantity_Plan
+                    }}</v-chip>
+                  </template>
+
+                  <template #[`item.Quantity_Real`]="{ item }">
+                    <v-chip color="success" variant="tonal">{{
+                      item.Quantity_Real
+                    }}</v-chip>
+                  </template>
+
+                  <template #[`item.Quantity_Error`]="{ item }">
+                    <v-chip color="warning" variant="tonal">{{
+                      item.Quantity_Error
+                    }}</v-chip>
+                  </template>
+
+                  <template #[`item.Percent`]="{ item }">
+                    <v-progress-linear
+                      v-model="item.Percent"
+                      height="25"
+                      color="success"
+                      rounded
+                      class="rounded-lg"
+                    >
+                      <strong
+                        >{{
+                          Number.parseFloat(item.Percent).toFixed(1)
+                        }}%</strong
+                      >
+                    </v-progress-linear>
+                  </template>
+                  <template #[`bottom`]>
+                    <div class="text-center pt-2">
+                      <v-pagination
+                        v-model="pageDetail"
+                        :length="Math.ceil(history.length / itemsPerPageDetail)"
+                      ></v-pagination>
+                    </div>
+                  </template>
+                </v-data-table>
+              </v-col>
+              <v-divider></v-divider>
+              <v-col cols="12">
+                <StackedBarChart
+                  :labels="days"
+                  :passData="passList"
+                  :failData="failList"
+                  :planData="planList"
+                  title="Kết quả sản xuất theo ngày"
+                />
+              </v-col>
+            </v-row>
+          </v-card-text>
         </v-card>
 
         <!-- Chart thống kê công đoạn -->
@@ -350,12 +438,12 @@
                 Thống kê theo công đoạn sản xuất
               </v-card-title>
               <v-card-text class="pa-4">
-                <div
-                  class="chart-container"
-                  style="position: relative; height: 400px"
-                >
-                  <canvas ref="historyChart"></canvas>
-                </div>
+                <StackedBarChartSummary
+                  :labels="progress"
+                  :passData="passListSummary"
+                  :failData="failListSummary"
+                  title="Kết quả sản xuất theo ngày"
+                />
               </v-card-text>
             </v-card>
           </v-col>
@@ -492,7 +580,7 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="calc(100vh - 200px)"
+            height="calc(60vh)"
           >
             <template v-slot:top>
               <v-toolbar flat dense class="rounded-t-lg">
@@ -534,12 +622,20 @@
                     : "Pass"
                 }}
               </v-chip>
-              
+              <v-chip
+                class="ms-2"
+                size="small"
+                color="info"
+                variant="tonal"
+                v-if="item.Note"
+                >Fixed</v-chip
+              >
             </template>
             <template #[`item.PartNumber`]="{ item }">
               <p v-if="item.PartNumber == 1">{{ NameOrder }}</p>
               <p v-else>{{ item.PartNumber }}</p>
             </template>
+
             <template #item.Note="{ item }">
               <div style="white-space: pre-line" class="text-error">
                 {{ item.Note }}
@@ -596,7 +692,7 @@
                   :items="LevelSelectAdd"
                   hint="Lựa chọn công đoạn phù hợp"
                   v-model="Type_Add"
-                  :rules="requiredRule"
+                  :rules="requiredRuleEmpty"
                 />
               </v-col>
               <v-col cols="6">
@@ -606,6 +702,7 @@
                   hint="Lựa chọn công đoạn phù hợp"
                   v-model="Line_Add"
                   :disabled="Type_Add != 'SMT'"
+                  :rules="requiredRule"
                 />
               </v-col>
             </v-row>
@@ -613,8 +710,7 @@
             <InputField
               label="Hạng mục"
               v-model="Category_Add"
-              :rules="requiredRule"
-              ss
+              :rules="requiredRuleEmpty"
             />
 
             <v-row>
@@ -623,7 +719,7 @@
                   label="Số lượng (pcs)"
                   type="number"
                   v-model="Quantity_Plan_Add"
-                  :rules="requiredRule"
+                  :rules="requiredRuleEmpty"
                 />
               </v-col>
               <v-col cols="12" sm="4">
@@ -631,7 +727,7 @@
                   label="Vòng lặp (giây)"
                   type="number"
                   v-model="CycleTime_Add"
-                  :rules="requiredRule"
+                  :rules="requiredRuleEmpty"
                 />
               </v-col>
               <v-col cols="12" sm="4">
@@ -647,10 +743,10 @@
               label="Ngày tạo"
               type="date"
               v-model="Date_DetailManufacture_Add"
-              :rules="requiredRule"
+              :rules="requiredRuleEmpty"
             />
+            <InputTextarea label="Ghi chú" v-model="Note_Add" />
           </v-form>
-          <InputTextarea label="Ghi chú" v-model="Note_Add" />
         </v-card-text>
         <v-card-actions>
           <ButtonCancel @cancel="DialogAdd = false" />
@@ -715,7 +811,11 @@
               />
             </v-col>
           </v-row>
-          <InputField type="date" label="Ngày tạo" v-model="Date_DetailManufacture_Edit" />
+          <InputField
+            type="date"
+            label="Ngày tạo"
+            v-model="Date_DetailManufacture_Edit"
+          />
           <InputTextarea label="Ghi chú" v-model="Note_Edit" />
         </v-card-text>
         <v-card-actions>
@@ -807,6 +907,7 @@ import {
 } from "vue";
 import axios from "axios";
 import { useRoute, useRouter } from "vue-router";
+import { shallowRef, toRef } from "vue";
 import Chart from "chart.js/auto";
 import InputSearch from "@/components/Input-Search.vue";
 import InputFiles from "@/components/Input-Files.vue";
@@ -826,26 +927,32 @@ import ButtonNextManufacture from "@/components/Button-Next-Manufacture.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
+import ProcessCard from "@/components/Card-Flow-Proccess.vue";
+import StackedBarChart from "@/components/Chart-StackedBar.vue";
+import StackedBarChartSummary from "@/components/Chart-StackedBar-Summary.vue";
 
 // ... existing imports ...
 import { useManufactureDetails } from "@/composables/Manufacture/useManufactureDetails";
 import { useManufacture } from "@/composables/Manufacture/useManufacture";
 import { useHistory } from "@/composables/Manufacture/useHistory";
 import { useHistoryPart } from "@/composables/Manufacture/useHistoryPart";
-import { useManufactureSummary } from "@/composables/Manufacture/useManufactureSummary"
+import { useManufactureSummary } from "@/composables/Manufacture/useManufactureSummary";
+import { useManufactureRW } from "@/composables/Manufacture/useManufactureRW";
 
 // ... existing refs and constants ...
 const Url = import.meta.env.VITE_API_URL;
 const route = useRoute();
 const router = useRouter();
 const id = route.params.id;
+const typeFilter = ref(route.query.Type || null);
 
 const { manufactureDetails, connectionStatus } = useManufactureDetails(id);
 const { manufacture, manufactureFound, manufactureError, isConnected } =
   useManufacture();
-const { history, historyError, refresh } = useHistory(id);
 const { historyPart, historyPartError } = useHistoryPart(id);
-const { manufactureSummary, manufactureSummaryError} = useManufactureSummary(id)
+const { manufactureSummary, refresh } = useManufactureSummary(id);
+const { manufactureRW, manufactureRWError } = useManufactureRW(id, typeFilter);
+const { history } = useHistory(id, typeFilter);
 
 // Dialog
 const DialogSuccess = ref(false);
@@ -874,31 +981,13 @@ const totalSMT_1 = ref(0);
 const totalSMT_2 = ref(0);
 const totalSMT_3 = ref(0);
 const totalSMT_4 = ref(0);
-const totalAOI = ref(0);
 const totalRW = ref(0);
-const totalIPQC = ref(0);
-const totalIPQCSMT = ref(0);
-const totalAssembly = ref(0);
-const totalOQC = ref(0);
-const totalTest1 = ref(0);
-const totalTest2 = ref(0);
-const totalBoxBuild = ref(0);
-const totalConformalCoating = ref(0);
-const totalWarehouse = ref(0);
 
 const totalError = ref(0);
-const totalAOIError = ref(0);
 const totalRWError = ref(0);
-const totalIPQCError = ref(0);
-const totalIPQCSMTError = ref(0);
-const totalAssemblyError = ref(0);
-const totalOQCError = ref(0);
-const totalTest1Error = ref(0);
-const totalTest2Error = ref(0);
-const totalBoxBuildError = ref(0);
-const totalConformalCoatingError = ref(0);
-const totalWarehouseError = ref(0);
 const totalFixed = ref(0);
+const percentRW = ref(0);
+const totalOutput_Fail = ref(0);
 
 const PercentOutput = computed(() =>
   Number.parseFloat((totalOutput.value * 100) / totalInput.value).toFixed(1)
@@ -908,24 +997,23 @@ const PercentError = computed(() =>
   Number.parseFloat((totalError.value * 100) / totalInput.value).toFixed(1)
 );
 
-const PercentFixed = computed(() =>
-  (totalFixed.value * 100) / totalError.value
+const PercentFixed = computed(
+  () => (totalFixed.value * 100) / totalError.value
 );
 // Level
 const Level_SMT = ref(false);
-const Level_AOI = ref(0);
-const Level_IPQC = ref(0);
-const Level_Assembly = ref(0);
-const Level_OQC = ref(0);
-const Level_IPQCSMT = ref(0);
-const Level_Test_1 = ref(0);
-const Level_Test_2 = ref(0);
-const Level_BoxBuild = ref(0);
-const Level_ConformalCoating = ref(0);
 const LevelSelectAdd = ref(null);
 
 // Data
 const DataManufacture = ref(null);
+const Quantity_Detail_Title = ref("");
+const Quantity_Detail_Pass = ref(0);
+const Quantity_Detail_Fail = ref(0);
+const Quantity_Detail_Fixed = ref(0);
+const Quantity_Detail_Remain = ref(0);
+const Percent_FlowCard_Pass = ref(0);
+const Percent_FlowCard_Fail = ref(0);
+
 // ===== FORM ADD =====
 const Type_Add = ref("");
 const Line_Add = ref("");
@@ -946,29 +1034,59 @@ const Line_Edit = ref("");
 const Quantity_Plan_Edit = ref("");
 const CycleTime_Edit = ref("");
 const Note_Edit = ref("");
+const Note_RW_Edit = ref("");
 const Date_DetailManufacture_Edit = ref("");
 
 // ===== FORM SETTING SMT =====
 const DelaySMT_Edit = ref(50);
 const Quantity_Edit = ref(1);
-const Quantity_IPQCSMT_Edit = ref(1);
-const Quantity_IPQC_Edit = ref(1);
-const Quantity_AOI_Edit = ref(1);
-const Quantity_Assembly_Edit = ref(1);
-const Quantity_BoxBuild_Edit = ref(1);
-const Quantity_Test1_Edit = ref(1);
-const Quantity_Test2_Edit = ref(1);
-const Quantity_ConformalCoating_Edit = ref(1);
-const Quantity_OQC_Edit = ref(1);
 
 // Table
 const searchHistory = ref("");
 const page = ref(1);
-const itemsPerPage = ref(15);
+const pageDetail = ref(1);
+const pageRW = ref(1);
+const itemsPerPage = ref(10);
+const itemsPerPageDetail = ref(5);
+const itemsPerPageRW = ref(5);
 
 // Chart
-const historyChart = ref(null);
-const chartInstance = ref(null);
+const days = computed(() => {
+  return history.value.map((item) => formatDate(item.Created_At));
+});
+
+const passList = computed(() =>
+  history.value.map((item) => Number(item.Quantity_Real || 0))
+);
+
+const failList = computed(() =>
+  history.value.map((item) => Number(item.Quantity_Error || 0))
+);
+
+const planList = computed(() =>
+  history.value.map((item) => Number(item.Quantity_Plan || 0))
+);
+
+const progress = computed(() => {
+  return manufactureSummary.value.map((item) => formatDate(item.Type));
+});
+
+const passListSummary = computed(() =>
+  manufactureSummary.value.map((item) => Number(item.Quantity_Pass || 0))
+);
+
+const failListSummary = computed(() =>
+  manufactureSummary.value.map((item) => Number(item.Quantity_Fail || 0))
+);
+const VPieData = ref([]);
+
+// Choose card with hightlight board
+const selectedTitle = ref(null);
+const Detail_Popup_Card = ref(false);
+
+// Table Fail
+const Manufacture_Fail = ref([]);
+const Manufacture_History = ref([]);
 
 // Table
 const HeadersHistory = [
@@ -987,9 +1105,9 @@ const HeadersHistory = [
     title: "Thực tế",
     align: "center",
     children: [
-      { title: "Đầu ra", key: "Quantity_Real" },
-      { title: "Hàng lỗi", key: "Quantity_Error"},
-      { title: "Phần trăm (%)", key: "Percent" },    
+      { title: "Hàng pass", key: "Quantity_Real" },
+      { title: "Hàng fail", key: "Quantity_Error" },
+      { title: "Phần trăm (%)", key: "Percent" },
       // { title: "RW đã sửa", key: "Total_Fixed"},
     ],
   },
@@ -1007,10 +1125,28 @@ const HeadersHistoryPart = [
   // { title: "Thao tác", key: "id", sortable: true },
 ];
 
+const HeadersHistoryPartError = [
+  { title: "STT", key: "stt" },
+  { title: "Mã hàng", key: "PartNumber", sortable: true },
+  { title: "Trạng thái", key: "Status", sortable: true },
+  { title: "Trạng thái RW", key: "RWID", sortable: true },
+  { title: "Ghi chú lỗi", key: "Note", sortable: true },
+];
+
 // =============== Rules ============
 const formRef = ref(null);
 const isFormValid = ref(true);
-const requiredRule = [(v) => !!v || "Dữ liệu này không được bỏ trống"];
+const requiredRule = computed(() => {
+  if (Type_Add.value === "SMT") {
+    return [(v) => !!v || "Dữ liệu này không được bỏ trống"];
+  }
+
+  // Nếu không phải SMT thì không cần validate
+  return [];
+});
+const requiredRuleEmpty = computed(() => [
+  (v) => !!v || "Dữ liệu này không được bỏ trống",
+]);
 
 // Normalized historyPart: merge source_1 and source_4 as 'SMT'; hide source_2, source_3, source_5
 const normalizedHistoryPart = computed(() => {
@@ -1034,44 +1170,52 @@ const normalizedHistoryPart = computed(() => {
     });
 });
 
+function formatDate(dateString) {
+  if (!dateString) return "";
+  const parts = dateString.split(/[-/]/);
+  if (parts.length >= 2) {
+    return `${parts[0].padStart(2, "0")}/${parts[1].padStart(2, "0")}`;
+  }
+  return dateString;
+}
+
 // 🔸 Hàm chuyển unixepoch → yyyy-mm-dd
 const formatDateForInput = (timestamp) => {
-  if (!timestamp) return ''
-  const d = new Date((timestamp + 12 * 60 * 60) * 1000)
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
+  if (!timestamp) return "";
+  const d = new Date((timestamp + 12 * 60 * 60) * 1000);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 // Hàm chuyển yyyy-mm-dd → unixepoch
 const dateStringToUnix = (value) => {
-  if (!value) return null
-  return Math.floor(new Date(value).getTime() / 1000)
-}
+  if (!value) return null;
+  return Math.floor(new Date(value).getTime() / 1000);
+};
 
 // Watch for manufactureFound changes to update levels
 watch(
-  manufactureDetails,
+  history,
   (newValue) => {
-    if (newValue) {
-      const data = Array.isArray(newValue) ? newValue[0] : newValue;
-
-      if (data && data.Level) {
-        DataManufacture.value = data.Level;
-        Level_SMT.value = DataManufacture.value.includes("SMT");
-        Level_AOI.value = DataManufacture.value.includes("AOI");
-        Level_IPQC.value =
-          DataManufacture.value.includes("IPQC") &&
-          !DataManufacture.value.includes("IPQC (SMT)");
-        Level_Assembly.value = DataManufacture.value.includes("Assembly");
-        Level_OQC.value = DataManufacture.value.includes("OQC");
-        Level_IPQCSMT.value = DataManufacture.value.includes("IPQC (SMT)");
-        Level_Test_1.value = DataManufacture.value.includes("Test 1");
-        Level_Test_2.value = DataManufacture.value.includes("Test 2");
-        Level_BoxBuild.value = DataManufacture.value.includes("Box Build");
-        Level_ConformalCoating.value =
-          DataManufacture.value.includes("Tẩm phủ");
+    if (newValue && typeof newValue === "object") {
+      // Check if newValue is an array and has items
+      if (Array.isArray(newValue) && newValue.length > 0) {
+        const data = newValue[0]; // Get first item if it's an array
+        totalRW.value = data.Quantity_Error;
+        totalRWError.value = data.Quantity_Fixed_Done;
+        percentRW.value = Number.parseFloat(
+          (data.Quantity_Fixed_Done * 100) / data.Quantity_Error
+        ).toFixed(1);
+      } else {
+        // If it's a single object
+        totalRW.value = newValue.Quantity_Error || 0;
+        totalRWError.value = newValue.Quantity_Fixed_Done || 0;
+        percentRW.value =
+          Number.parseFloat(
+            (newValue.Quantity_Fixed_Done * 100) / newValue.Quantity_Error
+          ).toFixed(1) || 0;
       }
     }
   },
@@ -1086,17 +1230,20 @@ watch(
       // Check if newValue is an array and has items
       if (Array.isArray(newValue) && newValue.length > 0) {
         const data = newValue[0]; // Get first item if it's an array
+        DataManufacture.value = data.Level;
+        Level_SMT.value = DataManufacture.value.includes("SMT");
         totalInput.value = data.Total || 0;
         totalOutput.value = data.Quantity_Pass || 0;
         totalError.value = data.Quantity_Error || 0;
         totalFixed.value = data.Quantity_Fixed || 0;
+        totalOutput_Fail.value = data.Quantity_Output_Fail || 0;
         totalSMT_1.value = data.SMT_1 || 0;
         totalSMT_2.value = data.SMT_2 || 0;
         totalSMT_3.value = data.SMT_3 || 0;
         totalSMT_4.value = data.SMT_4 || 0;
         Quantity_Edit.value = data.Quantity;
         DelaySMT_Edit.value = data.DelaySMT;
-          (LevelSelectAdd.value = data.Level.split("-"));
+        LevelSelectAdd.value = data.Level.split("-");
         NameOrder.value = data.Name_Order;
         Name_Order_Add.value = data.Name_Order;
         Name_Order_Edit.value = data.Name_Order;
@@ -1109,21 +1256,82 @@ watch(
         totalSMT_3.value = newValue.SMT_3 || 0;
         Quantity_Edit.value = newValue.Quantity;
         DelaySMT_Edit.value = newValue.DelaySMT;
-        (Quantity_AOI_Edit.value = newValue.Quantity_AOI),
-          (Quantity_Assembly_Edit.value = newValue.Quantity_Assembly),
-          (Quantity_ConformalCoating_Edit.value =
-            newValue.Quantity_ConformalCoating),
-          (Quantity_IPQCSMT_Edit.value = newValue.Quantity_IPQCSMT),
-          (Quantity_IPQC_Edit.value = newValue.Quantity_IPQC),
-          (Quantity_Test1_Edit.value = newValue.Quantity_Test1),
-          (Quantity_Test2_Edit.value = newValue.Quantity_Test2),
-          (Quantity_BoxBuild_Edit.value = newValue.Quantity_BoxBuild),
-          (Quantity_OQC_Edit.value = newValue.Quantity_OQC),
-          (NameOrder.value = newValue.Name_Order);
+        NameOrder.value = newValue.Name_Order;
       }
     }
   },
   { immediate: true, deep: true }
+);
+
+watch(
+  manufactureSummary,
+  (newValue) => {
+    const resetValues = () => {
+      Quantity_Detail_Pass.value = 0;
+      Quantity_Detail_Fail.value = 0;
+      Quantity_Detail_Remain.value = 0;
+
+      VPieData.value = [
+        { key: 1, title: "Pass", value: 0, color: "#72c789" },
+        { key: 2, title: "Fail", value: 0, color: "#d43d51" },
+        {
+          key: 3,
+          title: "Còn lại",
+          value: 100,
+          color: "rgba(var(--v-theme-on-surface), .2)",
+          pattern: "url(#pattern-0)",
+        },
+      ];
+    };
+
+    // ❌ Không có dữ liệu → reset
+    if (!newValue || !Array.isArray(newValue) || newValue.length === 0) {
+      resetValues();
+      return;
+    }
+
+    // ✅ Array có dữ liệu
+    const data = newValue[0];
+
+    if (Type_Add == "SMT") {
+      Quantity_Detail_Pass.value = totalSMT_1.value + totalSMT_2.value;
+      Quantity_Detail_Fail.value = 0;
+      Quantity_Detail_Fixed.value = 0;
+      Quantity_Detail_Remain.value = totalInput.value - totalSMT_1.value;
+    } else {
+      const pass = data.Quantity_Pass || 0;
+      const fail = data.Quantity_Fail || 0;
+      const remain = Math.max(0, totalInput.value - (pass + fail));
+
+      Quantity_Detail_Pass.value = pass;
+      Quantity_Detail_Fail.value = fail;
+      Quantity_Detail_Remain.value = remain;
+
+      const Percent_Pass = (pass / totalInput.value) * 100;
+      const Percent_Fail = (fail / totalInput.value) * 100;
+      const Percent_Remain = (remain / totalInput.value) * 100;
+
+      VPieData.value = [
+        { key: 1, title: "Pass", value: Percent_Pass, color: "#72c789" },
+        { key: 2, title: "Fail", value: Percent_Fail, color: "#d43d51" },
+        {
+          key: 3,
+          title: "Còn lại",
+          value: Percent_Remain,
+          color: "rgba(var(--v-theme-on-surface), .2)",
+          pattern: "url(#pattern-0)",
+        },
+      ];
+    }
+  },
+  { immediate: true, deep: true }
+);
+
+watch(
+  () => route.query.Type,
+  (newType) => {
+    typeFilter.value = newType || null;
+  }
 );
 
 // Initialize chart
@@ -1131,18 +1339,7 @@ onMounted(() => {
   nextTick(() => {
     fetchProductionData();
     // Initialize chart after a short delay to ensure DOM is ready
-    setTimeout(() => {
-      initializeChart();
-    }, 500);
   });
-});
-
-// Cleanup chart on unmount
-onUnmounted(() => {
-  if (chartInstance.value) {
-    chartInstance.value.destroy();
-    chartInstance.value = null;
-  }
 });
 
 // ====== COMPUTED ======
@@ -1178,323 +1375,14 @@ const Time_Edit = computed(() => {
   return ((Quantity_Plan_Edit.value * CycleTime_Edit.value) / 3600).toFixed(1);
 });
 
-// Chart data computed property (use ManufactureSummary)
-const chartData = computed(() => {
-  if (!Array.isArray(manufactureSummary.value)) {
-    return { labels: [], datasets: [] };
-  }
-
-  // Normalize stage/type from summary
-  const normalizeStage = (type) => {
-    const t = String(type || "").trim();
-    if (!t) return "";
-    // Map a few known aliases to canonical keys used for multipliers
-    const map = {
-      "IPQC (SMT)": "IPQCSMT",
-      "IPQC SMT": "IPQCSMT",
-      "ipqc smt": "IPQCSMT",
-      "box build": "BoxBuild",
-      "tẩm phủ": "Tẩm phủ",
-      "conformal coating": "Tẩm phủ",
-      "warehouse": "Nhập kho",
-      "kho": "Nhập kho",
-    };
-    const lower = t.toLowerCase();
-    if (map[lower]) return map[lower];
-    return t;
-  };
-
-  // Multipliers from manufactureDetails
-  const md = Array.isArray(manufactureDetails.value)
-    ? manufactureDetails.value[0]
-    : manufactureDetails.value;
-  const getMultiplier = (stage) => {
-    switch (stage) {
-      case "SMT":
-        return md?.Quantity || 1;
-      default:
-        return 1;
-    }
-  };
-
-  // Aggregate summary rows
-  const byStage = new Map();
-  for (const row of manufactureSummary.value) {
-    const stage = normalizeStage(row.Type);
-    if (!stage) continue;
-    const current = byStage.get(stage) || { ok: 0, error: 0 };
-    current.ok += Number(row.Quantity_Pass || 0);
-    current.error += Number(row.Quantity_Fail || 0);
-    byStage.set(stage, current);
-  }
-
-  const labels = [];
-  const okData = [];
-  const errorData = [];
-  for (const [stage, counts] of byStage.entries()) {
-    const m = getMultiplier(stage);
-    labels.push(stage);
-    okData.push(counts.ok * m);
-    errorData.push(counts.error * m);
-  }
-
-  return {
-    labels,
-    datasets: [
-      {
-        label: "Pass",
-        data: okData,
-        backgroundColor: "rgba(76, 175, 80, 0.8)",
-        borderColor: "#4CAF50",
-        borderWidth: 1,
-        borderRadius: 4,
-        barPercentage: 0.8,
-        categoryPercentage: 0.9,
-      },
-      {
-        label: "Fail",
-        data: errorData,
-        backgroundColor: "rgba(244, 67, 54, 0.8)",
-        borderColor: "#F44336",
-        borderWidth: 1,
-        borderRadius: 4,
-        barPercentage: 0.8,
-        categoryPercentage: 0.9,
-      },
-    ],
-  };
-});
-
-// Detail table data computed property (use ManufactureSummary)
-const chartDetailData = computed(() => {
-  if (!Array.isArray(manufactureSummary.value)) return [];
-
-  const normalizeStage = (type) => {
-    const t = String(type || "").trim();
-    if (!t) return "";
-    const map = {
-      "IPQC (SMT)": "IPQCSMT",
-      "IPQC SMT": "IPQCSMT",
-      "ipqc smt": "IPQCSMT",
-      "box build": "BoxBuild",
-      "tẩm phủ": "Tẩm phủ",
-      "conformal coating": "Tẩm phủ",
-      "warehouse": "Nhập kho",
-      "kho": "Nhập kho",
-    };
-    const lower = t.toLowerCase();
-    if (map[lower]) return map[lower];
-    return t;
-  };
-
-  const md = Array.isArray(manufactureDetails.value)
-    ? manufactureDetails.value[0]
-    : manufactureDetails.value;
-  const getMultiplier = (stage) => {
-    switch (stage) {
-      case "SMT":
-        return md?.Quantity || 1;
-      default:
-        return 1;
-    }
-  };
-
-  const agg = new Map();
-  for (const row of manufactureSummary.value) {
-    const stage = normalizeStage(row.Type);
-    if (!stage) continue;
-    const cur = agg.get(stage) || { ok: 0, error: 0 };
-    cur.ok += Number(row.Quantity_Pass || 0);
-    cur.error += Number(row.Quantity_Fail || 0);
-    agg.set(stage, cur);
-  }
-
-  const detailData = [];
-  for (const [stage, counts] of agg.entries()) {
-    const multiplier = getMultiplier(stage);
-    const okQuantity = counts.ok * multiplier;
-    const errorQuantity = counts.error * multiplier;
-    const totalQuantity = okQuantity + errorQuantity;
-    const rate = totalQuantity > 0 ? Math.round((okQuantity / totalQuantity) * 100) : 0;
-    detailData.push({
-      process: stage,
-      ok: okQuantity,
-      error: errorQuantity,
-      total: totalQuantity,
-      rate,
-      multiplier,
-    });
-  }
-
-  return detailData.sort((a, b) => b.total - a.total);
-});
-
-// Summary statistics computed properties
-const totalChartOK = computed(() => {
-  return chartDetailData.value.reduce((sum, item) => sum + item.ok, 0);
-});
-
-const totalChartError = computed(() => {
-  return chartDetailData.value.reduce((sum, item) => sum + item.error, 0);
-});
-
-const overallRate = computed(() => {
-  const total = totalChartOK.value + totalChartError.value;
-  return total > 0 ? Math.round((totalChartOK.value / total) * 100) : 0;
-});
-
-// Build dynamic process cards from DataManufacture (e.g. "AOI-IPQC-Test 1")
-const dynamicProcessCards = computed(() => {
-  const cards = [];
-  if (!DataManufacture.value || typeof DataManufacture.value !== "string") {
-    return cards;
-  }
-
-  // Map stage names to totals and error fields
-  const stageConfig = {
-    AOI: {
-      title: "AOI",
-      ok: () => totalAOI.value,
-      error: () => totalAOIError.value,
-    },
-    "IPQC (SMT)": {
-      title: "IPQC (SMT)",
-      ok: () => totalIPQCSMT.value,
-      error: () => totalIPQCSMTError.value,
-    },
-    IPQC: {
-      title: "IPQC",
-      ok: () => totalIPQC.value,
-      error: () => totalIPQCError.value,
-    },
-    Assembly: {
-      title: "Assembly",
-      ok: () => totalAssembly.value,
-      error: () => null,
-    },
-    "Test 1": {
-      title: "Test 1",
-      ok: () => totalTest1.value,
-      error: () => totalTest1Error.value,
-    },
-    "Test 2": {
-      title: "Test 2",
-      ok: () => totalTest2.value,
-      error: () => totalTest2Error.value,
-    },
-    "Box Build": {
-      title: "Box Build",
-      ok: () => totalBoxBuild.value,
-      error: () => null,
-    },
-    "Tẩm phủ": {
-      title: "Tẩm phủ",
-      ok: () => totalConformalCoating.value,
-      error: () => null,
-    },
-    OQC: {
-      title: "OQC",
-      ok: () => totalOQC.value,
-      error: () => totalOQCError.value,
-    },
-  };
-
-  // Aliases to normalize stage tokens to canonical titles
-  const stageAliases = {
-    aoi: "AOI",
-    "ipqc (smt)": "IPQC (SMT)",
-    ipqc: "IPQC",
-    assembly: "Assembly",
-    "test 1": "Test 1",
-    test1: "Test 1",
-    "test 2": "Test 2",
-    test2: "Test 2",
-    oqc: "OQC",
-    "box build": "Box Build",
-    boxbuild: "Box Build",
-    "tẩm phủ": "Tẩm phủ",
-    "tam phu": "Tẩm phủ",
-    "hàn tay": "Hàn tay",
-    "han tay": "Hàn tay",
-    "hàn siêu âm": "Hàn siêu âm",
-    "han sieu am": "Hàn siêu âm",
-  };
-
-  // Variants used to aggregate from historyPart when totals are not predefined
-  const variantMap = {
-    "Hàn tay": ["Hàn tay", "Han tay", "han tay", "Hand solder", "hand solder"],
-    "Hàn siêu âm": [
-      "Hàn siêu âm",
-      "Han sieu am",
-      "han sieu am",
-      "Ultrasonic",
-      "Ultrasonic welding",
-      "ultrasonic",
-      "ultrasonic welding",
-    ],
-  };
-
-  const countFromHistory = (stageTitle) => {
-    if (!Array.isArray(historyPart.value)) return { ok: 0, error: 0 };
-    const variants = (variantMap[stageTitle] || [stageTitle]).map((v) => v.toLowerCase());
-    let ok = 0;
-    let error = 0;
-    for (const item of historyPart.value) {
-      const src = String(item.Source || "").toLowerCase();
-      const status = String(item.Status || "").toLowerCase();
-      if (variants.some((v) => src === v || src.includes(v) || v.includes(src))) {
-        if (status === "ok" || status === "success" || status === "pass") ok++;
-        else if (status === "error" || status === "fail" || status === "failed") error++;
-      }
-    }
-    return { ok, error };
-  };
-
-  // Extract stages from string, expecting hyphen separated, keep order
-  const stages = DataManufacture.value.split("-").map((s) => s.trim()).filter(Boolean);
-
-  stages.forEach((stage, idx) => {
-    // Skip SMT here; SMT has its own dedicated section above
-    if (stage.toUpperCase() === "SMT") return;
-
-    const normalized = stageAliases[stage.toLowerCase()] || stage;
-    const conf = stageConfig[normalized];
-
-    let okVal;
-    let errVal;
-    let titleValue = normalized;
-
-    if (conf) {
-      okVal = conf.ok();
-      errVal = conf.error();
-      titleValue = conf.title;
-    } else {
-      // Unknown stage: aggregate from historyPart by matching variants
-      const counts = countFromHistory(titleValue);
-      okVal = counts.ok;
-      errVal = counts.error;
-    }
-
-    const progress = totalInput.value > 0 ? ((okVal || 0) / totalInput.value) * 100 : 0;
-    cards.push({
-      key: `${titleValue}-${idx}`,
-      title: titleValue,
-      ok: okVal ?? null,
-      error: errVal ?? null,
-      progress,
-    });
-  });
-
-  return cards;
-});
-
-// ===== && CycleTime
 
 // ====== CRUD ========
 const PushItem = (item) => {
   localStorage.setItem("ManufactureID", id);
   if (item.Type === "SMT") {
     router.push(`/San-xuat/SMT/${item.id}`);
+  } else if (item.Type === "RW") {
+    router.push(`/San-xuat/RW/${item.id}`);
   } else {
     router.push(`/San-xuat/${item.Type}/${item.id}`);
   }
@@ -1521,17 +1409,94 @@ const GetItemHistory = (item) => {
   if (
     item.Source == "SMT - Printer" ||
     item.Source == "SMT - Gắp linh kiện Juki" ||
-    item.Source == "SMT - Gắp linh kiện Yamaha" || 
+    item.Source == "SMT - Gắp linh kiện Yamaha" ||
     item.Source == "SMT - Gắp linh kiện Topaz"
   ) {
     GetSourceHistory.value = "ManufactureSMT";
-  } else if (item.Source == "Tẩm phủ") {
-    GetSourceHistory.value = "ManufactureConformalCoating";
-  } else if (item.Source == "Nhập kho") {
-    GetSourceHistory.value = "ManufactureWareHouse";
   } else {
     GetSourceHistory.value = `Manufacture${item.Source}`;
   }
+};
+const GetDetailProgress = async (item) => {
+  router.push(`/San-xuat/Chi-tiet/${route.params.id}?Type=${item}`);
+  const found = manufactureSummary.value.find((v) => v.Type === item);
+  const found_Fail = manufactureRW.value.filter((v) => v.Type === item);
+  Manufacture_Fail.value = found_Fail;
+  Type_Add.value = item;
+
+  Quantity_Detail_Title.value = item;
+
+  if (!found) {
+    // Nếu không có dữ liệu
+    Quantity_Detail_Pass.value = 0;
+    Quantity_Detail_Fail.value = 0;
+    Quantity_Detail_Fixed.value = 0;
+    Quantity_Detail_Remain.value = totalInput.value || 0;
+
+    VPieData.value = [
+      { key: 1, title: "Pass", value: 0, color: "#72c789" },
+      { key: 2, title: "Fail", value: 0, color: "#d43d51" },
+      {
+        key: 3,
+        title: "Remain",
+        value: 100,
+        color: "rgba(var(--v-theme-on-surface), .2)",
+        pattern: "url(#pattern-0)",
+      },
+    ];
+    return; // ✅ Quan trọng: thoát luôn để không xử lý tiếp
+  }
+
+  // ✅ Đoạn này chỉ chạy khi found có dữ liệu
+  Quantity_Detail_Pass.value = found.Quantity_Pass || 0;
+  Quantity_Detail_Fail.value = found.Quantity_Fail || 0;
+  Quantity_Detail_Fixed.value = found.Quantity_Fixed || 0;
+
+  const remain =
+    totalInput.value -
+    (Quantity_Detail_Pass.value + Quantity_Detail_Fail.value);
+  Quantity_Detail_Remain.value = remain > 0 ? remain : 0;
+
+  const percentPass =
+    (Quantity_Detail_Pass.value / totalInput.value) * 100 || 0;
+  const percentFail =
+    (Quantity_Detail_Fail.value / totalInput.value) * 100 || 0;
+  const percentRemain =
+    (Quantity_Detail_Remain.value / totalInput.value) * 100 || 0;
+
+  VPieData.value = [
+    { key: 1, title: "Pass", value: percentPass, color: "#72c789" },
+    { key: 2, title: "Fail", value: percentFail, color: "#d43d51" },
+    {
+      key: 3,
+      title: "Remain",
+      value: percentRemain,
+      color: "rgba(var(--v-theme-on-surface), .2)",
+      pattern: "url(#pattern-0)",
+    },
+  ];
+};
+
+const selectCard = (title) => {
+  selectedTitle.value = title; // Đặt thẻ này là thẻ được chọn
+  Detail_Popup_Card.value = true;
+  // Tìm thẻ trong mảng để xác định nó có phải là bottleneck không
+  // Phân nhánh logic hành động
+  GetDetailProgress(title);
+};
+
+const toggleBottleneck = () => {
+  // Hành động chuyển đổi Bottleneck (giữ nguyên)
+  console.log("Toggle Bottleneck action...");
+  // Logic thực tế để thay đổi trạng thái isBottleneck của một card nào đó
+};
+
+const HandleBottleneckAction = (title) => {
+  // 🚨 HÀNH ĐỘNG MỚI KHI NHẤN VÀO VIỀN ĐỎ
+  console.error(
+    `🚨 [BOTTLENECK PRIORITY] Đã nhấn vào Bottleneck: ${title}. Cần xử lý gấp!`
+  );
+  // Thêm logic xử lý ưu tiên tại đây (ví dụ: mở modal, gọi API xử lý)
 };
 
 const SaveEdit = async () => {
@@ -1554,11 +1519,9 @@ const SaveEdit = async () => {
       `${Url}/Summary/Edit-item/${GetID.value}`,
       formData
     );
-    console.log(response.data.message);
     MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
     Reset();
   } catch (error) {
-    console.log(error);
     MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
     Error();
   }
@@ -1571,7 +1534,6 @@ const SaveEditSettingSMT = async () => {
     DelaySMT: DelaySMT_Edit.value,
     Quantity: Quantity_Edit.value,
   });
-  console.log(formData)
   try {
     const response = await axios.put(
       `${Url}/PlanManufacture/Edit-Line/${id}`,
@@ -1616,11 +1578,9 @@ const SaveAdd = async () => {
 
   try {
     const response = await axios.post(`${Url}/Summary/Add-item`, formData);
-    console.log(response.data);
     MessageDialog.value = "Thêm dữ liệu thành công";
     Reset();
   } catch (error) {
-    console.log(error);
     MessageErrorDialog.value = "Thêm dữ liệu thất bại";
     Error();
   }
@@ -1633,11 +1593,9 @@ const RemoveItem = async () => {
     const response = await axios.delete(
       `${Url}/Summary/Delete-item/${GetID.value}`
     );
-    console.log(response.data.message);
     MessageDialog.value = "Xoá dữ liệu thành công";
     Reset();
   } catch (error) {
-    console.log(error);
     MessageErrorDialog.value = "Xoá dữ liệu thất bạị";
     Error();
   }
@@ -1646,16 +1604,13 @@ const RemoveItem = async () => {
 // Hàm xóa item lịch sử sản xuất
 const RemoveItemHistory = async () => {
   DialogLoading.value = true;
-  console.log(GetSourceHistory.value)
   try {
     const response = await axios.delete(
       `${Url}/Manufacture/Delete-item-history/${GetIDHistory.value}?table=${GetSourceHistory.value}`
     );
-    console.log(response.data.message);
     MessageDialog.value = "Xoá dữ liệu thành công";
     Reset();
   } catch (error) {
-    console.log(error);
     MessageErrorDialog.value = "Xoá dữ liệu thất bạị";
     Error();
   }
@@ -1676,7 +1631,7 @@ function Reset() {
   Quantity_Plan_Add.value = "";
   CycleTime_Add.value = "";
   Note_Add.value = "";
-  Date_DetailManufacture_Add.value = ""
+  Date_DetailManufacture_Add.value = "";
 }
 
 /**
@@ -1706,187 +1661,11 @@ async function fetchProductionData() {
     DialogLoading.value = true;
   } catch (error) {
     DialogFailed.value = true;
-    MessageErrorDialog.value = "Lỗi không lấy được dữ liệu"
+    MessageErrorDialog.value = "Lỗi không lấy được dữ liệu";
   } finally {
     DialogLoading.value = false;
   }
 }
-
-// Chart functions
-const initializeChart = () => {
-  if (!historyChart.value) return;
-  // Kiểm tra dữ liệu chartData trước khi khởi tạo chart
-  if (
-    !chartData.value ||
-    !Array.isArray(chartData.value.labels) ||
-    !Array.isArray(chartData.value.datasets) ||
-    chartData.value.labels.length === 0 ||
-    chartData.value.datasets.length === 0
-  ) {
-    console.warn(
-      "Chart data invalid, skipping chart initialization",
-      chartData.value
-    );
-    // Nếu đã có chartInstance thì destroy để tránh lỗi
-    if (chartInstance.value) {
-      chartInstance.value.destroy();
-      chartInstance.value = null;
-    }
-    return;
-  }
-
-  // Destroy existing chart if it exists
-  if (chartInstance.value) {
-    chartInstance.value.destroy();
-  }
-
-  const ctx = historyChart.value.getContext("2d");
-
-  chartInstance.value = new Chart(ctx, {
-    type: "bar",
-    data: chartData.value,
-    options: {
-      indexAxis: "y", // This makes it horizontal
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: {
-        intersect: false,
-        mode: "index",
-      },
-      plugins: {
-        legend: {
-          display: true,
-          position: "top",
-          labels: {
-            usePointStyle: true,
-            padding: 20,
-          },
-        },
-        title: {
-          display: true,
-          text: "Thống kê theo công đoạn sản xuất",
-          font: {
-            size: 16,
-            weight: "bold",
-          },
-          padding: {
-            top: 10,
-            bottom: 20,
-          },
-        },
-        tooltip: {
-          callbacks: {
-            title: function (tooltipItems) {
-              const process = tooltipItems[0].label;
-              const okValue =
-                tooltipItems[0].dataset.data[tooltipItems[0].dataIndex];
-              const errorValue =
-                tooltipItems[1]?.dataset?.data[tooltipItems[0].dataIndex] || 0;
-              const totalValue = okValue + errorValue;
-              const percentage =
-                totalValue > 0 ? ((okValue / totalValue) * 100).toFixed(1) : 0;
-
-              return [
-                `Công đoạn: ${process}`,
-                `OK: ${new Intl.NumberFormat("vi-VN").format(
-                  okValue
-                )} sản phẩm`,
-                `Lỗi: ${new Intl.NumberFormat("vi-VN").format(
-                  errorValue
-                )} sản phẩm`,
-                `Tổng: ${new Intl.NumberFormat("vi-VN").format(
-                  totalValue
-                )} sản phẩm`,
-                `Tỷ lệ thành công: ${percentage}%`,
-              ];
-            },
-          },
-        },
-      },
-      scales: {
-        x: {
-          beginAtZero: true,
-          stacked: false,
-          title: {
-            display: true,
-            text: "Số lượng sản phẩm",
-            font: {
-              weight: "bold",
-            },
-          },
-          ticks: {
-            callback: function (value) {
-              return new Intl.NumberFormat("vi-VN").format(value);
-            },
-          },
-          grid: {
-            color: "rgba(0, 0, 0, 0.1)",
-          },
-        },
-        y: {
-          stacked: false,
-          title: {
-            display: true,
-            text: "Công đoạn",
-            font: {
-              weight: "bold",
-            },
-          },
-          grid: {
-            display: false,
-          },
-          ticks: {
-            display: true,
-            autoSkip: true,
-            maxTicksLimit: 10,
-          },
-        },
-      },
-      layout: {
-        padding: {
-          left: 20,
-        },
-      },
-    },
-  });
-};
-
-const updateChart = () => {
-  if (chartInstance.value) {
-    chartInstance.value.data = chartData.value;
-    chartInstance.value.update();
-  }
-};
-
-// Add watcher for history changes
-watch(
-  history,
-  (newHistory) => {
-  },
-  { deep: true }
-);
-
-// Add watcher for historyPart changes to update chart
-watch(
-  manufactureSummary,
-  () => {
-    if (chartInstance.value) updateChart();
-  },
-  { deep: true }
-);
-
-// Add watcher for chartData changes
-watch(
-  chartData,
-  (newChartData) => {
-    if (chartInstance.value && newChartData.labels.length > 0) {
-      updateChart();
-    }
-  },
-  { deep: true }
-);
-
-
 </script>
 <script>
 export default {
@@ -1902,6 +1681,7 @@ export default {
     SnackbarSuccess,
     SnackbarFailed,
     Loading,
+    StackedBarChart,
   },
 };
 </script>

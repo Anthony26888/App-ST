@@ -30,6 +30,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=development
+      - TZ=Asia/Ho_Chi_Minh
     env_file:
       - ./.env
     volumes:

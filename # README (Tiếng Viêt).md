@@ -318,6 +318,22 @@ sudo nmcli con up preconfigured
 
 - Kiểm tra lại: ip a show wlan0
 
+# Tạo lưu cấu hình pm2
+- Tạo cấu hình
+pm2 start /home/sieuthuat/esp32-gateway/server-raspberry.js --name esp32-gateway
+- Lưu cấu hình
+pm2 save
+- Để PM2 tự chạy khi Raspberry Pi boot:
+pm2 startup systemd
+- Chạy lệnh Path:
+sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u sieuthuat --hp /home/sieuthuat
+- Lưu lại cấu hình pm2 save
+- Xem trạng thái:
+pm2 status
+- Xem logs node:
+pm2 logs esp32-gateway
+
+
 ### Cách build vào raspberry nhanh bằng PC
 
 # Build image multi-arch

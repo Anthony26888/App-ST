@@ -267,6 +267,7 @@ db.serialize(() => {
       Note TEXT,
       Source TEXT,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
+      FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
     )
   `);
 
@@ -281,6 +282,7 @@ db.serialize(() => {
       RWID TEXT,
       TimestampRW TEXT,
       Note TEXT,
+      Note_RW TEXT,
       PlanID INTEGER,
       Type TEXT,
       FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
