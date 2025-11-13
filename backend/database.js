@@ -277,6 +277,7 @@ db.serialize(() => {
       HistoryID INTEGER NOT NULL,
       PartNumber TEXT NOT NULL,
       Status TEXT NOT NULL,
+      GroupFail TEXT NOT NULL,
       Status_Fixed TEXT NULL,
       Timestamp TEXT NOT NULL,
       RWID TEXT,

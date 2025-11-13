@@ -6,7 +6,7 @@
     <v-card-title>
       <v-row>
         <v-col cols="12" sm="4" md="4">
-          <v-card class="rounded-lg" color="primary" variant="tonal">
+          <v-card class="rounded-xl" color="primary" variant="tonal">
             <v-card-text>
               <div class="text-subtitle-1">Tổng số đơn hàng</div>
               <div class="text-h4 font-weight-bold">
@@ -16,7 +16,7 @@
           </v-card>
         </v-col>
         <v-col cols="12" sm="4" md="4">
-          <v-card class="rounded-lg" color="success" variant="tonal">
+          <v-card class="rounded-xl" color="success" variant="tonal">
             <v-card-text>
               <div class="text-subtitle-1">Đơn hàng đã xác nhận</div>
               <div class="text-h4 font-weight-bold">
@@ -28,7 +28,7 @@
           </v-card>
         </v-col>
         <v-col cols="12" sm="4" md="4">
-          <v-card class="rounded-lg" color="warning" variant="tonal">
+          <v-card class="rounded-xl" color="warning" variant="tonal">
             <v-card-text>
               <div class="text-subtitle-1">Đơn hàng chưa xác nhận</div>
               <div class="text-h4 font-weight-bold">

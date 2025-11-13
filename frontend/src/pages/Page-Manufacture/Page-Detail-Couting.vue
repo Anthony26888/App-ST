@@ -43,7 +43,11 @@
                 <div class="text-h4 font-weight-bold">
                   {{ totalOutput }}
                 </div>
-                <v-progress-linear v-model="PercentOutput" height="20" class="rounded-lg">
+                <v-progress-linear
+                  v-model="PercentOutput"
+                  height="20"
+                  class="rounded-lg"
+                >
                   <strong class="text-black">{{ PercentOutput }}%</strong>
                 </v-progress-linear>
               </v-card-text>
@@ -56,20 +60,28 @@
                 <div class="text-h4 font-weight-bold">
                   {{ totalErrors }}
                 </div>
-                <v-progress-linear v-model="PercentError" height="20" class="rounded-lg">
+                <v-progress-linear
+                  v-model="PercentError"
+                  height="20"
+                  class="rounded-lg"
+                >
                   <strong class="text-black">{{ PercentError }}%</strong>
                 </v-progress-linear>
               </v-card-text>
             </v-card>
           </v-col>
           <v-col cols="12" sm="3">
-            <v-card class="rounded-lg" color="info" variant="tonal" >
+            <v-card class="rounded-lg" color="info" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đã sửa</div>
                 <div class="text-h4 font-weight-bold">
                   {{ totalFixed }}
                 </div>
-                <v-progress-linear v-model="PercentFixed" height="20" class="rounded-lg">
+                <v-progress-linear
+                  v-model="PercentFixed"
+                  height="20"
+                  class="rounded-lg"
+                >
                   <strong class="text-black">{{ PercentFixed }}%</strong>
                 </v-progress-linear>
               </v-card-text>
@@ -78,10 +90,10 @@
         </v-row>
 
         <!-- Input Section -->
-        <v-card class="mb-4 rounded-lg" elevation="2">
+        <v-card class="mb-4 rounded-lg" elevation="4">
           <v-card-text>
-            <v-row>
-              <v-col cols="12" md="8">
+            <v-row dense>
+              <v-col cols="12" md="6">
                 <InputField
                   label="Nhập mã sản phẩm"
                   v-model="Input"
@@ -91,22 +103,41 @@
                   hide-details
                   variant="outlined"
                   density="comfortable"
+                  />
+              </v-col>
+              <v-col cols="12" md="6">
+                <InputSelect
+                  label="Phân loại lỗi"
+                  :items="[
+                    'Lỗi hàn',
+                    'Lỗi linh kiện',
+                    'Lỗi ngoại quan',
+                    'Lỗi chức năng',
+                    'Lỗi lắp ráp cơ khí',
+                    'Lỗi quy trình / Vận hành',
+                    'Lỗi không xác định',
+                  ]"
+                  multiple
+                  chips
+                  v-model="Group_Fail"
+                  hide-details
+                  variant="outlined"
+                  density="comfortable"
+                  placeholder="Chọn 1 hoặc nhiều loại lỗi"
                 />
               </v-col>
-              <v-col cols="12" md="4">
-                <v-checkbox
-                  v-model="isError"
-                  label="Đánh dấu lỗi"
-                  color="warning"
-                  hide-details
-                  class="mt-2"
-                ></v-checkbox>
+
+              <v-col cols="12" class="mt-4">
+                <InputTextarea
+                  label="Ghi chú lỗi chi tiết"
+                  v-model="ErrorLog"
+                  rows="2"
+                  hint="Mô tả chi tiết lỗi (ví dụ: Vết xước 2cm ở mặt trước)."
+                  variant="outlined"
+                ></InputTextarea>
               </v-col>
             </v-row>
-            <InputTextarea
-              label="Ghi chú lỗi"
-              v-model="ErrorLog"
-            ></InputTextarea>
+            <ButtonSave @keydown.enter="submitBarcode" @click="submitBarcode"  autoforcus/>
           </v-card-text>
         </v-card>
 
@@ -216,7 +247,9 @@
               <div class="text-primary">{{ item.TimestampRW }}</div>
             </template>
             <template #item.Note="{ item }">
-              <div style="white-space: pre-line" class="text-error">{{ item.Note }}</div>
+              <div style="white-space: pre-line" class="text-error">
+                {{ item.Note }}
+              </div>
             </template>
             <template #item.id="{ item }">
               <v-btn
@@ -320,6 +353,7 @@ const Headers = [
   { title: "STT", key: "stt" },
   { title: "Mã sản phẩm", key: "PartNumber", sortable: true },
   { title: "Trạng thái", key: "Status", sortable: true },
+  { title: "Loại lỗi", key: "GroupFail", sortable: true },
   { title: "Ghi chú lỗi", key: "Note", sortable: true },
   { title: "Thời gian", key: "Timestamp", sortable: true },
   { title: "Thao tác", key: "id" },
@@ -357,15 +391,15 @@ const totalErrors = ref(0);
 const totalFixed = ref(0);
 
 const PercentOutput = computed(() =>
-  Number.parseFloat((totalOutput.value * 100)/totalInput.value).toFixed(1)
+  Number.parseFloat((totalOutput.value * 100) / totalInput.value).toFixed(1)
 );
 
 const PercentError = computed(() =>
-  Number.parseFloat((totalErrors.value * 100)/totalInput.value).toFixed(1)
+  Number.parseFloat((totalErrors.value * 100) / totalInput.value).toFixed(1)
 );
 
 const PercentFixed = computed(() =>
-  Number.parseFloat((totalFixed.value * 100)/totalInput.value).toFixed(1)
+  Number.parseFloat((totalFixed.value * 100) / totalInput.value).toFixed(1)
 );
 
 // Production Info
@@ -380,6 +414,7 @@ const LevelUser = localStorage.getItem("LevelUser");
 
 // Add new reactive state
 const isError = ref(false);
+const Group_Fail = ref(null);
 
 // ===== Watchers =====
 
@@ -457,7 +492,8 @@ watch(
  * Submits a barcode to the AOI manufacturing system
  * Handles form submission, API call, and error handling
  */
-const submitBarcode = async () => {
+ const submitBarcode = async () => {
+  // 1. Kiểm tra điều kiện đầu vào cơ bản
   if (isSubmitting.value || !Input.value.trim()) {
     return;
   }
@@ -465,11 +501,18 @@ const submitBarcode = async () => {
   isSubmitting.value = true;
   DialogLoading.value = true;
 
+  // XÁC ĐỊNH TRẠNG THÁI (STATUS) VÀ PHÂN LOẠI LỖI (Group_Fail)
+  // Biến Group_Fail là một mảng (do InputSelect có 'multiple').
+  // Sản phẩm là lỗi ('fail') nếu mảng Group_Fail có ít nhất một phần tử.
+  const isFail = Group_Fail.value && Group_Fail.value.length > 0;
+
+  // 2. Cấu trúc lại formData để bao gồm tất cả dữ liệu
   const formData = reactive({
     HistoryID: id,
     PartNumber: Input.value.trim(),
-    Status: isError.value ? "fail" : "pass",
-    Note: ErrorLog.value,
+    Status: isFail ? "fail" : "pass",
+    GroupFail: isFail ? Group_Fail.value.join(", ") : null,
+    Note: isFail ? ErrorLog.value : null, 
     PlanID: PlanID.value,
     Type: Name_Category.value,
   });
@@ -477,9 +520,14 @@ const submitBarcode = async () => {
   try {
     const response = await axios.post(`${Url}/ManufactureCounting`, formData);
     DialogLoading.value = false;
+    
+    // Reset các giá trị sau khi thành công
     Input.value = "";
     ErrorLog.value = "";
-    isError.value = false;
+    Group_Fail.value = []; // Cần reset mảng phân loại lỗi
+    
+    // isError.value = false; // Biến này không cần thiết nếu bạn dùng logic Status
+
     DialogSuccess.value = true;
     MessageDialog.value = "Sản phẩm đã được nhập thành công";
   } catch (error) {
@@ -501,7 +549,7 @@ const GetItem = (item) => {
 
 const GetItemHistory = (item) => {
   DialogRemoveHistory.value = true;
-  GetID.value = item.id
+  GetID.value = item.id;
 };
 
 const markAsFixed = async () => {
@@ -525,7 +573,6 @@ const markAsFixed = async () => {
   }
 };
 
-
 // Hàm xóa item lịch sử sản xuất
 const RemoveItemHistory = async () => {
   DialogLoading.value = true;
@@ -533,14 +580,14 @@ const RemoveItemHistory = async () => {
     const response = await axios.delete(
       `${Url}/ManufactureCounting/Delete-item-history/${GetID.value}`
     );
-    DialogSuccess.value = true
-    DialogLoading.value = false
-    DialogRemoveHistory.value = false
+    DialogSuccess.value = true;
+    DialogLoading.value = false;
+    DialogRemoveHistory.value = false;
     MessageDialog.value = "Xoá dữ liệu thành công";
   } catch (error) {
-    DialogFailed.value = true
-    DialogLoading.value = false
-    DialogRemoveHistory.value = false
+    DialogFailed.value = true;
+    DialogLoading.value = false;
+    DialogRemoveHistory.value = false;
     MessageErrorDialog.value = error;
     Error();
   }

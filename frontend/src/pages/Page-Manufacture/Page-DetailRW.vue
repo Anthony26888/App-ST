@@ -333,7 +333,7 @@ const GetItem = (item) => {
   Category.value = item.Category;
   Timestamp.value = item.Timestamp;
   Status.value = item.Status;
-  Note_RW_Edit = item.Note_RW;
+  Note_RW_Edit.value = item.Note_RW;
 };
 
 const FixedError = async () => {

@@ -718,28 +718,29 @@ io.on("connection", (socket) => {
       userProjects.set(socket.id, id);
     });
 
-  socket.on("getManufactureCounting", async (id) => {
-    try {
-      const query = `SELECT 
-                          id,
-                          PartNumber,
-                          Status,
-                          Status_Fixed,
-                          RWID,
-                          strftime('%d-%m-%Y %H:%M:%S', TimestampRW, 'unixepoch', 'localtime') AS TimestampRW,
-                          Note,
-                          strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch', 'localtime') AS Timestamp
-                        FROM ManufactureCounting
-                        WHERE HistoryID = ?
-                        ORDER BY Timestamp DESC`;
-      db.all(query, [id], (err, rows) => {
-        if (err) return socket.emit("ManufactureCountingError", err);
-        socket.emit("ManufactureCountingData", rows);
-      });
-    } catch (error) {
-      socket.emit("ManufactureCountingError", error);
-    }
-  }),
+    socket.on("getManufactureCounting", async (id) => {
+      try {
+        const query = `SELECT 
+                            id,
+                            PartNumber,
+                            Status,
+                            Status_Fixed,
+                            RWID,
+                            GroupFail,
+                            strftime('%d-%m-%Y %H:%M:%S', TimestampRW, 'unixepoch', 'localtime') AS TimestampRW,
+                            Note,
+                            strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch', 'localtime') AS Timestamp
+                          FROM ManufactureCounting
+                          WHERE HistoryID = ?
+                          ORDER BY Timestamp DESC`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("ManufactureCountingError", err);
+          socket.emit("ManufactureCountingData", rows);
+        });
+      } catch (error) {
+        socket.emit("ManufactureCountingError", error);
+      }
+    }),
     socket.on("getManufactureRW", async (id) => {
       try {
         const query = `SELECT 
@@ -749,6 +750,7 @@ io.on("connection", (socket) => {
                           Status,
                           Status_Fixed,
                           RWID,
+                          GroupFail,
                           strftime('%d-%m-%Y %H:%M:%S', TimestampRW, 'unixepoch', 'localtime') AS TimestampRW,
                           Note,
                           Note_RW,
@@ -794,7 +796,7 @@ io.on("connection", (socket) => {
         socket.emit("ManufactureSMTError", error);
       }
     }),
-    socket.on("getSummary", async ({ start, end }) => {
+    socket.on("getSummary", async (endDay) => {
       try {
         const query = `SELECT 
                           a.id,
@@ -806,35 +808,32 @@ io.on("connection", (socket) => {
                           a.PONumber,
                           a.Time_Plan,
                           a.CycleTime_Plan,
-                          
-                          -- Quantity_Real (Thực tế)
+                          b.GroupFail,
                           CASE 
                             WHEN a.Line_SMT = 'Line 1' THEN c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0 END), 0)
                             WHEN a.Line_SMT = 'Line 2' THEN c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0 END), 0)
                             ELSE COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) 
                           END AS Quantity_Real,
-                          
+
                           COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) AS Quantity_Error,
                           COALESCE(SUM(CASE WHEN b.TimestampRW IS NOT NULL AND b.TimestampRW <> '' THEN 1 ELSE 0 END), 0) AS Quantity_RW,
                           COUNT(DISTINCT b.id) AS Total_Summary_ID,
-                          
-                          -- Tổng số lượng (Pass + Fail)
-                          COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) + COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) AS Total_Quantity,
-                          
-                          -- Tỷ lệ Lỗi (Percent_Error): Lỗi / Tổng Sản lượng (Pass + Fail). Xử lý chia cho 0.
+
+                          COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0)
+                          + COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) AS Total_Quantity,
+
                           COALESCE(
                             ROUND(
                               (COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) * 100.0) 
                               / NULLIF(
-                                COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) + COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0), 
+                                  COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0)
+                                  + COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0), 
                                 0
                               ), 
-                            1)
-                          , 0.0) AS Percent_Error,
-                          
-                          -- Tỷ lệ Hoàn thành (Percent): Thực tế / Kế hoạch
+                            1),
+                          0.0) AS Percent_Error,
+
                           CASE
-                            -- Line 1/2: Lấy số lượng thực tế tính toán từ ManufactureSMT (d.Source)
                             WHEN a.Line_SMT = 'Line 1' THEN 
                               ROUND(
                                 (c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0.0 END), 0.0) * 100.0) 
@@ -845,31 +844,29 @@ io.on("connection", (socket) => {
                                 (c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0.0 END), 0.0) * 100.0) 
                                 / NULLIF(a.Quantity_Plan, 0.0), 
                               1)
-                            -- Khác: Lấy tổng Pass từ ManufactureCounting (b.Status)
                             ELSE 
                               ROUND(
                                 (COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) * 100.0) 
                                 / NULLIF(a.Quantity_Plan, 0.0), 
                               1)
                           END AS Percent,
-                          
-                          -- Định dạng ngày
+
                           strftime('%d-%m-%Y', a.Created_At, 'unixepoch', 'localtime') AS Created_At
-                      FROM 
+                        FROM 
                           Summary a
-                      LEFT JOIN 
+                        LEFT JOIN 
                           ManufactureCounting b ON b.HistoryID = a.id
-                      LEFT JOIN 
+                        LEFT JOIN 
                           PlanManufacture c ON a.PlanID = c.id
-                      LEFT JOIN 
+                        LEFT JOIN 
                           ManufactureSMT d ON d.HistoryID = a.id
-                      WHERE 
-                          a.Created_At BETWEEN ? AND ?
-                      GROUP BY 
-                          a.id, a.Line_SMT -- GROUP BY cần bao gồm cột Line_SMT nếu nó ảnh hưởng đến logic
-                      ORDER BY 
-                          a.Created_At DESC;`;
-        db.all(query, [start, end], (err, rows) => {
+                        WHERE 
+                          strftime('%Y-%m-%d', a.Created_At, 'unixepoch', '+7 hours') = ?
+                        GROUP BY 
+                          a.id, a.Line_SMT 
+                        ORDER BY 
+                          a.Created_At DESC`;
+        db.all(query, [endDay], (err, rows) => {
           if (err) return socket.emit("SummaryError", err);
           socket.emit("SummaryData", rows);
         });
@@ -907,40 +904,40 @@ io.on("connection", (socket) => {
     socket.on("getCompareSummary", async (endDay) => {
       try {
         const query = `
-          WITH TodayData AS (
-            SELECT
-              COUNT(DISTINCT a.PONumber) AS Today_Total_PONumber,
-              COUNT(DISTINCT a.Category) AS Today_Total_Category
-            FROM Summary a
-            WHERE strftime('%Y-%m-%d', a.Created_At, 'unixepoch', '+7 hours') =
-                  strftime('%Y-%m-%d', ?, 'unixepoch', '+7 hours')
-          ),
-          
-          YesterdayData AS (
-            SELECT
-              COUNT(DISTINCT a.PONumber) AS Yesterday_Total_PONumber,
-              COUNT(DISTINCT a.Category) AS Yesterday_Total_Category
-            FROM Summary a
-            WHERE strftime('%Y-%m-%d', a.Created_At, 'unixepoch', '+7 hours') =
-                  strftime('%Y-%m-%d', ?, 'unixepoch', '+7 hours', '-1 day')
-          )
-    
-          SELECT
-            T.Today_Total_PONumber,
-            Y.Yesterday_Total_PONumber,
-            ROUND(
-              (T.Today_Total_PONumber - Y.Yesterday_Total_PONumber) * 100.0
-              / NULLIF(Y.Yesterday_Total_PONumber, 0),
-            1) AS PONumber_Trend_Percent,
-    
-            T.Today_Total_Category,
-            Y.Yesterday_Total_Category,
-            ROUND(
-              (T.Today_Total_Category - Y.Yesterday_Total_Category) * 100.0
-              / NULLIF(Y.Yesterday_Total_Category, 0),
-            1) AS Category_Trend_Percent
-          FROM TodayData T CROSS JOIN YesterdayData Y;
-        `;
+                    WITH TodayData AS (
+                      SELECT
+                        COUNT(DISTINCT a.PONumber) AS Today_Total_PONumber,
+                        COUNT(DISTINCT a.Category) AS Today_Total_Category
+                      FROM Summary a
+                      WHERE strftime('%Y-%m-%d', a.Created_At, 'unixepoch', '+7 hours') =
+                            strftime('%Y-%m-%d', ?, 'unixepoch', '+7 hours')
+                    ),
+                    
+                    YesterdayData AS (
+                      SELECT
+                        COUNT(DISTINCT a.PONumber) AS Yesterday_Total_PONumber,
+                        COUNT(DISTINCT a.Category) AS Yesterday_Total_Category
+                      FROM Summary a
+                      WHERE strftime('%Y-%m-%d', a.Created_At, 'unixepoch', '+7 hours') =
+                            strftime('%Y-%m-%d', ?, 'unixepoch', '+7 hours', '-1 day')
+                    )
+              
+                    SELECT
+                      T.Today_Total_PONumber,
+                      Y.Yesterday_Total_PONumber,
+                      ROUND(
+                        (T.Today_Total_PONumber - Y.Yesterday_Total_PONumber) * 100.0
+                        / NULLIF(Y.Yesterday_Total_PONumber, 0),
+                      1) AS PONumber_Trend_Percent,
+              
+                      T.Today_Total_Category,
+                      Y.Yesterday_Total_Category,
+                      ROUND(
+                        (T.Today_Total_Category - Y.Yesterday_Total_Category) * 100.0
+                        / NULLIF(Y.Yesterday_Total_Category, 0),
+                      1) AS Category_Trend_Percent
+                    FROM TodayData T CROSS JOIN YesterdayData Y;
+                  `;
 
         db.all(query, [endDay, endDay], (err, rows) => {
           if (err) return socket.emit("CompareSummaryError", err.message);
@@ -950,6 +947,62 @@ io.on("connection", (socket) => {
         socket.emit("CompareSummaryError", error.message);
       }
     });
+
+    socket.on("getSummaryFail", async (id) => {
+      try {
+        const query = `SELECT 
+                          id,
+                          PartNumber,
+                          Type,
+                          Status,
+                          Status_Fixed,
+                          RWID,
+                          GroupFail,
+                          strftime('%d-%m-%Y %H:%M:%S', TimestampRW, 'unixepoch', 'localtime') AS TimestampRW,
+                          Note,
+                          Note_RW,
+                          strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch', 'localtime') AS Timestamp
+                        FROM ManufactureCounting
+                        WHERE 
+                          strftime('%Y-%m-%d', Timestamp, 'unixepoch', '+7 hours') = ?
+                          AND Status = 'fail'
+                        ORDER BY Timestamp DESC;`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("SummaryFail", err);
+          socket.emit("SummaryFailData", rows);
+        });
+      } catch (error) {
+        socket.emit("SummaryFailError", error);
+      }
+    }),
+
+    socket.on("getManufactureFail", async (id) => {
+      try {
+        const query = `SELECT 
+                          id,
+                          PartNumber,
+                          Type,
+                          Status,
+                          Status_Fixed,
+                          RWID,
+                          GroupFail,
+                          strftime('%d-%m-%Y %H:%M:%S', TimestampRW, 'unixepoch', 'localtime') AS TimestampRW,
+                          Note,
+                          Note_RW,
+                          strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch', 'localtime') AS Timestamp
+                        FROM ManufactureCounting
+                        WHERE 
+                          PlanID = ?
+                          AND Status = 'fail'
+                        ORDER BY Timestamp DESC;`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("ManufactureFail", err);
+          socket.emit("ManufactureFailData", rows);
+        });
+      } catch (error) {
+        socket.emit("ManufactureFailError", error);
+      }
+    }),
 
   socket.on("getHistory", async (id) => {
     try {
@@ -1048,7 +1101,7 @@ io.on("connection", (socket) => {
                             id,
                             PlanID,
                             PartNumber,
-                            Type AS Source,       -- ✅ Đổi tên để match 2 bảng
+                            Type AS Source,
                             Status,
                             strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch', 'localtime') AS Timestamp,
                             Note
@@ -1064,77 +1117,77 @@ io.on("connection", (socket) => {
         socket.emit("HistoryPartError", error);
       }
     }),
-    socket.on("getActived", async (id) => {
-      try {
-        const query = `WITH AllData AS (
-                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Printer' AS Source, 'Máy Printer' AS Device FROM ManufactureSMT WHERE Source = 'source_3'
-                          UNION ALL
-                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Lò Reflow' AS Source, 'Lò Reflow' AS Device FROM ManufactureSMT WHERE Source = 'source_2'
-                          UNION ALL
-                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Gắp linh kiện Juki' AS Source, 'Máy gắp linh kiện Juki' AS Device FROM ManufactureSMT WHERE Source = 'source_1'
-                          UNION ALL
-                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Gắp linh kiện Yamaha' AS Source, 'Máy gắp linh kiện Yamaha' AS Device FROM ManufactureSMT WHERE Source = 'source_4'
-                          UNION ALL
-                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Gắp linh kiện Topaz' AS Source, 'Máy gắp linh kiện Topaz' AS Device FROM ManufactureSMT WHERE Source = 'source_5'
-                          UNION ALL
-                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'AOI' AS Source, 'Súng barcode AOI' AS Device FROM ManufactureAOI
-                          UNION ALL
-                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'Tẩm phủ' AS Source, 'Súng barcode Tẩm phủ' AS Device FROM ManufactureConformalCoating
-                          UNION ALL
-                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'Test1' AS Source, 'Súng barcode Test1' AS Device FROM ManufactureTest1
-                          UNION ALL
-                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'Test2' AS Source, 'Súng barcode Test2' AS Device FROM ManufactureTest2
-                          UNION ALL
-                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'BoxBuild' AS Source, 'Súng barcode BoxBuild' AS Device FROM ManufactureBoxBuild
-                          UNION ALL
-                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'IPQC' AS Source, 'Súng barcode IPQC' AS Device FROM ManufactureIPQC
-                          UNION ALL
-                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'IPQCSMT' AS Source, 'Súng barcode IPQCSMT' AS Device FROM ManufactureIPQCSMT
-                          UNION ALL
-                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'OQC' AS Source, 'Súng barcode OQC' AS Device FROM ManufactureOQC
-                          UNION ALL
-                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'Assembly' AS Source, 'Súng barcode Assembly' AS Device FROM ManufactureAssembly
-                          UNION ALL
-                          SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'Nhập kho' AS Source, 'Súng barcode Nhập kho' AS Device FROM ManufactureWarehouse
-                      ),
-                      Sources(SourceName, SortOrder, DeviceName) AS (
-                          VALUES 
-                              ('SMT - Printer', 1, 'Máy Printer'),
-                              ('SMT - Gắp linh kiện Juki', 2, 'Máy gắp linh kiện Juki'),
-                              ('SMT - Gắp linh kiện Yamaha', 3, 'Máy gắp linh kiện Yamaha'),
-                              ('SMT - Gắp linh kiện Topaz', 4, 'Máy gắp linh kiện Topaz'),
-                              ('SMT - Lò Reflow', 5, 'Cảm biến Reflow'),
-                              ('AOI', 6, 'Súng barcode AOI'),
-                              ('Tẩm phủ', 7, 'Súng barcode Tẩm phủ'),
-                              ('Test1', 8, 'Súng barcode Test1'),
-                              ('Test2', 9, 'Súng barcode Test2'),
-                              ('BoxBuild', 10, 'Súng barcode BoxBuild'),
-                              ('IPQC', 11, 'Súng barcode IPQC'),
-                              ('IPQCSMT', 12, 'Súng barcode IPQCSMT'),
-                              ('OQC', 13, 'Súng barcode OQC'),
-                              ('Assembly', 14, 'Súng barcode Assembly'),
-                              ('Nhập kho', 15, 'Súng barcode Nhập kho')
-                      ),
-                      LatestPerSource AS (
-                          SELECT Source, MAX(Timestamp) AS LatestTimestamp
-                          FROM AllData
-                          GROUP BY Source
-                      )
-                      SELECT 
-                          S.SourceName AS Source,
-                          S.DeviceName AS Device,
-                          L.LatestTimestamp
-                      FROM Sources S
-                      LEFT JOIN LatestPerSource L ON S.SourceName = L.Source
-                      ORDER BY S.SortOrder;`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("ActivedError", err);
-          socket.emit("ActivedData", rows);
-        });
-      } catch (error) {
-        socket.emit("ActivedError", error);
-      }
-    }),
+    // socket.on("getActived", async (id) => {
+    //   try {
+    //     const query = `WITH AllData AS (
+    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Printer' AS Source, 'Máy Printer' AS Device FROM ManufactureSMT WHERE Source = 'source_3'
+    //                       UNION ALL
+    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Lò Reflow' AS Source, 'Lò Reflow' AS Device FROM ManufactureSMT WHERE Source = 'source_2'
+    //                       UNION ALL
+    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Gắp linh kiện Juki' AS Source, 'Máy gắp linh kiện Juki' AS Device FROM ManufactureSMT WHERE Source = 'source_1'
+    //                       UNION ALL
+    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Gắp linh kiện Yamaha' AS Source, 'Máy gắp linh kiện Yamaha' AS Device FROM ManufactureSMT WHERE Source = 'source_4'
+    //                       UNION ALL
+    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Gắp linh kiện Topaz' AS Source, 'Máy gắp linh kiện Topaz' AS Device FROM ManufactureSMT WHERE Source = 'source_5'
+    //                       UNION ALL
+    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'AOI' AS Source, 'Súng barcode AOI' AS Device FROM ManufactureAOI
+    //                       UNION ALL
+    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'Tẩm phủ' AS Source, 'Súng barcode Tẩm phủ' AS Device FROM ManufactureConformalCoating
+    //                       UNION ALL
+    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'Test1' AS Source, 'Súng barcode Test1' AS Device FROM ManufactureTest1
+    //                       UNION ALL
+    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'Test2' AS Source, 'Súng barcode Test2' AS Device FROM ManufactureTest2
+    //                       UNION ALL
+    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'BoxBuild' AS Source, 'Súng barcode BoxBuild' AS Device FROM ManufactureBoxBuild
+    //                       UNION ALL
+    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'IPQC' AS Source, 'Súng barcode IPQC' AS Device FROM ManufactureIPQC
+    //                       UNION ALL
+    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'IPQCSMT' AS Source, 'Súng barcode IPQCSMT' AS Device FROM ManufactureIPQCSMT
+    //                       UNION ALL
+    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'OQC' AS Source, 'Súng barcode OQC' AS Device FROM ManufactureOQC
+    //                       UNION ALL
+    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'Assembly' AS Source, 'Súng barcode Assembly' AS Device FROM ManufactureAssembly
+    //                       UNION ALL
+    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'Nhập kho' AS Source, 'Súng barcode Nhập kho' AS Device FROM ManufactureWarehouse
+    //                   ),
+    //                   Sources(SourceName, SortOrder, DeviceName) AS (
+    //                       VALUES 
+    //                           ('SMT - Printer', 1, 'Máy Printer'),
+    //                           ('SMT - Gắp linh kiện Juki', 2, 'Máy gắp linh kiện Juki'),
+    //                           ('SMT - Gắp linh kiện Yamaha', 3, 'Máy gắp linh kiện Yamaha'),
+    //                           ('SMT - Gắp linh kiện Topaz', 4, 'Máy gắp linh kiện Topaz'),
+    //                           ('SMT - Lò Reflow', 5, 'Cảm biến Reflow'),
+    //                           ('AOI', 6, 'Súng barcode AOI'),
+    //                           ('Tẩm phủ', 7, 'Súng barcode Tẩm phủ'),
+    //                           ('Test1', 8, 'Súng barcode Test1'),
+    //                           ('Test2', 9, 'Súng barcode Test2'),
+    //                           ('BoxBuild', 10, 'Súng barcode BoxBuild'),
+    //                           ('IPQC', 11, 'Súng barcode IPQC'),
+    //                           ('IPQCSMT', 12, 'Súng barcode IPQCSMT'),
+    //                           ('OQC', 13, 'Súng barcode OQC'),
+    //                           ('Assembly', 14, 'Súng barcode Assembly'),
+    //                           ('Nhập kho', 15, 'Súng barcode Nhập kho')
+    //                   ),
+    //                   LatestPerSource AS (
+    //                       SELECT Source, MAX(Timestamp) AS LatestTimestamp
+    //                       FROM AllData
+    //                       GROUP BY Source
+    //                   )
+    //                   SELECT 
+    //                       S.SourceName AS Source,
+    //                       S.DeviceName AS Device,
+    //                       L.LatestTimestamp
+    //                   FROM Sources S
+    //                   LEFT JOIN LatestPerSource L ON S.SourceName = L.Source
+    //                   ORDER BY S.SortOrder;`;
+    //     db.all(query, [id], (err, rows) => {
+    //       if (err) return socket.emit("ActivedError", err);
+    //       socket.emit("ActivedData", rows);
+    //     });
+    //   } catch (error) {
+    //     socket.emit("ActivedError", error);
+    //   }
+    // }),
     socket.on("getFilterBom", async (id) => {
       try {
         const query = `SELECT *
@@ -3840,17 +3893,19 @@ app.get("/api/devices", (req, res) => {
 
 // Post value in table ManufactureAOI
 app.post("/api/ManufactureCounting", (req, res) => {
-  const { PartNumber, HistoryID, Status, Note, PlanID, Type } = req.body;
+  const { PartNumber, HistoryID, Status, GroupFail, Note, PlanID, Type } = req.body;
   const Timestamp = Math.floor(Date.now() / 1000);
   db.run(
-    `INSERT INTO ManufactureCounting (PartNumber, HistoryID, Timestamp, Status, Note, PlanID, Type)
-     VALUES (?, ?, ? ,?, ?, ?, ?)`,
-    [PartNumber, HistoryID, Timestamp, Status, Note, PlanID, Type],
+    `INSERT INTO ManufactureCounting (PartNumber, HistoryID, Timestamp, Status, GroupFail, Note, PlanID, Type)
+     VALUES (?, ?, ? ,?, ?, ?, ?, ?)`,
+    [PartNumber, HistoryID, Timestamp, Status, GroupFail, Note, PlanID, Type],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureCounting");
       io.emit("UpdateHistoryFiltered", { PlanID, Type });
       io.emit("UpdateManufactureSummary", { PlanID, Type });
+      io.emit("UpdateManufactureRW", { PlanID, Type })
+      io.emit("UpdateSummaryFail");
       io.emit("updateManufactureDetails");
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
@@ -3874,9 +3929,14 @@ app.put("/api/ManufactureCounting/Edit-status-fixed/:id", (req, res) => {
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureCounting");
+      io.emit("UpdateHistoryFiltered", { PlanID, Type });
+      io.emit("UpdateManufactureSummary", { PlanID, Type });
       io.emit("updateManufactureDetails");
-      io.emit("UpdateSummary");
       io.emit("UpdateHistory");
+      io.emit("updateHistoryPart");
+      io.emit("UpdateSummary");
+      io.emit("ActivedUpdate");
+      io.emit("updateDetailProjectPO");
       res.json({ message: "Summary received" });
     }
   );
@@ -3894,10 +3954,15 @@ app.delete("/api/ManufactureCounting/Delete-item-history/:id", (req, res) => {
         .status(500)
         .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
     }
-    io.emit("UpdateManufactureCounting");
-    io.emit("updateManufactureDetails");
-    io.emit("updateHistoryPart");
-    io.emit("ActivedUpdate");
+      io.emit("UpdateManufactureCounting");
+      io.emit("UpdateHistoryFiltered", { PlanID, Type });
+      io.emit("UpdateManufactureSummary", { PlanID, Type });
+      io.emit("updateManufactureDetails");
+      io.emit("UpdateHistory");
+      io.emit("updateHistoryPart");
+      io.emit("UpdateSummary");
+      io.emit("ActivedUpdate");
+      io.emit("updateDetailProjectPO");
     res.json({ message: "Đã xoá dữ liệu sản xuất thành công" });
   });
 });
@@ -4033,10 +4098,14 @@ app.post("/api/Summary/Add-item", (req, res) => {
           .status(500)
           .json({ error: "Database error", details: err.message });
       }
-      io.emit("UpdateSummary");
-      io.emit("UpdateHistory");
       io.emit("UpdateHistoryFiltered", { PlanID, Type });
-      io.emit("UpdateManufactureSummary", { PlanID, Type });
+      io.emit("UpdateManufactureCounting");
+      io.emit("updateManufactureDetails");
+      io.emit("UpdateHistory");
+      io.emit("updateHistoryPart");
+      io.emit("UpdateSummary");
+      io.emit("ActivedUpdate");
+      io.emit("updateDetailProjectPO");
       res.json({ message: "Summary received" });
     }
   );
@@ -4046,6 +4115,7 @@ app.post("/api/Summary/Add-item", (req, res) => {
 app.put("/api/Summary/Edit-item/:id", (req, res) => {
   const {
     Type,
+    PlanID,
     PONumber,
     Category,
     Line_SMT,
@@ -4075,8 +4145,14 @@ app.put("/api/Summary/Edit-item/:id", (req, res) => {
     ],
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
-      io.emit("UpdateSummary");
+      io.emit("UpdateManufactureCounting");
+      io.emit("updateManufactureDetails");
       io.emit("UpdateHistory");
+      io.emit("updateHistoryPart");
+      io.emit("UpdateSummary");
+      io.emit("ActivedUpdate");
+      io.emit("updateDetailProjectPO");
+      io.emit("UpdateHistoryFiltered", { PlanID, Type });
       res.json({ message: "Summary received" });
     }
   );
@@ -4085,6 +4161,11 @@ app.put("/api/Summary/Edit-item/:id", (req, res) => {
 // Router delete item in Summary table
 app.delete("/api/Summary/Delete-item/:id", async (req, res) => {
   const { id } = req.params;
+  const {
+    Type,
+    PlanID
+  } = req.query;
+
   // Insert data into SQLite database
   const query = `
     DELETE FROM Summary WHERE id = ?
@@ -4095,9 +4176,14 @@ app.delete("/api/Summary/Delete-item/:id", async (req, res) => {
         .status(500)
         .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
     }
-    io.emit("UpdateSummary");
-    io.emit("UpdateHistory");
+    io.emit("UpdateManufactureCounting");
     io.emit("updateManufactureDetails");
+    io.emit("UpdateHistory");
+    io.emit("updateHistoryPart");
+    io.emit("UpdateSummary");
+    io.emit("ActivedUpdate");
+    io.emit("updateDetailProjectPO");
+    io.emit("UpdateHistoryFiltered", { PlanID, Type });
     res.json({ message: "Đã xoá dữ liệu bảo trì định kỳ thành công" });
   });
 });

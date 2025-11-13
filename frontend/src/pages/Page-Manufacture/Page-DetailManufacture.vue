@@ -27,7 +27,7 @@
         <!-- Main Stats Overview -->
         <v-row class="mb-6">
           <v-col cols="12" md="4">
-            <v-card class="rounded-lg" color="primary" variant="tonal">
+            <v-card class="rounded-xl" color="primary" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu vào</div>
                 <div class="text-h4 font-weight-bold">
@@ -38,7 +38,7 @@
             </v-card>
           </v-col>
           <v-col cols="12" md="4">
-            <v-card class="rounded-lg" color="success" variant="tonal">
+            <v-card class="rounded-xl" color="success" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Hàng thành phẩm</div>
                 <div class="text-h4 font-weight-bold">
@@ -55,7 +55,7 @@
             </v-card>
           </v-col>
           <v-col cols="12" md="4">
-            <v-card class="rounded-lg" color="warning" variant="tonal">
+            <v-card class="rounded-xl" color="warning" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Hàng lỗi</div>
                 <div class="text-h4 font-weight-bold">
@@ -74,34 +74,50 @@
         </v-row>
         <div class="d-flex align-center justify-start flex-wrap">
           <template v-for="(card, index) in manufactureSummary" :key="card.id">
-            <ProcessCard
-              :title="card.Type"
-              :pass="
-                Number.parseFloat(
-                  (card.Quantity_Pass / totalInput) * 100
-                ).toFixed(1) + '%'
-              "
-              :fail="
-                Number.parseFloat(
-                  (card.Quantity_Fail / totalInput) * 100
-                ).toFixed(1) + '%'
-              "
-              color="success"
-              :is-selected="selectedTitle === card.Type"
-              @card-click="selectCard"
-              @toggle-bottleneck="toggleBottleneck"
-              class="mb-4"
-            />
+            <v-tooltip text="Nhấn vào xem chi tiết" location="bottom">
+              <template v-slot:activator="{ props }">
+                <ProcessCard
+                  v-bind="props"
+                  :title="card.Type"
+                  :pass="
+                    Number.parseFloat(
+                      (card.Quantity_Pass / totalInput) * 100
+                    ).toFixed(1) + '%'
+                  "
+                  :fail="
+                    Number.parseFloat(
+                      (card.Quantity_Fail / totalInput) * 100
+                    ).toFixed(1) + '%'
+                  "
+                  color="success"
+                  :is-selected="selectedTitle === card.Type"
+                  @card-click="selectCard"
+                  @toggle-bottleneck="toggleBottleneck"
+                  class="mb-4"
+                />
 
-            <div
-              v-if="index < manufactureSummary.length - 1"
-              class="flow-arrow mx-4"
-            >
-              →
-            </div>
+                <div
+                  v-if="index < manufactureSummary.length - 1"
+                  class="flow-arrow mx-4"
+                >
+                  →
+                </div>
+              </template>
+            </v-tooltip>
           </template>
+          <v-tooltip text="Đóng">
+            <template v-slot:activator="{ props }">
+              <v-btn
+                v-bind="props"
+                class="ms-5"
+                icon="mdi-close"
+                too
+                @click="CloseTabProgress()"
+              ></v-btn>
+            </template>
+          </v-tooltip>
         </div>
-        <v-card v-show="Detail_Popup_Card">
+        <v-card v-show="Detail_Popup_Card" class="rounded-xl">
           <v-card-title
             class="d-flex align-center pa-4 bg-grey-lighten-2 rounded-t-lg"
           >
@@ -114,50 +130,49 @@
           </v-card-title>
           <v-card-text>
             <v-row>
-              <v-col cols="3">
-                <v-card variant="text">
-                  <v-card-title
-                    ><h1 class="text-bold font-italic">
-                      {{ Quantity_Detail_Title }}
-                    </h1></v-card-title
-                  >
-                  <v-divider width="200px"></v-divider>
-                  <v-card-text>
-                    <div class="d-flex">
-                      <h1 class="text-success">Pass:</h1>
-                      <h1 class="ms-2 font-weight-light">
-                        {{ Quantity_Detail_Pass }} pcs
-                      </h1>
-                    </div>
-                    <div class="d-flex">
-                      <h1 class="text-error">Fail:</h1>
-                      <h1 class="ms-2 font-weight-light">
-                        {{ Quantity_Detail_Fail }} pcs
-                      </h1>
-                    </div>
-                    <div class="d-flex">
-                      <h1 class="text-info">Fixed:</h1>
-                      <h1 class="ms-2 font-weight-light">
-                        {{ Quantity_Detail_Fixed }} pcs
-                      </h1>
-                    </div>
-                    <div class="d-flex">
-                      <h1 class="text-warning">Remain:</h1>
-                      <h1 class="ms-2 font-weight-light">
-                        {{ Quantity_Detail_Remain }} pcs
-                      </h1>
-                    </div>
-                  </v-card-text>
-                </v-card>
+              <v-col md="3">
+                <v-card-title
+                  ><h1 class="text-bold font-italic">
+                    {{ Quantity_Detail_Title }}
+                  </h1></v-card-title
+                >
+                <v-divider width="200px"></v-divider>
+                <v-card-text>
+                  <div class="d-flex">
+                    <h1 class="text-success">Pass:</h1>
+                    <h1 class="ms-2 font-weight-light">
+                      {{ Quantity_Detail_Pass }} pcs
+                    </h1>
+                  </div>
+                  <div class="d-flex">
+                    <h1 class="text-error">Fail:</h1>
+                    <h1 class="ms-2 font-weight-light">
+                      {{ Quantity_Detail_Fail }} pcs
+                    </h1>
+                  </div>
+                  <div class="d-flex">
+                    <h1 class="text-info">Fixed:</h1>
+                    <h1 class="ms-2 font-weight-light">
+                      {{ Quantity_Detail_Fixed }} pcs
+                    </h1>
+                  </div>
+                  <div class="d-flex">
+                    <h1 class="text-warning">Remain:</h1>
+                    <h1 class="ms-2 font-weight-light">
+                      {{ Quantity_Detail_Remain }} pcs
+                    </h1>
+                  </div>
+                </v-card-text>
               </v-col>
-              <v-col cols="3">
+              <v-col md="4">
                 <v-pie
                   title="Biểu đồ phần trăm %"
                   animation
-                  legend
-                  tooltip
+                  :legend="{
+                    position: $vuetify.display.mdAndUp ? 'right' : 'bottom',
+                  }"
+                  :tooltip="{ subtitleFormat: '[value]%' }"
                   reveal
-                  :palette="['#048BA8', '#99C24D', '#ffa600']"
                   :items="VPieData"
                 />
                 <div class="h-0">
@@ -186,8 +201,9 @@
                   </svg>
                 </div>
               </v-col>
-              <v-col cols="6">
-                <v-card variant="text" title="Danh sách hàng lỗi">
+              <v-col md="5">
+                <v-card-title>Danh sách hàng lỗi</v-card-title>
+                <v-card-text>
                   <v-data-table
                     :headers="HeadersHistoryPartError"
                     :items="manufactureRW"
@@ -281,9 +297,16 @@
                       </div>
                     </template>
                   </v-data-table>
-                </v-card>
+                </v-card-text>
               </v-col>
-              <v-divider class="my-5"></v-divider>
+              <v-row>
+                <v-col cols="2"></v-col>
+                <v-col cols="8">
+                  <v-divider class="my-5"></v-divider>
+                </v-col>
+                <v-col cols="2"></v-col>
+              </v-row>
+
               <v-col cols="12">
                 <v-data-table
                   :headers="HeadersHistory"
@@ -408,7 +431,13 @@
                   </template>
                 </v-data-table>
               </v-col>
-              <v-divider></v-divider>
+              <v-row>
+                <v-col cols="2"></v-col>
+                <v-col cols="8">
+                  <v-divider class="my-5"></v-divider>
+                </v-col>
+                <v-col cols="2"></v-col>
+              </v-row>
               <v-col cols="12">
                 <StackedBarChart
                   :labels="days"
@@ -425,8 +454,8 @@
         <!-- Chart thống kê công đoạn -->
         <v-row class="mb-6 mt-5">
           <!-- Chart Card -->
-          <v-col cols="12" md="8">
-            <v-card class="rounded-lg h-100" elevation="2">
+          <v-col cols="12" md="7">
+            <v-card class="rounded-xl h-100" elevation="2">
               <v-card-title
                 class="d-flex align-center pa-4 bg-grey-lighten-2 rounded-t-lg"
               >
@@ -449,113 +478,45 @@
           </v-col>
 
           <!-- Chart chi tiết công đoạn -->
-          <v-col cols="12" md="4">
-            <v-card class="rounded-lg h-100" elevation="2">
+          <v-col cols="12" md="5">
+            <v-card class="rounded-xl h-100" elevation="2">
               <v-card-title
                 class="d-flex align-center pa-4 bg-grey-lighten-2 rounded-t-lg"
               >
-                <v-icon icon="mdi-table" class="me-2" color="primary"></v-icon>
-                Chi tiết theo công đoạn
+                <v-icon icon="mdi-chart-donut" class="me-2" color="primary"></v-icon>
+                Tổng hợp lỗi
               </v-card-title>
               <v-card-text class="pa-4">
-                <div class="detail-table-container">
-                  <v-table density="compact" class="elevation-1 rounded">
-                    <thead>
-                      <tr>
-                        <th class="text-left text-caption">Công đoạn</th>
-                        <th class="text-center text-caption">Pass</th>
-                        <th class="text-center text-caption">Fail</th>
-                        <th class="text-center text-caption">Tỷ lệ</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="(item, index) in chartDetailData" :key="index">
-                        <td class="text-caption font-weight-medium">
-                          {{ item.process }}
-                          <v-chip
-                            v-if="item.multiplier > 1"
-                            size="x-small"
-                            color="info"
-                            variant="tonal"
-                            class="ms-1"
-                            :title="`Hệ số nhân: ${item.multiplier}`"
-                          >
-                            ×{{ item.multiplier }}
-                          </v-chip>
-                        </td>
-                        <td class="text-center">
-                          <v-chip
-                            size="x-small"
-                            color="success"
-                            variant="tonal"
-                          >
-                            {{ item.ok }}
-                          </v-chip>
-                        </td>
-                        <td class="text-center">
-                          <v-chip size="x-small" color="error" variant="tonal">
-                            {{ item.error }}
-                          </v-chip>
-                        </td>
-                        <td class="text-center">
-                          <v-chip
-                            size="x-small"
-                            :color="
-                              item.rate >= 95
-                                ? 'success'
-                                : item.rate >= 80
-                                ? 'warning'
-                                : 'error'
-                            "
-                            variant="tonal"
-                          >
-                            {{ item.rate }}%
-                          </v-chip>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </v-table>
-
-                  <!-- Summary Stats -->
-                  <div class="mt-4">
-                    <v-divider class="mb-3"></v-divider>
-                    <div class="d-flex justify-space-between align-center mb-2">
-                      <span class="text-caption">Tổng Pass:</span>
-                      <v-chip size="small" color="success" variant="tonal">
-                        {{ totalChartOK }}
-                      </v-chip>
+                <v-pie
+                  :items="pieItems"
+                  :legend="{
+                    position: $vuetify.display.mdAndUp ? 'right' : 'bottom',
+                  }"
+                  :tooltip="{ subtitleFormat: '[value]%'}"
+                  class="pa-3 mt-3 justify-center"
+                  gap="2"
+                  inner-cut="70"
+                  item-key="id"
+                  rounded="2"
+                  size="300"
+                  animation
+                  hide-slice
+                  reveal
+                >
+                  <template v-slot:center>
+                    <div class="text-center">
+                      <div class="text-h3">{{ manufactureFail.length || 0 }}</div>
+                      <div class="opacity-70 mt-1 mb-n1">Tổng</div>
                     </div>
-                    <div class="d-flex justify-space-between align-center mb-2">
-                      <span class="text-caption">Tổng Fail:</span>
-                      <v-chip size="small" color="error" variant="tonal">
-                        {{ totalChartError }}
-                      </v-chip>
-                    </div>
-                    <div class="d-flex justify-space-between align-center">
-                      <span class="text-caption">Tỷ lệ chung:</span>
-                      <v-chip
-                        size="small"
-                        :color="
-                          overallRate >= 95
-                            ? 'success'
-                            : overallRate >= 80
-                            ? 'warning'
-                            : 'error'
-                        "
-                        variant="tonal"
-                      >
-                        {{ overallRate }}%
-                      </v-chip>
-                    </div>
-                  </div>
-                </div>
+                  </template>
+                </v-pie>
               </v-card-text>
             </v-card>
           </v-col>
         </v-row>
 
         <!-- Lịch sử sản xuất -->
-        <v-card class="rounded-lg mt-5" elevation="2">
+        <v-card class="rounded-xl mt-5" elevation="2">
           <v-data-table
             :headers="HeadersHistoryPart"
             :items="historyPart"
@@ -649,14 +610,6 @@
                 icon="mdi-trash-can"
                 @click="GetItemHistory(item)"
               ></v-btn>
-            </template>
-            <template #[`bottom`]>
-              <div class="text-center pt-2">
-                <v-pagination
-                  v-model="page"
-                  :length="Math.ceil(historyPart.length / itemsPerPage)"
-                ></v-pagination>
-              </div>
             </template>
           </v-data-table>
         </v-card>
@@ -938,6 +891,7 @@ import { useHistory } from "@/composables/Manufacture/useHistory";
 import { useHistoryPart } from "@/composables/Manufacture/useHistoryPart";
 import { useManufactureSummary } from "@/composables/Manufacture/useManufactureSummary";
 import { useManufactureRW } from "@/composables/Manufacture/useManufactureRW";
+import { useManufactureFail } from "@/composables/Manufacture/useManufactureFail"
 
 // ... existing refs and constants ...
 const Url = import.meta.env.VITE_API_URL;
@@ -953,6 +907,7 @@ const { historyPart, historyPartError } = useHistoryPart(id);
 const { manufactureSummary, refresh } = useManufactureSummary(id);
 const { manufactureRW, manufactureRWError } = useManufactureRW(id, typeFilter);
 const { history } = useHistory(id, typeFilter);
+const { manufactureFail } = useManufactureFail(id);
 
 // Dialog
 const DialogSuccess = ref(false);
@@ -1130,6 +1085,7 @@ const HeadersHistoryPartError = [
   { title: "Mã hàng", key: "PartNumber", sortable: true },
   { title: "Trạng thái", key: "Status", sortable: true },
   { title: "Trạng thái RW", key: "RWID", sortable: true },
+  { title: "Loại lỗi", key: "GroupFail", sortable: true },
   { title: "Ghi chú lỗi", key: "Note", sortable: true },
 ];
 
@@ -1284,23 +1240,28 @@ watch(
       ];
     };
 
-    // ❌ Không có dữ liệu → reset
     if (!newValue || !Array.isArray(newValue) || newValue.length === 0) {
       resetValues();
       return;
     }
 
-    // ✅ Array có dữ liệu
-    const data = newValue[0];
+    // ✅ Chỉ cập nhật dữ liệu tương ứng với màn hình đang xem
+    const currentType = Quantity_Detail_Title.value;
+    const found = newValue.find((x) => x.Type === currentType);
 
-    if (Type_Add == "SMT") {
+    if (!found) {
+      resetValues();
+      return;
+    }
+
+    if (currentType === "SMT") {
       Quantity_Detail_Pass.value = totalSMT_1.value + totalSMT_2.value;
       Quantity_Detail_Fail.value = 0;
       Quantity_Detail_Fixed.value = 0;
       Quantity_Detail_Remain.value = totalInput.value - totalSMT_1.value;
     } else {
-      const pass = data.Quantity_Pass || 0;
-      const fail = data.Quantity_Fail || 0;
+      const pass = found.Quantity_Pass || 0;
+      const fail = found.Quantity_Fail || 0;
       const remain = Math.max(0, totalInput.value - (pass + fail));
 
       Quantity_Detail_Pass.value = pass;
@@ -1334,6 +1295,85 @@ watch(
   }
 );
 
+
+const summaryFailChart = ref({
+  "Lỗi hàn": 0,
+  "Lỗi linh kiện": 0,
+  "Lỗi ngoại quan": 0,
+  "Lỗi chức năng": 0,
+  "Lỗi lắp ráp cơ khí": 0,
+  "Lỗi quy trình / Vận hành": 0,
+  "Lỗi không xác định": 0, // bản ghi GroupFail rỗng/null
+});
+
+watch(
+  manufactureFail,
+  (newVal) => {
+    if (!Array.isArray(newVal)) return;
+
+    // Reset lại thống kê
+    for (const key in summaryFailChart.value) {
+      summaryFailChart.value[key] = 0;
+    }
+
+    // Duyệt từng bản ghi
+    newVal.forEach((item) => {
+      if (item.GroupFail && item.GroupFail.trim() !== "") {
+        const errors = item.GroupFail.split(",").map((e) => e.trim());
+        errors.forEach((err) => {
+          if (summaryFailChart.value[err] !== undefined) {
+            summaryFailChart.value[err]++;
+          }
+        });
+      } else {
+        // Không có GroupFail → đếm vào "Lỗi không xác định"
+        summaryFailChart.value["Lỗi không xác định"]++;
+      }
+    });
+  },
+  { immediate: true, deep: true }
+);
+
+// Pie chart items
+const pieItems = computed(() => {
+  const colors = [
+    "rgba(255,99,132,0.8)",
+    "rgba(255,159,64,0.8)",
+    "rgba(255,205,86,0.8)",
+    "rgba(75,192,192,0.8)",
+    "rgba(54,162,235,0.8)",
+    "rgba(153,102,255,0.8)",
+    "rgba(200,200,200,0.5)", // màu cho "Lỗi không xác định"
+  ];
+
+  const entries = Object.entries(summaryFailChart.value).filter(
+    ([_, value]) => Number.isFinite(value) && value > 0
+  );
+
+  const total = entries.reduce((sum, [, value]) => sum + value, 0);
+
+  // Trường hợp không có lỗi nào
+  if (total === 0) {
+    return [
+      {
+        id: 1,
+        title: "Không lỗi",
+        value: 100,
+        count: 0,
+        color: "rgba(200,200,200,0.5)",
+      },
+    ];
+  }
+
+  // Chuyển sang dạng {id, title, value: %, count, color}
+  return entries.map(([title, value], i) => ({
+    id: i + 1,
+    title,
+    value: +((value / total) * 100).toFixed(1), // phần trăm
+    count: value, // số lượng thật
+    color: colors[i % colors.length],
+  }));
+});
 // Initialize chart
 onMounted(() => {
   nextTick(() => {
@@ -1374,7 +1414,6 @@ const Time_Edit = computed(() => {
   }
   return ((Quantity_Plan_Edit.value * CycleTime_Edit.value) / 3600).toFixed(1);
 });
-
 
 // ====== CRUD ========
 const PushItem = (item) => {
@@ -1499,6 +1538,11 @@ const HandleBottleneckAction = (title) => {
   // Thêm logic xử lý ưu tiên tại đây (ví dụ: mở modal, gọi API xử lý)
 };
 
+const CloseTabProgress = () => {
+  router.push(`/San-xuat/Chi-tiet/${route.params.id}`);
+  Detail_Popup_Card.value = false;
+};
+
 const SaveEdit = async () => {
   DialogLoading.value = true;
   const formData = reactive({
@@ -1553,7 +1597,6 @@ const SaveEditSettingSMT = async () => {
  * Saves new customer data
  * Makes an API call to create a new customer
  */
-
 const SaveAdd = async () => {
   const result = await formRef.value.validate();
 
@@ -1562,6 +1605,7 @@ const SaveAdd = async () => {
     DialogFailed.value = true; // hoặc hiển thị dialog báo lỗi
     return;
   }
+
   DialogLoading.value = true;
   const formData = reactive({
     Type: Type_Add.value,
@@ -1575,7 +1619,6 @@ const SaveAdd = async () => {
     Note: Note_Add.value,
     Created_At: formattedSelectedDate,
   });
-
   try {
     const response = await axios.post(`${Url}/Summary/Add-item`, formData);
     MessageDialog.value = "Thêm dữ liệu thành công";
@@ -1591,7 +1634,7 @@ const RemoveItem = async () => {
   DialogLoading.value = true;
   try {
     const response = await axios.delete(
-      `${Url}/Summary/Delete-item/${GetID.value}`
+      `${Url}/Summary/Delete-item/${GetID.value}?PlanID=${route.params.id}&Type=${Type_Edit.value}`
     );
     MessageDialog.value = "Xoá dữ liệu thành công";
     Reset();

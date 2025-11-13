@@ -4,35 +4,21 @@ import { io } from "socket.io-client";
 export function useSummary(selectedDate) {
   const summary = ref([]);
   const summaryError = ref(null);
-  const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
-  const socket = io(SOCKET_URL);
-
-  // ✅ Tính startOfDay và endOfDay từ selectedDate
-  const startOfDay = computed(() =>
-    Math.floor(new Date(`${selectedDate.value}T00:00:00+07:00`).getTime() / 1000)
-  );
+  const socket = io(import.meta.env.VITE_SOCKET_URL);
 
   const endOfDay = computed(() =>
-    Math.floor(new Date(`${selectedDate.value}T23:59:59+07:00`).getTime() / 1000)
+    Math.floor(
+      new Date(`${selectedDate.value}T23:59:59+07:00`).getTime() / 1000
+    )
   );
 
   const fetchData = () => {
-    try {
-      if (selectedDate.value) {
-        socket.emit("getSummary", {
-          start: startOfDay.value,
-          end: endOfDay.value,
-        });
-      } else {
-        // Nếu không có ngày => query toàn bộ (bạn có thể sửa query bên server để bỏ điều kiện WHERE)
-        socket.emit("getSummary", { start: 0, end: Math.floor(Date.now() / 1000) });
-      }
-    } catch (error) {
-      summaryError.value = error.message;
+    if (selectedDate.value) {
+      socket.emit("getSummary", selectedDate.value);
     }
   };
 
-  watch(selectedDate, (newDate) => {
+  watch(selectedDate, () => {
     fetchData();
   });
 
@@ -40,27 +26,16 @@ export function useSummary(selectedDate) {
     fetchData();
 
     socket.on("SummaryData", (data) => {
-      if (Array.isArray(data)) {
-        summary.value = data;
-      } else {
-        summaryError.value = "Invalid data format received";
-      }
+      summary.value = data || [];
     });
 
-    socket.on("SummaryError", (message) => {
-      summaryError.value = message;
+    socket.on("SummaryError", (err) => {
+      summaryError.value = err;
     });
 
     socket.on("UpdateSummary", fetchData);
 
-    socket.on("connect", () => {
-      console.log("Socket connected:", socket.id);
-      fetchData();
-    });
-
-    socket.on("disconnect", () => {
-      console.log("Socket disconnected");
-    });
+    socket.on("connect", () => fetchData());
   });
 
   onUnmounted(() => {

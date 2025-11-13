@@ -8,7 +8,7 @@
         <v-card-title>
           <v-row v-if="lgAndUp">
             <v-col cols="12" sm="6" md="3">
-              <v-card class="rounded-lg" color="primary" variant="tonal">
+              <v-card class="rounded-xl" color="primary" variant="tonal">
                 <v-card-text>
                   <div class="text-subtitle-1">Tổng số khách hàng</div>
                   <div class="text-h4 font-weight-bold">
@@ -18,7 +18,7 @@
               </v-card>
             </v-col>
             <v-col cols="12" sm="6" md="3">
-              <v-card class="rounded-lg" color="info" variant="tonal">
+              <v-card class="rounded-xl" color="info" variant="tonal">
                 <v-card-text>
                   <div class="text-subtitle-1">Tổng số PO</div>
                   <div class="text-h4 font-weight-bold">
@@ -33,7 +33,7 @@
               </v-card>
             </v-col>
             <v-col cols="12" sm="6" md="3">
-              <v-card class="rounded-lg" color="success" variant="tonal">
+              <v-card class="rounded-xl" color="success" variant="tonal">
                 <v-card-text>
                   <div class="text-subtitle-1">Tổng PO hoàn thành</div>
                   <div class="text-h4 font-weight-bold">

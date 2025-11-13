@@ -241,8 +241,8 @@
                   <thead>
                     <tr>
                       <th class="text-left text-caption">Loại</th>
-                      <th class="text-center text-caption">Tổng OK</th>
-                      <th class="text-center text-caption">Tổng Lỗi</th>
+                      <th class="text-center text-caption">Tổng Pass</th>
+                      <th class="text-center text-caption">Tổng Fail</th>
                       <th class="text-center text-caption">Tỷ lệ</th>
                     </tr>
                   </thead>
@@ -286,13 +286,13 @@
                 <div class="mt-4">
                   <v-divider class="mb-3"></v-divider>
                   <div class="d-flex justify-space-between align-center mb-2">
-                    <span class="text-caption">Tổng OK:</span>
+                    <span class="text-caption">Tổng Pass:</span>
                     <v-chip size="small" color="success" variant="tonal">
                       {{ totalSummaryOK }}
                     </v-chip>
                   </div>
                   <div class="d-flex justify-space-between align-center mb-2">
-                    <span class="text-caption">Tổng Lỗi:</span>
+                    <span class="text-caption">Tổng Fail:</span>
                     <v-chip size="small" color="error" variant="tonal">
                       {{ totalSummaryError }}
                     </v-chip>
@@ -326,7 +326,7 @@
         :items="summary"
         :search="search"
         :group-by="[{ key: 'Type' }]"
-        class="mt-3"
+        class="mt-3 rounded-xl"
         fixed-header
         :header-props="{
           sortByText: 'Sắp xếp theo',
@@ -397,12 +397,12 @@
 
       <!-- Bảng dữ liệu tỷ lệ lỗi -->
       <v-row>
-        <v-col cols="7">
+        <v-col lg="8" md="12">
           <v-data-table-virtual
             :headers="HeadersError"
-            :items="summary"
-            :group-by="[{ key: 'Name_Order' }]"
-            class="mt-5"
+            :items="Manufacture_Fail"
+            :group-by="[{ key: 'PONumber' }]"
+            class="mt-5 rounded-xl"
             fixed-header
             :header-props="{
               sortByText: 'Sắp xếp theo',
@@ -416,6 +416,7 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
+            height="435px"
           >
             <template v-slot:top>
               <v-toolbar flat dense>
@@ -464,16 +465,58 @@
                 :model-value="Number(item.Percent_Error)"
                 height="25"
                 color="success"
-                rounded
+                class="rounded-lg"
               >
                 <strong>{{ Number(item.Percent_Error).toFixed(1) }}%</strong>
               </v-progress-linear>
             </template>
           </v-data-table-virtual>
         </v-col>
+        <v-col lg="4" md="12">
+          <v-card class="mb-4 rounded-xl mt-5" elevation="2" height="500px">
+            <v-toolbar flat dense>
+              <v-toolbar-title>
+                <v-icon
+                  color="primary"
+                  icon="mdi-chart-donut"
+                  size="x-small"
+                  start
+                ></v-icon>
+                Biểu đồ thông tin lỗi
+              </v-toolbar-title>
+            </v-toolbar>
+            <v-card-text>
+              <v-pie
+                :items="pieItems"
+                :legend="{
+                  position: $vuetify.display.mdAndUp ? 'right' : 'bottom',
+                }"
+                :tooltip="{ subtitleFormat: '[value]%' }"
+                class="pa-3 mt-3 justify-center"
+                gap="2"
+                inner-cut="70"
+                item-key="id"
+                rounded="2"
+                size="300"
+                animation
+                hide-slice
+                reveal
+              >
+                <template v-slot:center>
+                  <div class="text-center">
+                    <div class="text-h3">{{ summaryFail.length }}</div>
+                    <div class="opacity-70 mt-1 mb-n1">Tổng</div>
+                  </div>
+                </template>
+              </v-pie>
+            </v-card-text>
+          </v-card>
+        </v-col>
       </v-row>
     </v-card-text>
   </v-card>
+
+  <!-- Mobile -->
 
   <v-card
     variant="text"
@@ -588,8 +631,8 @@
                   <thead>
                     <tr>
                       <th class="text-left text-caption">Loại</th>
-                      <th class="text-center text-caption">Tổng OK</th>
-                      <th class="text-center text-caption">Tổng Lỗi</th>
+                      <th class="text-center text-caption">Tổng Pass</th>
+                      <th class="text-center text-caption">Tổng Fail</th>
                       <th class="text-center text-caption">Tỷ lệ</th>
                     </tr>
                   </thead>
@@ -633,13 +676,13 @@
                 <div class="mt-4">
                   <v-divider class="mb-3"></v-divider>
                   <div class="d-flex justify-space-between align-center mb-2">
-                    <span class="text-caption">Tổng OK:</span>
+                    <span class="text-caption">Tổng Pass:</span>
                     <v-chip size="small" color="success" variant="tonal">
                       {{ totalSummaryOK }}
                     </v-chip>
                   </div>
                   <div class="d-flex justify-space-between align-center mb-2">
-                    <span class="text-caption">Tổng Lỗi:</span>
+                    <span class="text-caption">Tổng Fail:</span>
                     <v-chip size="small" color="error" variant="tonal">
                       {{ totalSummaryError }}
                     </v-chip>
@@ -739,8 +782,8 @@
       <!-- Bảng dữ liệu tỷ lệ lỗi -->
       <v-data-table-virtual
         :headers="HeadersError"
-        :items="summary"
-        :group-by="[{ key: 'Name_Order' }]"
+        :items="Manufacture_Fail"
+        :group-by="[{ key: 'PONumber' }]"
         class="mt-5"
         fixed-header
         :header-props="{
@@ -755,6 +798,7 @@
         :hover="true"
         :dense="false"
         :fixed-header="true"
+        elevation="2"
       >
         <template v-slot:top>
           <v-toolbar flat dense>
@@ -808,6 +852,44 @@
           </v-progress-linear>
         </template>
       </v-data-table-virtual>
+      <v-card class="mb-4 rounded-xl mt-5" elevation="2" height="500px">
+        <v-toolbar flat dense>
+          <v-toolbar-title>
+            <v-icon
+              color="primary"
+              icon="mdi-chart-donut"
+              size="x-small"
+              start
+            ></v-icon>
+            Biểu đồ kế hoạch và thực tế
+          </v-toolbar-title>
+        </v-toolbar>
+        <v-card-text>
+          <v-pie
+            :items="pieItems"
+            :legend="{
+              position: $vuetify.display.mdAndUp ? 'right' : 'bottom',
+            }"
+            :tooltip="{ subtitleFormat: '[value]%' }"
+            class="pa-3 mt-3 justify-center"
+            gap="2"
+            inner-cut="70"
+            item-key="id"
+            rounded="2"
+            size="300"
+            animation
+            hide-slice
+            reveal
+          >
+            <template v-slot:center>
+              <div class="text-center">
+                <div class="text-h3">{{ summaryFail.length }}</div>
+                <div class="opacity-70 mt-1 mb-n1">Tổng</div>
+              </div>
+            </template>
+          </v-pie>
+        </v-card-text>
+      </v-card>
     </v-card-text>
   </v-card>
 
@@ -850,6 +932,8 @@ import StackedBarChart from "@/components/Chart-StackedBar-PageSummary.vue";
 // Composables
 import { useSummary } from "@/composables/Summary/useSummary";
 import { useCompareSummary } from "@/composables/Summary/useCompareSummary";
+import { useSummaryFail } from "@/composables/Summary/useSummaryFail";
+
 // import { useActived } from "@/composables/Summary/useActived";
 
 // ===== STATE MANAGEMENT =====
@@ -877,6 +961,7 @@ const Total_Category_Today = ref(0);
 const Total_Po_Today = ref(0);
 const Percent_Compare_Po = ref(0);
 const Percent_Compare_Category = ref(0);
+const Manufacture_Fail = ref([]);
 
 // ===== Table States =====
 const search = ref("");
@@ -907,7 +992,7 @@ const Headers = ref([
 ]);
 
 const HeadersError = ref([
-  { key: "PONumber", title: "Dự án" },
+  { key: "Category", title: "Dự án" },
   { key: "Type", title: "Công đoạn" },
   { key: "Total_Summary_ID", title: "Số lượng đã sản xuất" },
   { key: "Quantity_Error", title: "Hàng lỗi" },
@@ -922,20 +1007,6 @@ const HeadersActived = [
 ];
 
 // ===== COMPUTED =======
-
-// Thời gian thực để trigger cập nhật
-const now = ref(Date.now());
-
-// Cập nhật thời gian thực mỗi giây
-let timer = null;
-onMounted(() => {
-  timer = setInterval(() => {
-    now.value = Date.now();
-  }, 1000);
-});
-onUnmounted(() => {
-  if (timer) clearInterval(timer);
-});
 
 // Tổng hợp dữ liệu summary theo Type (loại)
 const summaryDetailByType = computed(() => {
@@ -980,7 +1051,6 @@ const formattedSelectedDate = computed(() => {
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 });
-
 const formattedWeekDate = computed(() => {
   const selectedDateObj = new Date(selectedDate.value);
   const day = selectedDateObj.getDay();
@@ -1008,6 +1078,7 @@ const formattedWeekDate = computed(() => {
 
 const { summary, summaryError } = useSummary(formattedSelectedDate);
 const { compareSummary } = useCompareSummary(formattedSelectedDate);
+const { summaryFail, summaryFailError } = useSummaryFail(formattedSelectedDate);
 // const { status, statusError } = useActived();
 
 // Hàm tính số giây chênh lệch giữa hiện tại và timestamp dạng dd/MM/yyyy HH:mm:ss
@@ -1029,6 +1100,22 @@ watch(summaryError, (error) => {
     DialogFailed.value = true;
   }
 });
+
+watch(
+  summary,
+  (newValue) => {
+    if (Array.isArray(newValue) && newValue.length > 0) {
+      // Lọc các phần tử có Quantity_Error > 0
+      Manufacture_Fail.value = newValue.filter(
+        (item) => Number(item.Quantity_Error) > 0
+      );
+    } else {
+      // Nếu mảng rỗng hoặc không hợp lệ, reset lại
+      Manufacture_Fail.value = [];
+    }
+  },
+  { immediate: true, deep: true }
+);
 
 watch(
   compareSummary,
@@ -1072,16 +1159,100 @@ const planList = computed(() =>
   summary.value.map((item) => Number(item.Quantity_Plan || 0))
 );
 
+const progressFail = computed(() =>
+  Manufacture_Fail.value.map((item) => item.Category || 0)
+);
+
+const failListTable = computed(() =>
+  Manufacture_Fail.value.map((item) => Number(item.Quantity_Error || 0))
+);
+
+const summaryFailChart = ref({
+  "Lỗi hàn": 0,
+  "Lỗi linh kiện": 0,
+  "Lỗi ngoại quan": 0,
+  "Lỗi chức năng": 0,
+  "Lỗi lắp ráp cơ khí": 0,
+  "Lỗi quy trình / Vận hành": 0,
+  "Lỗi không xác định": 0, // bản ghi GroupFail rỗng/null
+});
+
+watch(
+  summaryFail,
+  (newVal) => {
+    if (!Array.isArray(newVal)) return;
+
+    // Reset lại thống kê
+    for (const key in summaryFailChart.value) {
+      summaryFailChart.value[key] = 0;
+    }
+
+    // Duyệt từng bản ghi
+    newVal.forEach((item) => {
+      if (item.GroupFail && item.GroupFail.trim() !== "") {
+        const errors = item.GroupFail.split(",").map((e) => e.trim());
+        errors.forEach((err) => {
+          if (summaryFailChart.value[err] !== undefined) {
+            summaryFailChart.value[err]++;
+          }
+        });
+      } else {
+        // Không có GroupFail → đếm vào "Lỗi không xác định"
+        summaryFailChart.value["Lỗi không xác định"]++;
+      }
+    });
+  },
+  { immediate: true, deep: true }
+);
+
+// Pie chart items
+const pieItems = computed(() => {
+  const colors = [
+    "rgba(255,99,132,0.8)",
+    "rgba(255,159,64,0.8)",
+    "rgba(255,205,86,0.8)",
+    "rgba(75,192,192,0.8)",
+    "rgba(54,162,235,0.8)",
+    "rgba(153,102,255,0.8)",
+    "rgba(200,200,200,0.5)", // màu cho "Lỗi không xác định"
+  ];
+
+  const entries = Object.entries(summaryFailChart.value).filter(
+    ([_, value]) => Number.isFinite(value) && value > 0
+  );
+
+  const total = entries.reduce((sum, [, value]) => sum + value, 0);
+
+  // Trường hợp không có lỗi nào
+  if (total === 0) {
+    return [
+      {
+        id: 1,
+        title: "Không lỗi",
+        value: 100,
+        count: 0,
+        color: "rgba(200,200,200,0.5)",
+      },
+    ];
+  }
+
+  // Chuyển sang dạng {id, title, value: %, count, color}
+  return entries.map(([title, value], i) => ({
+    id: i + 1,
+    title,
+    value: +((value / total) * 100).toFixed(1), // phần trăm
+    count: value, // số lượng thật
+    color: colors[i % colors.length],
+  }));
+});
+
 // ===== UTILITY FUNCTIONS =====
 /**
  * Resets all dialog states and form data
  * Called after successful operations
  */
 function Reset() {
-  DialogRemove.value = false;
   DialogSuccess.value = true;
-  DialogEdit.value = false;
-  DialogAdd.value = false;
   DialogLoading.value = false;
 }
 
