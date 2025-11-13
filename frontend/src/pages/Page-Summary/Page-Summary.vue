@@ -189,7 +189,7 @@
                 }}
               </div>
               <div class="text-caption text-error font-weight-bold">
-                Đang trễ: 2 dự án
+                Đang trễ: 
               </div>
             </v-card-text>
           </v-card>

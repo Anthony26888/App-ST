@@ -1327,7 +1327,7 @@ watch(
         {
           key: 3,
           title: "Còn lại",
-          value: Percent_Remain,
+          value: Percent_Remain.toFixed(1),
           color: "rgba(var(--v-theme-on-surface), .2)",
           pattern: "url(#pattern-0)",
         },

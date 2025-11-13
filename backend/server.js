@@ -3902,6 +3902,7 @@ app.post("/api/ManufactureCounting", (req, res) => {
     (err) => {
       if (err) return res.status(500).json({ error: "Database error" });
       io.emit("UpdateManufactureCounting");
+      io.emit("UpdateManufactureFail")
       io.emit("UpdateHistoryFiltered", { PlanID, Type });
       io.emit("UpdateManufactureSummary", { PlanID, Type });
       io.emit("UpdateManufactureRW", { PlanID, Type })

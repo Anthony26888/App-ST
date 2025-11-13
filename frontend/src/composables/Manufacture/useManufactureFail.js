@@ -30,8 +30,8 @@ export function useManufactureFail(id) {
       connectionStatus.value = "Lỗi kết nối: " + message;
     });
 
-    socket.on("updateManufactureDetails", () => {
-      socket.emit("getManufactureDetails", id);
+    socket.on("UpdateManufactureFail", () => {
+      socket.emit("getManufactureFail", id);
     });
   });
 
