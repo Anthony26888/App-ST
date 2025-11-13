@@ -73,7 +73,7 @@
           </v-col>
         </v-row>
         <div class="d-flex align-center justify-start flex-wrap">
-          <template v-for="(card, index) in manufactureSummary" :key="card.id">
+          <template v-for="(card, index) in levelArray" :key="card.id">
             <v-tooltip text="Nhấn vào xem chi tiết" location="bottom">
               <template v-slot:activator="{ props }">
                 <ProcessCard
@@ -97,7 +97,7 @@
                 />
 
                 <div
-                  v-if="index < manufactureSummary.length - 1"
+                  v-if="index < levelArray.length - 1"
                   class="flow-arrow mx-4"
                 >
                   →
@@ -958,7 +958,7 @@ const PercentFixed = computed(
 // Level
 const Level_SMT = ref(false);
 const LevelSelectAdd = ref(null);
-
+const levelArray = ref([]);
 // Data
 const DataManufacture = ref(null);
 const Quantity_Detail_Title = ref("");
@@ -1182,46 +1182,94 @@ watch(
 watch(
   manufactureDetails,
   (newValue) => {
-    if (newValue && typeof newValue === "object") {
-      // Check if newValue is an array and has items
-      if (Array.isArray(newValue) && newValue.length > 0) {
-        const data = newValue[0]; // Get first item if it's an array
-        DataManufacture.value = data.Level;
-        Level_SMT.value = DataManufacture.value.includes("SMT");
-        totalInput.value = data.Total || 0;
-        totalOutput.value = data.Quantity_Pass || 0;
-        totalError.value = data.Quantity_Error || 0;
-        totalFixed.value = data.Quantity_Fixed || 0;
-        totalOutput_Fail.value = data.Quantity_Output_Fail || 0;
-        totalSMT_1.value = data.SMT_1 || 0;
-        totalSMT_2.value = data.SMT_2 || 0;
-        totalSMT_3.value = data.SMT_3 || 0;
-        totalSMT_4.value = data.SMT_4 || 0;
-        Quantity_Edit.value = data.Quantity;
-        DelaySMT_Edit.value = data.DelaySMT;
-        LevelSelectAdd.value = data.Level.split("-");
-        NameOrder.value = data.Name_Order;
-        Name_Order_Add.value = data.Name_Order;
-        Name_Order_Edit.value = data.Name_Order;
-      } else {
-        // If it's a single object
-        totalInput.value = newValue.Total || 0;
-        totalError.value = newValue.Quantity_Error || 0;
-        totalSMT_1.value = newValue.SMT_1 || 0;
-        totalSMT_2.value = newValue.SMT_2 || 0;
-        totalSMT_3.value = newValue.SMT_3 || 0;
-        Quantity_Edit.value = newValue.Quantity;
-        DelaySMT_Edit.value = newValue.DelaySMT;
-        NameOrder.value = newValue.Name_Order;
-      }
+    if (!newValue || typeof newValue !== "object") return;
+
+    const data = Array.isArray(newValue) ? newValue[0] : newValue;
+    if (!data || typeof data.Level !== "string" || !data.Level.trim()) {
+      levelArray.value = [];
+      return;
     }
+
+    // ✅ Tách chuỗi Level thành mảng công đoạn
+    let levels = data.Level.split("-").map((s) => s.trim());
+
+    // ✅ Sắp xếp thứ tự công đoạn
+    levels = levels.sort((a, b) => {
+      const upperA = a.toUpperCase();
+      const upperB = b.toUpperCase();
+
+      // 1️⃣ SMT luôn ở đầu
+      if (upperA.includes("SMT") && !upperB.includes("SMT")) return -1;
+      if (!upperA.includes("SMT") && upperB.includes("SMT")) return 1;
+
+      // 2️⃣ OQC ngay sau SMT
+      if (upperA.includes("AOI") && !upperB.includes("AOI")) return -1;
+      if (!upperA.includes("AOI") && upperB.includes("AOI")) return 1;
+
+      // 3️⃣ RW và Thành phẩm luôn ở cuối
+      const isAEnd = ["RW", "THÀNH PHẨM"].some((x) => upperA.includes(x));
+      const isBEnd = ["RW", "THÀNH PHẨM"].some((x) => upperB.includes(x));
+      if (isAEnd && !isBEnd) return 1;
+      if (!isAEnd && isBEnd) return -1;
+
+      // 4️⃣ Giữ nguyên thứ tự gốc nếu không có điều kiện đặc biệt
+      return 0;
+    });
+
+    // ✅ Sinh mảng object công đoạn tương ứng
+    levelArray.value = levels.map((step, index) => ({
+      Type: step,
+      Quantity_Pass: 0,
+      Quantity_Fail: 0,
+      Quantity_RW: 0,
+      Total_Summary_ID: index + 1,
+    }));
+
+    // ---- Gán các giá trị khác như cũ ----
+    DataManufacture.value = data.Level;
+    Level_SMT.value = data.Level.includes("SMT");
+    totalInput.value = data.Total || 0;
+    totalOutput.value = data.Quantity_Pass || 0;
+    totalError.value = data.Quantity_Error || 0;
+    totalFixed.value = data.Quantity_Fixed || 0;
+    totalOutput_Fail.value = data.Quantity_Output_Fail || 0;
+    totalSMT_1.value = data.SMT_1 || 0;
+    totalSMT_2.value = data.SMT_2 || 0;
+    totalSMT_3.value = data.SMT_3 || 0;
+    totalSMT_4.value = data.SMT_4 || 0;
+    Quantity_Edit.value = data.Quantity;
+    DelaySMT_Edit.value = data.DelaySMT;
+    LevelSelectAdd.value = data.Level.split("-");
+    NameOrder.value = data.Name_Order;
+    Name_Order_Add.value = data.Name_Order;
+    Name_Order_Edit.value = data.Name_Order;
   },
   { immediate: true, deep: true }
 );
 
+
+
 watch(
   manufactureSummary,
   (newValue) => {
+    // Duyệt từng phần tử trong levelArray để cập nhật giá trị tương ứng
+    levelArray.value = levelArray.value.map((lvl) => {
+      const match = newValue.find((item) => item.Type === lvl.Type);
+
+      // Nếu tìm thấy bản ghi tương ứng trong manufactureSummary
+      if (match) {
+        return {
+          ...lvl,
+          Quantity_Pass: match.Quantity_Pass || 0,
+          Quantity_Fail: match.Quantity_Fail || 0,
+          Quantity_RW: match.Quantity_RW || 0,
+          Total_Summary_ID: match.Total_Summary_ID || lvl.Total_Summary_ID,
+        };
+      }
+
+      // Nếu không có dữ liệu thống kê tương ứng, giữ nguyên
+      return lvl;
+    });
     const resetValues = () => {
       Quantity_Detail_Pass.value = 0;
       Quantity_Detail_Fail.value = 0;
@@ -1272,6 +1320,7 @@ watch(
       const Percent_Fail = (fail / totalInput.value) * 100;
       const Percent_Remain = (remain / totalInput.value) * 100;
 
+
       VPieData.value = [
         { key: 1, title: "Pass", value: Percent_Pass, color: "#72c789" },
         { key: 2, title: "Fail", value: Percent_Fail, color: "#d43d51" },
@@ -1287,6 +1336,7 @@ watch(
   },
   { immediate: true, deep: true }
 );
+
 
 watch(
   () => route.query.Type,
