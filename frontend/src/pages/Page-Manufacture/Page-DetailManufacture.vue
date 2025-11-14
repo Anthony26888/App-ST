@@ -800,7 +800,7 @@
 
     <!-- Dialog Setting SMT -->
     <v-dialog v-model="DialogSettingSMT" max-width="700px">
-      <v-card>
+      <v-card class="rounded-lg">
         <v-card-title class="d-flex align-center pa-4">
           <v-icon icon="mdi-cog" color="primary" class="me-2"></v-icon>
           Cài đặt dây chuyền
@@ -833,7 +833,7 @@
 
     <!-- Dialog xác nhận xóa dữ liệu lịch sử sản xuất -->
     <v-dialog v-model="DialogRemoveHistory" width="400">
-      <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
+      <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu" class="rounded-lg">
         <v-card-text> Bạn có chắc chắn muốn xoá dữ liệu ? </v-card-text>
         <template v-slot:actions>
           <ButtonCancel @cancel="DialogRemoveHistory = false" />
@@ -1316,9 +1316,13 @@ watch(
       Quantity_Detail_Fail.value = fail;
       Quantity_Detail_Remain.value = remain;
 
-      const Percent_Pass = (pass / totalInput.value) * 100;
-      const Percent_Fail = (fail / totalInput.value) * 100;
-      const Percent_Remain = (remain / totalInput.value) * 100;
+      const round1 = (num) => Number(num.toFixed(1));
+
+      const Percent_Pass = round1((pass / totalInput.value) * 100);
+      const Percent_Fail = round1((fail / totalInput.value) * 100);
+      const Percent_Remain = round1((remain / totalInput.value) * 100);
+
+      
 
 
       VPieData.value = [
@@ -1327,7 +1331,7 @@ watch(
         {
           key: 3,
           title: "Còn lại",
-          value: Percent_Remain.toFixed(1),
+          value: Percent_Remain,
           color: "rgba(var(--v-theme-on-surface), .2)",
           pattern: "url(#pattern-0)",
         },
@@ -1419,7 +1423,7 @@ const pieItems = computed(() => {
   return entries.map(([title, value], i) => ({
     id: i + 1,
     title,
-    value: +((value / total) * 100).toFixed(1), // phần trăm
+    value: +Number((value / total) * 100).toFixed(1), // phần trăm
     count: value, // số lượng thật
     color: colors[i % colors.length],
   }));
@@ -1546,12 +1550,14 @@ const GetDetailProgress = async (item) => {
     (Quantity_Detail_Pass.value + Quantity_Detail_Fail.value);
   Quantity_Detail_Remain.value = remain > 0 ? remain : 0;
 
+  const round1 = (num) => Number(num.toFixed(1));
+
   const percentPass =
-    (Quantity_Detail_Pass.value / totalInput.value) * 100 || 0;
+    round1((Quantity_Detail_Pass.value / totalInput.value) * 100) || 0;
   const percentFail =
-    (Quantity_Detail_Fail.value / totalInput.value) * 100 || 0;
+    round1((Quantity_Detail_Fail.value / totalInput.value) * 100) || 0;
   const percentRemain =
-    (Quantity_Detail_Remain.value / totalInput.value) * 100 || 0;
+    round1((Quantity_Detail_Remain.value / totalInput.value) * 100) || 0;
 
   VPieData.value = [
     { key: 1, title: "Pass", value: percentPass, color: "#72c789" },

@@ -189,7 +189,7 @@
                 }}
               </div>
               <div class="text-caption text-error font-weight-bold">
-                Đang trễ: 
+                Đang trễ
               </div>
             </v-card-text>
           </v-card>
@@ -397,7 +397,7 @@
 
       <!-- Bảng dữ liệu tỷ lệ lỗi -->
       <v-row>
-        <v-col lg="8" md="12">
+        <v-col lg="7" md="12">
           <v-data-table-virtual
             :headers="HeadersError"
             :items="Manufacture_Fail"
@@ -472,7 +472,7 @@
             </template>
           </v-data-table-virtual>
         </v-col>
-        <v-col lg="4" md="12">
+        <v-col lg="5" md="12">
           <v-card class="mb-4 rounded-xl mt-5" elevation="2" height="500px">
             <v-toolbar flat dense>
               <v-toolbar-title>
@@ -994,7 +994,7 @@ const Headers = ref([
 const HeadersError = ref([
   { key: "Category", title: "Dự án" },
   { key: "Type", title: "Công đoạn" },
-  { key: "Total_Summary_ID", title: "Số lượng đã sản xuất" },
+  { key: "Total_Summary_ID", title: "SL đã sản xuất" },
   { key: "Quantity_Error", title: "Hàng lỗi" },
   { key: "Percent_Error", title: "Tỷ lệ lỗi" },
 ]);
