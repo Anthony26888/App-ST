@@ -445,7 +445,7 @@ watch(
     if (foundHistory) {
       Name_Order.value = foundHistory.Name_Order ?? "";
       NameManufacture.value = foundHistory.PONumber ?? "";
-      Name_Category.value = foundHistory.Type ?? "";
+      Name_Category.value = foundHistory.Category ?? "";
       PlanID.value = foundHistory.PlanID ?? "";
       totalInput.value = foundHistory.Quantity_Plan ?? 0;
     } else {
