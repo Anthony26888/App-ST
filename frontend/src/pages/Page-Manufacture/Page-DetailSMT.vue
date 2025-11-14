@@ -16,7 +16,7 @@
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-tools" color="primary" size="large"></v-icon>
         <v-breadcrumbs
-          :items="[`${NameManufacture}`, `${Name_Order} (${Line_SMT})`]"
+          :items="[`${NameManufacture}`, `${Name_Order} (${Line_SMT})`, `${Category}`]"
         >
           <template v-slot:divider>
             <v-icon icon="mdi-chevron-right"></v-icon>
@@ -71,7 +71,7 @@
         <!-- Thống kê -->
         <v-row class="mb-4">
           <v-col cols="12" sm="4">
-            <v-card class="rounded-lg" color="primary" variant="tonal">
+            <v-card class="rounded-xl" color="primary" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu vào</div>
                 <div class="text-h4 font-weight-bold">{{ totalInput }}</div>
@@ -80,7 +80,7 @@
             </v-card>
           </v-col>
           <v-col cols="12" sm="4">
-            <v-card class="rounded-lg" color="info" variant="tonal">
+            <v-card class="rounded-xl" color="info" variant="tonal">
               <v-card-text v-if="Line_SMT === 'Line 1'">
                 <div class="text-subtitle-1">Máy Printer</div>
                 <div class="text-h4 font-weight-bold">
@@ -93,7 +93,7 @@
                 <v-progress-linear
                   v-model="PercentOutput_Source_1"
                   height="20"
-                  class="rounded-lg"
+                  class="rounded-xl"
                 >
                   <strong class="text-black"
                     >{{ PercentOutput_Source_1 }}%</strong
@@ -113,7 +113,7 @@
                 <v-progress-linear
                   v-model="PercentOutput_Source_3"
                   height="20"
-                  class="rounded-lg"
+                  class="rounded-xl"
                 >
                   <strong class="text-black"
                     >{{ PercentOutput_Source_3 }}%</strong
@@ -123,7 +123,7 @@
             </v-card>
           </v-col>
           <v-col cols="12" sm="4">
-            <v-card class="rounded-lg" color="warning" variant="tonal">
+            <v-card class="rounded-xl" color="warning" variant="tonal">
               <v-card-text v-if="Line_SMT === 'Line 1'">
                 <div class="text-subtitle-1">Máy gắp linh kiện Juki</div>
                 <div class="text-h4 font-weight-bold">
@@ -137,7 +137,7 @@
                 <v-progress-linear
                   v-model="PercentOutput_Source_2"
                   height="20"
-                  class="rounded-lg"
+                  class="rounded-xl"
                 >
                   <strong class="text-black"
                     >{{ PercentOutput_Source_2 }}%</strong
@@ -157,7 +157,7 @@
                 <v-progress-linear
                   v-model="PercentOutput_Source_4"
                   height="20"
-                  class="rounded-lg"
+                  class="rounded-xl"
                 >
                   <strong class="text-black"
                     >{{ PercentOutput_Source_4 }}%</strong
@@ -238,7 +238,7 @@
               </v-chip>
             </template>
             <template #[`item.PartNumber`]="{ item }">
-              <p v-if="item.PartNumber == 1">{{ Name_Order }}</p>
+              <p v-if="item.PartNumber == 1">{{ Category }}</p>
               <p v-else>{{ item.PartNumber }}</p>
             </template>
             <template #item.id="{ item }">
@@ -344,6 +344,7 @@ const QuantityBoard = ref(0);
 const Delay = ref(0);
 const PlanID = ref("");
 const Action = ref("");
+const Category = ref("")
 
 const isConnecting = ref(false);
 const isRunning = computed(() => Action.value === "running");
@@ -363,6 +364,8 @@ watch(
       totalInput.value = selected?.Quantity_Plan;
       Action.value = selected?.Action;
       Line_SMT.value = selected?.Line_SMT;
+      Category.value = selected?.Category;
+      
     }
   },
   { immediate: true, deep: true }

@@ -662,7 +662,7 @@ function GetItem(value) {
   
   Level_Edit.value = standardSelected;
   customProcessListEdit.value = customProcesses;
-  Date_Edit.value = found.Date;
+  Date_Edit.value = found.Date_unixepoch;
   Note_Edit.value = found.Note;
   DelaySMT_Edit.value = found.DelaySMT;
   Quantity_Edit.value = found.Quantity;

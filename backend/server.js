@@ -642,7 +642,7 @@ io.on("connection", (socket) => {
                           END AS Status_Output,
                           z.Level,
                           strftime('%d-%m-%Y', z.Date, 'unixepoch', 'localtime') AS Date,
-                          z.Date AS Date_unixepoch,
+                          strftime('%Y-%m-%d', z.Date, 'unixepoch', 'localtime') AS Date_unixepoch,
                           z.Note,
                           z.Creater,
                           z.DelaySMT,
@@ -783,7 +783,7 @@ io.on("connection", (socket) => {
                           ELSE 'Line 2'
                         END AS Line,
                         Status,
-                        strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch') AS Timestamp,
+                        strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch', 'localtime') AS Timestamp,
                         HistoryID
                       FROM ManufactureSMT
                       WHERE HistoryID = ?
@@ -877,22 +877,31 @@ io.on("connection", (socket) => {
     socket.on("getManufactureSummary", async (id) => {
       try {
         const query = `SELECT 
-                            a.Type,
-                            CASE 
-                              WHEN a.Type = 'SMT' THEN COALESCE(SUM(CASE WHEN c.Source = 'source_2' THEN 1 ELSE 0 END), 0) + COALESCE(SUM(CASE WHEN c.Source = 'source_4' THEN 1 ELSE 0 END), 0)
-                              ELSE COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) 
-                            END AS Quantity_Pass,
-                            COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) AS Quantity_Fail,
-                            COALESCE(SUM(CASE WHEN b.TimestampRW IS NOT NULL AND b.TimestampRW <> '' THEN 1 ELSE 0 END), 0) AS Quantity_RW,
-                            COUNT(DISTINCT a.id) AS Total_Summary_ID
-                        FROM Summary a
-                        LEFT JOIN ManufactureCounting b 
-                          ON b.HistoryID = a.id
-                        LEFT JOIN ManufactureSMT c
-                          ON c.HistoryID = a.id
-                        WHERE a.PlanID = ?
-                        GROUP BY a.Type
-                        ORDER BY a.Type;`;
+                          a.Type,
+
+                          CASE 
+                              WHEN a.Type = 'SMT' THEN 
+                                  COALESCE(d.Quantity, 0) *
+                                  COALESCE(SUM(CASE 
+                                      WHEN c.Source IN ('source_2', 'source_4') THEN 1 
+                                      ELSE 0 END), 0)
+                              ELSE 
+                                  COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 END), 0)
+                          END AS Quantity_Pass,
+
+                          COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 END), 0) AS Quantity_Fail,
+                          COALESCE(SUM(CASE WHEN b.TimestampRW IS NOT NULL AND b.TimestampRW <> '' THEN 1 END), 0) AS Quantity_RW,
+
+                          COUNT(DISTINCT a.id) AS Total_Summary_ID
+
+                      FROM Summary a
+                      LEFT JOIN ManufactureCounting b ON b.HistoryID = a.id
+                      LEFT JOIN ManufactureSMT c ON c.HistoryID = a.id
+                      LEFT JOIN PlanManufacture d ON d.id = a.PlanID  
+
+                      WHERE a.PlanID = ?
+                      GROUP BY a.Type
+                      ORDER BY a.Type;`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("ManufactureSummaryError", err);
           socket.emit("ManufactureSummaryData", rows);
@@ -1076,39 +1085,43 @@ io.on("connection", (socket) => {
         const query = `
                       SELECT *
                       FROM (
-                          SELECT 
-                            id,
-                            PlanID,
-                            PartNumber,
-                            CASE 
-                              WHEN Source = 'source_1' THEN 'Máy printer G5'
-                              WHEN Source = 'source_2' THEN 'Máy gắp linh kiện Juki'
-                              WHEN Source = 'source_3' THEN 'Máy gắp linh kiện Topaz'
+                      SELECT 
+                          a.id,
+                          a.PlanID,
+                          CASE 
+                              WHEN a.PartNumber = 1 THEN b.Category
+                              ELSE a.PartNumber
+                          END AS PartNumber,                         
+                          CASE 
+                              WHEN a.Source = 'source_1' THEN 'Máy printer G5'
+                              WHEN a.Source = 'source_2' THEN 'Máy gắp linh kiện Juki'
+                              WHEN a.Source = 'source_3' THEN 'Máy gắp linh kiện Topaz'
                               ELSE 'Máy gắp linh kiện Yamaha'
-                            END AS Source,
-                            CASE 
-                              WHEN Status = 'ok' THEN 'pass'
+                          END AS Source,
+                          CASE 
+                              WHEN a.Status = 'ok' THEN 'pass'
                               ELSE 'fail'
-                            END AS Status,
-                            strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch', 'localtime') AS Timestamp,
-                            Note
-                          FROM ManufactureSMT
-                          WHERE PlanID = ?
+                          END AS Status,
+                          strftime('%d-%m-%Y %H:%M:%S', a.Timestamp, 'unixepoch', 'localtime') AS Timestamp,
+                          a.Note AS Note
+                      FROM ManufactureSMT a
+                      LEFT JOIN Summary b ON b.PlanID = a.PlanID
+                      WHERE a.PlanID = ?
 
-                          UNION ALL
+                      UNION ALL
 
-                          SELECT 
-                            id,
-                            PlanID,
-                            PartNumber,
-                            Type AS Source,
-                            Status,
-                            strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch', 'localtime') AS Timestamp,
-                            Note
-                          FROM ManufactureCounting
-                          WHERE PlanID = ?
-                      )
-                      ORDER BY Timestamp DESC;`;
+                      SELECT 
+                          c.id,
+                          c.PlanID,
+                          c.PartNumber,
+                          c.Type AS Source,
+                          c.Status,
+                          strftime('%d-%m-%Y %H:%M:%S', c.Timestamp, 'unixepoch', 'localtime') AS Timestamp,
+                          c.Note AS Note
+                      FROM ManufactureCounting c
+                      WHERE c.PlanID = ?
+                  )
+                  ORDER BY Timestamp DESC;`;
         db.all(query, [id, id], (err, rows) => {
           if (err) return socket.emit("HistoryPartError", err);
           socket.emit("HistoryPartData", rows);
@@ -3632,7 +3645,7 @@ app.put("/api/PlanManufacture/Edit/:id", async (req, res) => {
 // Router update item in PlanManufacture table for setting SMT
 app.put("/api/PlanManufacture/Edit-Line/:id", async (req, res) => {
   const { id } = req.params;
-  const { DelaySMT, Quantity } = req.body;
+  const { DelaySMT, Quantity, PlanID, Type } = req.body;
   // Insert data into SQLite database
   const query = `
       UPDATE PlanManufacture 
@@ -3649,6 +3662,8 @@ app.put("/api/PlanManufacture/Edit-Line/:id", async (req, res) => {
     io.emit("updateManufactureDetails", id);
     io.emit("UpdateHistory");
     io.emit("UpdateSummary");
+    io.emit("UpdateManufactureSummary", { PlanID, Type });
+    io.emit("UpdateHistoryFiltered", { PlanID, Type });
     res.json({ message: "Đã cập nhật dữ liệu dự án sản xuất thành công" });
   });
 });

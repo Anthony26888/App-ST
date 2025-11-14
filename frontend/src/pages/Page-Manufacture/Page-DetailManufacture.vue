@@ -966,8 +966,6 @@ const Quantity_Detail_Pass = ref(0);
 const Quantity_Detail_Fail = ref(0);
 const Quantity_Detail_Fixed = ref(0);
 const Quantity_Detail_Remain = ref(0);
-const Percent_FlowCard_Pass = ref(0);
-const Percent_FlowCard_Fail = ref(0);
 
 // ===== FORM ADD =====
 const Type_Add = ref("");
@@ -1177,6 +1175,7 @@ watch(
   },
   { immediate: true, deep: true }
 );
+
 
 // Watch for manufactureDetails changes
 watch(
@@ -1633,6 +1632,8 @@ const SaveEditSettingSMT = async () => {
   const formData = reactive({
     DelaySMT: DelaySMT_Edit.value,
     Quantity: Quantity_Edit.value,
+    PlanID: id,
+    Type: 'SMT'
   });
   try {
     const response = await axios.put(
