@@ -660,7 +660,7 @@ io.on("connection", (socket) => {
                           z.Creater,
                           z.DelaySMT,
                           z.Quantity
-                      ORDER BY Date_unixepoch DESC;`;
+                      ORDER BY z.Date DESC;`;
         db.all(query, [], (err, rows) => {
           if (err) return socket.emit("ManufactureError", err);
           socket.emit("ManufactureData", rows);
@@ -1089,9 +1089,10 @@ io.on("connection", (socket) => {
                           a.id,
                           a.PlanID,
                           CASE 
-                              WHEN a.PartNumber = 1 THEN b.Category
-                              ELSE a.PartNumber
-                          END AS PartNumber,                         
+                            WHEN a.PartNumber = 1 THEN b.Category
+                            ELSE a.PartNumber
+                          END AS PartNumber,
+                          a.HistoryID,						  
                           CASE 
                               WHEN a.Source = 'source_1' THEN 'Máy printer G5'
                               WHEN a.Source = 'source_2' THEN 'Máy gắp linh kiện Juki'
@@ -1105,7 +1106,7 @@ io.on("connection", (socket) => {
                           strftime('%d-%m-%Y %H:%M:%S', a.Timestamp, 'unixepoch', 'localtime') AS Timestamp,
                           a.Note AS Note
                       FROM ManufactureSMT a
-                      LEFT JOIN Summary b ON b.PlanID = a.PlanID
+                      LEFT JOIN Summary b ON a.HistoryID = b.id
                       WHERE a.PlanID = ?
 
                       UNION ALL
@@ -1114,6 +1115,7 @@ io.on("connection", (socket) => {
                           c.id,
                           c.PlanID,
                           c.PartNumber,
+						              c.HistoryID,
                           c.Type AS Source,
                           c.Status,
                           strftime('%d-%m-%Y %H:%M:%S', c.Timestamp, 'unixepoch', 'localtime') AS Timestamp,
@@ -3558,9 +3560,23 @@ app.post("/api/PlanManufacture/Add", async (req, res) => {
     Level,
     Quantity,
     ProjectID,
+    Timestamp
   } = req.body;
-  const Timestamp = Math.floor(Date.now() / 1000);
   const LevelCleaned = Array.isArray(Level) ? Level.join("-") : String(Level); // fallback nếu không phải mảng
+
+
+  // 🔥 Convert YYYY-MM-DD → Unix timestamp (seconds)
+  let Timestamps = null;
+  if (Timestamp) {
+    const dateObj = new Date(Timestamp); // ví dụ "2025-11-15"
+    if (!isNaN(dateObj.getTime())) {
+      Timestamps = Math.floor(dateObj.getTime() / 1000);
+    } else {
+      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+    }
+  } else {
+    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+  }
 
   const query = `
     INSERT INTO PlanManufacture (
@@ -3582,7 +3598,7 @@ app.post("/api/PlanManufacture/Add", async (req, res) => {
     query,
     [
       Name,
-      Timestamp,
+      Timestamps,
       Creater,
       Note,
       Total,
@@ -3610,10 +3626,22 @@ app.post("/api/PlanManufacture/Add", async (req, res) => {
 // Router update item in PlanManufacture table
 app.put("/api/PlanManufacture/Edit/:id", async (req, res) => {
   const { id } = req.params;
-  const { Name, Date, Creater, Note, Total, DelaySMT, Level, Quantity } =
+  const { Name, Timestamp, Creater, Note, Total, DelaySMT, Level, Quantity } =
     req.body;
   const LevelString = JSON.stringify(Level);
   const LevelCleaned = LevelString.replace(/[\[\]"]/g, "").replace(/,/g, "-");
+
+  let Timestamps = null;
+  if (Timestamp) {
+    const dateObj = new Date(Timestamp); // ví dụ "2025-11-15"
+    if (!isNaN(dateObj.getTime())) {
+      Timestamps = Math.floor(dateObj.getTime() / 1000);
+    } else {
+      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+    }
+  } else {
+    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+  }
   // Insert data into SQLite database
   const query = `
       UPDATE PlanManufacture 
@@ -3629,7 +3657,7 @@ app.put("/api/PlanManufacture/Edit/:id", async (req, res) => {
     `;
   db.run(
     query,
-    [Name, Date, Creater, Note, Total, DelaySMT, LevelCleaned, Quantity, id],
+    [Name, Timestamps, Creater, Note, Total, DelaySMT, LevelCleaned, Quantity, id],
     function (err) {
       if (err) {
         return res
@@ -4090,8 +4118,19 @@ app.post("/api/Summary/Add-item", (req, res) => {
     CycleTime_Plan,
     Time_Plan,
     Note,
+    Timestamp
   } = req.body;
-  const Timestamp = Math.floor(Date.now() / 1000);
+  let Timestamps = null;
+  if (Timestamp) {
+    const dateObj = new Date(Timestamp); // ví dụ "2025-11-15"
+    if (!isNaN(dateObj.getTime())) {
+      Timestamps = Math.floor(dateObj.getTime() / 1000);
+    } else {
+      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+    }
+  } else {
+    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+  }
   db.run(
     `INSERT INTO Summary (Type, PlanID, PONumber, Category, Line_SMT, Quantity_Plan, CycleTime_Plan, Time_Plan, Note, Created_At)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -4105,7 +4144,7 @@ app.post("/api/Summary/Add-item", (req, res) => {
       CycleTime_Plan,
       Time_Plan,
       Note,
-      Timestamp,
+      Timestamps,
     ],
     (err) => {
       if (err) {
@@ -4139,9 +4178,19 @@ app.put("/api/Summary/Edit-item/:id", (req, res) => {
     CycleTime_Plan,
     Time_Plan,
     Note,
-    Created_At,
+    Timestamp,
   } = req.body;
-  const Timestamp = Math.floor(Date.now() / 1000);
+  let Timestamps = null;
+  if (Timestamp) {
+    const dateObj = new Date(Timestamp); // ví dụ "2025-11-15"
+    if (!isNaN(dateObj.getTime())) {
+      Timestamps = Math.floor(dateObj.getTime() / 1000);
+    } else {
+      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+    }
+  } else {
+    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+  }
   const { id } = req.params;
   db.run(
     `UPDATE Summary
@@ -4156,7 +4205,7 @@ app.put("/api/Summary/Edit-item/:id", (req, res) => {
       CycleTime_Plan,
       Time_Plan,
       Note,
-      Created_At,
+      Timestamps,
       id,
     ],
     (err) => {

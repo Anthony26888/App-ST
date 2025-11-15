@@ -21,7 +21,7 @@
         <!-- Production Statistics Cards -->
         <v-row class="mb-4">
           <v-col cols="12" sm="6">
-            <v-card class="rounded-lg" color="warning" variant="tonal">
+            <v-card class="rounded-xl" color="warning" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu vào</div>
                 <div class="text-h4 font-weight-bold">
@@ -32,7 +32,7 @@
             </v-card>
           </v-col>
           <v-col cols="12" sm="6">
-            <v-card class="rounded-lg" color="info" variant="tonal">
+            <v-card class="rounded-xl" color="info" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu ra</div>
                 <div class="text-h4 font-weight-bold">{{ totalFixed }}</div>
@@ -202,6 +202,7 @@ const Headers = [
   { title: "Mã sản phẩm", key: "PartNumber" },
   // { title: "Trạng thái", key: "Status" },
   // { title: "Thời gian", key: "Timestamp" },
+  { title: "Loại lỗi", key: "GroupFail" },
   { title: "RW đã sửa", key: "RWID" },
   { title: "Ghi chú lỗi", key: "Note" }, 
   { title: "Ghi chú sửa", key: "Note_RW" },
@@ -275,12 +276,14 @@ watch(
   () => history,
   (newData) => {
     if (!newData?.value) {
-      console.log("No history data available");
+      DialogFailed.value = true;
+      MessageErrorDialog.value = "No history data available"
       return;
     }
 
     if (!Array.isArray(newData.value)) {
-      console.log("History data is not an array");
+      DialogFailed.value = true;
+      MessageErrorDialog.value = "History data is not an array"
       return;
     }
 
@@ -305,17 +308,6 @@ watch(
   },
   { immediate: true, deep: true }
 );
-
-// ====== Computed =======
-const formattedSelectedDate = computed(() => {
-  const date = new Date();
-  return date.toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    timeZone: "Asia/Bangkok",
-  });
-});
 
 // Watch for changes in manufactureAOI to calculate total output
 

@@ -670,16 +670,15 @@ const StartLine = async () => {
     });
 
     Action.value = newAction;
-
+    DialogSuccess.value = true;
     MessageDialog.value =
       newAction === "running"
         ? `Đã bắt đầu sản xuất (Line ${line}) - Delay: ${delaySMT}ms`
         : `Đã dừng sản xuất trên Line ${line}`;
 
-    DialogSuccess.value = true;
   } catch (error) {
-    console.error("⛔ Error:", error);
-    showError(error.response?.data?.error || "Có lỗi xảy ra khi thực hiện");
+    DialogFailed.value = false
+    MessageErrorDialog.value = error.response?.data?.error || "Có lỗi xảy ra khi thực hiện"
   } finally {
     isConnecting.value = false;
   }

@@ -1102,28 +1102,6 @@ const requiredRuleEmpty = computed(() => [
   (v) => !!v || "Dữ liệu này không được bỏ trống",
 ]);
 
-// Normalized historyPart: merge source_1 and source_4 as 'SMT'; hide source_2, source_3, source_5
-const normalizedHistoryPart = computed(() => {
-  if (!historyPart.value || !Array.isArray(historyPart.value)) return [];
-  const hiddenSources = new Set(["source_1", "source_3"]);
-  const smtSources = new Set(["source_2", "source_4"]);
-
-  return historyPart.value
-    .filter((item) => {
-      const src = String(item.Source || "").toLowerCase();
-      // Hide 2,3,5
-      if (hiddenSources.has(src)) return false;
-      return true;
-    })
-    .map((item) => {
-      const src = String(item.Source || "").toLowerCase();
-      if (smtSources.has(src)) {
-        return { ...item, Source: "SMT" };
-      }
-      return item;
-    });
-});
-
 function formatDate(dateString) {
   if (!dateString) return "";
   const parts = dateString.split(/[-/]/);
@@ -1132,22 +1110,6 @@ function formatDate(dateString) {
   }
   return dateString;
 }
-
-// 🔸 Hàm chuyển unixepoch → yyyy-mm-dd
-const formatDateForInput = (timestamp) => {
-  if (!timestamp) return "";
-  const d = new Date((timestamp + 12 * 60 * 60) * 1000);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-
-// Hàm chuyển yyyy-mm-dd → unixepoch
-const dateStringToUnix = (value) => {
-  if (!value) return null;
-  return Math.floor(new Date(value).getTime() / 1000);
-};
 
 // Watch for manufactureFound changes to update levels
 watch(
@@ -1427,24 +1389,7 @@ const pieItems = computed(() => {
     color: colors[i % colors.length],
   }));
 });
-// Initialize chart
-onMounted(() => {
-  nextTick(() => {
-    fetchProductionData();
-    // Initialize chart after a short delay to ensure DOM is ready
-  });
-});
 
-// ====== COMPUTED ======
-const formattedSelectedDate = computed(() => {
-  const date = new Date(Date_DetailManufacture_Add.value);
-  return date.toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    timeZone: "Asia/Bangkok",
-  });
-});
 
 // Computed percent Input and Output
 const percent = computed(() => {
@@ -1510,6 +1455,9 @@ const GetItemHistory = (item) => {
   }
 };
 const GetDetailProgress = async (item) => {
+  if (item == 'RW'){
+    return router.push(`/San-xuat/RW/${route.params.id}`);
+  }
   router.push(`/San-xuat/Chi-tiet/${route.params.id}?Type=${item}`);
   const found = manufactureSummary.value.find((v) => v.Type === item);
   const found_Fail = manufactureRW.value.filter((v) => v.Type === item);
@@ -1610,7 +1558,7 @@ const SaveEdit = async () => {
     CycleTime_Plan: CycleTime_Edit.value,
     Time_Plan: Time_Edit.value,
     Note: Note_Edit.value,
-    Created_At: dateStringToUnix(Date_DetailManufacture_Edit.value),
+    Timestamp: Date_DetailManufacture_Edit.value,
   });
 
   try {
@@ -1674,7 +1622,7 @@ const SaveAdd = async () => {
     CycleTime_Plan: CycleTime_Add.value,
     Time_Plan: Time_Add.value,
     Note: Note_Add.value,
-    Created_At: formattedSelectedDate,
+    Timestamp: Date_DetailManufacture_Add.value,
   });
   try {
     const response = await axios.post(`${Url}/Summary/Add-item`, formData);

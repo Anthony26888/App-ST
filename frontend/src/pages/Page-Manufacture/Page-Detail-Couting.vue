@@ -407,6 +407,7 @@ const NameManufacture = ref("");
 const Name_Order = ref("");
 const Name_Category = ref("");
 const PlanID = ref("");
+const Type_Manufacture = ref("");
 const Quantity_Counting = ref(1);
 
 // ===== User Information =====
@@ -448,12 +449,14 @@ watch(
       Name_Category.value = foundHistory.Category ?? "";
       PlanID.value = foundHistory.PlanID ?? "";
       totalInput.value = foundHistory.Quantity_Plan ?? 0;
+      Type_Manufacture.value = foundHistory.Type ?? "";
     } else {
       // Set default values if no match found
       Name_Order.value = "";
       NameManufacture.value = "";
       Name_Category.value = "";
       PlanID.value = "";
+      Type_Manufacture.value = ""
     }
   },
   { immediate: true, deep: true }
@@ -514,7 +517,7 @@ watch(
     GroupFail: isFail ? Group_Fail.value.join(", ") : null,
     Note: isFail ? ErrorLog.value : null, 
     PlanID: PlanID.value,
-    Type: Name_Category.value,
+    Type: Type_Manufacture.value,
   });
 
   try {
@@ -525,9 +528,6 @@ watch(
     Input.value = "";
     ErrorLog.value = "";
     Group_Fail.value = []; // Cần reset mảng phân loại lỗi
-    
-    // isError.value = false; // Biến này không cần thiết nếu bạn dùng logic Status
-
     DialogSuccess.value = true;
     MessageDialog.value = "Sản phẩm đã được nhập thành công";
   } catch (error) {

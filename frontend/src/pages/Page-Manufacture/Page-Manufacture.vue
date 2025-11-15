@@ -25,7 +25,7 @@
             </v-btn>
             <!-- Hiển thị tổng số kế hoạch -->
             <p class="ms-2 font-weight-thin text-subtitle-1">
-              ( {{ sortedManufacture.length }} kế hoạch)
+              ( {{ manufacture.length }} kế hoạch)
             </p>
             <v-spacer></v-spacer>
             <!-- Component tìm kiếm -->
@@ -40,7 +40,7 @@
             <!-- Bảng dữ liệu chính -->
             <v-data-table
               :headers="Headers"
-              :items="sortedManufacture"
+              :items="manufacture"
               :search="search"
               :items-per-page="itemsPerPage"
               :page="page"
@@ -70,7 +70,7 @@
                   <v-pagination
                     :model-value="page"
                     @update:model-value="page = $event"
-                    :length="Math.ceil(sortedManufacture.length / itemsPerPage)"
+                    :length="Math.ceil(manufacture.length / itemsPerPage)"
                   ></v-pagination>
                 </div>
               </template>
@@ -123,7 +123,7 @@
       width="500"
       scrollable
     >
-      <v-card max-width="500" class="overflow-y-auto">
+      <v-card max-width="500" class="overflow-y-auto rounded-lg">
         <v-card-title class="d-flex align-center pa-4">
           <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
           Cập nhật dữ liệu
@@ -138,6 +138,7 @@
           <InputField
             label="Tổng sản phẩm"
             type="number"
+            suffix="pcs"
             :model-value="Total_Edit"
             @update:model-value="Total_Edit = $event"
           />
@@ -231,7 +232,7 @@
       width="500"
       scrollable
     >
-      <v-card max-width="500" class="overflow-y-auto">
+      <v-card max-width="500" class="overflow-y-auto rounded-lg">
         <v-card-title class="d-flex align-center pa-4">
           <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
           Thêm dữ liệu sản xuất
@@ -246,6 +247,7 @@
           <InputField
             label="Tổng sản phẩm"
             type="number"
+            suffix="pcs"
             :model-value="Total_Manufacture_Add"
             @update:model-value="Total_Manufacture_Add = $event"
           />
@@ -433,15 +435,6 @@ const Date_Edit = ref("");
 const Note_Edit = ref("");
 const Level_Edit = ref("");
 const Quantity_Edit = ref(1);
-const Quantity_IPQCSMT_Edit = ref(1);
-const Quantity_IPQC_Edit = ref(1);
-const Quantity_AOI_Edit = ref(1);
-const Quantity_Assembly_Edit = ref(1);
-const Quantity_BoxBuild_Edit = ref(1);
-const Quantity_Test1_Edit = ref(1);
-const Quantity_Test2_Edit = ref(1);
-const Quantity_ConformalCoating_Edit = ref(1);
-const Quantity_OQC_Edit = ref(1);
 
 // Khởi tạo các biến ref cho quy trình tùy chỉnh trong dialog chỉnh sửa
 const customProcessEdit = ref('');
@@ -484,42 +477,6 @@ const Headers = [
   { title: "Thao tác", key: "id", sortable: false },
 ];
 
-
-// 🔸 Hàm chuyển unixepoch → yyyy-mm-dd
-const formatDateForInput = (timestamp) => {
-  if (!timestamp) return ''
-  const d = new Date((timestamp + 12 * 60 * 60) * 1000)
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-// Hàm chuyển yyyy-mm-dd → unixepoch
-const dateStringToUnix = (value) => {
-  if (!value) return null
-  return Math.floor(new Date(value).getTime() / 1000)
-}
-
-// Computed property để sắp xếp dữ liệu theo ngày tạo (mới nhất ở cuối)
-const sortedManufacture = computed(() => {
-  if (!manufacture.value || !Array.isArray(manufacture.value)) {
-    return [];
-  }
-  
-  return [...manufacture.value].sort((a, b) => {
-    // Sắp xếp theo ngày tạo, mới nhất ở cuối
-    const dateA = new Date(a.Date || a.created_at || 0);
-    const dateB = new Date(b.Date || b.created_at || 0);
-    
-    // Nếu cùng ngày, sắp xếp theo ID để đảm bảo thứ tự nhất quán
-    if (dateA.getTime() === dateB.getTime()) {
-      return (a.id || 0) - (b.id || 0);
-    }
-    
-    return dateA.getTime() - dateB.getTime();
-  });
-});
 
 // Hàm kiểm tra token và lấy thông tin người dùng khi component được mount
 onMounted(() => {
@@ -703,7 +660,7 @@ const SaveEdit = async () => {
 
   const formData = reactive({
     Name: Name_Edit.value,
-    Date: dateStringToUnix(Date_Edit.value),
+    Timestamp: Date_Edit.value,
     Creater: UserInfo.value,
     Note: Note_Edit.value,
     Total: Total_Edit.value,
@@ -759,7 +716,7 @@ const SaveAdd = async () => {
   const formData = {
     Name: Name_Manufacture_Add.value,
     Name_Order: Name_Order_Manufacture.value,
-    Date: Date_Manufacture_Add.value,
+    Timestamp: Date_Manufacture_Add.value,
     Total: Total_Manufacture_Add.value,
     Note: Note_Manufacture_Add.value,
     Creater: UserInfo.value,
