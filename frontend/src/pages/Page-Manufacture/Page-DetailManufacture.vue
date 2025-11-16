@@ -80,14 +80,14 @@
                   v-bind="props"
                   :title="card.Type"
                   :pass="
-                    Number.parseFloat(
-                      (card.Quantity_Pass / totalInput) * 100
-                    ).toFixed(1) + '%'
+                    card.Type === 'RW'
+                      ? `${totalError + totalFixed - totalFixed}`
+                      : (Number.parseFloat((card.Quantity_Pass / totalInput) * 100).toFixed(1) + '%')
                   "
                   :fail="
-                    Number.parseFloat(
-                      (card.Quantity_Fail / totalInput) * 100
-                    ).toFixed(1) + '%'
+                    card.Type === 'RW'
+                      ? (Number.parseFloat((totalFixed / (totalError + totalFixed)) * 100).toFixed(1) + '%')
+                      : (Number.parseFloat((card.Quantity_Fail / totalInput) * 100).toFixed(1) + '%')
                   "
                   color="success"
                   :is-selected="selectedTitle === card.Type"
@@ -102,9 +102,9 @@
                 >
                   →
                 </div>
-              </template>
-            </v-tooltip>
-          </template>
+            </template>
+          </v-tooltip>
+        </template>
           <v-tooltip text="Đóng">
             <template v-slot:activator="{ props }">
               <v-btn
@@ -597,12 +597,26 @@
               <p v-else>{{ item.PartNumber }}</p>
             </template>
 
-            <template #item.Note="{ item }">
+            <template #[`item.Note`]="{ item }">
               <div style="white-space: pre-line" class="text-error">
                 {{ item.Note }}
               </div>
             </template>
-            <template #item.id="{ item }">
+            <template #[`item.TimestampRW`]="{ item }">
+              <p class="text-info">{{ item.TimestampRW }}</p>
+            </template>
+            <template #[`item.RWID`]="{ item }">
+              <v-chip
+                color="success"
+                class="ms-2"
+                v-if="item.RWID === 'Done'"
+                size="small"
+                variant="tonal"
+                >
+                <v-icon>mdi-check</v-icon>
+              </v-chip>
+            </template>
+            <template #[`item.id`]="{ item }">
               <v-btn
                 size="small"
                 variant="text"
@@ -1072,9 +1086,10 @@ const HeadersHistoryPart = [
   { title: "Mã hàng", key: "PartNumber", sortable: true },
   { title: "Vị trí", key: "Source", sortable: true },
   { title: "Trạng thái", key: "Status", sortable: true },
-  { title: "Thời gian", key: "Timestamp", sortable: true },
   { title: "Ghi chú lỗi", key: "Note", sortable: true },
-  // { title: "Thời gian RW", key: "TimestampRW", sortable: true },
+  { title: "Thời gian", key: "Timestamp", sortable: true },
+  { title: "RW đã sửa", key: "RWID", sortable: true },
+  { title: "Thời gian RW", key: "TimestampRW", sortable: true },
   // { title: "Thao tác", key: "id", sortable: true },
 ];
 
@@ -1111,32 +1126,7 @@ function formatDate(dateString) {
   return dateString;
 }
 
-// Watch for manufactureFound changes to update levels
-watch(
-  history,
-  (newValue) => {
-    if (newValue && typeof newValue === "object") {
-      // Check if newValue is an array and has items
-      if (Array.isArray(newValue) && newValue.length > 0) {
-        const data = newValue[0]; // Get first item if it's an array
-        totalRW.value = data.Quantity_Error;
-        totalRWError.value = data.Quantity_Fixed_Done;
-        percentRW.value = Number.parseFloat(
-          (data.Quantity_Fixed_Done * 100) / data.Quantity_Error
-        ).toFixed(1);
-      } else {
-        // If it's a single object
-        totalRW.value = newValue.Quantity_Error || 0;
-        totalRWError.value = newValue.Quantity_Fixed_Done || 0;
-        percentRW.value =
-          Number.parseFloat(
-            (newValue.Quantity_Fixed_Done * 100) / newValue.Quantity_Error
-          ).toFixed(1) || 0;
-      }
-    }
-  },
-  { immediate: true, deep: true }
-);
+
 
 
 // Watch for manufactureDetails changes

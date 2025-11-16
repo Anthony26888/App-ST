@@ -5,6 +5,7 @@
     variant="text"
     size="xs"
     @click="emitDetail()"
+    v-tooltip:top="'Xem chi tiết'"
   ></v-btn>
 </template>
 <script>

@@ -686,7 +686,8 @@ io.on("connection", (socket) => {
                         a.Quantity * COALESCE(COUNT(DISTINCT CASE WHEN c.Source = 'source_4' THEN c.id END), 0) AS SMT_4,
                         COALESCE(COUNT(DISTINCT CASE WHEN LOWER(TRIM(b.Type)) = 'thành phẩm' AND b.Status = 'pass' THEN b.id END), 0) AS Quantity_Pass,
                         COALESCE(COUNT(DISTINCT CASE WHEN LOWER(TRIM(b.Type)) = 'thành phẩm' AND b.Status = 'fail' THEN b.id END), 0) AS Quantity_Output_Fail,
-                        COALESCE(COUNT(DISTINCT CASE WHEN b.Status = 'fail' THEN b.id END), 0) AS Quantity_Error
+                        COALESCE(COUNT(DISTINCT CASE WHEN b.Status = 'fail' THEN b.id END), 0) AS Quantity_Error,
+                         COALESCE(COUNT(DISTINCT CASE WHEN b.Status_Fixed = 'fixed' THEN b.id END), 0) AS Quantity_Fixed
                       FROM PlanManufacture a
                       LEFT JOIN ManufactureCounting b ON a.id = b.PlanID
                       LEFT JOIN ManufactureSMT c ON a.id = c.PlanID
@@ -1104,7 +1105,9 @@ io.on("connection", (socket) => {
                               ELSE 'fail'
                           END AS Status,
                           strftime('%d-%m-%Y %H:%M:%S', a.Timestamp, 'unixepoch', 'localtime') AS Timestamp,
-                          a.Note AS Note
+                          a.Note AS Note,
+                          a.RWID,
+                          a.TimestampRW
                       FROM ManufactureSMT a
                       LEFT JOIN Summary b ON a.HistoryID = b.id
                       WHERE a.PlanID = ?
@@ -1119,7 +1122,9 @@ io.on("connection", (socket) => {
                           c.Type AS Source,
                           c.Status,
                           strftime('%d-%m-%Y %H:%M:%S', c.Timestamp, 'unixepoch', 'localtime') AS Timestamp,
-                          c.Note AS Note
+                          c.Note AS Note,
+                          c.RWID,
+                          strftime('%d-%m-%Y %H:%M:%S', c.TimestampRW, 'unixepoch', 'localtime') AS TimestampRW
                       FROM ManufactureCounting c
                       WHERE c.PlanID = ?
                   )
@@ -3965,6 +3970,7 @@ app.post("/api/ManufactureCounting", (req, res) => {
 // Update value status fixed in ManufactureCounting table
 app.put("/api/ManufactureCounting/Edit-status-fixed/:id", (req, res) => {
   const { id } = req.params;
+  const { PlanID, Type } = req.body
   db.run(
     `UPDATE ManufactureCounting
       SET Status='pass', Status_Fixed = 'fixed'
@@ -3975,6 +3981,7 @@ app.put("/api/ManufactureCounting/Edit-status-fixed/:id", (req, res) => {
       io.emit("UpdateManufactureCounting");
       io.emit("UpdateHistoryFiltered", { PlanID, Type });
       io.emit("UpdateManufactureSummary", { PlanID, Type });
+      io.emit("UpdateManufactureRW", { PlanID, Type })
       io.emit("updateManufactureDetails");
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
@@ -3988,6 +3995,7 @@ app.put("/api/ManufactureCounting/Edit-status-fixed/:id", (req, res) => {
 
 app.delete("/api/ManufactureCounting/Delete-item-history/:id", (req, res) => {
   const { id } = req.params;
+  const { PlanID, Type } = req.query;
   const query = `
     DELETE FROM ManufactureCounting
     WHERE id = ?

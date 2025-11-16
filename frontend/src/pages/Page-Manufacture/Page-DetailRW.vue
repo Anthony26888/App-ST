@@ -34,9 +34,15 @@
           <v-col cols="12" sm="6">
             <v-card class="rounded-xl" color="info" variant="tonal">
               <v-card-text>
-                <div class="text-subtitle-1">Đầu ra</div>
+                <div class="text-subtitle-1">RW đã sửa</div>
                 <div class="text-h4 font-weight-bold">{{ totalFixed }}</div>
-                <div class="text-caption">Tổng số lượng đã sửa</div>
+                <v-progress-linear
+                  :model-value="PercentOutput"
+                  height="20"
+                  class="rounded-lg"
+                >
+                  <strong class="text-black">{{ PercentOutput }}%</strong>
+                </v-progress-linear>
               </v-card-text>
             </v-card>
           </v-col>
@@ -249,6 +255,11 @@ const NameManufacture = ref("");
 const Name_Order = ref("");
 const Name_Category = ref("");
 const Note_RW_Edit = ref("");
+
+
+const PercentOutput = computed(() => 
+  Number.parseFloat((totalFixed.value / (totalErrors.value + totalFixed.value || 1)) * 100)    
+)
 
 // ===== User Information =====
 const LevelUser = localStorage.getItem("LevelUser");

@@ -5,6 +5,7 @@
     color="primary"
     variant="text"
     @click="emitEdit()"
+    v-tooltip:top="'Chỉnh sửa'"
   ></v-btn>
 </template>
 <script>

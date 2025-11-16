@@ -8,7 +8,7 @@
     <v-card-title class="d-flex justify-space-between align-center pa-4">
       <span class="text-h4 font-weight-light">Báo cáo hằng ngày</span>
       <v-spacer></v-spacer>
-      <v-toolbar rounded="lg" border floating class="mt-3">
+      <v-toolbar rounded="lg" border floating class="mt-3" v-tooltip="'Chọn ngày xem báo cáo'">
         <div class="d-flex align-center px-4">
           <div class="text-subtitle-1 mr-4">
             {{ formattedWeekDate }}
@@ -365,6 +365,7 @@
                 :icon="isGroupOpen ? 'mdi-chevron-down' : 'mdi-chevron-up'"
                 @click="toggleGroup(item)"
                 class="me-2"
+                v-tooltip:top="'Xem chi tiết'"
               ></v-btn>
               <span class="font-weight-bold text-primary">{{
                 item.value
@@ -442,6 +443,7 @@
                     :icon="isGroupOpen ? 'mdi-chevron-down' : 'mdi-chevron-up'"
                     @click="toggleGroup(item)"
                     class="me-2"
+                    v-tooltip:top="'Xem chi tiết'"
                   ></v-btn>
                   <span class="font-weight-bold text-primary">{{
                     item.value
@@ -458,6 +460,11 @@
             <template #[`item.Quantity_Error`]="{ item }">
               <v-chip color="warning" variant="tonal">{{
                 item.Quantity_Error
+              }}</v-chip>
+            </template>
+            <template #[`item.Quantity_RW`]="{ item }">
+              <v-chip color="info" variant="tonal">{{
+                item.Quantity_RW
               }}</v-chip>
             </template>
             <template #[`item.Percent_Error`]="{ item }">
@@ -525,7 +532,7 @@
     v-else
   >
     <v-card-title class="d-flex justify-space-between align-center pa-4">
-      <v-toolbar rounded="lg" border floating class="mt-3">
+      <v-toolbar rounded="lg" border floating class="mt-3" v-tooltip="'Chọn ngày xem báo cáo'">
         <div class="d-flex align-center px-4">
           <div class="text-subtitle-1 mr-4">
             {{ formattedWeekDate }}
@@ -841,6 +848,11 @@
             item.Quantity_Error
           }}</v-chip>
         </template>
+        <template #[`item.Quantity_RW`]="{ item }">
+          <v-chip color="info" variant="tonal">{{
+            item.Quantity_RW
+          }}</v-chip>
+        </template>
         <template #[`item.Percent_Error`]="{ item }">
           <v-progress-linear
             :model-value="Number(item.Percent_Error)"
@@ -996,6 +1008,7 @@ const HeadersError = ref([
   { key: "Type", title: "Công đoạn" },
   { key: "Total_Summary_ID", title: "SL đã sản xuất" },
   { key: "Quantity_Error", title: "Hàng lỗi" },
+  { key: "Quantity_RW", title: "RW đã sửa" },
   { key: "Percent_Error", title: "Tỷ lệ lỗi" },
 ]);
 

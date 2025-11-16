@@ -231,17 +231,18 @@
                 variant="tonal"
                 >Fixed</v-chip
               >
-              <v-btn
-                v-if="item.Status === 'fail'"
-                size="small"
+              
+            </template>
+            <template #item.RWID="{ item }">
+              <v-chip
                 color="success"
+                class="ms-2"
+                v-if="item.RWID === 'Done'"
+                size="small"
                 variant="tonal"
-                class="ml-2 text-caption"
-                @click="GetItem(item)"
-              >
-                <v-icon size="small" class="me-2">mdi-check</v-icon>
-                Kiểm tra
-              </v-btn>
+                >
+                <v-icon>mdi-check</v-icon>
+              </v-chip>
             </template>
             <template #item.TimestampRW="{ item }">
               <div class="text-primary">{{ item.TimestampRW }}</div>
@@ -252,6 +253,17 @@
               </div>
             </template>
             <template #item.id="{ item }">
+              <v-btn
+                v-if="item.Status === 'fail'"
+                size="small"
+                color="success"
+                variant="tonal"
+                class="ml-2 text-caption"
+                @click="GetItem(item)"
+                prepend-icon = "mdi-check"
+              >
+                Kiểm tra
+              </v-btn>
               <v-btn
                 size="small"
                 variant="text"
@@ -356,6 +368,8 @@ const Headers = [
   { title: "Loại lỗi", key: "GroupFail", sortable: true },
   { title: "Ghi chú lỗi", key: "Note", sortable: true },
   { title: "Thời gian", key: "Timestamp", sortable: true },
+  { title: "RW đã sửa", key: "RWID", sortable: true },
+  { title: "Thời gian RW", key: "TimestampRW", sortable: true },
   { title: "Thao tác", key: "id" },
 ];
 
@@ -467,12 +481,14 @@ watch(
   () => manufactureCounting,
   (newData) => {
     if (!newData?.value) {
-      console.log("No manufactureAOI data available");
+      DialogFailed.value = true;
+      MessageErrorDialog.value = "No manufactureAOI data available"
       return;
     }
 
     if (!Array.isArray(newData.value)) {
-      console.log("manufactureAOI data is not an array");
+      DialogFailed.value = true;
+      MessageErrorDialog.value = "Data is not an array"
       return;
     }
 
@@ -554,9 +570,13 @@ const GetItemHistory = (item) => {
 
 const markAsFixed = async () => {
   DialogFixed.value = true;
+  const formData = reactive({
+    PlanID: PlanID.value,
+    Type: Type_Manufacture.value,
+  });
   try {
     const response = await axios.put(
-      `${Url}/ManufactureCounting/Edit-status-fixed/${GetID.value}`
+      `${Url}/ManufactureCounting/Edit-status-fixed/${GetID.value}`, formData
     );
     // Refresh the data after successful update
     DialogFixed.value = false;
@@ -578,7 +598,7 @@ const RemoveItemHistory = async () => {
   DialogLoading.value = true;
   try {
     const response = await axios.delete(
-      `${Url}/ManufactureCounting/Delete-item-history/${GetID.value}`
+      `${Url}/ManufactureCounting/Delete-item-history/${GetID.value}?PlanID=${PlanID.value}&Type=${Type_Manufacture.value}`
     );
     DialogSuccess.value = true;
     DialogLoading.value = false;
