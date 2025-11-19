@@ -93,7 +93,7 @@
         <v-card class="mb-4 rounded-lg" elevation="4">
           <v-card-text>
             <v-row dense>
-              <v-col cols="12" md="6">
+              <v-col cols="12" md="5">
                 <InputField
                   label="Nhập mã sản phẩm"
                   v-model="Input"
@@ -105,7 +105,7 @@
                   density="comfortable"
                   />
               </v-col>
-              <v-col cols="12" md="6">
+              <v-col cols="12" md="5">
                 <InputSelect
                   label="Phân loại lỗi"
                   :items="[
@@ -126,6 +126,18 @@
                   placeholder="Chọn 1 hoặc nhiều loại lỗi"
                 />
               </v-col>
+              <v-col cols="2">
+                <InputField
+                  label="Số lượng sản phẩm"
+                  type="number"
+                  v-model="Quantity_Add"
+                  hide-details
+                  variant="outlined"
+                  density="comfortable"
+                  placeholder="VD: 5"
+                />
+              </v-col>
+              
 
               <v-col cols="12" class="mt-4">
                 <InputTextarea
@@ -403,6 +415,7 @@ const totalInput = ref(0);
 const totalOutput = ref(0);
 const totalErrors = ref(0);
 const totalFixed = ref(0);
+const Quantity_Add = ref(1);
 
 const PercentOutput = computed(() =>
   Number.parseFloat((totalOutput.value * 100) / totalInput.value).toFixed(1)
@@ -513,16 +526,13 @@ watch(
  */
  const submitBarcode = async () => {
   // 1. Kiểm tra điều kiện đầu vào cơ bản
-  if (isSubmitting.value || !Input.value.trim()) {
-    return;
-  }
+  // if (isSubmitting.value || !Input.value.trim()) {
+  //   return;
+  // }
 
   isSubmitting.value = true;
   DialogLoading.value = true;
 
-  // XÁC ĐỊNH TRẠNG THÁI (STATUS) VÀ PHÂN LOẠI LỖI (Group_Fail)
-  // Biến Group_Fail là một mảng (do InputSelect có 'multiple').
-  // Sản phẩm là lỗi ('fail') nếu mảng Group_Fail có ít nhất một phần tử.
   const isFail = Group_Fail.value && Group_Fail.value.length > 0;
 
   // 2. Cấu trúc lại formData để bao gồm tất cả dữ liệu
@@ -534,6 +544,7 @@ watch(
     Note: isFail ? ErrorLog.value : null, 
     PlanID: PlanID.value,
     Type: Type_Manufacture.value,
+    Quantity: Quantity_Add.value || 1, 
   });
 
   try {
@@ -544,14 +555,17 @@ watch(
     Input.value = "";
     ErrorLog.value = "";
     Group_Fail.value = []; // Cần reset mảng phân loại lỗi
+    Quantity_Add.value = 1
     DialogSuccess.value = true;
     MessageDialog.value = "Sản phẩm đã được nhập thành công";
   } catch (error) {
     DialogLoading.value = false;
     Input.value = "";
     ErrorLog.value = "";
+    Quantity_Add.value = 1
     DialogFailed.value = true;
     MessageErrorDialog.value = "Lỗi khi nhập mã sản phẩm";
+    
   } finally {
     DialogLoading.value = false;
     isSubmitting.value = false;

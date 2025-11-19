@@ -29,6 +29,7 @@ const SvgPath = require("svgpath");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 const timezone = require("dayjs/plugin/timezone");
+const { nanoid } = require("nanoid");
 
 // const {queryWithLangChain } = require("./Ollama-AI/queryEngine.js");
 // const queryMap = require("./Ollama-AI/queryMap")
@@ -1030,6 +1031,7 @@ io.on("connection", (socket) => {
                           a.CycleTime_Plan,
                           a.Action,
                           c.Quantity,
+                          a.Note,
                           CASE 
                             WHEN a.Line_SMT = 'Line 1' THEN c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0 END), 0)
                             WHEN a.Line_SMT = 'Line 2' THEN c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0 END), 0)
@@ -1071,7 +1073,7 @@ io.on("connection", (socket) => {
                           a.Time_Plan,
                           a.CycleTime_Plan,
                           a.Created_At
-                      ORDER BY a.Created_At DESC;
+                      ORDER BY a.id DESC;
                       `;
       db.all(query, [id], (err, rows) => {
         if (err) return socket.emit("HistoryError", err);
@@ -3939,21 +3941,52 @@ app.get("/api/devices", (req, res) => {
   });
 });
 
-// Post value in table ManufactureAOI
+
+
+
 app.post("/api/ManufactureCounting", (req, res) => {
-  const { PartNumber, HistoryID, Status, GroupFail, Note, PlanID, Type } = req.body;
+  let { PartNumber, HistoryID, Status, GroupFail, Note, PlanID, Type, Quantity } = req.body;
+
+  Quantity = Number(Quantity) || 1;  // Mặc định = 1
+
   const Timestamp = Math.floor(Date.now() / 1000);
-  db.run(
-    `INSERT INTO ManufactureCounting (PartNumber, HistoryID, Timestamp, Status, GroupFail, Note, PlanID, Type)
-     VALUES (?, ?, ? ,?, ?, ?, ?, ?)`,
-    [PartNumber, HistoryID, Timestamp, Status, GroupFail, Note, PlanID, Type],
-    (err) => {
+
+  // Dùng serializable DB run
+  db.serialize(() => {
+    const stmt = db.prepare(
+      `INSERT INTO ManufactureCounting 
+        (PartNumber, HistoryID, Timestamp, Status, GroupFail, Note, PlanID, Type)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    );
+
+    for (let i = 0; i < Quantity; i++) {
+      // Nếu PartNumber rỗng → tạo 1 mã mới cho mỗi record
+      let finalPartNumber =
+        !PartNumber || String(PartNumber).trim() === ""
+          ? nanoid(10)
+          : PartNumber;  // Nếu user nhập thì giữ nguyên
+
+      stmt.run([
+        finalPartNumber,
+        HistoryID,
+        Timestamp,
+        Status,
+        GroupFail,
+        Note,
+        PlanID,
+        Type,
+      ]);
+    }
+
+    stmt.finalize((err) => {
       if (err) return res.status(500).json({ error: "Database error" });
+
+      // Emit realtime 1 lần
       io.emit("UpdateManufactureCounting");
-      io.emit("UpdateManufactureFail")
+      io.emit("UpdateManufactureFail");
       io.emit("UpdateHistoryFiltered", { PlanID, Type });
       io.emit("UpdateManufactureSummary", { PlanID, Type });
-      io.emit("UpdateManufactureRW", { PlanID, Type })
+      io.emit("UpdateManufactureRW", { PlanID, Type });
       io.emit("UpdateSummaryFail");
       io.emit("updateManufactureDetails");
       io.emit("UpdateHistory");
@@ -3962,9 +3995,12 @@ app.post("/api/ManufactureCounting", (req, res) => {
       io.emit("ActivedUpdate");
       io.emit("updateDetailProjectPO");
 
-      res.json({ message: "ManufactureCounting received" });
-    }
-  );
+      res.json({
+        message: `Đã nhập ${Quantity} sản phẩm`,
+        Quantity,
+      });
+    });
+  });
 });
 
 // Update value status fixed in ManufactureCounting table
@@ -4063,6 +4099,66 @@ app.delete("/api/ManufactureSMT/Delete-item-history/:id", (req, res) => {
     res.json({ message: "Đã xoá dữ liệu sản xuất thành công" });
   });
 });
+
+app.post("/api/ManufactureSMT", (req, res) => {
+  let { HistoryID, PlanID, Quantity, Source, Type } = req.body;
+
+  Quantity = Number(Quantity) || 1;
+  const Timestamp = Math.floor(Date.now() / 1000);
+
+  // Danh sách source cần insert
+  let sourcesToInsert = [Source];
+
+  // Điều kiện nhân bản source
+  if (Source === "source_2") {
+    sourcesToInsert.push("source_1");
+  }
+  if (Source === "source_4") {
+    sourcesToInsert.push("source_3");
+  }
+
+  db.serialize(() => {
+    const stmt = db.prepare(
+      `INSERT INTO ManufactureSMT
+        (PartNumber, HistoryID, Timestamp, Status, PlanID, Source)
+       VALUES (?, ?, ?, 'ok', ?, ?)`
+    );
+
+    for (const src of sourcesToInsert) {
+      for (let i = 0; i < Quantity; i++) {
+        stmt.run([
+          1,              // PartNumber mặc định
+          HistoryID,
+          Timestamp,
+          PlanID,
+          src             // Insert source được xác định
+        ]);
+      }
+    }
+
+    stmt.finalize((err) => {
+      if (err) return res.status(500).json({ error: "Database error" });
+
+      // Emit realtime
+      io.emit("UpdateManufactureSMT", HistoryID);
+      io.emit("UpdateHistoryFiltered", { PlanID, Type });
+      io.emit("UpdateManufactureSummary");
+      io.emit("updateManufactureDetails");
+      io.emit("UpdateHistory");
+      io.emit("updateHistoryPart");
+      io.emit("UpdateSummary");
+      io.emit("updateDetailProjectPO");
+
+      res.json({
+        message: `Đã nhập ${Quantity} sản phẩm cho ${sourcesToInsert.length} source`,
+        totalInserted: Quantity * sourcesToInsert.length,
+        insertedSources: sourcesToInsert,
+      });
+    });
+  });
+});
+
+
 
 // Update value active stopped in table Summary line 1
 app.put("/api/Summary/Edit-item-action-stopped-line1", (req, res) => {

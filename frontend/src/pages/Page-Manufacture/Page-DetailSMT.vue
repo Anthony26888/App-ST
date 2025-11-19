@@ -16,7 +16,11 @@
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-tools" color="primary" size="large"></v-icon>
         <v-breadcrumbs
-          :items="[`${NameManufacture}`, `${Name_Order} (${Line_SMT})`, `${Category}`]"
+          :items="[
+            `${NameManufacture}`,
+            `${Name_Order} (${Line_SMT})`,
+            `${Category}`,
+          ]"
         >
           <template v-slot:divider>
             <v-icon icon="mdi-chevron-right"></v-icon>
@@ -172,6 +176,14 @@
         <v-card class="mt-4 rounded-lg" variant="text">
           <v-card-title class="d-flex align-center">
             <span class="text-h6">Bảng chi tiết sản xuất</span>
+            <v-btn
+              icon="mdi-cog"
+              variant="toanl"
+              size="small"
+              class="ms-2"
+              color="primary"
+              @click = "DialogSetting = true"
+            ></v-btn>
             <v-spacer></v-spacer>
             <InputSearch v-model="search" />
           </v-card-title>
@@ -274,6 +286,30 @@
       </v-card>
     </v-dialog>
 
+    <v-dialog v-model="DialogSetting" width="400">
+      <v-card
+        max-width="500"
+        prepend-icon="mdi-pencil"
+        title="Nhập só lượng đã sản xuất"
+      >
+        <v-card-text>
+          <InputField
+            label="Số lượng sản phẩm"
+            type="number"
+            v-model="Quantity_Add"
+            hide-details
+            variant="outlined"
+            density="comfortable"
+            placeholder="VD: 5"
+          />
+        </v-card-text>
+        <template v-slot:actions>
+          <ButtonCancel @cancel="DialogSetting = false" />
+          <ButtonSave @save="InputQuantity()" />
+        </template>
+      </v-card>
+    </v-dialog>
+
     <!-- Thông báo -->
     <Loading v-model="DialogLoading" />
     <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
@@ -317,6 +353,7 @@ const DialogLoading = ref(false);
 const DialogSuccess = ref(false);
 const DialogFailed = ref(false);
 const DialogRemoveHistory = ref(false);
+const DialogSetting = ref(false);
 const MessageDialog = ref("");
 const MessageErrorDialog = ref("");
 
@@ -344,7 +381,9 @@ const QuantityBoard = ref(0);
 const Delay = ref(0);
 const PlanID = ref("");
 const Action = ref("");
-const Category = ref("")
+const Category = ref("");
+
+const Quantity_Add = ref(1);
 
 const isConnecting = ref(false);
 const isRunning = computed(() => Action.value === "running");
@@ -365,7 +404,6 @@ watch(
       Action.value = selected?.Action;
       Line_SMT.value = selected?.Line_SMT;
       Category.value = selected?.Category;
-      
     }
   },
   { immediate: true, deep: true }
@@ -462,6 +500,36 @@ const RemoveItemHistory = async () => {
     Error();
   }
 };
+
+const InputQuantity = async () => {
+  DialogLoading.value = true;
+  const formData = reactive({
+    HistoryID: id,
+    PlanID: PlanID.value,
+    Quantity: Quantity_Add.value || 1, 
+    Source : Line_SMT.value = 'Line 1'? 'source_4' : 'source_2',
+    Type: 'SMT'
+  });
+
+  try {
+    const response = await axios.post(`${Url}/ManufactureSMT`, formData);
+    DialogLoading.value = false;
+    DialogSetting.value = false;
+    // Reset các giá trị sau khi thành công
+    Quantity_Add.value = 1
+    DialogSuccess.value = true;
+    MessageDialog.value = "Sản phẩm đã được nhập thành công";
+  } catch (error) {
+    DialogLoading.value = false;
+    DialogSetting.value = false;
+    Quantity_Add.value = 1
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Lỗi khi nhập mã sản phẩm";
+    
+  } finally {
+    DialogLoading.value = false;
+  }
+}
 
 const showError = (msg) => {
   MessageErrorDialog.value = msg;
@@ -675,10 +743,10 @@ const StartLine = async () => {
       newAction === "running"
         ? `Đã bắt đầu sản xuất (Line ${line}) - Delay: ${delaySMT}ms`
         : `Đã dừng sản xuất trên Line ${line}`;
-
   } catch (error) {
-    DialogFailed.value = false
-    MessageErrorDialog.value = error.response?.data?.error || "Có lỗi xảy ra khi thực hiện"
+    DialogFailed.value = false;
+    MessageErrorDialog.value =
+      error.response?.data?.error || "Có lỗi xảy ra khi thực hiện";
   } finally {
     isConnecting.value = false;
   }
