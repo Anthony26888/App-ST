@@ -196,27 +196,27 @@ const FetchUser = async () => {
     if (LevelUser == "Admin" || LevelUser == "Kế hoạch" || LevelUser == "Quản lý") {
       router.push(`/Kiem-tra-so-lieu`);
       DialogLoading.value = false;
-      localStorage.setItem("titleNavigation", "Kiem-tra-so-lieu");
+      localStorage.setItem("titleNavigation", "Kiểm tra số liệu");
     } else if(LevelUser == "Kinh doanh" || LevelUser == "Thủ kho" || LevelUser == "Quản lý kinh doanh") {
       DialogLoading.value = false;
       router.push(`/Ton-kho`);
-      localStorage.setItem("titleNavigation", "Ton-kho");
+      localStorage.setItem("titleNavigation", "Tồn kho");
     } else if (LevelUser == 'Nhân viên'){
       DialogLoading.value = false;
       router.push(`/Danh-sach-cong-viec`);
-      localStorage.setItem("titleNavigation", "Danh-sach-cong-viec");
+      localStorage.setItem("titleNavigation", "Danh sách công việc");
     } else if (LevelUser == 'Quản lý sản xuất'){
       DialogLoading.value = false;
       router.push(`/San-xuat`);
-      localStorage.setItem("titleNavigation", "San-xuat");
+      localStorage.setItem("titleNavigation", "Sản xuất");
     } else if (LevelUser == 'Quản lý bảo trì'){
       DialogLoading.value = false;
       router.push(`/Bao-tri`);
-      localStorage.setItem("titleNavigation", "Bao-tri");
+      localStorage.setItem("titleNavigation", "Bảo trì");
     } else{
       router.push(`/`);
       DialogLoading.value = false;
-      localStorage.setItem("titleNavigation", "Kiem-tra-so-lieu");
+      localStorage.setItem("titleNavigation", "Kiểm tra số liệu");
     }
   } catch (error) {
     console.error("Error fetching user data:", error);

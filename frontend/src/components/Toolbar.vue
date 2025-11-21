@@ -67,7 +67,7 @@
   <Loading v-model="DialogLoading" />
 
   <!-- ✅ App Bar -->
-  <v-app-bar :elevation="2" color="primary">
+  <v-app-bar :elevation="2" color="#1E293B" class="text-white">
     <template v-slot:prepend>
       <!-- Ấn để toggle drawer -->
       <v-app-bar-nav-icon @click="drawer = !drawer" />

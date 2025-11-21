@@ -16,11 +16,11 @@
       offset-x="10"
       offset-y="10"
     >
-      <v-card-title class="text-subtitle-1 font-weight-bold pa-1">{{
+      <v-card-title class="text-subtitle-1 font-weight-bold pa-1 process-card-title">{{
         title
       }}</v-card-title>
     </v-badge>
-    <v-card-title v-else class="text-subtitle-1 font-weight-bold pa-1">{{
+    <v-card-title v-else class="text-subtitle-1 font-weight-bold pa-1 process-card-title">{{
       title
     }}</v-card-title>
 
@@ -61,10 +61,26 @@ const emit = defineEmits(['card-click', 'toggle-bottleneck']);
 <style scoped>
 /* CSS cho phần Tối ưu hóa thị giác */
 .process-card {
-  min-width: 150px;
+  width: 180px; /* Fixed width as requested */
   max-width: 180px;
+  min-width: 150px;
   cursor: pointer;
   border-radius: 8px !important;
+}
+
+@media (max-width: 960px) {
+  .process-card {
+    width: calc(50% - 8px) !important; /* 2 cards per row with gap */
+    max-width: none;
+    min-width: 0;
+  }
+}
+
+.process-card-title {
+  white-space: normal; /* Allow text wrap */
+  word-break: break-word; /* Break long words if necessary */
+  line-height: 1.2; /* Adjust line height for wrapped text */
+  font-size: 0.95rem; /* Slightly smaller font to fit more */
 }
 
 .flow-arrow {

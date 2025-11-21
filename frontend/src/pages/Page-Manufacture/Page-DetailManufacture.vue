@@ -1,19 +1,23 @@
 <template>
   <div class="manufacture-detail">
     <v-card variant="text" class="overflow-y-auto" height="100vh">
-      <v-card-title class="text-h4 font-weight-light">
+      <v-card-title class="text-h4 font-weight-light" v-if="lgAndUp">
         <ButtonBack to="/san-xuat" />
         Theo dõi sản xuất
       </v-card-title>
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-cart"></v-icon> &nbsp;
-        <v-breadcrumbs :items="[`${NameManufacture}`, `${NameOrder}`]">
+        <v-breadcrumbs
+          :items="[`${NameManufacture}`, `${NameOrder}`]"
+          :class="mdAndDown ? 'text-caption text-wrap' : ''"
+        >
           <template v-slot:divider>
             <v-icon icon="mdi-chevron-right"></v-icon>
           </template>
         </v-breadcrumbs>
         <v-spacer></v-spacer>
         <v-btn
+          v-if="lgAndUp"
           prepend-icon="mdi-cog"
           variant="tonal"
           color="primary"
@@ -21,12 +25,21 @@
           @click="DialogSettingSMT = true"
           >Cài đặt</v-btn
         >
+        <v-btn
+          v-else
+          icon="mdi-cog"
+          variant="tonal"
+          color="primary"
+          class="ms-2 text-caption"
+          @click="DialogSettingSMT = true"
+          ></v-btn
+        >
       </v-card-title>
 
       <v-card-text class="pa-6">
         <!-- Main Stats Overview -->
         <v-row class="mb-6">
-          <v-col cols="12" md="4">
+          <v-col cols="" md="4">
             <v-card class="rounded-xl" color="primary" variant="tonal">
               <v-card-text>
                 <div class="text-subtitle-1">Đầu vào</div>
@@ -72,7 +85,7 @@
             </v-card>
           </v-col>
         </v-row>
-        <div class="d-flex align-center justify-start flex-wrap">
+        <div class="d-flex align-center justify-start flex-wrap gap-4">
           <template v-for="(card, index) in levelArray" :key="card.id">
             <v-tooltip text="Nhấn vào xem chi tiết" location="bottom">
               <template v-slot:activator="{ props }">
@@ -98,7 +111,7 @@
 
                 <div
                   v-if="index < levelArray.length - 1"
-                  class="flow-arrow mx-4"
+                  class="flow-arrow mx-4 d-none d-md-block"
                 >
                   →
                 </div>
@@ -164,7 +177,7 @@
                   </div>
                 </v-card-text>
               </v-col>
-              <v-col md="4">
+              <v-col md="4" class="d-flex flex-column align-center justify-center">
                 <v-pie
                   title="Biểu đồ phần trăm %"
                   animation
@@ -541,7 +554,7 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="calc(60vh)"
+            height="calc(100vh - 350px)"
           >
             <template v-slot:top>
               <v-toolbar flat dense class="rounded-t-lg">
@@ -876,6 +889,7 @@ import axios from "axios";
 import { useRoute, useRouter } from "vue-router";
 import { shallowRef, toRef } from "vue";
 import Chart from "chart.js/auto";
+import { useDisplay } from "vuetify";
 import InputSearch from "@/components/Input-Search.vue";
 import InputFiles from "@/components/Input-Files.vue";
 import InputField from "@/components/Input-Field.vue";
@@ -922,7 +936,7 @@ const { manufactureSummary, refresh } = useManufactureSummary(id);
 const { manufactureRW, manufactureRWError } = useManufactureRW(id, typeFilter);
 const { history } = useHistory(id, typeFilter);
 const { manufactureFail } = useManufactureFail(id);
-
+const { mdAndDown, lgAndUp } = useDisplay();
 // Dialog
 const DialogSuccess = ref(false);
 const DialogLoading = ref(false);

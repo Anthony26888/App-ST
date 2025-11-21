@@ -2,32 +2,33 @@
   <div>
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <!-- Tiêu đề -->
-      <v-card-title class="text-h4 font-weight-light d-flex align-center">
+      <v-card-title class="text-h4 font-weight-light d-flex align-center" >
         <ButtonBack
           v-if="LevelUser === 'Nhân viên'"
           :to="`/Danh-sach-cong-viec`"
           @click="removeGoBackListWork"
         />
         <ButtonBack v-else :to="`/San-xuat/Chi-tiet/${back}`" />
-        <span class="ml-2">Theo dõi sản xuất SMT</span>
+        <span class="ml-2" v-if="lgAndUp">Theo dõi sản xuất SMT</span>
       </v-card-title>
 
       <!-- Thanh điều khiển -->
       <v-card-title class="d-flex align-center pe-2">
-        <v-icon icon="mdi mdi-tools" color="primary" size="large"></v-icon>
+        <v-icon  icon="mdi mdi-tools" color="primary" size="large" v-if="lgAndUp"></v-icon>
         <v-breadcrumbs
           :items="[
             `${NameManufacture}`,
             `${Name_Order} (${Line_SMT})`,
             `${Category}`,
           ]"
+          v-if="lgAndUp"
         >
           <template v-slot:divider>
             <v-icon icon="mdi-chevron-right"></v-icon>
           </template>
         </v-breadcrumbs>
         <v-spacer></v-spacer>
-        <div class="me-5">
+        <div class="me-5" v-if="lgAndUp">
           <!-- Trạng thái kết nối -->
           <v-chip
             :prepend-icon="
@@ -62,6 +63,49 @@
             @click="StartLine()"
             :color="isRunning ? 'error' : 'success'"
             :loading="isConnecting"
+          >
+            <v-icon :icon="isRunning ? 'mdi-stop' : 'mdi-play'"></v-icon>
+            &nbsp;
+            {{ isRunning ? "Dừng" : "Bắt đầu" }}
+          </v-btn>
+        </div>
+
+        <div class="me-5  d-flex align-center" v-else>
+          <!-- Trạng thái kết nối -->
+          <v-chip
+            :prepend-icon="
+              currentStatus === 'Online'
+                ? 'mdi-contactless-payment-circle'
+                : 'mdi-web-off'
+            "
+            :color="currentStatus === 'Online' ? 'green' : 'red'"
+            class="ma-2"
+            dark
+            size="small"
+          >
+            {{ currentStatus }}
+          </v-chip>
+
+          <!-- Delay -->
+          <v-chip
+            prepend-icon="mdi-clock-outline"
+            color="orange"
+            class="ma-2"
+            variant="tonal"
+            dark
+            size="small"
+          >
+            Độ trễ: {{ Delay }} ms
+          </v-chip>
+
+          <!-- Nút bắt đầu / dừng -->
+          <v-btn
+            class="text-caption ms-2 rounded-lg"
+            variant="tonal"
+            @click="StartLine()"
+            :color="isRunning ? 'error' : 'success'"
+            :loading="isConnecting"
+            size="small"
           >
             <v-icon :icon="isRunning ? 'mdi-stop' : 'mdi-play'"></v-icon>
             &nbsp;
@@ -175,7 +219,7 @@
         <!-- Bảng chi tiết -->
         <v-card class="mt-4 rounded-lg" variant="text">
           <v-card-title class="d-flex align-center">
-            <span class="text-h6">Bảng chi tiết sản xuất</span>
+            <span class="text-h6" v-if="lgAndUp">Bảng chi tiết sản xuất</span>
             <v-btn
               icon="mdi-cog"
               variant="toanl"
@@ -184,16 +228,17 @@
               color="primary"
               @click = "DialogSetting = true"
             ></v-btn>
-            <v-spacer></v-spacer>
+            <v-spacer v-if="lgAndUp"></v-spacer>
             <InputSearch v-model="search" />
           </v-card-title>
           <v-data-table
+            v-if="lgAndUp"
             :headers="Headers"
             :items="manufactureSMT"
             :search="search"
             v-model:page="page"
             v-model:items-per-page="itemsPerPage"
-            class="elevation-1 mt-4"
+            class="elevation-1 mt-4 rounded-xl"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
               'items-per-page-text': 'Số hàng mỗi trang',
@@ -206,6 +251,91 @@
             :dense="false"
             :fixed-header="true"
             height="53vh"
+          >
+            <template v-slot:item.stt="{ index }">
+              {{ (page - 1) * itemsPerPage + index + 1 }}
+            </template>
+            <template #[`item.Status`]="{ item }">
+              <v-chip
+                :color="item.Status === 'ok' ? 'success' : 'error'"
+                size="small"
+                variant="tonal"
+              >
+                {{ item.Status === "ok" ? "Pass" : "Fail" }}
+              </v-chip>
+            </template>
+            <template #[`item.Source`]="{ item }">
+              <v-chip
+                :color="
+                  item.Source === 'Máy printer'
+                    ? 'info'
+                    : item.Source === 'Máy gắp linh kiện Juki'
+                    ? 'warning'
+                    : item.Source === 'Máy gắp linh kiện Yamaha'
+                    ? 'warning'
+                    : 'info'
+                "
+                size="small"
+                variant="tonal"
+              >
+                {{ item.Source }}
+              </v-chip>
+            </template>
+            <template #[`item.Line`]="{ item }">
+              <v-chip
+                :color="
+                  item.Line === 'Line 1'
+                    ? 'brown-lighten-2'
+                    : 'deep-orange-lighten-2'
+                "
+                size="small"
+                variant="tonal"
+              >
+                {{ item.Line }}
+              </v-chip>
+            </template>
+            <template #[`item.PartNumber`]="{ item }">
+              <p v-if="item.PartNumber == 1">{{ Category }}</p>
+              <p v-else>{{ item.PartNumber }}</p>
+            </template>
+            <template #item.id="{ item }">
+              <v-btn
+                size="small"
+                variant="text"
+                color="error"
+                icon="mdi-trash-can"
+                @click="GetItemHistory(item)"
+              ></v-btn>
+            </template>
+            <template #[`bottom`]>
+              <div class="text-center pt-2">
+                <v-pagination
+                  v-model="page"
+                  :length="Math.ceil(manufactureSMT.length / itemsPerPage)"
+                ></v-pagination>
+              </div>
+            </template>
+          </v-data-table>
+          <v-data-table
+            v-else
+            :headers="Headers"
+            :items="manufactureSMT"
+            :search="search"
+            v-model:page="page"
+            v-model:items-per-page="itemsPerPage"
+            class="elevation-1 mt-4 rounded-xl"
+            :footer-props="{
+              'items-per-page-options': [10, 20, 50, 100],
+              'items-per-page-text': 'Số hàng mỗi trang',
+            }"
+            :loading="DialogLoading"
+            loading-text="Đang tải dữ liệu..."
+            no-data-text="Không có dữ liệu"
+            no-results-text="Không tìm thấy kết quả"
+            :hover="true"
+            :dense="false"
+            :fixed-header="true"
+            height="220px"
           >
             <template v-slot:item.stt="{ index }">
               {{ (page - 1) * itemsPerPage + index + 1 }}
@@ -320,6 +450,7 @@
 <script setup>
 import { ref, watch, computed } from "vue";
 import { useRoute } from "vue-router";
+import { useDisplay } from "vuetify";
 import axios from "axios";
 import { useHistory } from "@/composables/Manufacture/useHistory";
 import { useManufactureSMT } from "@/composables/Manufacture/useManufactureSMT";
@@ -346,7 +477,7 @@ const { manufactureFound } = useManufacture();
 const { history } = useHistory(back);
 const { status } = useDeviceStatusSocket("esp32-001");
 const { status: statusLine2 } = useDeviceStatusSocket("esp32-002");
-
+const { mdAndDown, lgAndUp } = useDisplay();
 // Chọn trạng thái theo Line_SMT
 
 const DialogLoading = ref(false);
@@ -507,7 +638,7 @@ const InputQuantity = async () => {
     HistoryID: id,
     PlanID: PlanID.value,
     Quantity: Quantity_Add.value || 1, 
-    Source : Line_SMT.value = 'Line 1'? 'source_4' : 'source_2',
+    Source : Line_SMT.value = 'Line 1'? 'source_2' : 'source_4',
     Type: 'SMT'
   });
 

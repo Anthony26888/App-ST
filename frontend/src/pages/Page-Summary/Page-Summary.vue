@@ -237,7 +237,7 @@
             </v-toolbar>
             <v-card-text class="pa-4">
               <div class="detail-table-container">
-                <v-table density="compact" class="elevation-1 rounded">
+                <v-table density="compact" height="280px" class="elevation-1 rounded">
                   <thead>
                     <tr>
                       <th class="text-left text-caption">Loại</th>
@@ -634,7 +634,7 @@
             </v-toolbar>
             <v-card-text class="pa-4">
               <div class="detail-table-container">
-                <v-table density="compact" class="elevation-1 rounded">
+                <v-table density="compact" height="280px"  class="elevation-1 rounded">
                   <thead>
                     <tr>
                       <th class="text-left text-caption">Loại</th>

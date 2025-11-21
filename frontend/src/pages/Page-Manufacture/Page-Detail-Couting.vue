@@ -8,10 +8,10 @@
           @click="removeGoBackListWork"
         />
         <ButtonBack v-else :to="`/San-xuat/Chi-tiet/${back}`" />
-        <span class="ml-2">Theo dõi sản xuất {{ Name_Category }}</span>
+        <span class="ml-2" v-if="lgAndUp">Theo dõi sản xuất {{ Name_Category }}</span>
       </v-card-title>
 
-      <v-card-title class="d-flex align-center pe-2">
+      <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
         <v-icon icon="mdi mdi-tools" color="primary" size="large"></v-icon>
         <v-breadcrumbs
           :items="[`${NameManufacture}`, `${Name_Order}`, `${Name_Category}`]"
@@ -90,7 +90,7 @@
         </v-row>
 
         <!-- Input Section -->
-        <v-card class="mb-4 rounded-lg" elevation="4">
+        <v-card class="mb-4 rounded-lg" elevation="4" v-if="lgAndUp">
           <v-card-text>
             <v-row dense>
               <v-col cols="12" md="5">
@@ -156,9 +156,10 @@
         <!-- Table -->
         <v-card class="mt-4 rounded-lg" variant="text">
           <v-card-title class="d-flex align-center">
-            <span class="text-h6">Bảng chi tiết sản xuất</span>
+            <span class="text-h6" v-if="lgAndUp">Bảng chi tiết sản xuất</span>
             <!-- Filter Select -->
             <v-select
+              v-if="lgAndUp"
               v-model="selectedFilter"
               :items="filterOptions"
               item-title="label"
@@ -184,16 +185,17 @@
                 </v-list-item>
               </template>
             </v-select>
-            <v-spacer></v-spacer>
-            <InputSearch v-model="searchText" placeholder="Tìm kiếm..." />
+            <v-spacer v-if="lgAndUp"></v-spacer>
+            <InputSearch v-if="lgAndUp" v-model="searchText" placeholder="Tìm kiếm..." />
           </v-card-title>
           <v-data-table
+            v-if="lgAndUp"
             :headers="Headers"
             :items="filteredManufactureCounting"
             :search="combinedSearch"
             v-model:page="page"
             v-model:items-per-page="itemsPerPage"
-            class="elevation-1 mt-4"
+            class="elevation-1 mt-4 rounded-xl"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
               'items-per-page-text': 'Số hàng mỗi trang',
@@ -210,7 +212,119 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="calc(100vh - 300px)"
+            height="53vh"
+          >
+            <template v-slot:item.stt="{ index }">
+              {{ (page - 1) * itemsPerPage + index + 1 }}
+            </template>
+            <template #[`item.Status`]="{ item }">
+              <v-chip
+                :color="
+                  item.Status === 'fail'
+                    ? 'warning'
+                    : item.Status === 'fixed'
+                    ? 'info'
+                    : 'success'
+                "
+                size="small"
+                variant="tonal"
+              >
+                {{
+                  item.Status === "fail"
+                    ? "Fail"
+                    : item.Status === "fixed"
+                    ? "Fixed"
+                    : "Pass"
+                }}
+              </v-chip>
+              <v-chip
+                color="info"
+                class="ms-2"
+                v-if="item.Status_Fixed === 'fixed'"
+                size="small"
+                variant="tonal"
+                >Fixed</v-chip
+              >
+              
+            </template>
+            <template #item.RWID="{ item }">
+              <v-chip
+                color="success"
+                class="ms-2"
+                v-if="item.RWID === 'Done'"
+                size="small"
+                variant="tonal"
+                >
+                <v-icon>mdi-check</v-icon>
+              </v-chip>
+            </template>
+            <template #item.TimestampRW="{ item }">
+              <div class="text-primary">{{ item.TimestampRW }}</div>
+            </template>
+            <template #item.Note="{ item }">
+              <div style="white-space: pre-line" class="text-error">
+                {{ item.Note }}
+              </div>
+            </template>
+            <template #item.id="{ item }">
+              <v-btn
+                v-if="item.Status === 'fail'"
+                size="small"
+                color="success"
+                variant="tonal"
+                class="ml-2 text-caption"
+                @click="GetItem(item)"
+                prepend-icon = "mdi-check"
+              >
+                Kiểm tra
+              </v-btn>
+              <v-btn
+                size="small"
+                variant="text"
+                color="error"
+                icon="mdi-trash-can"
+                @click="GetItemHistory(item)"
+              ></v-btn>
+            </template>
+            <template #[`bottom`]>
+              <div class="text-center pt-2">
+                <v-pagination
+                  v-model="page"
+                  :length="
+                    Math.ceil(
+                      (filteredManufactureCounting?.length || 0) / itemsPerPage
+                    )
+                  "
+                ></v-pagination>
+              </div>
+            </template>
+          </v-data-table>
+
+          <v-data-table
+            v-else
+            :headers="Headers"
+            :items="filteredManufactureCounting"
+            :search="combinedSearch"
+            v-model:page="page"
+            v-model:items-per-page="itemsPerPage"
+            class="elevation-1 mt-4 rounded-xl"
+            :footer-props="{
+              'items-per-page-options': [10, 20, 50, 100],
+              'items-per-page-text': 'Số hàng mỗi trang',
+            }"
+            :header-props="{
+              sortByText: 'Sắp xếp theo',
+              sortDescText: 'Giảm dần',
+              sortAscText: 'Tăng dần',
+            }"
+            :loading="DialogLoading"
+            loading-text="Đang tải dữ liệu..."
+            no-data-text="Không có dữ liệu"
+            no-results-text="Không tìm thấy kết quả"
+            :hover="true"
+            :dense="false"
+            :fixed-header="true"
+            height="53vh"
           >
             <template v-slot:item.stt="{ index }">
               {{ (page - 1) * itemsPerPage + index + 1 }}
@@ -349,7 +463,7 @@
 // Vue core imports
 import { ref, watch, reactive, computed } from "vue";
 import { useRoute } from "vue-router";
-
+import { useDisplay } from "vuetify";
 // External libraries
 import axios from "axios";
 
@@ -390,6 +504,7 @@ const Headers = [
 const { history, historyError } = useHistory(back);
 const { manufactureCounting, manufactureCountingError } =
   useManufactureCounting(id);
+const { mdAndDown, lgAndUp } = useDisplay();
 // ===== Reactive State =====
 
 // Dialog

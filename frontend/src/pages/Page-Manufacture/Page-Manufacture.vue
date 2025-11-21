@@ -4,7 +4,7 @@
     <!-- Card chính chứa toàn bộ nội dung -->
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <!-- Tiêu đề trang -->
-      <v-card-title class="text-h4 font-weight-light">
+      <v-card-title class="text-h4 font-weight-light" v-if="lgAndUp">
         Danh sách sản xuất
       </v-card-title>
 
@@ -24,7 +24,7 @@
               Thêm
             </v-btn>
             <!-- Hiển thị tổng số kế hoạch -->
-            <p class="ms-2 font-weight-thin text-subtitle-1">
+            <p class="ms-2 font-weight-thin text-subtitle-1" v-if="lgAndUp">
               ( {{ manufacture.length }} kế hoạch)
             </p>
             <v-spacer></v-spacer>
@@ -39,6 +39,7 @@
           <v-card-text class="overflow-auto">
             <!-- Bảng dữ liệu chính -->
             <v-data-table
+              density="compact"
               :headers="Headers"
               :items="manufacture"
               :search="search"
@@ -393,6 +394,7 @@
 import axios from "axios";
 import { useRouter } from "vue-router";
 import { jwtDecode } from "jwt-decode";
+import { useDisplay } from "vuetify";
 import { ref, onMounted, computed, reactive, watch } from "vue";
 
 // Import các components
@@ -411,7 +413,7 @@ import { useManufacture } from "@/composables/Manufacture/useManufacture";
 
 // Khởi tạo các composables và biến môi trường
 const { manufacture, manufactureError } = useManufacture();
-
+const { mdAndDown, lgAndUp } = useDisplay();
 // Khởi tạo các biến môi trường
 const Url = import.meta.env.VITE_API_URL;
 const router = useRouter();
