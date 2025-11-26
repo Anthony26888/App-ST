@@ -39,6 +39,7 @@
           <v-card-text class="overflow-auto">
             <!-- Bảng dữ liệu chính -->
             <v-data-table
+              :group-by="groupBy"
               density="compact"
               :headers="Headers"
               :items="manufacture"
@@ -65,6 +66,37 @@
               :fixed-header="true"
               height="calc(100vh - 200px)"
             >
+              <template
+                v-slot:group-header="{
+                  item,
+                  columns,
+                  toggleGroup,
+                  isGroupOpen,
+                }"
+              >
+                <tr>
+                  <td
+                    :colspan="columns.length"
+                    class="cursor-pointer"
+                    v-ripple
+                    @click="toggleGroup(item)"
+                  >
+                    <div class="d-flex align-center">
+                      <v-btn
+                        :icon="isGroupOpen(item) ? '$expand' : '$next'"
+                        color="medium-emphasis"
+                        density="comfortable"
+                        size="small"
+                        variant="outlined"
+                      ></v-btn>
+
+                      <span class="ms-4">{{ item.value }} ({{
+                        item.items.length
+                      }})</span>
+                    </div>
+                  </td>
+                </tr>
+              </template>
               <!-- Phân trang -->
               <template #bottom>
                 <div class="text-center pt-2">
@@ -131,7 +163,6 @@
         </v-card-title>
         <v-card-text>
           <InputField
-            :disabled="true"
             label="Tên dự án"
             :model-value="Name_Edit"
             @update:model-value="Name_Edit = $event"
@@ -143,7 +174,7 @@
             :model-value="Total_Edit"
             @update:model-value="Total_Edit = $event"
           />
-          <InputSelect
+          <!-- <InputSelect
             label="Quy trình"
             :items="[
               'SMT',
@@ -164,7 +195,7 @@
             hint="Lựa chọn quy trình phù hợp"
             v-model="Level_Edit"
             @update:model-value="(val) => (Level_Edit = val)"
-          />
+          /> -->
 
           <!-- Thêm input cho quy trình khác trong dialog chỉnh sửa -->
           <div class="mt-3">
@@ -252,7 +283,7 @@
             :model-value="Total_Manufacture_Add"
             @update:model-value="Total_Manufacture_Add = $event"
           />
-          <InputSelect
+          <!-- <InputSelect
             label="Quy trình"
             :items="[
               'SMT',
@@ -273,7 +304,7 @@
             hint="Lựa chọn quy trình phù hợp"
             v-model="Level_Manufacture_Add"
             @update:model-value="(val) => (Level_Manufacture_Add = val)"
-          />
+          /> -->
 
           <!-- Thêm input cho quy trình khác -->
           <div class="mt-3">
@@ -439,7 +470,7 @@ const Level_Edit = ref("");
 const Quantity_Edit = ref(1);
 
 // Khởi tạo các biến ref cho quy trình tùy chỉnh trong dialog chỉnh sửa
-const customProcessEdit = ref('');
+const customProcessEdit = ref("");
 const customProcessListEdit = ref([]);
 
 // Khởi tạo các biến ref cho form thêm mới
@@ -450,8 +481,8 @@ const Date_Manufacture_Add = ref("");
 const Note_Manufacture_Add = ref("");
 const Total_Manufacture_Add = ref(0);
 const Level_Manufacture_Add = ref(null);
-const customProcess = ref('')
-const customProcessList = ref([])
+const customProcess = ref("");
+const customProcessList = ref([]);
 
 // Khởi tạo các biến ref cho thông tin người dùng và tìm kiếm
 const UserInfo = ref("");
@@ -466,6 +497,7 @@ const MessageDialog = ref("");
 const MessageErrorDialog = ref("");
 
 // Định nghĩa cấu trúc bảng
+const groupBy = [{ key: "Name" }];
 const Headers = [
   { title: "Số PO", key: "Name" },
   { title: "Đơn hàng", key: "Name_Order" },
@@ -478,7 +510,6 @@ const Headers = [
   { title: "Ghi chú", key: "Note" },
   { title: "Thao tác", key: "id", sortable: false },
 ];
-
 
 // Hàm kiểm tra token và lấy thông tin người dùng khi component được mount
 onMounted(() => {
@@ -496,90 +527,90 @@ onMounted(() => {
 
 const addCustomProcess = () => {
   if (customProcess.value && customProcess.value.trim()) {
-    const processName = customProcess.value.trim()
-    
+    const processName = customProcess.value.trim();
+
     // Kiểm tra trùng lặp
     if (!customProcessList.value.includes(processName)) {
-      customProcessList.value.push(processName)
-      
+      customProcessList.value.push(processName);
+
       // Cập nhật Level_Manufacture_Add
       if (!Level_Manufacture_Add.value) {
-        Level_Manufacture_Add.value = []
+        Level_Manufacture_Add.value = [];
       }
       if (!Level_Manufacture_Add.value.includes(processName)) {
-        Level_Manufacture_Add.value.push(processName)
+        Level_Manufacture_Add.value.push(processName);
       }
     }
-    
+
     // Reset input
-    customProcess.value = ''
+    customProcess.value = "";
   }
-}
+};
 
 // Thêm method để xóa quy trình tùy chỉnh
 const removeCustomProcess = (index) => {
   if (index >= 0 && index < customProcessList.value.length) {
-    const processName = customProcessList.value[index]
-    
+    const processName = customProcessList.value[index];
+
     // Xóa khỏi danh sách tùy chỉnh
-    customProcessList.value.splice(index, 1)
-    
+    customProcessList.value.splice(index, 1);
+
     // Xóa khỏi Level_Manufacture_Add
     if (Level_Manufacture_Add.value) {
-      const levelIndex = Level_Manufacture_Add.value.indexOf(processName)
+      const levelIndex = Level_Manufacture_Add.value.indexOf(processName);
       if (levelIndex > -1) {
-        Level_Manufacture_Add.value.splice(levelIndex, 1)
+        Level_Manufacture_Add.value.splice(levelIndex, 1);
       }
     }
   }
-}
+};
 
 // Thêm method để thêm quy trình tùy chỉnh trong dialog chỉnh sửa
 const addCustomProcessEdit = () => {
   if (customProcessEdit.value && customProcessEdit.value.trim()) {
-    const processName = customProcessEdit.value.trim()
-    
+    const processName = customProcessEdit.value.trim();
+
     // Kiểm tra trùng lặp
     if (!customProcessListEdit.value.includes(processName)) {
-      customProcessListEdit.value.push(processName)
-      
+      customProcessListEdit.value.push(processName);
+
       // Không cần cập nhật Level_Edit vì Level_Edit chỉ chứa quy trình chuẩn
       // Quy trình tùy chỉnh được quản lý riêng trong customProcessListEdit
     }
-    
+
     // Reset input
-    customProcessEdit.value = ''
+    customProcessEdit.value = "";
   }
-}
+};
 
 // Thêm method để xóa quy trình tùy chỉnh trong dialog chỉnh sửa
 const removeCustomProcessEdit = (index) => {
   if (index >= 0 && index < customProcessListEdit.value.length) {
-    const processName = customProcessListEdit.value[index]
-    
+    const processName = customProcessListEdit.value[index];
+
     // Xóa khỏi danh sách tùy chỉnh
-    customProcessListEdit.value.splice(index, 1)
-    
+    customProcessListEdit.value.splice(index, 1);
+
     // Không cần xóa khỏi Level_Edit vì Level_Edit chỉ chứa quy trình chuẩn
     // Quy trình tùy chỉnh được quản lý riêng trong customProcessListEdit
   }
-}
+};
 
 // Reset khi đóng dialog
 watch(DialogAdd, (newVal) => {
   if (!newVal) {
-    customProcess.value = ''
-    customProcessList.value = []
+    customProcess.value = "";
+    customProcessList.value = [];
   }
-})
+});
 
 // Reset khi đóng dialog chỉnh sửa
 watch(DialogEdit, (newVal) => {
   if (!newVal) {
-    customProcessEdit.value = ''
-    customProcessListEdit.value = []
+    customProcessEdit.value = "";
+    customProcessListEdit.value = [];
   }
-})
+});
 
 // Hàm chuyển hướng đến trang chi tiết sản phẩm
 function PushItem(value) {
@@ -598,27 +629,31 @@ function GetItem(value) {
   const found = manufacture.value.find((v) => v.id === value);
   Name_Edit.value = found.Name;
   Total_Edit.value = found.Total;
-  
+
   // Xử lý Level để tách quy trình chuẩn và quy trình tùy chỉnh
   const levelArray = found.Level.split("-");
   const standardProcesses = [
-    'SMT',
-    'AOI',
-    'IPQC (SMT)',
-    'Assembly',
-    'IPQC',
-    'Test 1',
-    'Test 2',
-    'Box Build',
-    'Tẩm phủ',
-    'OQC',
-    'RW',
-    'Thành phẩm',
+    "SMT",
+    "AOI",
+    "IPQC (SMT)",
+    "Assembly",
+    "IPQC",
+    "Test 1",
+    "Test 2",
+    "Box Build",
+    "Tẩm phủ",
+    "OQC",
+    "RW",
+    "Thành phẩm",
   ];
-  
-  const customProcesses = levelArray.filter(process => !standardProcesses.includes(process));
-  const standardSelected = levelArray.filter(process => standardProcesses.includes(process));
-  
+
+  const customProcesses = levelArray.filter(
+    (process) => !standardProcesses.includes(process)
+  );
+  const standardSelected = levelArray.filter((process) =>
+    standardProcesses.includes(process)
+  );
+
   Level_Edit.value = standardSelected;
   customProcessListEdit.value = customProcesses;
   Date_Edit.value = found.Date_unixepoch;
@@ -641,11 +676,13 @@ const SaveEdit = async () => {
   // ✅ allProcesses là dữ liệu thực tế người dùng chọn và chỉnh sửa
   const allProcesses = [
     ...(Array.isArray(Level_Edit.value) ? Level_Edit.value : []),
-    ...(Array.isArray(customProcessListEdit.value) ? customProcessListEdit.value : []),
+    ...(Array.isArray(customProcessListEdit.value)
+      ? customProcessListEdit.value
+      : []),
   ];
 
   // ✅ loại bỏ khoảng trắng và phần tử rỗng
-  const cleaned = allProcesses.map(p => p.trim()).filter(p => p);
+  const cleaned = allProcesses.map((p) => p.trim()).filter((p) => p);
 
   // ✅ loại trùng
   const uniqueLevels = [...new Set(cleaned)];
@@ -672,17 +709,20 @@ const SaveEdit = async () => {
   });
 
   try {
-    const response = await axios.put(`${Url}/PlanManufacture/Edit/${GetID.value}`, formData);
+    const response = await axios.put(
+      `${Url}/PlanManufacture/Edit/${GetID.value}`,
+      formData
+    );
     MessageDialog.value = response.data.message;
     Reset();
   } catch (error) {
-    MessageErrorDialog.value = error.response?.data?.message || "Có lỗi xảy ra!";
+    MessageErrorDialog.value =
+      error.response?.data?.message || "Có lỗi xảy ra!";
     Error();
   } finally {
     DialogLoading.value = false;
   }
 };
-
 
 // Hàm lưu thông tin thêm mới
 const SaveAdd = async () => {
@@ -697,7 +737,9 @@ const SaveAdd = async () => {
 
   // ✅ Gom các quy trình người dùng đã chọn
   const mergedLevels = [
-    ...(Array.isArray(Level_Manufacture_Add.value) ? Level_Manufacture_Add.value : []),
+    ...(Array.isArray(Level_Manufacture_Add.value)
+      ? Level_Manufacture_Add.value
+      : []),
     ...(Array.isArray(customProcessList.value) ? customProcessList.value : []),
   ];
 
@@ -739,7 +781,6 @@ const SaveAdd = async () => {
     DialogLoading.value = false;
   }
 };
-
 
 // Hàm xóa item
 const RemoveItem = async () => {
