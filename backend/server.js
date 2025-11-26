@@ -1139,77 +1139,6 @@ io.on("connection", (socket) => {
         socket.emit("HistoryPartError", error);
       }
     }),
-    // socket.on("getActived", async (id) => {
-    //   try {
-    //     const query = `WITH AllData AS (
-    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Printer' AS Source, 'Máy Printer' AS Device FROM ManufactureSMT WHERE Source = 'source_3'
-    //                       UNION ALL
-    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Lò Reflow' AS Source, 'Lò Reflow' AS Device FROM ManufactureSMT WHERE Source = 'source_2'
-    //                       UNION ALL
-    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Gắp linh kiện Juki' AS Source, 'Máy gắp linh kiện Juki' AS Device FROM ManufactureSMT WHERE Source = 'source_1'
-    //                       UNION ALL
-    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Gắp linh kiện Yamaha' AS Source, 'Máy gắp linh kiện Yamaha' AS Device FROM ManufactureSMT WHERE Source = 'source_4'
-    //                       UNION ALL
-    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'SMT - Gắp linh kiện Topaz' AS Source, 'Máy gắp linh kiện Topaz' AS Device FROM ManufactureSMT WHERE Source = 'source_5'
-    //                       UNION ALL
-    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'AOI' AS Source, 'Súng barcode AOI' AS Device FROM ManufactureAOI
-    //                       UNION ALL
-    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'Tẩm phủ' AS Source, 'Súng barcode Tẩm phủ' AS Device FROM ManufactureConformalCoating
-    //                       UNION ALL
-    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'Test1' AS Source, 'Súng barcode Test1' AS Device FROM ManufactureTest1
-    //                       UNION ALL
-    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'Test2' AS Source, 'Súng barcode Test2' AS Device FROM ManufactureTest2
-    //                       UNION ALL
-    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'BoxBuild' AS Source, 'Súng barcode BoxBuild' AS Device FROM ManufactureBoxBuild
-    //                       UNION ALL
-    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'IPQC' AS Source, 'Súng barcode IPQC' AS Device FROM ManufactureIPQC
-    //                       UNION ALL
-    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'IPQCSMT' AS Source, 'Súng barcode IPQCSMT' AS Device FROM ManufactureIPQCSMT
-    //                       UNION ALL
-    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'OQC' AS Source, 'Súng barcode OQC' AS Device FROM ManufactureOQC
-    //                       UNION ALL
-    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'Assembly' AS Source, 'Súng barcode Assembly' AS Device FROM ManufactureAssembly
-    //                       UNION ALL
-    //                       SELECT datetime(Timestamp, 'unixepoch', 'localtime') AS Timestamp, RWID, TimestampRW, 'Nhập kho' AS Source, 'Súng barcode Nhập kho' AS Device FROM ManufactureWarehouse
-    //                   ),
-    //                   Sources(SourceName, SortOrder, DeviceName) AS (
-    //                       VALUES 
-    //                           ('SMT - Printer', 1, 'Máy Printer'),
-    //                           ('SMT - Gắp linh kiện Juki', 2, 'Máy gắp linh kiện Juki'),
-    //                           ('SMT - Gắp linh kiện Yamaha', 3, 'Máy gắp linh kiện Yamaha'),
-    //                           ('SMT - Gắp linh kiện Topaz', 4, 'Máy gắp linh kiện Topaz'),
-    //                           ('SMT - Lò Reflow', 5, 'Cảm biến Reflow'),
-    //                           ('AOI', 6, 'Súng barcode AOI'),
-    //                           ('Tẩm phủ', 7, 'Súng barcode Tẩm phủ'),
-    //                           ('Test1', 8, 'Súng barcode Test1'),
-    //                           ('Test2', 9, 'Súng barcode Test2'),
-    //                           ('BoxBuild', 10, 'Súng barcode BoxBuild'),
-    //                           ('IPQC', 11, 'Súng barcode IPQC'),
-    //                           ('IPQCSMT', 12, 'Súng barcode IPQCSMT'),
-    //                           ('OQC', 13, 'Súng barcode OQC'),
-    //                           ('Assembly', 14, 'Súng barcode Assembly'),
-    //                           ('Nhập kho', 15, 'Súng barcode Nhập kho')
-    //                   ),
-    //                   LatestPerSource AS (
-    //                       SELECT Source, MAX(Timestamp) AS LatestTimestamp
-    //                       FROM AllData
-    //                       GROUP BY Source
-    //                   )
-    //                   SELECT 
-    //                       S.SourceName AS Source,
-    //                       S.DeviceName AS Device,
-    //                       L.LatestTimestamp
-    //                   FROM Sources S
-    //                   LEFT JOIN LatestPerSource L ON S.SourceName = L.Source
-    //                   ORDER BY S.SortOrder;`;
-    //     db.all(query, [id], (err, rows) => {
-    //       if (err) return socket.emit("ActivedError", err);
-    //       socket.emit("ActivedData", rows);
-    //     });
-    //   } catch (error) {
-    //     socket.emit("ActivedError", error);
-    //   }
-    // }),
     socket.on("getFilterBom", async (id) => {
       try {
         const query = `SELECT *
@@ -4352,7 +4281,9 @@ app.delete("/api/Summary/Delete-item/:id", async (req, res) => {
     io.emit("UpdateSummary");
     io.emit("ActivedUpdate");
     io.emit("updateDetailProjectPO");
+    io.emit("UpdateManufactureSummary", { PlanID, Type });
     io.emit("UpdateHistoryFiltered", { PlanID, Type });
+    io.emit("UpdateManufactureRW", { PlanID, Type });
     res.json({ message: "Đã xoá dữ liệu bảo trì định kỳ thành công" });
   });
 });

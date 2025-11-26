@@ -64,7 +64,7 @@
               :hover="true"
               :dense="false"
               :fixed-header="true"
-              height="calc(100vh - 200px)"
+              height="78vh"
             >
               <template
                 v-slot:group-header="{
@@ -87,12 +87,12 @@
                         color="medium-emphasis"
                         density="comfortable"
                         size="small"
-                        variant="outlined"
+                        variant="text"
                       ></v-btn>
 
-                      <span class="ms-4">{{ item.value }} ({{
-                        item.items.length
-                      }})</span>
+                      <span class="ms-4 font-weight-bold text-primary"
+                        >{{ item.value }} ({{ item.items.length }})</span
+                      >
                     </div>
                   </td>
                 </tr>
@@ -198,7 +198,23 @@
           /> -->
 
           <!-- Thêm input cho quy trình khác trong dialog chỉnh sửa -->
-          <div class="mt-3">
+          <div>
+            <!-- Hiển thị danh sách quy trình tùy chỉnh đã thêm -->
+            <div v-if="customProcessListEdit.length > 0">
+              <div class="text-caption text-grey mb-1">Quy trình đã thêm:</div>
+              <div class="d-flex flex-wrap ga-2 mb-5">
+                <v-chip
+                  v-for="(process, index) in customProcessListEdit"
+                  :key="process"
+                  closable
+                  color="secondary"
+                  size="small"
+                  @click:close="removeCustomProcessEdit(index)"
+                >
+                  {{ process }}
+                </v-chip>
+              </div>
+            </div>
             <InputField
               label="Thêm quy trình khác"
               v-model="customProcessEdit"
@@ -216,24 +232,7 @@
                   :disabled="!customProcessEdit || !customProcessEdit.trim()"
                 ></v-btn>
               </template>
-            </InputField>
-
-            <!-- Hiển thị danh sách quy trình tùy chỉnh đã thêm -->
-            <div v-if="customProcessListEdit.length > 0" class="mt-2">
-              <div class="text-caption text-grey mb-1">Quy trình đã thêm:</div>
-              <div class="d-flex flex-wrap ga-2">
-                <v-chip
-                  v-for="(process, index) in customProcessListEdit"
-                  :key="index"
-                  closable
-                  color="secondary"
-                  size="small"
-                  @click:close="removeCustomProcessEdit(index)"
-                >
-                  {{ process }}
-                </v-chip>
-              </div>
-            </div>
+            </InputField>            
           </div>
 
           <InputField
@@ -307,7 +306,23 @@
           /> -->
 
           <!-- Thêm input cho quy trình khác -->
-          <div class="mt-3">
+          <div>
+            <!-- Hiển thị danh sách quy trình tùy chỉnh đã thêm -->
+            <div v-if="customProcessList.length > 0">
+              <div class="text-caption text-grey mb-1">Quy trình đã thêm:</div>
+              <div class="d-flex flex-wrap ga-2 mb-5">
+                <v-chip
+                  v-for="(process, index) in customProcessList"
+                  :key="index"
+                  closable
+                  color="secondary"
+                  size="small"
+                  @click:close="removeCustomProcess(index)"
+                >
+                  {{ process }}
+                </v-chip>
+              </div>
+            </div>
             <InputField
               label="Thêm quy trình khác"
               v-model="customProcess"
@@ -326,23 +341,6 @@
                 ></v-btn>
               </template>
             </InputField>
-
-            <!-- Hiển thị danh sách quy trình tùy chỉnh đã thêm -->
-            <div v-if="customProcessList.length > 0" class="mt-2">
-              <div class="text-caption text-grey mb-1">Quy trình đã thêm:</div>
-              <div class="d-flex flex-wrap ga-2">
-                <v-chip
-                  v-for="(process, index) in customProcessList"
-                  :key="index"
-                  closable
-                  color="secondary"
-                  size="small"
-                  @click:close="removeCustomProcess(index)"
-                >
-                  {{ process }}
-                </v-chip>
-              </div>
-            </div>
           </div>
 
           <InputField
@@ -499,7 +497,6 @@ const MessageErrorDialog = ref("");
 // Định nghĩa cấu trúc bảng
 const groupBy = [{ key: "Name" }];
 const Headers = [
-  { title: "Số PO", key: "Name" },
   { title: "Đơn hàng", key: "Name_Order" },
   { title: "Trạng thái", key: "Status_Output", width: "150px" },
   { title: "Tổng sản phẩm", key: "Total" },
@@ -655,7 +652,7 @@ function GetItem(value) {
   );
 
   Level_Edit.value = standardSelected;
-  customProcessListEdit.value = customProcesses;
+  customProcessListEdit.value = levelArray;
   Date_Edit.value = found.Date_unixepoch;
   Note_Edit.value = found.Note;
   DelaySMT_Edit.value = found.DelaySMT;
@@ -743,15 +740,20 @@ const SaveAdd = async () => {
     ...(Array.isArray(customProcessList.value) ? customProcessList.value : []),
   ];
 
+  // ➕ Nếu chưa có "Thành phẩm" thì tự thêm
+  if (!mergedLevels.includes("Thành phẩm")) {
+    mergedLevels.push("Thành phẩm");
+  }
+
   // ✅ Loại bỏ trùng lặp
   const uniqueLevels = [...new Set(mergedLevels)];
 
   // ✅ Sắp xếp theo ưu tiên
   const sortedLevels = uniqueLevels.sort((a, b) => {
-    const pa = processPriority[a] ?? 50; // mặc định priority trung bình
+    const pa = processPriority[a] ?? 50;
     const pb = processPriority[b] ?? 50;
+
     if (pa === pb) {
-      // Nếu cùng priority → giữ nguyên thứ tự gốc
       return mergedLevels.indexOf(a) - mergedLevels.indexOf(b);
     }
     return pa - pb;
@@ -766,7 +768,7 @@ const SaveAdd = async () => {
     Creater: UserInfo.value,
     DelaySMT: 10000,
     Quantity: 1,
-    Level: sortedLevels, // ✅ ĐÃ SẮP XẾP
+    Level: sortedLevels,
     ProjectID: 1,
   };
 
@@ -781,6 +783,7 @@ const SaveAdd = async () => {
     DialogLoading.value = false;
   }
 };
+
 
 // Hàm xóa item
 const RemoveItem = async () => {

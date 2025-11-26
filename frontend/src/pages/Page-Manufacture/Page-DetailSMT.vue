@@ -2,7 +2,7 @@
   <div>
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <!-- Tiêu đề -->
-      <v-card-title class="text-h4 font-weight-light d-flex align-center" >
+      <v-card-title class="text-h4 font-weight-light d-flex align-center">
         <ButtonBack
           v-if="LevelUser === 'Nhân viên'"
           :to="`/Danh-sach-cong-viec`"
@@ -14,7 +14,12 @@
 
       <!-- Thanh điều khiển -->
       <v-card-title class="d-flex align-center pe-2">
-        <v-icon  icon="mdi mdi-tools" color="primary" size="large" v-if="lgAndUp"></v-icon>
+        <v-icon
+          icon="mdi mdi-tools"
+          color="primary"
+          size="large"
+          v-if="lgAndUp"
+        ></v-icon>
         <v-breadcrumbs
           :items="[
             `${NameManufacture}`,
@@ -30,35 +35,62 @@
         <v-spacer></v-spacer>
         <div class="me-5" v-if="lgAndUp">
           <!-- Trạng thái kết nối -->
-          <v-chip
-            :prepend-icon="
-              currentStatus === 'Online'
-                ? 'mdi-contactless-payment-circle'
-                : 'mdi-web-off'
-            "
-            :color="currentStatus === 'Online' ? 'green' : 'red'"
-            class="ma-2"
-            dark
-            size="large"
+          <v-btn
+            v-if="lgAndUp"
+            prepend-icon="mdi-cog"
+            variant="tonal"
+            color="primary"
+            class="ms-2 text-caption rounded-xl"
+            @click="DialogSettingSMT = true"
+            >Cài đặt</v-btn
           >
-            {{ currentStatus }}
-          </v-chip>
+          <v-btn
+            v-else
+            icon="mdi-cog"
+            variant="tonal"
+            color="primary"
+            class="ms-2 text-caption rounded-xl"
+            @click="DialogSettingSMT = true"
+          ></v-btn>
+          <v-tooltip text="Trạng thái kết nối" location="top">
+            <template v-slot:activator="{ props }">
+              <v-chip
+                v-bind="props"
+                :prepend-icon="
+                  currentStatus === 'Online'
+                    ? 'mdi-contactless-payment-circle'
+                    : 'mdi-web-off'
+                "
+                :color="currentStatus === 'Online' ? 'green' : 'red'"
+                class="ms-2"
+                dark
+                size="large"
+              >
+                {{ currentStatus }}
+              </v-chip>
+            </template>
+          </v-tooltip>
 
           <!-- Delay -->
-          <v-chip
-            prepend-icon="mdi-clock-outline"
-            color="orange"
-            class="ma-2"
-            variant="tonal"
-            dark
-            size="large"
-          >
-            Độ trễ: {{ Delay }} ms
-          </v-chip>
+          <v-tooltip text="Độ trễ" location="top">
+            <template v-slot:activator="{ props }">
+              <v-chip
+                v-bind="props"
+                prepend-icon="mdi-clock-outline"
+                color="orange"
+                class="ms-2"
+                variant="tonal"
+                dark
+                size="large"
+              >
+                {{ Delay / 1000 }} s
+              </v-chip>
+            </template>
+          </v-tooltip>
 
           <!-- Nút bắt đầu / dừng -->
           <v-btn
-            class="text-caption ms-2 rounded-lg"
+            class="text-caption ms-2 rounded-xl"
             variant="tonal"
             @click="StartLine()"
             :color="isRunning ? 'error' : 'success'"
@@ -70,7 +102,7 @@
           </v-btn>
         </div>
 
-        <div class="me-5  d-flex align-center" v-else>
+        <div class="me-5 d-flex align-center" v-else>
           <!-- Trạng thái kết nối -->
           <v-chip
             :prepend-icon="
@@ -220,14 +252,18 @@
         <v-card class="mt-4 rounded-lg" variant="text">
           <v-card-title class="d-flex align-center">
             <span class="text-h6" v-if="lgAndUp">Bảng chi tiết sản xuất</span>
-            <v-btn
-              icon="mdi-cog"
-              variant="toanl"
-              size="small"
-              class="ms-2"
-              color="primary"
-              @click = "DialogSetting = true"
-            ></v-btn>
+            <v-tooltip text="Cài đặt">
+              <template v-slot:activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  icon="mdi-cog"
+                  variant="toanl"
+                  class="ms-2"
+                  color="primary"
+                  @click="DialogSetting = true"
+                ></v-btn>
+              </template>
+            </v-tooltip>
             <v-spacer v-if="lgAndUp"></v-spacer>
             <InputSearch v-model="search" />
           </v-card-title>
@@ -440,6 +476,39 @@
       </v-card>
     </v-dialog>
 
+    <!-- Dialog Setting SMT -->
+    <v-dialog v-model="DialogSettingSMT" max-width="700px">
+      <v-card class="rounded-lg">
+        <v-card-title class="d-flex align-center pa-4">
+          <v-icon icon="mdi-cog" color="primary" class="me-2"></v-icon>
+          Cài đặt dây chuyền
+        </v-card-title>
+        <v-card-text>
+          <v-row>
+            <v-col>
+              <InputField
+                v-model="DelaySMT_Edit"
+                label="Độ trễ SMT (ms)"
+                type="number"
+              />
+            </v-col>
+            <v-col>
+              <InputField
+                v-model="Quantity_Edit"
+                label="Số lượng board SMT"
+                type="number"
+              />
+            </v-col>
+          </v-row>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <ButtonCancel @cancel="DialogSettingSMT = false" />
+          <ButtonSave @save="SaveEditSettingSMT()" />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Thông báo -->
     <Loading v-model="DialogLoading" />
     <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
@@ -474,6 +543,7 @@ const currentStatus = computed(() =>
 
 const { manufactureSMT } = useManufactureSMT(id);
 const { manufactureFound } = useManufacture();
+
 const { history } = useHistory(back);
 const { status } = useDeviceStatusSocket("esp32-001");
 const { status: statusLine2 } = useDeviceStatusSocket("esp32-002");
@@ -484,6 +554,7 @@ const DialogLoading = ref(false);
 const DialogSuccess = ref(false);
 const DialogFailed = ref(false);
 const DialogRemoveHistory = ref(false);
+const DialogSettingSMT = ref(false);
 const DialogSetting = ref(false);
 const MessageDialog = ref("");
 const MessageErrorDialog = ref("");
@@ -516,6 +587,10 @@ const Category = ref("");
 
 const Quantity_Add = ref(1);
 
+// ===== FORM SETTING SMT =====
+const DelaySMT_Edit = ref(10000);
+const Quantity_Edit = ref(1);
+
 const isConnecting = ref(false);
 const isRunning = computed(() => Action.value === "running");
 
@@ -535,6 +610,8 @@ watch(
       Action.value = selected?.Action;
       Line_SMT.value = selected?.Line_SMT;
       Category.value = selected?.Category;
+      DelaySMT_Edit.value = selected?.DelaySMT;
+      Quantity_Edit.value = selected?.Quantity;
     }
   },
   { immediate: true, deep: true }
@@ -637,9 +714,9 @@ const InputQuantity = async () => {
   const formData = reactive({
     HistoryID: id,
     PlanID: PlanID.value,
-    Quantity: Quantity_Add.value || 1, 
-    Source : Line_SMT.value = 'Line 1'? 'source_2' : 'source_4',
-    Type: 'SMT'
+    Quantity: Quantity_Add.value || 1,
+    Source: (Line_SMT.value = "Line 1" ? "source_2" : "source_4"),
+    Type: "SMT",
   });
 
   try {
@@ -647,20 +724,45 @@ const InputQuantity = async () => {
     DialogLoading.value = false;
     DialogSetting.value = false;
     // Reset các giá trị sau khi thành công
-    Quantity_Add.value = 1
+    Quantity_Add.value = 1;
     DialogSuccess.value = true;
     MessageDialog.value = "Sản phẩm đã được nhập thành công";
   } catch (error) {
     DialogLoading.value = false;
     DialogSetting.value = false;
-    Quantity_Add.value = 1
+    Quantity_Add.value = 1;
     DialogFailed.value = true;
     MessageErrorDialog.value = "Lỗi khi nhập mã sản phẩm";
-    
   } finally {
     DialogLoading.value = false;
   }
-}
+};
+
+// Hàm lưu thông tin chỉnh sửa
+const SaveEditSettingSMT = async () => {
+  DialogLoading.value = true;
+  const formData = reactive({
+    DelaySMT: DelaySMT_Edit.value,
+    Quantity: Quantity_Edit.value,
+    PlanID: PlanID.value,
+    Type: "SMT",
+  });
+  try {
+    const response = await axios.put(
+      `${Url}/PlanManufacture/Edit-Line/${PlanID.value}`,
+      formData
+    );
+    DialogSuccess.value = true;
+    MessageDialog.value = response.data.message;
+    DialogLoading.value = false;
+    DialogSettingSMT.value = false;
+  } catch (error) {
+    DialogFailed.value = true;
+    MessageErrorDialog.value = error;
+    DialogLoading.value = false;
+    DialogSettingSMT.value = false;
+  }
+};
 
 const showError = (msg) => {
   MessageErrorDialog.value = msg;

@@ -530,7 +530,7 @@ const totalInput = ref(0);
 const totalOutput = ref(0);
 const totalErrors = ref(0);
 const totalFixed = ref(0);
-const Quantity_Add = ref(1);
+const Quantity_Add = ref(0);
 
 const PercentOutput = computed(() =>
   Number.parseFloat((totalOutput.value * 100) / totalInput.value).toFixed(1)

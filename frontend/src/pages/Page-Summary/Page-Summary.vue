@@ -8,7 +8,13 @@
     <v-card-title class="d-flex justify-space-between align-center pa-4">
       <span class="text-h4 font-weight-light">Báo cáo hằng ngày</span>
       <v-spacer></v-spacer>
-      <v-toolbar rounded="lg" border floating class="mt-3" v-tooltip="'Chọn ngày xem báo cáo'">
+      <v-toolbar
+        rounded="lg"
+        border
+        floating
+        class="mt-3"
+        v-tooltip="'Chọn ngày xem báo cáo'"
+      >
         <div class="d-flex align-center px-4">
           <div class="text-subtitle-1 mr-4">
             {{ formattedWeekDate }}
@@ -237,7 +243,11 @@
             </v-toolbar>
             <v-card-text class="pa-4">
               <div class="detail-table-container">
-                <v-table density="compact" height="280px" class="elevation-1 rounded">
+                <v-table
+                  density="compact"
+                  height="280px"
+                  class="elevation-1 rounded"
+                >
                   <thead>
                     <tr>
                       <th class="text-left text-caption">Loại</th>
@@ -322,6 +332,7 @@
 
       <!-- Bảng dữ liệu -->
       <v-data-table-virtual
+        density="compact"
         :headers="Headers"
         :items="summary"
         :search="search"
@@ -359,27 +370,35 @@
           v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }"
         >
           <tr>
-            <td :colspan="columns.length">
-              <v-btn
-                variant="text"
-                :icon="isGroupOpen ? 'mdi-chevron-down' : 'mdi-chevron-up'"
-                @click="toggleGroup(item)"
-                class="me-2"
-                v-tooltip:top="'Xem chi tiết'"
-              ></v-btn>
-              <span class="font-weight-bold text-primary">{{
-                item.value
-              }}</span>
+            <td
+              :colspan="columns.length"
+              class="cursor-pointer"
+              v-ripple
+              @click="toggleGroup(item)"
+            >
+              <div class="d-flex align-center">
+                <v-btn
+                  :icon="isGroupOpen(item) ? '$expand' : '$next'"
+                  color="medium-emphasis"
+                  density="comfortable"
+                  size="small"
+                  variant="text"
+                ></v-btn>
+
+                <span class="ms-4 font-weight-bold text-primary"
+                  >{{ item.value }} ({{ item.items.length }})</span
+                >
+              </div>
             </td>
           </tr>
         </template>
         <template #[`item.Quantity_Plan`]="{ item }">
-          <v-chip color="primary" variant="tonal">{{
+          <v-chip color="primary" variant="tonal" size="small">{{
             item.Quantity_Plan
           }}</v-chip>
         </template>
         <template #[`item.Quantity_Real`]="{ item }">
-          <v-chip color="success" variant="tonal">{{
+          <v-chip color="success" variant="tonal" size="small">{{
             item.Quantity_Real
           }}</v-chip>
         </template>
@@ -532,7 +551,13 @@
     v-else
   >
     <v-card-title class="d-flex justify-space-between align-center pa-4">
-      <v-toolbar rounded="lg" border floating class="mt-3" v-tooltip="'Chọn ngày xem báo cáo'">
+      <v-toolbar
+        rounded="lg"
+        border
+        floating
+        class="mt-3"
+        v-tooltip="'Chọn ngày xem báo cáo'"
+      >
         <div class="d-flex align-center px-4">
           <div class="text-subtitle-1 mr-4">
             {{ formattedWeekDate }}
@@ -634,7 +659,11 @@
             </v-toolbar>
             <v-card-text class="pa-4">
               <div class="detail-table-container">
-                <v-table density="compact" height="280px"  class="elevation-1 rounded">
+                <v-table
+                  density="compact"
+                  height="280px"
+                  class="elevation-1 rounded"
+                >
                   <thead>
                     <tr>
                       <th class="text-left text-caption">Loại</th>
@@ -720,6 +749,7 @@
       <!-- Bảng dữ liệu -->
       <v-data-table-virtual
         :headers="Headers"
+        density="compact"
         :items="summary"
         :search="search"
         :group-by="[{ key: 'Type' }]"
@@ -756,16 +786,25 @@
           v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }"
         >
           <tr>
-            <td :colspan="columns.length">
-              <v-btn
-                variant="text"
-                :icon="isGroupOpen ? 'mdi-chevron-down' : 'mdi-chevron-up'"
-                @click="toggleGroup(item)"
-                class="me-2"
-              ></v-btn>
-              <span class="font-weight-bold text-primary">{{
-                item.value
-              }}</span>
+            <td
+              :colspan="columns.length"
+              class="cursor-pointer"
+              v-ripple
+              @click="toggleGroup(item)"
+            >
+              <div class="d-flex align-center">
+                <v-btn
+                  :icon="isGroupOpen(item) ? '$expand' : '$next'"
+                  color="medium-emphasis"
+                  density="comfortable"
+                  size="small"
+                  variant="text"
+                ></v-btn>
+
+                <span class="ms-4 font-weight-bold text-primary"
+                  >{{ item.value }} ({{ item.items.length }})</span
+                >
+              </div>
             </td>
           </tr>
         </template>
@@ -849,9 +888,7 @@
           }}</v-chip>
         </template>
         <template #[`item.Quantity_RW`]="{ item }">
-          <v-chip color="info" variant="tonal">{{
-            item.Quantity_RW
-          }}</v-chip>
+          <v-chip color="info" variant="tonal">{{ item.Quantity_RW }}</v-chip>
         </template>
         <template #[`item.Percent_Error`]="{ item }">
           <v-progress-linear
