@@ -6,7 +6,7 @@
         Theo dõi sản xuất
       </v-card-title>
       <v-card-title class="d-flex align-center pe-2">
-        <v-icon icon="mdi mdi-cart"></v-icon> &nbsp;
+        <v-icon icon="mdi mdi-cart" color="primary"></v-icon> &nbsp;
         <v-breadcrumbs
           :items="[`${NameManufacture}`, `${NameOrder}`]"
           :class="mdAndDown ? 'text-caption text-wrap' : ''"

@@ -9,7 +9,7 @@
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
         <v-breadcrumbs
-          :items="[`${NameManufacture}`, `${Name_Order}`, `${Name_Category}`]"
+          :items="[`${NameManufacture}`, `${Name_Order}`, `RW`, `${Name_Category}`]"
         >
           <template v-slot:divider>
             <v-icon icon="mdi-chevron-right"></v-icon>

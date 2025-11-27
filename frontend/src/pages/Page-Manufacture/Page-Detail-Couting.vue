@@ -8,13 +8,13 @@
           @click="removeGoBackListWork"
         />
         <ButtonBack v-else :to="`/San-xuat/Chi-tiet/${back}`" />
-        <span class="ml-2" v-if="lgAndUp">Theo dõi sản xuất {{ Name_Category }}</span>
+        <span class="ml-2" v-if="lgAndUp">Theo dõi sản xuất</span>
       </v-card-title>
 
       <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
         <v-icon icon="mdi mdi-tools" color="primary" size="large"></v-icon>
         <v-breadcrumbs
-          :items="[`${NameManufacture}`, `${Name_Order}`, `${Name_Category}`]"
+          :items="[`${NameManufacture}`, `${Name_Order}`, `${Type_Manufacture}`, `${Name_Category}`]"
         >
           <template v-slot:divider>
             <v-icon icon="mdi-chevron-right"></v-icon>

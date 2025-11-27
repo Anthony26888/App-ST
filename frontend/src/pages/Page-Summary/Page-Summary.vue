@@ -357,7 +357,7 @@
             <v-toolbar-title>
               <v-icon
                 color="primary"
-                icon="mdi-book-multiple"
+                icon="mdi-table-of-contents"
                 size="x-small"
                 start
               ></v-icon>
@@ -443,7 +443,7 @@
                 <v-toolbar-title>
                   <v-icon
                     color="primary"
-                    icon="mdi-book-multiple"
+                    icon="mdi-message-alert"
                     size="x-small"
                     start
                   ></v-icon>
@@ -542,7 +542,7 @@
     </v-card-text>
   </v-card>
 
-  <!-- Mobile -->
+  <!-------------------------------- Mobile -------------------------------->
 
   <v-card
     variant="text"
@@ -773,7 +773,7 @@
             <v-toolbar-title>
               <v-icon
                 color="primary"
-                icon="mdi-book-multiple"
+                icon="mdi-table-of-contents"
                 size="x-small"
                 start
               ></v-icon>
@@ -851,7 +851,7 @@
             <v-toolbar-title>
               <v-icon
                 color="primary"
-                icon="mdi-book-multiple"
+                icon="mdi-message-alert"
                 size="x-small"
                 start
               ></v-icon>

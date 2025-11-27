@@ -23,7 +23,8 @@
         <v-breadcrumbs
           :items="[
             `${NameManufacture}`,
-            `${Name_Order} (${Line_SMT})`,
+            `${Name_Order}`,
+            `SMT (${Line_SMT})`,
             `${Category}`,
           ]"
           v-if="lgAndUp"
