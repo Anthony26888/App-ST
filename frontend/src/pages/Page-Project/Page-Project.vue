@@ -47,7 +47,7 @@
               </v-card>
             </v-col>
             <v-col cols="12" sm="6" md="3">
-              <v-card class="rounded-lg" color="warning" variant="tonal">
+              <v-card class="rounded-xl" color="warning" variant="tonal">
                 <v-card-text>
                   <div class="text-subtitle-1">Tổng PO đang sản xuất</div>
                   <div class="text-h4 font-weight-bold">
@@ -189,7 +189,6 @@
                   </v-list-item>
                 </v-list>
               </v-menu>
-              
             </v-col>
             <v-col cols="11">
               <InputSearch v-model="search" />
@@ -198,8 +197,9 @@
         </v-card-title>
 
         <v-card-text class="overflow-auto">
-          <v-data-table
+          <v-data-table-virtual
             v-if="lgAndUp"
+            density="compact"
             :headers="Headers"
             :items="project"
             :search="search"
@@ -222,16 +222,8 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="calc(100vh - 330px)"
+            height="calc(100vh - 260px)"
           >
-            <template v-slot:bottom>
-              <div class="text-center pt-2">
-                <v-pagination
-                  v-model="page"
-                  :length="Math.ceil(project.length / itemsPerPage)"
-                ></v-pagination>
-              </div>
-            </template>
             <template v-slot:item.Status="{ value }">
               <div>
                 <v-chip
@@ -244,6 +236,7 @@
                   "
                   variant="tonal"
                   class="text-caption"
+                  size="small"
                 >
                   {{ value }}
                 </v-chip>
@@ -264,11 +257,23 @@
                 ></Button-Download-Icon>
               </div>
             </template>
-          </v-data-table>
+            <template #[`item.Percent_Completed`]="{ item }">
+              <v-progress-linear
+                v-model="item.Percent_Completed"
+                height="25"
+                color="success"
+                rounded
+                class="rounded-lg"
+              >
+                <strong>{{ item.Percent_Completed }}%</strong>
+              </v-progress-linear>
+            </template>
+          </v-data-table-virtual>
 
           <v-data-table-virtual
             v-else
             :headers="Headers"
+            density="compact"
             :items="project"
             :search="search"
             :items-per-page="itemsPerPage"
@@ -308,6 +313,17 @@
                   {{ value }}
                 </v-chip>
               </div>
+            </template>
+            <template #[`item.Percent_Completed`]="{ item }">
+              <v-progress-linear
+                v-model="item.Percent_Completed"
+                height="25"
+                color="success"
+                rounded
+                class="rounded-lg"
+              >
+                <strong>{{ item.Percent_Completed }}%</strong>
+              </v-progress-linear>
             </template>
             <template v-slot:item.id="{ value }">
               <div class="d-flex align-center">
@@ -400,7 +416,7 @@
 
       <v-card-title>
         <v-row class="ms-2">
-          <v-col cols="2" md="2">
+          <!-- <v-col cols="2" md="2">
             <v-text-field
               variant="outlined"
               v-model="startDate"
@@ -447,8 +463,8 @@
               "
               >Xoá lọc</v-btn
             >
-          </v-col>
-          <v-col cols="3">
+          </v-col> -->
+          <v-col cols="12">
             <InputSearch
               variant="solo-filled"
               density="comfortable"
@@ -502,17 +518,7 @@
           </template>
           <template v-slot:item.id="{ item }">
             <div class="d-flex align-center">
-              <ButtonEye
-                @detail="
-                  PushItemFind(
-                    item.id,
-                    item.POID,
-                    item.ProductID,
-                    item.CustomerName,
-                    item.PONumber
-                  )
-                "
-              />
+              <ButtonEye @detail="PushItemFind(item)" />
             </div>
           </template>
           <template v-slot:item.Date_Created_PO="{ item }">
@@ -596,22 +602,17 @@ const GetID = ref(""); // Current item ID being processed
 
 // ===== Table States =====
 const Headers = ref([
-  { key: "Customer", title: "Khách hàng", width: "300" },
+  { key: "Customer", title: "Khách hàng" },
   { key: "Status", title: "Trạng thái" },
-  { key: "Quantity_PO", title: "Số lượng PO" },
+  { key: "Quantity_PO", title: "Tổng PO" },
+  { key: "Quantity_Orders", title: "Tổng đơn hàng",  },
+  { key: "Percent_Completed", title: "Tỉ lệ hoàn thành", width: "200" },
   { key: "id", sortable: false, title: "Thao tác" },
 ]);
 
 const HeadersFind = ref([
   { key: "CustomerName", title: "Khách hàng", width: "100" },
-  { key: "PONumber", title: "Tên dự án", width: "150" },
-  { key: "Date_Created_PO", title: "Ngày tạo PO", width: "150" },
-  {
-    key: "Date_Delivery_PO",
-    title: "Ngày giao PO",
-    sortable: true,
-    width: "150",
-  },
+  { key: "POID", title: "Tên dự án", width: "150" },
   { key: "ProductDetail", title: "Tên đơn hàng", sortable: false },
   { key: "Status", title: "Trạng thái đơn hàng", sortable: true },
   { key: "id", sortable: false, title: "Thao tác" },
@@ -683,18 +684,18 @@ const formattedSelectedDate = computed(() => {
  */
 function PushItem(value) {
   const found = project.value.find((v) => v.id === value);
-  router.push(`/Du-an/Khach-hang/${value}`);
+  router.push(`/Du-an/Don-hang/${value}`);
   localStorage.setItem("Customers", found.Customer);
   localStorage.setItem("CustomersID", value);
 }
 
-function PushItemFind(value1, value2, value3, value4, value5) {
-  localStorage.setItem("Customers", value4);
-  localStorage.setItem("CustomersID", value1);
-  localStorage.setItem("POID", value2);
-  localStorage.setItem("ProductID", value3);
-  localStorage.setItem("PO", value5);
-  router.push(`/Du-an/Don-hang/${value2}`);
+function PushItemFind(item) {
+  localStorage.setItem("Customers", item.CustomerName);
+  localStorage.setItem("CustomersID", item.id);
+  localStorage.setItem("POID", item.POID);
+  localStorage.setItem("ProductID", item.ProductDetail);
+  localStorage.setItem("PO", item.PO);
+  router.push(`/Du-an/Don-hang/${item.CustomerID}`);
 }
 
 /**

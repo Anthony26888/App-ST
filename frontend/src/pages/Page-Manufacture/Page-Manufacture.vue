@@ -122,26 +122,23 @@
                   v-if="item.Status_Output == 'Hoàn thành'"
                   color="success"
                   variant="tonal"
+                  size="small"
                 >
                   {{ item.Status_Output }}
                 </v-chip>
-                <v-chip v-else color="warning" variant="tonal">
+                <v-chip v-else color="warning" variant="tonal" size="small">
                   {{ item.Status_Output }}
                 </v-chip>
               </template>
               <template #[`item.Total`]="{ item }">
-                <v-chip color="primary" variant="tonal">{{
+                <v-chip color="primary" variant="tonal" size="small">{{
                   item.Total
                 }}</v-chip>
               </template>
               <template #[`item.Total_Output`]="{ item }">
-                <v-chip color="success" variant="tonal">{{
+                <v-chip color="success" variant="tonal" size="small">{{
                   item.Total_Output
                 }}</v-chip>
-              </template>
-              <!-- Cột độ trễ SMT -->
-              <template #[`item.DelaySMT`]="{ item }">
-                <p>{{ item.DelaySMT }} ms</p>
               </template>
             </v-data-table>
           </v-card-text>
@@ -369,7 +366,11 @@
       @update:model-value="DialogRemove = $event"
       width="500"
     >
-      <v-card max-width="500" prepend-icon="mdi-delete" title="Xoá dữ liệu">
+      <v-card max-width="500" class="rounded-xl">
+        <v-card-title class="d-flex align-center pa-4">
+          <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
+          Xoá dữ liệu sản xuất
+        </v-card-title>
         <v-card-text>
           Bạn có chắc chắn muốn xoá kế hoạch sản phẩm này ?
         </v-card-text>

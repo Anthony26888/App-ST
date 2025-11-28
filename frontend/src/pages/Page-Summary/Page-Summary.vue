@@ -164,10 +164,10 @@
               <div class="text-caption text-medium-emphasis">
                 Đạt mục tiêu:
                 {{
-                  ((summary?.filter((item) => Number(item.Percent) >= 100)
+                  (((summary?.filter((item) => Number(item.Percent) >= 100)
                     .length || 0) /
                     Total_Category_Today) *
-                  100
+                  100).toFixed(1)
                 }}
                 %
               </div>

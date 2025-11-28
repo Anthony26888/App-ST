@@ -431,31 +431,29 @@ io.on("connection", (socket) => {
     socket.on("getProject", async () => {
       try {
         const query = `
-              SELECT DISTINCT
-                a.id,
-                a.CustomerName AS Customer, 
-                CASE
-                  WHEN IFNULL(b.total_qty, 0) = IFNULL(b.total_delivered, 0) AND IFNULL(b.total_qty, 0) > 0 THEN 'Hoàn thành'
-                  WHEN IFNULL(c.po_count, 0) = 0 THEN 'Chưa có PO'
-                  ELSE 'Đang sản xuất'
-                END AS Status,
-                IFNULL(c.po_count, 0) AS Quantity_PO,
-                a.Years
-              FROM Customers a
-              LEFT JOIN (
-                SELECT CustomerID, 
-                      SUM(QuantityProduct) AS total_qty, 
-                      SUM(QuantityDelivered) AS total_delivered
-                FROM ProductDetails
-                GROUP BY CustomerID
-              ) b ON a.id = b.CustomerID
-              LEFT JOIN (
-                SELECT CustomerID, COUNT(PONumber) AS po_count
-                FROM PurchaseOrders
-                GROUP BY CustomerID
-              ) c ON a.id = c.CustomerID
-              ORDER BY Status DESC, CustomerName ASC
-        `;
+              SELECT 
+                  c.id,
+                  c.CustomerName AS Customer,
+                  c.id as CustomerID,
+                  COUNT(DISTINCT pd.id) as Quantity_Orders,
+                  COUNT(DISTINCT pd.POID) as Quantity_PO,
+                  SUM(CASE WHEN pd.QuantityAmount = 0 THEN 1 ELSE 0 END) as Quantity_Completed,
+                  ROUND(
+                      SUM(CASE WHEN pd.QuantityAmount = 0 THEN 1 ELSE 0 END) * 100.0 / 
+                      NULLIF(COUNT(DISTINCT pd.id), 0), 
+                      2
+                  ) as Percent_Completed,
+                  CASE 
+                      WHEN COUNT(DISTINCT pd.POID) = 0 THEN 'Chưa có PO'
+                      WHEN SUM(CASE WHEN pd.QuantityAmount > 0 THEN 1 ELSE 0 END) > 0 THEN 'Đang sản xuất'
+                      WHEN SUM(CASE WHEN pd.QuantityAmount = 0 THEN 1 ELSE 0 END) > 0 
+                          AND SUM(CASE WHEN pd.QuantityAmount > 0 THEN 1 ELSE 0 END) = 0 THEN 'Hoàn thành'
+                      ELSE 'Chưa có PO'
+                  END AS Status
+              FROM Customers c
+              LEFT JOIN ProductDetails pd ON c.id = pd.CustomerID
+              GROUP BY c.id, c.CustomerName
+              ORDER BY c.CustomerName ASC;`;
         db.all(query, [], (err, rows) => {
           if (err) return socket.emit("ProjectError", err);
           socket.emit("ProjectData", rows);
@@ -473,18 +471,16 @@ io.on("connection", (socket) => {
             c.id AS ProductID,
             c.ProductDetail,
             a.CustomerName,
-            b.PONumber,
-            b.DateCreated AS Date_Created_PO,
-            b.DateDelivery AS Date_Delivery_PO,
+			      c.POID,
             c.ProductDetail,
+            c.CustomerID,
             CASE
               WHEN c.QuantityAmount  =  0  THEN 'Hoàn thành'
               WHEN c.QuantityAmount > 0 THEN 'Đang sản xuất'
               ELSE 'Chưa có đơn hàng'
             END AS Status
           FROM Customers a
-          LEFT JOIN PurchaseOrders b ON a.id = b.CustomerID
-          LEFT JOIN ProductDetails c ON b.id = c.POID`;
+          LEFT JOIN ProductDetails c ON a.id = c.CustomerID`;
         db.all(query, [], (err, rows) => {
           if (err) return socket.emit("ProjectError", err);
           socket.emit("ProjectFindData", rows);
@@ -525,27 +521,32 @@ io.on("connection", (socket) => {
     socket.on("getDetailProjectPO", async (id) => {
       try {
         const query = `SELECT 
-                        a.id,
-                        a.POID,
-                        a.ProductDetail AS Product_Detail,
-                        a.QuantityProduct AS Quantity_Product, 
-                        IFNULL(a.QuantityDelivered, 0) AS Quantity_Delivered, 
-                        IFNULL(a.QuantityProduct - a.QuantityDelivered, 0) AS Quantity_Amount,
-                        COALESCE(COUNT(DISTINCT CASE WHEN LOWER(TRIM(c.Type)) = 'thành phẩm' THEN c.id END), 0) AS Quantity_Manufacture,
+                          a.id,
+                          a.POID,
+                          a.ProductDetail AS Product_Detail,
+                          a.QuantityProduct AS Quantity_Product, 
+                          IFNULL(a.QuantityDelivered, 0) AS Quantity_Delivered, 
+                          IFNULL(a.QuantityProduct - a.QuantityDelivered, 0) AS Quantity_Amount,
+                          ROUND(
+                              IFNULL(a.QuantityDelivered, 0) * 100.0 / 
+                              NULLIF(a.QuantityProduct, 0), 
+                              2
+                          ) AS Percent_Delivered,
+                          COALESCE(COUNT(DISTINCT CASE WHEN LOWER(TRIM(c.Type)) = 'thành phẩm' THEN c.id END), 0) AS Quantity_Manufacture,
                           a.Note AS Note,
-                        CASE
-                            WHEN a.QuantityProduct = a.QuantityDelivered THEN 'Hoàn thành'
-                            ELSE 'Đang sản xuất'
-                        END AS Status
+                          CASE
+                              WHEN a.QuantityProduct = a.QuantityDelivered THEN 'Hoàn thành'
+                              ELSE 'Đang sản xuất'
+                          END AS Status
                       FROM ProductDetails a
                       LEFT JOIN PlanManufacture b ON b.ProjectID = a.id
                       LEFT JOIN ManufactureCounting c ON c.PlanID = b.id
-                      WHERE a.POID = ?
+                      WHERE a.CustomerID = ?
                       GROUP BY 
-                        a.id, a.POID, a.ProductDetail, 
-                        a.QuantityProduct, a.QuantityDelivered, 
-                        a.Note
-                      ORDER  BY Status DESC, Product_Detail ASC;`;
+                          a.id, a.POID, a.ProductDetail, 
+                          a.QuantityProduct, a.QuantityDelivered, 
+                          a.Note
+                      ORDER BY Status DESC, Product_Detail ASC;`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("DetailProjectPOError", err);
           socket.emit("DetailProjectPOData", rows);
@@ -879,31 +880,40 @@ io.on("connection", (socket) => {
     socket.on("getManufactureSummary", async (id) => {
       try {
         const query = `SELECT 
-                          a.Type,
-
-                          CASE 
-                              WHEN a.Type = 'SMT' THEN 
-                                  COALESCE(d.Quantity, 0) *
-                                  COALESCE(SUM(CASE 
-                                      WHEN c.Source IN ('source_2', 'source_4') THEN 1 
-                                      ELSE 0 END), 0)
-                              ELSE 
-                                  COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 END), 0)
-                          END AS Quantity_Pass,
-
-                          COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 END), 0) AS Quantity_Fail,
-                          COALESCE(SUM(CASE WHEN b.TimestampRW IS NOT NULL AND b.TimestampRW <> '' THEN 1 END), 0) AS Quantity_RW,
-
-                          COUNT(DISTINCT a.id) AS Total_Summary_ID
-
-                      FROM Summary a
-                      LEFT JOIN ManufactureCounting b ON b.HistoryID = a.id
-                      LEFT JOIN ManufactureSMT c ON c.HistoryID = a.id
-                      LEFT JOIN PlanManufacture d ON d.id = a.PlanID  
-
-                      WHERE a.PlanID = ?
-                      GROUP BY a.Type
-                      ORDER BY a.Type;`;
+                            a.Type,
+                            CASE 
+                                WHEN a.Type = 'SMT' AND a.Surface = '1 Mặt' THEN 
+                                    COALESCE(d.Quantity, 0) *
+                                    COALESCE(SUM(CASE 
+                                        WHEN c.Source IN ('source_2', 'source_4') THEN 1 
+                                        ELSE 0 END), 0)
+                                WHEN a.Type = 'SMT' THEN 
+                                    COALESCE(d.Quantity, 0) *
+                                    CASE 
+                                        WHEN COALESCE(SUM(CASE WHEN a.Surface = 'TOP' AND c.Source IN ('source_2', 'source_4') THEN 1 ELSE 0 END), 0) > 
+                                            COALESCE(SUM(CASE WHEN a.Surface = 'BOTTOM' AND c.Source IN ('source_2', 'source_4') THEN 1 ELSE 0 END), 0)
+                                        THEN COALESCE(SUM(CASE WHEN a.Surface = 'BOTTOM' AND c.Source IN ('source_2', 'source_4') THEN 1 ELSE 0 END), 0)
+                                        ELSE COALESCE(SUM(CASE WHEN a.Surface = 'TOP' AND c.Source IN ('source_2', 'source_4') THEN 1 ELSE 0 END), 0)
+                                    END
+                                ELSE 
+                                    COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 END), 0)
+                            END AS Quantity_Pass,
+                            COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 END), 0) AS Quantity_Fail,
+                            COALESCE(SUM(CASE WHEN b.TimestampRW IS NOT NULL AND b.TimestampRW <> '' THEN 1 END), 0) AS Quantity_RW,
+                            COUNT(DISTINCT a.id) AS Total_Summary_ID,
+                            COALESCE(SUM(CASE 
+                                WHEN a.Type = 'SMT' AND a.Surface = 'TOP' AND c.Source IN ('source_2', 'source_4') THEN 1 
+                                ELSE 0 END), 0) AS SMT_Top_Quantity,
+                          COALESCE(SUM(CASE 
+                                WHEN a.Type = 'SMT' AND a.Surface = 'BOTTOM' AND c.Source IN ('source_2', 'source_4') THEN 1 
+                                ELSE 0 END), 0) AS SMT_Bottom_Quantity
+                        FROM Summary a
+                        LEFT JOIN ManufactureCounting b ON b.HistoryID = a.id
+                        LEFT JOIN ManufactureSMT c ON c.HistoryID = a.id
+                        LEFT JOIN PlanManufacture d ON d.id = a.PlanID  
+                        WHERE a.PlanID = ?
+                        GROUP BY a.Type
+                        ORDER BY a.Type;`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("ManufactureSummaryError", err);
           socket.emit("ManufactureSummaryData", rows);
@@ -2871,12 +2881,13 @@ app.put("/api/Project/Customer/Edit-Item/:id", async (req, res) => {
     Quantity_Delivered,
     Quantity_Amount,
     Note,
+    POID,
   } = req.body;
   const { id } = req.params;
   // Insert data into SQLite database
   const query = `
     UPDATE ProductDetails 
-    SET ProductDetail = ?, QuantityProduct = ?, QuantityDelivered = ?, QuantityAmount = ?, Note = ? 
+    SET ProductDetail = ?, QuantityProduct = ?, QuantityDelivered = ?, QuantityAmount = ?, Note = ?, POID = ? 
     WHERE id = ?`;
   db.run(
     query,
@@ -2886,6 +2897,7 @@ app.put("/api/Project/Customer/Edit-Item/:id", async (req, res) => {
       Quantity_Delivered,
       Quantity_Amount,
       Note,
+      POID,
       id,
     ],
     function (err) {
@@ -2951,7 +2963,7 @@ app.delete("/api/Project/Customer/Delete-Item/:id", async (req, res) => {
         .status(500)
         .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
     }
-    io.emit("updateDetailProjectPO");
+    io.emit("updateDetailProjectPO", id );
     // Broadcast the new message to all clients
     res.json({ message: "Đã cập nhật dữ liệu thành công" });
   });
@@ -4151,7 +4163,8 @@ app.post("/api/Summary/Add-item", (req, res) => {
     CycleTime_Plan,
     Time_Plan,
     Note,
-    Timestamp
+    Timestamp,
+    Surface
   } = req.body;
   let Timestamps = null;
   if (Timestamp) {
@@ -4165,8 +4178,8 @@ app.post("/api/Summary/Add-item", (req, res) => {
     Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
   }
   db.run(
-    `INSERT INTO Summary (Type, PlanID, PONumber, Category, Line_SMT, Quantity_Plan, CycleTime_Plan, Time_Plan, Note, Created_At)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO Summary (Type, PlanID, PONumber, Category, Line_SMT, Quantity_Plan, CycleTime_Plan, Time_Plan, Note, Created_At, Surface)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       Type,
       PlanID,
@@ -4178,6 +4191,7 @@ app.post("/api/Summary/Add-item", (req, res) => {
       Time_Plan,
       Note,
       Timestamps,
+      Surface
     ],
     (err) => {
       if (err) {

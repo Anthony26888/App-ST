@@ -1,24 +1,72 @@
 <template lang="">
   <v-card variant="text" class="overflow-y-auto" height="100vh">
     <v-card-title class="d-flex" v-if="lgAndUp">
-      <ButtonBack :to="`/Du-an/Khach-hang/${CustomerID}`" />
+      <ButtonBack :to="`/Du-an`" />
       <p class="text-h4 font-weight-light ms-3">Chi tiết đơn hàng</p>
     </v-card-title>
     <v-card-title class="d-flex" v-else>
-      <ButtonBack :to="`/Du-an/Khach-hang/${CustomerID}`" />
+      <ButtonBack :to="`/Du-an`" />
       <v-icon icon="mdi mdi-cart-variant"></v-icon> &nbsp;
-      {{ NamePO }}
+      {{ NameCustomer }}
     </v-card-title>
     <v-card-text>
       <v-card variant="text">
+        <v-card-title>
+          <v-row v-if="lgAndUp">
+            <v-col cols="12" sm="6" md="3">
+              <v-card class="rounded-xl" color="primary" variant="tonal">
+                <v-card-text>
+                  <div class="text-subtitle-1">Tổng số PO</div>
+                  <div class="text-h4 font-weight-bold">
+                    {{ totalUniquePO || 0 }}
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-col cols="12" sm="6" md="3">
+              <v-card class="rounded-xl" color="info" variant="tonal">
+                <v-card-text>
+                  <div class="text-subtitle-1">Tổng số đơn hàng</div>
+                  <div class="text-h4 font-weight-bold">
+                    {{ detailProjectPO?.length || 0 }}
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-col cols="12" sm="6" md="3">
+              <v-card class="rounded-xl" color="success" variant="tonal">
+                <v-card-text>
+                  <div class="text-subtitle-1">Tổng đơn hàng hoàn thành</div>
+                  <div class="text-h4 font-weight-bold">
+                    {{
+                      detailProjectPO?.filter((p) => p.Status === "Hoàn thành")
+                        .length || 0
+                    }}
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-col cols="12" sm="6" md="3">
+              <v-card class="rounded-xl" color="warning" variant="tonal">
+                <v-card-text>
+                  <div class="text-subtitle-1">Tổng đơn hàng đang sản xuất</div>
+                  <div class="text-h4 font-weight-bold">
+                    {{
+                      detailProjectPO?.filter(
+                        (p) => p.Status === "Đang sản xuất"
+                      ).length || 0
+                    }}
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+          </v-row>
+        </v-card-title>
         <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
           <v-icon icon="mdi mdi-cart-variant"></v-icon> &nbsp;
-          {{ NamePO }}
+          {{ NameCustomer }}
 
           <ButtonAdd @add="DialogAdd = true" />
-          <p class="ms-2 font-weight-thin text-subtitle-1">
-            ( {{ detailProjectPO.length }} đơn hàng)
-          </p>
           <!-- <ButtonDownload @download-file="DownloadOrder()" /> -->
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
@@ -28,13 +76,14 @@
           <InputSearch v-model="search" />
         </v-card-title>
 
-        <v-data-table
+        <v-data-table-virtual
+          :group-by="[{ key: 'POID' }]"
           v-if="lgAndUp"
+          density="compact"
           :search="search"
           :items="detailProjectPO"
+          :item-p
           :headers="Headers"
-          :items-per-page="itemsPerPage"
-          v-model:page="page"
           :loading="DialogLoading"
           loading-text="Đang tải dữ liệu..."
           no-data-text="Không có dữ liệu"
@@ -42,15 +91,33 @@
           :hover="true"
           :dense="false"
           :fixed-header="true"
-          height="calc(100vh - 200px)"
+          height="calc(100vh - 250px)"
         >
-          <template v-slot:bottom>
-            <div class="text-center pt-2">
-              <v-pagination
-                v-model="page"
-                :length="Math.ceil(detailProjectPO.length / itemsPerPage)"
-              ></v-pagination>
-            </div>
+          <template
+            v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }"
+          >
+            <tr>
+              <td
+                :colspan="columns.length"
+                class="cursor-pointer"
+                v-ripple
+                @click="toggleGroup(item)"
+              >
+                <div class="d-flex align-center">
+                  <v-btn
+                    :icon="isGroupOpen(item) ? '$expand' : '$next'"
+                    color="medium-emphasis"
+                    density="comfortable"
+                    size="small"
+                    variant="text"
+                  ></v-btn>
+
+                  <span class="ms-4 font-weight-bold text-primary"
+                    >{{ item.value }} ({{ item.items.length }})</span
+                  >
+                </div>
+              </td>
+            </tr>
           </template>
 
           <template v-slot:item.id="{ item }">
@@ -81,24 +148,35 @@
                 "
                 variant="tonal"
                 class="text-caption"
+                size="small"
               >
                 {{ value }}
               </v-chip>
             </div>
           </template>
+          <template #[`item.Percent_Delivered`]="{ item }">
+            <v-progress-linear
+              v-model="item.Percent_Delivered"
+              height="25"
+              color="success"
+              rounded
+              class="rounded-lg"
+            >
+              <strong>{{ item.Percent_Delivered }}%</strong>
+            </v-progress-linear>
+          </template>
           <template #item.Note="{ item }">
             <div style="white-space: pre-line">{{ item.Note }}</div>
           </template>
-        </v-data-table>
+        </v-data-table-virtual>
 
-        <!-- <v-data-table
-          v-if="lgAndUp"
-          :group-by="groupBy"
+        <v-data-table-virtual
+          v-else
+          :group-by="[{ key: 'POID' }]"
+          density="compact"
           :search="search"
           :items="detailProjectPO"
           :headers="Headers"
-          :items-per-page="itemsPerPage"
-          v-model:page="page"
           :loading="DialogLoading"
           loading-text="Đang tải dữ liệu..."
           no-data-text="Không có dữ liệu"
@@ -124,23 +202,16 @@
                     color="medium-emphasis"
                     density="comfortable"
                     size="small"
-                    variant="outlined"
+                    variant="text"
                   ></v-btn>
 
-                  <span class="ms-4">{{ item.value }}</span>
+                  <span class="ms-4 font-weight-bold text-primary"
+                    >{{ item.value }} ({{ item.items.length }})</span
+                  >
                 </div>
               </td>
             </tr>
           </template>
-          <template v-slot:bottom>
-            <div class="text-center pt-2">
-              <v-pagination
-                v-model="page"
-                :length="Math.ceil(detailProjectPO.length / itemsPerPage)"
-              ></v-pagination>
-            </div>
-          </template>
-
           <template v-slot:item.id="{ item }">
             <div class="d-flex">
               <ButtonEdit
@@ -169,64 +240,22 @@
                 "
                 variant="tonal"
                 class="text-caption"
+                size="small"
               >
                 {{ value }}
               </v-chip>
             </div>
           </template>
-          <template #item.Note="{ item }">
-            <div style="white-space: pre-line">{{ item.Note }}</div>
-          </template>
-        </v-data-table> -->
-
-        <v-data-table-virtual
-          v-else
-          :search="search"
-          :items="detailProjectPO"
-          :headers="Headers"
-          :items-per-page="itemsPerPage"
-          v-model:page="page"
-          :loading="DialogLoading"
-          loading-text="Đang tải dữ liệu..."
-          no-data-text="Không có dữ liệu"
-          no-results-text="Không tìm thấy kết quả"
-          :hover="true"
-          :dense="false"
-          :fixed-header="true"
-          height="calc(100vh - 200px)"
-        >
-          <template v-slot:item.id="{ item }">
-            <div class="d-flex">
-              <ButtonEdit
-                @edit="GetItem(item)"
-                v-if="LevelUser == 'Admin' || LevelUser == 'Quản lý kinh doanh'"
-              />
-              <v-btn
-                color="success"
-                icon="mdi-plus"
-                variant="text"
-                size="xs"
-                @click="GetItemManufacture(item)"
-              ></v-btn>
-            </div>
-          </template>
-
-          <template #item.Status="{ value }">
-            <div class="text-start">
-              <v-chip
-                :color="
-                  value === 'Hoàn thành'
-                    ? 'success'
-                    : value === 'Đang sản xuất'
-                    ? 'warning'
-                    : 'error'
-                "
-                variant="tonal"
-                class="text-caption"
-              >
-                {{ value }}
-              </v-chip>
-            </div>
+          <template #[`item.Percent_Delivered`]="{ item }">
+            <v-progress-linear
+              v-model="item.Percent_Delivered"
+              height="25"
+              color="success"
+              rounded
+              class="rounded-lg"
+            >
+              <strong>{{ item.Percent_Delivered }}%</strong>
+            </v-progress-linear>
           </template>
           <template #item.Note="{ item }">
             <div style="white-space: pre-line">{{ item.Note }}</div>
@@ -238,6 +267,7 @@
   <v-dialog v-model="DialogEdit" width="500">
     <v-card max-width="500" prepend-icon="mdi-update" title="Cập nhật dữ liệu">
       <v-card-text>
+        <InputField label="Tên PO" v-model="PO_Edit" />
         <InputField label="Chi tiết đơn hàng" v-model="Product_Detail_Edit" />
         <v-row>
           <v-col cols="4">
@@ -274,8 +304,14 @@
   </v-dialog>
 
   <v-dialog v-model="DialogAdd" width="500">
-    <v-card max-width="500" prepend-icon="mdi-update" title="Thêm dữ liệu">
+    <v-card
+      max-width="500"
+      prepend-icon="mdi-update"
+      title="Thêm dữ liệu"
+      class="rounded-lg"
+    >
       <v-card-text>
+        <InputField label="Tên PO" v-model="PO_Add" />
         <InputField label="Đơn hàng" v-model="Product_Detail_Add" />
         <v-row>
           <v-col cols="4">
@@ -308,15 +344,7 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogRemove" width="400">
-    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
-      <v-card-text> Bạn có chắc chắn muốn xoá đơn hàng này ? </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogRemove = false" />
-        <ButtonDelete @delete="RemoveItem()" />
-      </template>
-    </v-card>
-  </v-dialog>
+
   <!-- Dialog thêm mới dữ liệu -->
   <v-dialog
     :model-value="DialogAddManufacture"
@@ -324,17 +352,13 @@
     width="500"
     scrollable
   >
-    <v-card max-width="500" class="overflow-y-auto">
+    <v-card max-width="500" class="overflow-y-auto rounded-lg">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
         Chuyển dữ liệu xuống sản xuất
       </v-card-title>
       <v-card-text>
-        <InputField
-          disabled="true"
-          label="Tên dự án"
-          v-model="NamePO"
-        />
+        <InputField disabled="true" label="Tên dự án" v-model="NamePO" />
         <InputField
           disabled="true"
           label="Tên đơn hàng"
@@ -348,7 +372,7 @@
           :model-value="Total_Manufacture_Add"
           @update:model-value="Total_Manufacture_Add = $event"
         />
-        <InputSelect
+        <!-- <InputSelect
           label="Quy trình"
           :items="[
             'SMT',
@@ -369,10 +393,26 @@
           hint="Lựa chọn quy trình phù hợp"
           v-model="Level_Manufacture_Add"
           @update:model-value="(val) => (Level_Manufacture_Add = val)"
-        />
-        
+        /> -->
+
         <!-- Thêm input cho quy trình khác (giống DialogAdd ở Page-Manufacture.vue) -->
         <div class="mt-3">
+          <!-- Hiển thị danh sách quy trình tùy chỉnh đã thêm -->
+          <div v-if="customProcessList.length > 0">
+            <div class="text-caption text-grey mb-1">Quy trình đã thêm:</div>
+            <div class="d-flex flex-wrap ga-2 mb-5">
+              <v-chip
+                v-for="(process, index) in customProcessList"
+                :key="index"
+                closable
+                color="secondary"
+                size="small"
+                @click:close="removeCustomProcess(index)"
+              >
+                {{ process }}
+              </v-chip>
+            </div>
+          </div>
           <InputField
             label="Thêm quy trình khác"
             v-model="customProcess"
@@ -391,23 +431,6 @@
               ></v-btn>
             </template>
           </InputField>
-
-          <!-- Hiển thị danh sách quy trình tùy chỉnh đã thêm -->
-          <div v-if="customProcessList.length > 0" class="mt-2">
-            <div class="text-caption text-grey mb-1">Quy trình đã thêm:</div>
-            <div class="d-flex flex-wrap ga-2">
-              <v-chip
-                v-for="(process, index) in customProcessList"
-                :key="index"
-                closable
-                color="secondary"
-                size="small"
-                @click:close="removeCustomProcess(index)"
-              >
-                {{ process }}
-              </v-chip>
-            </div>
-          </div>
         </div>
         <InputField
           label="Ngày tạo"
@@ -425,6 +448,20 @@
         <ButtonCancel @cancel="DialogAddManufacture = false" />
         <ButtonSave @save="SaveAddManufacture()" />
       </v-card-actions>
+    </v-card>
+  </v-dialog>
+  <!-- Dialog xoá dữ liệu -->
+  <v-dialog v-model="DialogRemove" width="400">
+    <v-card max-width="400" class="rounded-lg">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
+        Xoá dữ liệu
+      </v-card-title>
+      <v-card-text> Bạn có chắc chắn muốn xoá đơn hàng này ? </v-card-text>
+      <template v-slot:actions>
+        <ButtonCancel @cancel="DialogRemove = false" />
+        <ButtonDelete @delete="RemoveItem()" />
+      </template>
     </v-card>
   </v-dialog>
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
@@ -490,12 +527,14 @@ const GetID = ref("");
 const GetIDManufacture = ref("");
 
 // Edit form states
+const PO_Edit = ref("");
 const Product_Detail_Edit = ref(""); // Product details for editing
 const Quantity_Product_Edit = ref(0); // Product quantity for editing
 const Quantity_Delivered_Edit = ref(0); // Delivered quantity for editing
 const Note_Edit = ref(""); // Note for editing
 
 // Add form states
+const PO_Add = ref("");
 const Product_Detail_Add = ref(""); // Product details for adding new
 const Quantity_Product_Add = ref(0); // Product quantity for adding new
 const Quantity_Delivered_Add = ref(0); // Delivered quantity for adding new
@@ -521,14 +560,15 @@ const NameCustomer = ref(null); // Customer name from localStorage
 // Table states
 // const groupBy = [{ key: 'Product_Detail', order: 'asc',  title: "Chi tiết đơn hàng" }]
 const Headers = ref([
-  { key: "Product_Detail", title: "Chi tiết đơn hàng" },
-  { key: "Status", title: "Trạng thái" },
-  { key: "Quantity_Product", title: "SL đơn hàng" },
-  { key: "Quantity_Delivered", title: "SL đã giao" },
-  { key: "Quantity_Amount", title: "SL còn nợ" },
-  { key: "Quantity_Manufacture", title: "SL sản xuất" },
-  { key: "Note", title: "Ghi chú" },
-  { key: "id", title: "Sửa" },
+  { key: "Product_Detail", title: "Chi tiết đơn hàng", width: "20%" },
+  { key: "Status", title: "Trạng thái", width: "10%" },
+  { key: "Quantity_Product", title: "SL đơn hàng", width: "10%" },
+  { key: "Quantity_Delivered", title: "SL đã giao", width: "10%" },
+  { key: "Quantity_Amount", title: "SL còn nợ", width: "10%" },
+  { key: "Quantity_Manufacture", title: "SL sản xuất", width: "10%" },
+  { key: "Percent_Delivered", title: "Tỷ lệ", width: "10%" },
+  { key: "Note", title: "Ghi chú", width: "15%" },
+  { key: "id", title: "Thao tác", width: "5%" },
 ]);
 const search = ref("");
 const itemsPerPage = ref(12);
@@ -572,6 +612,12 @@ const Quantity_Amount_Add = computed(() => {
   return Quantity_Product_Add.value - Quantity_Delivered_Add.value;
 });
 
+const totalUniquePO = computed(() => {
+  if (!detailProjectPO.value) return 0;
+  const uniquePOIDs = new Set(detailProjectPO.value.map((item) => item.POID));
+  return uniquePOIDs.size;
+});
+
 // ===== CRUD OPERATIONS =====
 /**
  * Prepares an item for editing by setting up the edit dialog
@@ -580,11 +626,13 @@ const Quantity_Amount_Add = computed(() => {
 function GetItem(item) {
   DialogEdit.value = true;
   GetID.value = item.id;
+  PO_Edit.value = item.POID;
   Product_Detail_Edit.value = item.Product_Detail;
   Quantity_Product_Edit.value = item.Quantity_Product;
   Quantity_Delivered_Edit.value = item.Quantity_Delivered;
   Quantity_Amount_Edit.value = item.Quantity_Amount;
   Note_Edit.value = item.Note;
+  console.log(item.id);
 }
 
 function GetItemManufacture(item) {
@@ -607,6 +655,7 @@ const SaveEdit = async () => {
     Quantity_Delivered: Quantity_Delivered_Edit.value,
     Quantity_Amount: Quantity_Amount_Edit.value,
     Note: Note_Edit.value,
+    POID: PO_Edit.value,
   });
 
   try {
@@ -634,7 +683,7 @@ const SaveAdd = async () => {
     Quantity_Delivered: Quantity_Delivered_Add.value,
     Quantity_Amount: Quantity_Amount_Add.value,
     Note: Note_Add.value,
-    POID: id,
+    POID: PO_Add.value,
     CustomerID: CustomerID.value,
   });
 
@@ -672,6 +721,39 @@ const RemoveItem = async () => {
 // Hàm lưu thông tin thêm mới
 const SaveAddManufacture = async () => {
   DialogLoading.value = true;
+  // ✅ Quy tắc sắp xếp ưu tiên
+  const processPriority = {
+    SMT: 1,
+    RW: 99,
+    "Thành phẩm": 100,
+  };
+
+  // ✅ Gom các quy trình người dùng đã chọn
+  const mergedLevels = [
+    ...(Array.isArray(Level_Manufacture_Add.value)
+      ? Level_Manufacture_Add.value
+      : []),
+    ...(Array.isArray(customProcessList.value) ? customProcessList.value : []),
+  ];
+
+  // ➕ Nếu chưa có "Thành phẩm" thì tự thêm
+  if (!mergedLevels.includes("Thành phẩm")) {
+    mergedLevels.push("Thành phẩm");
+  }
+
+  // ✅ Loại bỏ trùng lặp
+  const uniqueLevels = [...new Set(mergedLevels)];
+
+  // ✅ Sắp xếp theo ưu tiên
+  const sortedLevels = uniqueLevels.sort((a, b) => {
+    const pa = processPriority[a] ?? 50;
+    const pb = processPriority[b] ?? 50;
+
+    if (pa === pb) {
+      return mergedLevels.indexOf(a) - mergedLevels.indexOf(b);
+    }
+    return pa - pb;
+  });
   const formData = reactive({
     Name: NamePO.value,
     Name_Order: Name_Order_Manufacture.value,
@@ -681,7 +763,7 @@ const SaveAddManufacture = async () => {
     Creater: UserInfo.value,
     DelaySMT: 10000,
     Quantity: 1,
-    Level: Level_Manufacture_Add.value,
+    Level: sortedLevels,
     ProjectID: GetIDManufacture.value,
   });
   try {

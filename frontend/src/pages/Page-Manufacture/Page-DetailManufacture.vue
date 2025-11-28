@@ -129,7 +129,7 @@
           </v-card-title>
           <v-card-text>
             <v-row>
-              <v-col md="3">
+              <v-col cols="3">
                 <v-card-title
                   ><h2 class="text-bold font-italic">
                     {{ Quantity_Detail_Title }}
@@ -137,34 +137,62 @@
                 >
                 <v-divider width="200px"></v-divider>
                 <v-card-text>
-                  <div class="d-flex">
-                    <h1 class="text-success">Pass:</h1>
-                    <h1 class="ms-2 font-weight-light">
-                      {{ Quantity_Detail_Pass }} pcs
-                    </h1>
+                  <div v-if="Quantity_Detail_Title === 'SMT'">
+                    <div class="d-flex">
+                      <h1 class="text-info">Top:</h1>
+                      <h1 class="ms-2 font-weight-light">
+                        {{ SMT_Top_Pass }} pcs
+                      </h1>
+                    </div>
+                    <div class="d-flex">
+                      <h1 class="text-error">Bottom:</h1>
+                      <h1 class="ms-2 font-weight-light">
+                        {{ SMT_Bottom_Pass }} pcs
+                      </h1>
+                    </div>
+                    <div class="d-flex">
+                      <h1 class="text-success">Tổng:</h1>
+                      <h1 class="ms-2 font-weight-light">
+                        {{ Quantity_Detail_Pass }} pcs
+                      </h1>
+                    </div>
+                    <div class="d-flex">
+                      <h1 class="text-warning">Còn lại:</h1>
+                      <h1 class="ms-2 font-weight-light">
+                        {{ totalInput - Quantity_Detail_Pass }} pcs
+                      </h1>
+                    </div>
                   </div>
-                  <div class="d-flex">
-                    <h1 class="text-error">Fail:</h1>
-                    <h1 class="ms-2 font-weight-light">
-                      {{ Quantity_Detail_Fail }} pcs
-                    </h1>
-                  </div>
-                  <div class="d-flex">
-                    <h1 class="text-info">Đã sửa:</h1>
-                    <h1 class="ms-2 font-weight-light">
-                      {{ Quantity_Detail_Fixed }} pcs
-                    </h1>
-                  </div>
-                  <div class="d-flex">
-                    <h1 class="text-warning">Còn lại:</h1>
-                    <h1 class="ms-2 font-weight-light">
-                      {{ Quantity_Detail_Remain }} pcs
-                    </h1>
+                  <div v-else>
+                    <div class="d-flex">
+                      <h1 class="text-success">Pass:</h1>
+                      <h1 class="ms-2 font-weight-light">
+                        {{ Quantity_Detail_Pass }} pcs
+                      </h1>
+                    </div>
+                    <div class="d-flex">
+                      <h1 class="text-error">Fail:</h1>
+                      <h1 class="ms-2 font-weight-light">
+                        {{ Quantity_Detail_Fail }} pcs
+                      </h1>
+                    </div>
+                    <div class="d-flex">
+                      <h1 class="text-info">Đã sửa:</h1>
+                      <h1 class="ms-2 font-weight-light">
+                        {{ Quantity_Detail_Fixed }} pcs
+                      </h1>
+                    </div>
+                    <div class="d-flex">
+                      <h1 class="text-warning">Còn lại:</h1>
+                      <h1 class="ms-2 font-weight-light">
+                        {{ Quantity_Detail_Remain }} pcs
+                      </h1>
+                    </div>
                   </div>
                 </v-card-text>
               </v-col>
               <v-col
-                md="4"
+                cols="4"
                 class="d-flex flex-column align-center justify-center"
               >
                 <v-pie
@@ -203,7 +231,7 @@
                   </svg>
                 </div>
               </v-col>
-              <v-col md="5">
+              <v-col cols="5">
                 <v-card-title>Danh sách hàng lỗi</v-card-title>
                 <v-card-text>
                   <v-data-table
@@ -649,7 +677,7 @@
 
     <!-- Dialog Add -->
     <v-dialog v-model="DialogAdd" width="800" scrollable>
-      <v-card max-width="700" class="overflow-y-auto">
+      <v-card max-width="700" class="overflow-y-auto rounded-lg">
         <v-card-title class="d-flex align-center pa-4">
           <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
           Thêm dữ liệu kế hoạch
@@ -670,7 +698,7 @@
               </v-col>
             </v-row>
             <v-row>
-              <v-col cols="6">
+              <v-col cols="4">
                 <InputSelect
                   label="Công đoạn"
                   :items="LevelSelectAdd"
@@ -679,7 +707,17 @@
                   :rules="requiredRuleEmpty"
                 />
               </v-col>
-              <v-col cols="6">
+              <v-col cols="4">
+                <InputSelect
+                  label="Bề mặt"
+                  :items="['TOP', 'BOTTOM', '1 Mặt']"
+                  hint="Lựa chọn bề mặt phù hợp"
+                  v-model="Surface_Add"
+                  :disabled="Type_Add != 'SMT'"
+                  :rules="requiredRuleEmpty"
+                />
+              </v-col>
+              <v-col cols="4">
                 <InputSelect
                   label="Vị trí line"
                   :items="['Line 1', 'Line 2']"
@@ -741,7 +779,7 @@
 
     <!-- Dialog Edit -->
     <v-dialog v-model="DialogEdit" width="700" scrollable>
-      <v-card max-width="600" class="overflow-y-auto">
+      <v-card max-width="600" class="overflow-y-auto rounded-lg">
         <v-card-title class="d-flex align-center pa-4">
           <v-icon icon="mdi-pencil" color="primary" class="me-2"></v-icon>
           Sửa dữ liệu kế hoạch
@@ -936,7 +974,6 @@ const route = useRoute();
 const router = useRouter();
 const id = route.params.id;
 const typeFilter = ref(route.query.Type || null);
-console.log(id)
 
 const { manufactureDetails, connectionStatus } = useManufactureDetails(id);
 const { manufacture, manufactureFound, manufactureError, isConnected } =
@@ -1003,6 +1040,8 @@ const Quantity_Detail_Pass = ref(0);
 const Quantity_Detail_Fail = ref(0);
 const Quantity_Detail_Fixed = ref(0);
 const Quantity_Detail_Remain = ref(0);
+const SMT_Top_Pass = ref(0);
+const SMT_Bottom_Pass = ref(0);
 
 // ===== FORM ADD =====
 const Type_Add = ref("");
@@ -1014,6 +1053,7 @@ const Quantity_Plan_Add = ref("");
 const CycleTime_Add = ref("");
 const Note_Add = ref("");
 const Date_DetailManufacture_Add = ref("");
+const Surface_Add = ref("");
 
 // ===== FORM EDIT =====
 const Type_Edit = ref("");
@@ -1136,9 +1176,7 @@ const requiredRule = computed(() => {
   // Nếu không phải SMT thì không cần validate
   return [];
 });
-const requiredRuleEmpty = computed(() => [
-  (v) => !!v || "Dữ liệu này không được bỏ trống",
-]);
+const requiredRuleEmpty = computed(() => [(v) => !!v || "Không được bỏ trống"]);
 
 function formatDate(dateString) {
   if (!dateString) return "";
@@ -1273,9 +1311,8 @@ watch(
 
     if (currentType === "SMT") {
       Quantity_Detail_Pass.value = totalSMT_1.value + totalSMT_2.value;
-      Quantity_Detail_Fail.value = 0;
-      Quantity_Detail_Fixed.value = 0;
-      Quantity_Detail_Remain.value = totalInput.value - totalSMT_1.value;
+      SMT_Top_Pass.value = found.SMT_Top_Quantity || 0;
+      SMT_Bottom_Pass.value = found.SMT_Bottom_Quantity || 0;
     } else {
       const pass = found.Quantity_Pass || 0;
       const fail = found.Quantity_Fail || 0;
@@ -1474,6 +1511,8 @@ const GetDetailProgress = async (item) => {
     Quantity_Detail_Fail.value = 0;
     Quantity_Detail_Fixed.value = 0;
     Quantity_Detail_Remain.value = totalInput.value || 0;
+    SMT_Top_Pass.value = 0;
+    SMT_Bottom_Pass.value = 0;
 
     VPieData.value = [
       { key: 1, title: "Pass", value: 0, color: "#72c789" },
@@ -1493,6 +1532,8 @@ const GetDetailProgress = async (item) => {
   Quantity_Detail_Pass.value = found.Quantity_Pass || 0;
   Quantity_Detail_Fail.value = found.Quantity_Fail || 0;
   Quantity_Detail_Fixed.value = found.Quantity_Fixed || 0;
+  SMT_Top_Pass.value = found.SMT_Top_Quantity || 0;
+  SMT_Bottom_Pass.value = found.SMT_Bottom_Quantity || 0;
 
   const remain =
     totalInput.value -
@@ -1601,6 +1642,7 @@ const SaveAdd = async () => {
     Time_Plan: Time_Add.value,
     Note: Note_Add.value,
     Timestamp: Date_DetailManufacture_Add.value,
+    Surface: Surface_Add.value,
   });
   try {
     const response = await axios.post(`${Url}/Summary/Add-item`, formData);

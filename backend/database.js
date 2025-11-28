@@ -163,14 +163,13 @@ db.serialize(() => {
   db.run(`
       CREATE TABLE IF NOT EXISTS ProductDetails (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          POID INTEGER,
+          POID TEXT,
           ProductDetail TEXT,
           QuantityProduct INTEGER,
           QuantityDelivered INTEGER,
           QuantityAmount INTEGER,
           CustomerID INTEGER,
           Note,
-          FOREIGN KEY (POID) REFERENCES PurchaseOrders(id) ON DELETE CASCADE
           FOREIGN KEY (CustomerID) REFERENCES Customers(id) ON DELETE CASCADE
       )
   `);
@@ -304,6 +303,7 @@ db.serialize(() => {
       Time_Plan INTEGER,
       Note TEXT,
       Created_At TEXT, 
+      Surface TEXT,
       FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
     )
   `);
