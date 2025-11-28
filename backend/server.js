@@ -1041,6 +1041,7 @@ io.on("connection", (socket) => {
                           a.CycleTime_Plan,
                           a.Action,
                           c.Quantity,
+                          a.Surface,
                           a.Note,
                           CASE 
                             WHEN a.Line_SMT = 'Line 1' THEN c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0 END), 0)
@@ -4201,6 +4202,8 @@ app.post("/api/Summary/Add-item", (req, res) => {
           .json({ error: "Database error", details: err.message });
       }
       io.emit("UpdateHistoryFiltered", { PlanID, Type });
+      io.emit("UpdateManufactureSummary", { PlanID, Type });
+      io.emit("UpdateManufactureRW", { PlanID, Type });
       io.emit("UpdateManufactureCounting");
       io.emit("updateManufactureDetails");
       io.emit("UpdateHistory");
@@ -4226,6 +4229,7 @@ app.put("/api/Summary/Edit-item/:id", (req, res) => {
     Time_Plan,
     Note,
     Timestamp,
+    Surface,
   } = req.body;
   let Timestamps = null;
   if (Timestamp) {
@@ -4241,7 +4245,7 @@ app.put("/api/Summary/Edit-item/:id", (req, res) => {
   const { id } = req.params;
   db.run(
     `UPDATE Summary
-      SET Type=?, PONumber=?, Category=?, Line_SMT=?, Quantity_Plan=?, CycleTime_Plan=?, Time_Plan=?, Note=?, Created_At=?
+      SET Type=?, PONumber=?, Category=?, Line_SMT=?, Quantity_Plan=?, CycleTime_Plan=?, Time_Plan=?, Note=?, Created_At=?, Surface=?
       WHERE id=?`,
     [
       Type,
@@ -4253,6 +4257,7 @@ app.put("/api/Summary/Edit-item/:id", (req, res) => {
       Time_Plan,
       Note,
       Timestamps,
+      Surface,
       id,
     ],
     (err) => {
@@ -4265,6 +4270,9 @@ app.put("/api/Summary/Edit-item/:id", (req, res) => {
       io.emit("ActivedUpdate");
       io.emit("updateDetailProjectPO");
       io.emit("UpdateHistoryFiltered", { PlanID, Type });
+      io.emit("UpdateManufactureSummary", { PlanID, Type });
+      io.emit("UpdateManufactureRW", { PlanID, Type });
+
       res.json({ message: "Summary received" });
     }
   );

@@ -793,21 +793,37 @@
               <InputField disabled label="Đơn hàng" v-model="Name_Order_Edit" />
             </v-col>
           </v-row>
-          <InputSelect
-            label="Quy trình"
-            :items="LevelSelectAdd"
-            hint="Lựa chọn quy trình phù hợp"
-            v-model="Type_Edit"
-            @update:model-value="(val) => (Type_Edit = val)"
-          />
-          <InputSelect
-            label="Vị trí line"
-            :items="['Line 1', 'Line 2']"
-            hint="Lựa chọn công đoạn phù hợp"
-            v-model="Line_Edit"
-            :rules="requiredRule"
-            :disabled="Type_Edit != 'SMT'"
-          />
+          <v-row>
+            <v-col cols="4">
+              <InputSelect
+                label="Quy trình"
+                :items="LevelSelectAdd"
+                hint="Lựa chọn quy trình phù hợp"
+                v-model="Type_Edit"
+                @update:model-value="(val) => (Type_Edit = val)"
+              />
+            </v-col>
+            <v-col cols="4">
+              <InputSelect
+                label="Bề mặt"
+                :items="['TOP', 'BOTTOM', '1 Mặt']"
+                hint="Lựa chọn bề mặt phù hợp"
+                v-model="Surface_Edit"
+                :disabled="Type_Edit != 'SMT'"
+                :rules="requiredRuleEmpty"
+              />
+            </v-col>
+            <v-col cols="4">
+              <InputSelect
+                label="Vị trí line"
+                :items="['Line 1', 'Line 2']"
+                hint="Lựa chọn công đoạn phù hợp"
+                v-model="Line_Edit"
+                :rules="requiredRule"
+                :disabled="Type_Edit != 'SMT'"
+              />
+            </v-col>
+          </v-row>
           <InputField label="Hạng mục" v-model="Category_Edit" />
 
           <v-row>
@@ -1057,6 +1073,7 @@ const Surface_Add = ref("");
 
 // ===== FORM EDIT =====
 const Type_Edit = ref("");
+const Surface_Edit = ref("");
 const PONumber_Edit = ref("");
 const Name_Order_Edit = ref("");
 const Category_Edit = ref("");
@@ -1471,6 +1488,7 @@ const GetItem = (item) => {
   Name_Order_Edit.value = item.Name_Order;
   Category_Edit.value = item.Category;
   Line_Edit.value = item.Line_SMT;
+  Surface_Edit.value = item.Surface;
   Quantity_Plan_Edit.value = item.Quantity_Plan;
   CycleTime_Edit.value = item.CycleTime_Plan;
   Time_Edit.value = item.Time_Plan;
@@ -1602,6 +1620,7 @@ const SaveEdit = async () => {
     Time_Plan: Time_Edit.value,
     Note: Note_Edit.value,
     Timestamp: Date_DetailManufacture_Edit.value,
+    Surface: Surface_Edit.value,
   });
 
   try {
