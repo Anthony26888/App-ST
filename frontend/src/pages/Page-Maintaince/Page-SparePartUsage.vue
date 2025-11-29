@@ -29,6 +29,7 @@
 
         <v-data-table
           v-if="lgAndUp"
+          density="compact"
           :search="search"
           :items="sparePartUsage"
           :headers="Headers"

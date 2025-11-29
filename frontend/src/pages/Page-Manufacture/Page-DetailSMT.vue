@@ -444,7 +444,11 @@
 
     <!-- Dialog xác nhận xóa dữ liệu lịch sử sản xuất -->
     <v-dialog v-model="DialogRemoveHistory" width="400">
-      <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
+      <v-card max-width="400">
+        <v-card-title class="d-flex align-center pa-4">
+          <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
+          Xoá dữ liệu
+        </v-card-title>
         <v-card-text> Bạn có chắc chắn muốn xoá dữ liệu ? </v-card-text>
         <template v-slot:actions>
           <ButtonCancel @cancel="DialogRemoveHistory = false" />
@@ -454,11 +458,11 @@
     </v-dialog>
 
     <v-dialog v-model="DialogSetting" width="400">
-      <v-card
-        max-width="500"
-        prepend-icon="mdi-pencil"
-        title="Nhập só lượng đã sản xuất"
-      >
+      <v-card max-width="500">
+        <v-card-title class="d-flex align-center pa-4">
+          <v-icon icon="mdi-pencil" color="primary" class="me-2"></v-icon>
+          Nhập só lượng đã sản xuất
+        </v-card-title>
         <v-card-text>
           <InputField
             label="Số lượng sản phẩm"

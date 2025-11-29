@@ -9,6 +9,64 @@
       </v-card-title>
 
       <v-card-text>
+        <v-row class="mb-3">
+          <v-col cols="12" md="3">
+            <v-card class="rounded-xl" color="primary" variant="tonal">
+              <v-card-text>
+                <div class="text-subtitle-1">Tổng PO</div>
+                <div class="text-h4 font-weight-bold">
+                  {{ totalUniquePO }}
+                </div>
+                <div class="text-caption">Tổng số PO</div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" md="3">
+            <v-card class="rounded-xl" color="primary" variant="tonal">
+              <v-card-text>
+                <div class="text-subtitle-1">Tổng đơn hàng</div>
+                <div class="text-h4 font-weight-bold">
+                  {{ manufacture.length || 0 }}
+                </div>
+                <div class="text-caption">Tổng số đơn hàng</div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" md="3">
+            <v-card class="rounded-xl" color="success" variant="tonal">
+              <v-card-text>
+                <div class="text-subtitle-1">Đơn hàng hoàn thành</div>
+                <div class="text-h4 font-weight-bold">
+                  {{ manufacture.filter((item) => item.Status_Output === 'Hoàn thành').length }}
+                </div>
+                <v-progress-linear
+                  v-model="progressCompleted"
+                  height="20"
+                  class="rounded-lg"
+                >
+                  <strong class="text-black">{{ progressCompleted }}%</strong>
+                </v-progress-linear>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" md="3">
+            <v-card class="rounded-xl" color="warning" variant="tonal">
+              <v-card-text>
+                <div class="text-subtitle-1">Đơn hàng đang sản xuất</div>
+                <div class="text-h4 font-weight-bold">
+                  {{ manufacture.filter((item) => item.Status_Output === 'Đang sản xuất').length }}
+                </div>
+                <v-progress-linear
+                  v-model="progressManufacture"
+                  height="20"
+                  class="rounded-lg"
+                >
+                  <strong class="text-black">{{ progressManufacture }}%</strong>
+                </v-progress-linear>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
         <!-- Card chứa bảng dữ liệu -->
         <v-card variant="text">
           <!-- Header của bảng với các nút chức năng -->
@@ -23,10 +81,6 @@
             >
               Thêm
             </v-btn>
-            <!-- Hiển thị tổng số kế hoạch -->
-            <p class="ms-2 font-weight-thin text-subtitle-1" v-if="lgAndUp">
-              ( {{ manufacture.length }} kế hoạch)
-            </p>
             <v-spacer></v-spacer>
             <!-- Component tìm kiếm -->
             <InputSearch
@@ -38,7 +92,7 @@
           <!-- Nội dung bảng dữ liệu -->
           <v-card-text class="overflow-auto">
             <!-- Bảng dữ liệu chính -->
-            <v-data-table
+            <v-data-table-virtual
               :group-by="groupBy"
               density="compact"
               :headers="Headers"
@@ -64,7 +118,7 @@
               :hover="true"
               :dense="false"
               :fixed-header="true"
-              height="78vh"
+              height="70vh"
             >
               <template
                 v-slot:group-header="{
@@ -97,17 +151,6 @@
                   </td>
                 </tr>
               </template>
-              <!-- Phân trang -->
-              <template #bottom>
-                <div class="text-center pt-2">
-                  <v-pagination
-                    :model-value="page"
-                    @update:model-value="page = $event"
-                    :length="Math.ceil(manufacture.length / itemsPerPage)"
-                  ></v-pagination>
-                </div>
-              </template>
-
               <!-- Cột thao tác -->
               <template #[`item.id`]="{ item }">
                 <div class="d-flex">
@@ -143,7 +186,7 @@
               <template #[`item.Progress`]="{ item }">
                 <v-progress-linear
                   v-model="item.Progress"
-                  height="25"
+                  height="20"
                   color="success"
                   rounded
                   class="rounded-lg"
@@ -153,7 +196,7 @@
                   >
                 </v-progress-linear>
               </template>
-            </v-data-table>
+            </v-data-table-virtual>
           </v-card-text>
         </v-card>
       </v-card-text>
@@ -522,6 +565,24 @@ const Headers = [
   { title: "Ghi chú", key: "Note" },
   { title: "Thao tác", key: "id", sortable: false },
 ];
+
+const progressManufacture = computed(() => {
+  return Number.parseFloat(
+    manufacture.value.filter((item) => item.Status_Output === "Đang sản xuất").length / manufacture.value.length * 100
+  ).toFixed(1);
+});
+
+const progressCompleted = computed(() => {
+  return Number.parseFloat(
+    manufacture.value.filter((item) => item.Status_Output === "Hoàn thành").length / manufacture.value.length * 100
+  ).toFixed(1);
+});
+
+const totalUniquePO = computed(() => {
+  if (!manufacture.value) return 0;
+  const uniquePOIDs = new Set(manufacture.value.map((item) => item.Name));
+  return uniquePOIDs.size;
+});
 
 // Hàm kiểm tra token và lấy thông tin người dùng khi component được mount
 onMounted(() => {

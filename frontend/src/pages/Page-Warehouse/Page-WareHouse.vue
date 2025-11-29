@@ -30,6 +30,7 @@
         </v-card-title>
         <v-card-text class="overflow-auto">
           <v-data-table
+            density="compact"
             v-if="lgAndUp"
             :headers="Headers"
             :items="warehouse"

@@ -24,6 +24,7 @@
         <v-card-text class="overflow-auto">
           <v-data-table
             v-if="lgAndUp"
+            density="compact"
             :headers="Headers"
             :items="warehouse2"
             :search="search"

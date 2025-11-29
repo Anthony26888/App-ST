@@ -858,7 +858,7 @@
 
     <!-- Dialog Edit -->
     <v-dialog v-model="DialogEdit" width="700" scrollable>
-      <v-card max-width="600" class="overflow-y-auto rounded-lg">
+      <v-card max-width="700" class="overflow-y-auto rounded-lg">
         <v-card-title class="d-flex align-center pa-4">
           <v-icon icon="mdi-pencil" color="primary" class="me-2"></v-icon>
           Sửa dữ liệu kế hoạch
@@ -945,7 +945,7 @@
 
     <!-- Dialog Remove -->
     <v-dialog v-model="DialogRemove" max-width="500px">
-      <v-card>
+      <v-card class="overflow-y-auto rounded-lg">
         <v-card-title class="d-flex align-center pa-4">
           <v-icon icon="mdi-trash-can" color="error" class="me-2"></v-icon>
           Xoá dữ liệu kế hoạch

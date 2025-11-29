@@ -105,6 +105,7 @@
         <v-card-text class="overflow-auto">
           <v-data-table
             v-if="lgAndUp"
+            density="compact"
             :headers="Headers"
             :items="machine"
             :search="search"

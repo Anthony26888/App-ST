@@ -164,10 +164,12 @@
               <div class="text-caption text-medium-emphasis">
                 Đạt mục tiêu:
                 {{
-                  (((summary?.filter((item) => Number(item.Percent) >= 100)
-                    .length || 0) /
-                    Total_Category_Today) *
-                  100).toFixed(1)
+                  (
+                    ((summary?.filter((item) => Number(item.Percent) >= 100)
+                      .length || 0) /
+                      Total_Category_Today) *
+                    100
+                  ).toFixed(1)
                 }}
                 %
               </div>
@@ -337,7 +339,7 @@
         :items="summary"
         :search="search"
         :group-by="[{ key: 'Type' }]"
-        class="mt-3 rounded-xl"
+        class="mt-3 rounded-xl elevation-2"
         fixed-header
         :header-props="{
           sortByText: 'Sắp xếp theo',
@@ -351,6 +353,7 @@
         :hover="true"
         :dense="false"
         :fixed-header="true"
+        elevation="2"
       >
         <template v-slot:top>
           <v-toolbar flat dense>
@@ -419,10 +422,11 @@
       <v-row>
         <v-col lg="7" md="12">
           <v-data-table-virtual
+            density="compact"
             :headers="HeadersError"
             :items="Manufacture_Fail"
             :group-by="[{ key: 'PONumber' }]"
-            class="mt-5 rounded-xl"
+            class="mt-5 rounded-xl elevation-2"
             fixed-header
             :header-props="{
               sortByText: 'Sắp xếp theo',
@@ -437,6 +441,7 @@
             :dense="false"
             :fixed-header="true"
             height="435px"
+            elevation="2"
           >
             <template v-slot:top>
               <v-toolbar flat dense>
@@ -456,33 +461,41 @@
               v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }"
             >
               <tr>
-                <td :colspan="columns.length">
-                  <v-btn
-                    variant="text"
-                    :icon="isGroupOpen ? 'mdi-chevron-down' : 'mdi-chevron-up'"
-                    @click="toggleGroup(item)"
-                    class="me-2"
-                    v-tooltip:top="'Xem chi tiết'"
-                  ></v-btn>
-                  <span class="font-weight-bold text-primary">{{
-                    item.value
-                  }}</span>
+                <td
+                  :colspan="columns.length"
+                  class="cursor-pointer"
+                  v-ripple
+                  @click="toggleGroup(item)"
+                >
+                  <div class="d-flex align-center">
+                    <v-btn
+                      :icon="isGroupOpen(item) ? '$expand' : '$next'"
+                      color="medium-emphasis"
+                      density="comfortable"
+                      size="small"
+                      variant="text"
+                    ></v-btn>
+
+                    <span class="ms-4 font-weight-bold text-primary"
+                      >{{ item.value }} ({{ item.items.length }})</span
+                    >
+                  </div>
                 </td>
               </tr>
             </template>
 
             <template #[`item.Total_Summary_ID`]="{ item }">
-              <v-chip color="success" variant="tonal">{{
+              <v-chip color="success" variant="tonal" size="small">{{
                 item.Total_Summary_ID
               }}</v-chip>
             </template>
             <template #[`item.Quantity_Error`]="{ item }">
-              <v-chip color="warning" variant="tonal">{{
+              <v-chip color="warning" variant="tonal" size="small">{{
                 item.Quantity_Error
               }}</v-chip>
             </template>
             <template #[`item.Quantity_RW`]="{ item }">
-              <v-chip color="info" variant="tonal">{{
+              <v-chip color="info" variant="tonal" size="small">{{
                 item.Quantity_RW
               }}</v-chip>
             </template>
@@ -531,7 +544,7 @@
                 <template v-slot:center>
                   <div class="text-center">
                     <div class="text-h3">{{ summaryFail.length }}</div>
-                    <div class="opacity-70 mt-1 mb-n1">Tổng</div>
+                    <div class="opacity-70 mt-1 mb-n1">Tổng sản phẩm lỗi</div>
                   </div>
                 </template>
               </v-pie>
@@ -767,6 +780,7 @@
         :hover="true"
         :dense="false"
         :fixed-header="true"
+        elevation="2"
       >
         <template v-slot:top>
           <v-toolbar flat dense>
@@ -933,7 +947,7 @@
             <template v-slot:center>
               <div class="text-center">
                 <div class="text-h3">{{ summaryFail.length }}</div>
-                <div class="opacity-70 mt-1 mb-n1">Tổng</div>
+                <div class="opacity-70 mt-1 mb-n1">Tổng sản phẩm lỗi</div>
               </div>
             </template>
           </v-pie>

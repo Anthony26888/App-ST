@@ -43,6 +43,7 @@
         </v-card-title>
         <v-data-table
           v-if="lgAndUp"
+          density="compact"
           :search="search"
           :items="maintenance"
           :headers="Headers"

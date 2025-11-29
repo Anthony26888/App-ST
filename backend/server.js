@@ -4093,12 +4093,13 @@ app.post("/api/ManufactureCounting", (req, res) => {
     Quantity,
   } = req.body;
 
-  Quantity = Number(Quantity) || 1; // Mặc định = 1
-
+  Quantity = Number(Quantity) || 1;
   const Timestamp = Math.floor(Date.now() / 1000);
 
-  // Dùng serializable DB run
   db.serialize(() => {
+    // BẮT BUỘC: transaction
+    db.run("BEGIN TRANSACTION");
+
     const stmt = db.prepare(
       `INSERT INTO ManufactureCounting 
         (PartNumber, HistoryID, Timestamp, Status, GroupFail, Note, PlanID, Type)
@@ -4106,11 +4107,10 @@ app.post("/api/ManufactureCounting", (req, res) => {
     );
 
     for (let i = 0; i < Quantity; i++) {
-      // Nếu PartNumber rỗng → tạo 1 mã mới cho mỗi record
-      let finalPartNumber =
+      const finalPartNumber =
         !PartNumber || String(PartNumber).trim() === ""
           ? nanoid(10)
-          : PartNumber; // Nếu user nhập thì giữ nguyên
+          : PartNumber;
 
       stmt.run([
         finalPartNumber,
@@ -4124,10 +4124,16 @@ app.post("/api/ManufactureCounting", (req, res) => {
       ]);
     }
 
-    stmt.finalize((err) => {
-      if (err) return res.status(500).json({ error: "Database error" });
+    stmt.finalize();
 
-      // Emit realtime 1 lần
+    // COMMIT là lúc transaction hoàn tất
+    db.run("COMMIT", (err) => {
+      if (err) {
+        console.error("COMMIT ERROR:", err);
+        return res.status(500).json({ error: "Database commit error" });
+      }
+
+      // Emit realtime 1 lần duy nhất
       io.emit("UpdateManufactureCounting");
       io.emit("UpdateManufactureFail");
       io.emit("UpdateHistoryFiltered", { PlanID, Type });
@@ -4141,7 +4147,7 @@ app.post("/api/ManufactureCounting", (req, res) => {
       io.emit("ActivedUpdate");
       io.emit("updateDetailProjectPO");
 
-      res.json({
+      return res.json({
         message: `Đã nhập ${Quantity} sản phẩm`,
         Quantity,
       });
@@ -4248,44 +4254,34 @@ app.delete("/api/ManufactureSMT/Delete-item-history/:id", (req, res) => {
 
 app.post("/api/ManufactureSMT", (req, res) => {
   let { HistoryID, PlanID, Quantity, Source, Type } = req.body;
-
   Quantity = Number(Quantity) || 1;
+
   const Timestamp = Math.floor(Date.now() / 1000);
 
-  // Danh sách source cần insert
   let sourcesToInsert = [Source];
-
-  // Điều kiện nhân bản source
-  if (Source === "source_2") {
-    sourcesToInsert.push("source_1");
-  }
-  if (Source === "source_4") {
-    sourcesToInsert.push("source_3");
-  }
+  if (Source === "source_2") sourcesToInsert.push("source_1");
+  if (Source === "source_4") sourcesToInsert.push("source_3");
 
   db.serialize(() => {
+    db.run("BEGIN TRANSACTION");
+
     const stmt = db.prepare(
       `INSERT INTO ManufactureSMT
-        (PartNumber, HistoryID, Timestamp, Status, PlanID, Source)
+         (PartNumber, HistoryID, Timestamp, Status, PlanID, Source)
        VALUES (?, ?, ?, 'ok', ?, ?)`
     );
 
     for (const src of sourcesToInsert) {
       for (let i = 0; i < Quantity; i++) {
-        stmt.run([
-          1, // PartNumber mặc định
-          HistoryID,
-          Timestamp,
-          PlanID,
-          src, // Insert source được xác định
-        ]);
+        stmt.run([1, HistoryID, Timestamp, PlanID, src]);
       }
     }
 
-    stmt.finalize((err) => {
-      if (err) return res.status(500).json({ error: "Database error" });
+    stmt.finalize();
+    db.run("COMMIT", (err) => {
+      if (err) return res.status(500).json({ error: "Database commit error" });
 
-      // Emit realtime
+      // Gửi event realtime 1 lần duy nhất
       io.emit("UpdateManufactureSMT", HistoryID);
       io.emit("UpdateHistoryFiltered", { PlanID, Type });
       io.emit("UpdateManufactureSummary");
@@ -4296,9 +4292,8 @@ app.post("/api/ManufactureSMT", (req, res) => {
       io.emit("updateDetailProjectPO");
 
       res.json({
-        message: `Đã nhập ${Quantity} sản phẩm cho ${sourcesToInsert.length} source`,
+        message: "OK",
         totalInserted: Quantity * sourcesToInsert.length,
-        insertedSources: sourcesToInsert,
       });
     });
   });
