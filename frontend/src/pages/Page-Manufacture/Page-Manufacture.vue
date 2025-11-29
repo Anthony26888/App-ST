@@ -140,6 +140,19 @@
                   item.Total_Output
                 }}</v-chip>
               </template>
+              <template #[`item.Progress`]="{ item }">
+                <v-progress-linear
+                  v-model="item.Progress"
+                  height="25"
+                  color="success"
+                  rounded
+                  class="rounded-lg"
+                >
+                  <strong
+                    >{{ Number.parseFloat(item.Progress).toFixed(1) }}%</strong
+                  >
+                </v-progress-linear>
+              </template>
             </v-data-table>
           </v-card-text>
         </v-card>
@@ -229,7 +242,7 @@
                   :disabled="!customProcessEdit || !customProcessEdit.trim()"
                 ></v-btn>
               </template>
-            </InputField>            
+            </InputField>
           </div>
 
           <InputField
@@ -502,6 +515,7 @@ const Headers = [
   { title: "Trạng thái", key: "Status_Output", width: "150px" },
   { title: "Tổng sản phẩm", key: "Total" },
   { title: "Tổng đầu ra", key: "Total_Output" },
+  { title: "Tiến độ", key: "Progress" },
   { title: "Quy trình", key: "Level", width: "200px" },
   { title: "Ngày tạo", key: "Date" },
   { title: "Người tạo", key: "Creater" },
@@ -784,7 +798,6 @@ const SaveAdd = async () => {
     DialogLoading.value = false;
   }
 };
-
 
 // Hàm xóa item
 const RemoveItem = async () => {

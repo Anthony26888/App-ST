@@ -632,37 +632,61 @@ io.on("connection", (socket) => {
     socket.on("getManufacture", async () => {
       try {
         const query = `SELECT 
-                          z.id,
-                          z.Name,
-                          z.Name_Order,
-                          z.Total,
-                          COALESCE(SUM(CASE WHEN LOWER(TRIM(b.Type)) = 'thành phẩm' THEN 1 ELSE 0 END), 0) AS Total_Output,
-                          CASE
-                              WHEN z.Total = COALESCE(SUM(CASE WHEN LOWER(TRIM(b.Type)) = 'thành phẩm' THEN 1 ELSE 0 END), 0)
-                              THEN 'Hoàn thành'
-                              ELSE 'Đang sản xuất'
-                          END AS Status_Output,
-                          z.Level,
-                          strftime('%d-%m-%Y', z.Date, 'unixepoch', 'localtime') AS Date,
-                          strftime('%Y-%m-%d', z.Date, 'unixepoch', 'localtime') AS Date_unixepoch,
-                          z.Note,
-                          z.Creater,
-                          z.DelaySMT,
-                          z.Quantity
-                      FROM PlanManufacture z
-                      LEFT JOIN ManufactureCounting b ON z.id = b.PlanID
-                      GROUP BY 
-                          z.id,
-                          z.Name,
-                          z.Name_Order,
-                          z.Total,
-                          z.Level,
-                          z.Date,
-                          z.Note,
-                          z.Creater,
-                          z.DelaySMT,
-                          z.Quantity
-                      ORDER BY z.Date DESC;`;
+                        z.id,
+                        z.Name,
+                        z.Name_Order,
+                        z.Total,
+
+                        -- Tổng thành phẩm
+                        COALESCE(SUM(CASE 
+                            WHEN LOWER(TRIM(b.Type)) = 'thành phẩm' THEN 1 
+                            ELSE 0 
+                        END), 0) AS Total_Output,
+
+                        -- Trạng thái
+                        CASE
+                            WHEN z.Total = COALESCE(SUM(CASE 
+                                WHEN LOWER(TRIM(b.Type)) = 'thành phẩm' THEN 1 
+                                ELSE 0 
+                            END), 0)
+                            THEN 'Hoàn thành'
+                            ELSE 'Đang sản xuất'
+                        END AS Status_Output,
+
+                        z.Level,
+                        strftime('%d-%m-%Y', z.Date, 'unixepoch', 'localtime') AS Date,
+                        strftime('%Y-%m-%d', z.Date, 'unixepoch', 'localtime') AS Date_unixepoch,
+
+                        -- Progress phải viết lại công thức
+                        (
+                            COALESCE(SUM(CASE 
+                                WHEN LOWER(TRIM(b.Type)) = 'thành phẩm' THEN 1 
+                                ELSE 0 
+                            END), 0) * 100.0
+                            / z.Total
+                        ) AS Progress,
+
+                        z.Note,
+                        z.Creater,
+                        z.DelaySMT,
+                        z.Quantity
+
+                    FROM PlanManufacture z
+                    LEFT JOIN ManufactureCounting b ON z.id = b.PlanID
+
+                    GROUP BY 
+                        z.id,
+                        z.Name,
+                        z.Name_Order,
+                        z.Total,
+                        z.Level,
+                        z.Date,
+                        z.Note,
+                        z.Creater,
+                        z.DelaySMT,
+                        z.Quantity
+
+                    ORDER BY z.Date DESC;`;
         db.all(query, [], (err, rows) => {
           if (err) return socket.emit("ManufactureError", err);
           socket.emit("ManufactureData", rows);
@@ -673,57 +697,109 @@ io.on("connection", (socket) => {
     }),
     socket.on("getManufactureDetails", async (id) => {
       try {
-        const query = `SELECT 
-                        a.id,
-                        a.Name,
-                        a.Name_Order,
-                        a.Total,
-                        a.DelaySMT,
-                        a.Quantity,
-                        a.Level,
-                        a.Date,
-                        a.Quantity * COALESCE(COUNT(DISTINCT CASE WHEN c.Source = 'source_1' THEN c.id END), 0) AS SMT_1,
-                        a.Quantity * COALESCE(COUNT(DISTINCT CASE WHEN c.Source = 'source_2' THEN c.id END), 0) AS SMT_2,
-                        a.Quantity * COALESCE(COUNT(DISTINCT CASE WHEN c.Source = 'source_3' THEN c.id END), 0) AS SMT_3,
-                        a.Quantity * COALESCE(COUNT(DISTINCT CASE WHEN c.Source = 'source_4' THEN c.id END), 0) AS SMT_4,
-                        COALESCE(COUNT(DISTINCT CASE WHEN LOWER(TRIM(b.Type)) = 'thành phẩm' AND b.Status = 'pass' THEN b.id END), 0) AS Quantity_Pass,
-                        COALESCE(COUNT(DISTINCT CASE WHEN LOWER(TRIM(b.Type)) = 'thành phẩm' AND b.Status = 'fail' THEN b.id END), 0) AS Quantity_Output_Fail,
-                        COALESCE(COUNT(DISTINCT CASE WHEN b.Status = 'fail' THEN b.id END), 0) AS Quantity_Error,
-                         COALESCE(COUNT(DISTINCT CASE WHEN b.Status_Fixed = 'fixed' THEN b.id END), 0) AS Quantity_Fixed
-                      FROM PlanManufacture a
-                      LEFT JOIN ManufactureCounting b ON a.id = b.PlanID
-                      LEFT JOIN ManufactureSMT c ON a.id = c.PlanID
-                      WHERE a.id = ?
-                      GROUP BY
-                        a.id, a.Name, a.Name_Order, a.Total, a.DelaySMT, a.Quantity, a.Level, a.Date;`;
-        db.all(query, [id], (err, rows) => {
+        const query = `
+                    SELECT 
+                      a.id,
+                      a.Name,
+                      a.Name_Order,
+                      a.Total,
+                      a.DelaySMT,
+                      a.Quantity,
+                      a.Level,
+                      a.Date,
+
+                      -- SMT TOP/BOTTOM/1/2 (tối ưu)
+                      (
+                        SELECT COUNT(*) 
+                        FROM ManufactureSMT s 
+                        WHERE s.PlanID = a.id AND s.Source = 'source_1'
+                      ) AS SMT_1,
+
+                      (
+                        SELECT COUNT(*) 
+                        FROM ManufactureSMT s 
+                        WHERE s.PlanID = a.id AND s.Source = 'source_2'
+                      ) AS SMT_2,
+
+                      (
+                        SELECT COUNT(*) 
+                        FROM ManufactureSMT s 
+                        WHERE s.PlanID = a.id AND s.Source = 'source_3'
+                      ) AS SMT_3,
+
+                      (
+                        SELECT COUNT(*) 
+                        FROM ManufactureSMT s 
+                        WHERE s.PlanID = a.id AND s.Source = 'source_4'
+                      ) AS SMT_4,
+
+                      -- PASS
+                      (
+                        SELECT COUNT(*) 
+                        FROM ManufactureCounting m 
+                        WHERE m.PlanID = a.id 
+                          AND m.Type = 'Thành phẩm'
+                          AND m.Status = 'pass'
+                      ) AS Quantity_Pass,
+
+                      -- FAIL (thành phẩm bị fail)
+                      (
+                        SELECT COUNT(*) 
+                        FROM ManufactureCounting m 
+                        WHERE m.PlanID = a.id 
+                          AND m.Type = 'Thành phẩm'
+                          AND m.Status = 'fail'
+                      ) AS Quantity_Output_Fail,
+
+                      -- TOTAL ERROR (mọi lỗi)
+                      (
+                        SELECT COUNT(*) 
+                        FROM ManufactureCounting m 
+                        WHERE m.PlanID = a.id 
+                          AND m.Status = 'fail'
+                      ) AS Quantity_Error,
+
+                      -- FIXED
+                      (
+                        SELECT COUNT(*) 
+                        FROM ManufactureCounting m 
+                        WHERE m.PlanID = a.id 
+                          AND m.Status_Fixed = 'fixed'
+                      ) AS Quantity_Fixed
+
+                    FROM PlanManufacture a
+                    WHERE a.id = ?;
+                  `;
+
+        db.get(query, [id], (err, row) => {
           if (err) return socket.emit("ManufactureDetailsError", err);
-          socket.emit("ManufactureDetailsData", rows);
+          socket.emit("ManufactureDetailsData", row);
         });
       } catch (error) {
         socket.emit("ManufactureDetailsError", error);
       }
-    }),
-    socket.on("getConfigs", async () => {
-      try {
-        const query = `SELECT * FROM configs ORDER BY id DESC`;
-        db.all(query, [], (err, rows) => {
-          if (err) return socket.emit("ConfigsError", err);
-          socket.emit("ConfigsData", rows);
-        });
-      } catch (error) {
-        socket.emit("ManufactureDetailsError", error);
-      }
-    }),
+    });
+
+  socket.on("getConfigs", async () => {
+    try {
+      const query = `SELECT * FROM configs ORDER BY id DESC`;
+      db.all(query, [], (err, rows) => {
+        if (err) return socket.emit("ConfigsError", err);
+        socket.emit("ConfigsData", rows);
+      });
+    } catch (error) {
+      socket.emit("ManufactureDetailsError", error);
+    }
+  }),
     // ========== SET PROJECT ==========
     socket.on("setProject", (id) => {
       console.log(`Client ${socket.id} chọn project_id = ${id}`);
       userProjects.set(socket.id, id);
     });
 
-    socket.on("getManufactureCounting", async (id) => {
-      try {
-        const query = `SELECT 
+  socket.on("getManufactureCounting", async (id) => {
+    try {
+      const query = `SELECT 
                             id,
                             PartNumber,
                             Status,
@@ -736,14 +812,14 @@ io.on("connection", (socket) => {
                           FROM ManufactureCounting
                           WHERE HistoryID = ?
                           ORDER BY Timestamp DESC`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("ManufactureCountingError", err);
-          socket.emit("ManufactureCountingData", rows);
-        });
-      } catch (error) {
-        socket.emit("ManufactureCountingError", error);
-      }
-    }),
+      db.all(query, [id], (err, rows) => {
+        if (err) return socket.emit("ManufactureCountingError", err);
+        socket.emit("ManufactureCountingData", rows);
+      });
+    } catch (error) {
+      socket.emit("ManufactureCountingError", error);
+    }
+  }),
     socket.on("getManufactureRW", async (id) => {
       try {
         const query = `SELECT 
@@ -879,41 +955,155 @@ io.on("connection", (socket) => {
     }),
     socket.on("getManufactureSummary", async (id) => {
       try {
-        const query = `SELECT 
-                            a.Type,
-                            CASE 
-                                WHEN a.Type = 'SMT' AND a.Surface = '1 Mặt' THEN 
-                                    COALESCE(d.Quantity, 0) *
-                                    COALESCE(SUM(CASE 
-                                        WHEN c.Source IN ('source_2', 'source_4') THEN 1 
-                                        ELSE 0 END), 0)
-                                WHEN a.Type = 'SMT' THEN 
-                                    COALESCE(d.Quantity, 0) *
-                                    CASE 
-                                        WHEN COALESCE(SUM(CASE WHEN a.Surface = 'TOP' AND c.Source IN ('source_2', 'source_4') THEN 1 ELSE 0 END), 0) > 
-                                            COALESCE(SUM(CASE WHEN a.Surface = 'BOTTOM' AND c.Source IN ('source_2', 'source_4') THEN 1 ELSE 0 END), 0)
-                                        THEN COALESCE(SUM(CASE WHEN a.Surface = 'BOTTOM' AND c.Source IN ('source_2', 'source_4') THEN 1 ELSE 0 END), 0)
-                                        ELSE COALESCE(SUM(CASE WHEN a.Surface = 'TOP' AND c.Source IN ('source_2', 'source_4') THEN 1 ELSE 0 END), 0)
-                                    END
-                                ELSE 
-                                    COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 END), 0)
-                            END AS Quantity_Pass,
-                            COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 END), 0) AS Quantity_Fail,
-                            COALESCE(SUM(CASE WHEN b.TimestampRW IS NOT NULL AND b.TimestampRW <> '' THEN 1 END), 0) AS Quantity_RW,
-                            COUNT(DISTINCT a.id) AS Total_Summary_ID,
-                            COALESCE(SUM(CASE 
-                                WHEN a.Type = 'SMT' AND a.Surface = 'TOP' AND c.Source IN ('source_2', 'source_4') THEN 1 
-                                ELSE 0 END), 0) AS SMT_Top_Quantity,
-                          COALESCE(SUM(CASE 
-                                WHEN a.Type = 'SMT' AND a.Surface = 'BOTTOM' AND c.Source IN ('source_2', 'source_4') THEN 1 
-                                ELSE 0 END), 0) AS SMT_Bottom_Quantity
-                        FROM Summary a
-                        LEFT JOIN ManufactureCounting b ON b.HistoryID = a.id
-                        LEFT JOIN ManufactureSMT c ON c.HistoryID = a.id
-                        LEFT JOIN PlanManufacture d ON d.id = a.PlanID  
-                        WHERE a.PlanID = ?
-                        GROUP BY a.Type
-                        ORDER BY a.Type;`;
+        const query = `
+                SELECT 
+                  a.Type,
+                  CASE 
+                      WHEN a.Surface = '1 Mặt' THEN NULL
+                      ELSE a.Surface
+                  END AS Surface,
+
+                  -- PASS cho từng loại
+                  CASE 
+                      -- SMT: công thức đặc biệt
+                      WHEN a.Type = 'SMT' THEN (
+                          CASE 
+                              WHEN a.Surface = '1 Mặt' THEN (
+                                  -- SMT 1 mặt -> Quantity * tổng các giá trị liên quan tới Surface = '1 Mặt'
+                                  COALESCE((
+                                      SELECT d.Quantity
+                                      FROM PlanManufacture d
+                                      WHERE d.id = a.PlanID
+                                  ), 0) *
+                                  COALESCE((
+                                      SELECT COUNT(*)
+                                      FROM ManufactureSMT s 
+                                      WHERE s.HistoryID IN (
+                                          SELECT id FROM Summary 
+                                          WHERE PlanID = a.PlanID AND Surface = '1 Mặt'
+                                      )
+                                      AND s.Source IN ('source_2', 'source_4')
+                                  ), 0)
+                              )
+
+                              ELSE (
+                                  -- SMT 2 mặt: lấy min(TOP, BOTTOM)
+                                  COALESCE((
+                                      SELECT d.Quantity
+                                      FROM PlanManufacture d
+                                      WHERE d.id = a.PlanID
+                                  ), 0) *
+                                  CASE 
+                                      WHEN (
+                                          SELECT COUNT(*)
+                                          FROM ManufactureSMT s
+                                          WHERE s.HistoryID = a.id
+                                              AND s.Source IN ('source_2', 'source_4')
+                                      ) > (
+                                          SELECT COUNT(*)
+                                          FROM ManufactureSMT s
+                                          WHERE s.HistoryID = a.id
+                                              AND s.Source IN ('source_2', 'source_4')
+                                      ) THEN (
+                                          SELECT COUNT(*)
+                                          FROM ManufactureSMT s
+                                          WHERE s.HistoryID = a.id
+                                              AND s.Source IN ('source_2', 'source_4')
+                                      )
+                                      ELSE (
+                                          SELECT COUNT(*)
+                                          FROM ManufactureSMT s
+                                          WHERE s.HistoryID = a.id
+                                              AND s.Source IN ('source_2', 'source_4')
+                                      )
+                                  END
+                              )
+                          END
+                      )
+
+                      ELSE (
+                          -- Loại khác: PASS = số bản ghi status pass
+                          COALESCE((
+                              SELECT SUM(CASE WHEN m.Status = 'pass' THEN 1 ELSE 0 END)
+                              FROM ManufactureCounting m
+                              WHERE m.HistoryID IN (
+                                  SELECT id FROM Summary 
+                                  WHERE PlanID = a.PlanID AND Type = a.Type AND Surface = a.Surface
+                              )
+                          ), 0)
+                      )
+                  END AS Quantity_Pass,
+
+                  -- FAIL 
+                  COALESCE((
+                      SELECT SUM(CASE WHEN m.Status = 'fail' THEN 1 ELSE 0 END)
+                      FROM ManufactureCounting m 
+                      WHERE m.HistoryID IN (
+                          SELECT id FROM Summary 
+                          WHERE PlanID = a.PlanID AND Type = a.Type AND Surface = a.Surface
+                      )
+                  ), 0) AS Quantity_Fail,
+
+                  -- RW 
+                  COALESCE((
+                      SELECT SUM(CASE WHEN m.TimestampRW IS NOT NULL AND m.TimestampRW <> '' THEN 1 ELSE 0 END)
+                      FROM ManufactureCounting m 
+                      WHERE m.HistoryID IN (
+                          SELECT id FROM Summary 
+                          WHERE PlanID = a.PlanID AND Type = a.Type AND Surface = a.Surface
+                      )
+                  ), 0) AS Quantity_RW,
+
+                  -- Tổng số SummaryID
+                  COUNT(DISTINCT a.id) AS Total_Summary_ID,
+
+                  -- SMT TOP
+                  CASE 
+                      WHEN a.Surface = '1 Mặt' THEN 0
+                      WHEN a.Surface = 'TOP' THEN 
+                          COALESCE((
+                              SELECT d.Quantity
+                              FROM PlanManufacture d
+                              WHERE d.id = a.PlanID
+                          ), 0) *
+                          COALESCE((
+                              SELECT COUNT(*)
+                              FROM ManufactureSMT s 
+                              WHERE s.HistoryID IN (
+                                  SELECT id FROM Summary 
+                                  WHERE PlanID = a.PlanID AND Surface = 'TOP'
+                              )
+                              AND s.Source IN ('source_2', 'source_4')
+                          ), 0)
+                      ELSE 0
+                  END AS SMT_Top_Quantity,
+
+                  -- SMT BOTTOM
+                  CASE 
+                      WHEN a.Surface = '1 Mặt' THEN 0
+                      WHEN a.Surface = 'BOTTOM' THEN 
+                          COALESCE((
+                              SELECT d.Quantity
+                              FROM PlanManufacture d
+                              WHERE d.id = a.PlanID
+                          ), 0) *
+                          COALESCE((
+                              SELECT COUNT(*)
+                              FROM ManufactureSMT s 
+                              WHERE s.HistoryID IN (
+                                  SELECT id FROM Summary 
+                                  WHERE PlanID = a.PlanID AND Surface = 'BOTTOM'
+                              )
+                              AND s.Source IN ('source_2', 'source_4')
+                          ), 0)
+                      ELSE 0
+                  END AS SMT_Bottom_Quantity
+
+              FROM Summary a
+              WHERE a.PlanID = ?
+              GROUP BY a.Type, CASE WHEN a.Surface = '1 Mặt' THEN NULL ELSE a.Surface END
+              ORDER BY a.Type, a.Surface`;
+
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("ManufactureSummaryError", err);
           socket.emit("ManufactureSummaryData", rows);
@@ -921,10 +1111,11 @@ io.on("connection", (socket) => {
       } catch (error) {
         socket.emit("ManufactureSummaryError", error);
       }
-    }),
-    socket.on("getCompareSummary", async (endDay) => {
-      try {
-        const query = `
+    });
+
+  socket.on("getCompareSummary", async (endDay) => {
+    try {
+      const query = `
                     WITH TodayData AS (
                       SELECT
                         COUNT(DISTINCT a.PONumber) AS Today_Total_PONumber,
@@ -960,18 +1151,18 @@ io.on("connection", (socket) => {
                     FROM TodayData T CROSS JOIN YesterdayData Y;
                   `;
 
-        db.all(query, [endDay, endDay], (err, rows) => {
-          if (err) return socket.emit("CompareSummaryError", err.message);
-          socket.emit("CompareSummaryData", rows);
-        });
-      } catch (error) {
-        socket.emit("CompareSummaryError", error.message);
-      }
-    });
+      db.all(query, [endDay, endDay], (err, rows) => {
+        if (err) return socket.emit("CompareSummaryError", err.message);
+        socket.emit("CompareSummaryData", rows);
+      });
+    } catch (error) {
+      socket.emit("CompareSummaryError", error.message);
+    }
+  });
 
-    socket.on("getSummaryFail", async (id) => {
-      try {
-        const query = `SELECT 
+  socket.on("getSummaryFail", async (id) => {
+    try {
+      const query = `SELECT 
                           id,
                           PartNumber,
                           Type,
@@ -988,15 +1179,14 @@ io.on("connection", (socket) => {
                           strftime('%Y-%m-%d', Timestamp, 'unixepoch', '+7 hours') = ?
                           AND Status = 'fail'
                         ORDER BY Timestamp DESC;`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("SummaryFail", err);
-          socket.emit("SummaryFailData", rows);
-        });
-      } catch (error) {
-        socket.emit("SummaryFailError", error);
-      }
-    }),
-
+      db.all(query, [id], (err, rows) => {
+        if (err) return socket.emit("SummaryFail", err);
+        socket.emit("SummaryFailData", rows);
+      });
+    } catch (error) {
+      socket.emit("SummaryFailError", error);
+    }
+  }),
     socket.on("getManufactureFail", async (id) => {
       try {
         const query = `SELECT 
@@ -1024,10 +1214,9 @@ io.on("connection", (socket) => {
         socket.emit("ManufactureFailError", error);
       }
     }),
-
-  socket.on("getHistory", async (id) => {
-    try {
-      const query = `SELECT 
+    socket.on("getHistory", async (id) => {
+      try {
+        const query = `SELECT 
                           a.id,
                           a.Type,
                           a.Category,
@@ -1086,14 +1275,14 @@ io.on("connection", (socket) => {
                           a.Created_At
                       ORDER BY a.id DESC;
                       `;
-      db.all(query, [id], (err, rows) => {
-        if (err) return socket.emit("HistoryError", err);
-        socket.emit("HistoryData", rows);
-      });
-    } catch (error) {
-      socket.emit("HistoryError", error);
-    }
-  }),
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("HistoryError", err);
+          socket.emit("HistoryData", rows);
+        });
+      } catch (error) {
+        socket.emit("HistoryError", error);
+      }
+    }),
     socket.on("getHistoryPart", async (id) => {
       try {
         const query = `
@@ -2964,7 +3153,7 @@ app.delete("/api/Project/Customer/Delete-Item/:id", async (req, res) => {
         .status(500)
         .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
     }
-    io.emit("updateDetailProjectPO", id );
+    io.emit("updateDetailProjectPO", id);
     // Broadcast the new message to all clients
     res.json({ message: "Đã cập nhật dữ liệu thành công" });
   });
@@ -3509,10 +3698,9 @@ app.post("/api/PlanManufacture/Add", async (req, res) => {
     Level,
     Quantity,
     ProjectID,
-    Timestamp
+    Timestamp,
   } = req.body;
   const LevelCleaned = Array.isArray(Level) ? Level.join("-") : String(Level); // fallback nếu không phải mảng
-
 
   // 🔥 Convert YYYY-MM-DD → Unix timestamp (seconds)
   let Timestamps = null;
@@ -3606,7 +3794,17 @@ app.put("/api/PlanManufacture/Edit/:id", async (req, res) => {
     `;
   db.run(
     query,
-    [Name, Timestamps, Creater, Note, Total, DelaySMT, LevelCleaned, Quantity, id],
+    [
+      Name,
+      Timestamps,
+      Creater,
+      Note,
+      Total,
+      DelaySMT,
+      LevelCleaned,
+      Quantity,
+      id,
+    ],
     function (err) {
       if (err) {
         return res
@@ -3883,13 +4081,19 @@ app.get("/api/devices", (req, res) => {
   });
 });
 
-
-
-
 app.post("/api/ManufactureCounting", (req, res) => {
-  let { PartNumber, HistoryID, Status, GroupFail, Note, PlanID, Type, Quantity } = req.body;
+  let {
+    PartNumber,
+    HistoryID,
+    Status,
+    GroupFail,
+    Note,
+    PlanID,
+    Type,
+    Quantity,
+  } = req.body;
 
-  Quantity = Number(Quantity) || 1;  // Mặc định = 1
+  Quantity = Number(Quantity) || 1; // Mặc định = 1
 
   const Timestamp = Math.floor(Date.now() / 1000);
 
@@ -3906,7 +4110,7 @@ app.post("/api/ManufactureCounting", (req, res) => {
       let finalPartNumber =
         !PartNumber || String(PartNumber).trim() === ""
           ? nanoid(10)
-          : PartNumber;  // Nếu user nhập thì giữ nguyên
+          : PartNumber; // Nếu user nhập thì giữ nguyên
 
       stmt.run([
         finalPartNumber,
@@ -3930,7 +4134,7 @@ app.post("/api/ManufactureCounting", (req, res) => {
       io.emit("UpdateManufactureSummary", { PlanID, Type });
       io.emit("UpdateManufactureRW", { PlanID, Type });
       io.emit("UpdateSummaryFail");
-      io.emit("updateManufactureDetails");
+      io.emit("updateManufactureDetails", PlanID);
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
       io.emit("UpdateSummary");
@@ -3948,7 +4152,7 @@ app.post("/api/ManufactureCounting", (req, res) => {
 // Update value status fixed in ManufactureCounting table
 app.put("/api/ManufactureCounting/Edit-status-fixed/:id", (req, res) => {
   const { id } = req.params;
-  const { PlanID, Type } = req.body
+  const { PlanID, Type } = req.body;
   db.run(
     `UPDATE ManufactureCounting
       SET Status='pass', Status_Fixed = 'fixed'
@@ -3959,7 +4163,7 @@ app.put("/api/ManufactureCounting/Edit-status-fixed/:id", (req, res) => {
       io.emit("UpdateManufactureCounting");
       io.emit("UpdateHistoryFiltered", { PlanID, Type });
       io.emit("UpdateManufactureSummary", { PlanID, Type });
-      io.emit("UpdateManufactureRW", { PlanID, Type })
+      io.emit("UpdateManufactureRW", { PlanID, Type });
       io.emit("updateManufactureDetails");
       io.emit("UpdateHistory");
       io.emit("updateHistoryPart");
@@ -3984,15 +4188,15 @@ app.delete("/api/ManufactureCounting/Delete-item-history/:id", (req, res) => {
         .status(500)
         .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
     }
-      io.emit("UpdateManufactureCounting");
-      io.emit("UpdateHistoryFiltered", { PlanID, Type });
-      io.emit("UpdateManufactureSummary", { PlanID, Type });
-      io.emit("updateManufactureDetails");
-      io.emit("UpdateHistory");
-      io.emit("updateHistoryPart");
-      io.emit("UpdateSummary");
-      io.emit("ActivedUpdate");
-      io.emit("updateDetailProjectPO");
+    io.emit("UpdateManufactureCounting");
+    io.emit("UpdateHistoryFiltered", { PlanID, Type });
+    io.emit("UpdateManufactureSummary", { PlanID, Type });
+    io.emit("updateManufactureDetails");
+    io.emit("UpdateHistory");
+    io.emit("updateHistoryPart");
+    io.emit("UpdateSummary");
+    io.emit("ActivedUpdate");
+    io.emit("updateDetailProjectPO");
     res.json({ message: "Đã xoá dữ liệu sản xuất thành công" });
   });
 });
@@ -4069,11 +4273,11 @@ app.post("/api/ManufactureSMT", (req, res) => {
     for (const src of sourcesToInsert) {
       for (let i = 0; i < Quantity; i++) {
         stmt.run([
-          1,              // PartNumber mặc định
+          1, // PartNumber mặc định
           HistoryID,
           Timestamp,
           PlanID,
-          src             // Insert source được xác định
+          src, // Insert source được xác định
         ]);
       }
     }
@@ -4099,8 +4303,6 @@ app.post("/api/ManufactureSMT", (req, res) => {
     });
   });
 });
-
-
 
 // Update value active stopped in table Summary line 1
 app.put("/api/Summary/Edit-item-action-stopped-line1", (req, res) => {
@@ -4165,7 +4367,7 @@ app.post("/api/Summary/Add-item", (req, res) => {
     Time_Plan,
     Note,
     Timestamp,
-    Surface
+    Surface,
   } = req.body;
   let Timestamps = null;
   if (Timestamp) {
@@ -4192,7 +4394,7 @@ app.post("/api/Summary/Add-item", (req, res) => {
       Time_Plan,
       Note,
       Timestamps,
-      Surface
+      Surface,
     ],
     (err) => {
       if (err) {
@@ -4281,10 +4483,7 @@ app.put("/api/Summary/Edit-item/:id", (req, res) => {
 // Router delete item in Summary table
 app.delete("/api/Summary/Delete-item/:id", async (req, res) => {
   const { id } = req.params;
-  const {
-    Type,
-    PlanID
-  } = req.query;
+  const { Type, PlanID } = req.query;
 
   // Insert data into SQLite database
   const query = `

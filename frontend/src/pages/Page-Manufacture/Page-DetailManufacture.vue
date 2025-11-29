@@ -51,7 +51,7 @@
           <v-col cols="12" md="4">
             <v-card class="rounded-xl" color="warning" variant="tonal">
               <v-card-text>
-                <div class="text-subtitle-1">Hàng lỗi</div>
+                <div class="text-subtitle-1">Tổng hàng lỗi</div>
                 <div class="text-h4 font-weight-bold">
                   {{ totalError }}
                 </div>
@@ -137,57 +137,137 @@
                 >
                 <v-divider width="200px"></v-divider>
                 <v-card-text>
-                  <div v-if="Quantity_Detail_Title === 'SMT'">
-                    <div class="d-flex">
-                      <h1 class="text-info">Top:</h1>
-                      <h1 class="ms-2 font-weight-light">
-                        {{ SMT_Top_Pass }} pcs
-                      </h1>
-                    </div>
-                    <div class="d-flex">
-                      <h1 class="text-error">Bottom:</h1>
-                      <h1 class="ms-2 font-weight-light">
-                        {{ SMT_Bottom_Pass }} pcs
-                      </h1>
-                    </div>
-                    <div class="d-flex">
-                      <h1 class="text-success">Tổng:</h1>
-                      <h1 class="ms-2 font-weight-light">
-                        {{ Quantity_Detail_Pass }} pcs
-                      </h1>
-                    </div>
-                    <div class="d-flex">
-                      <h1 class="text-warning">Còn lại:</h1>
-                      <h1 class="ms-2 font-weight-light">
-                        {{ totalInput - Quantity_Detail_Pass }} pcs
-                      </h1>
-                    </div>
+                  <div v-if="Quantity_Detail_Title === 'SMT'" :key="Quantity_Detail_Title">
+                    <v-row dense>
+                      <v-col cols="6">
+                        <v-card class="pa-3 rounded-xl elevation-2">
+                          <div class="d-flex align-center">
+                            <v-icon color="info" size="32"
+                              >mdi-arrow-collapse-up</v-icon
+                            >
+                            <div class="ms-3">
+                              <div class="text-grey text-caption">Top</div>
+                              <div class="text-h5 font-weight-bold">
+                                {{ SMT_Top_Pass }}
+                              </div>
+                            </div>
+                          </div>
+                        </v-card>
+                      </v-col>
+
+                      <v-col cols="6">
+                        <v-card class="pa-3 rounded-xl elevation-2">
+                          <div class="d-flex align-center">
+                            <v-icon color="error" size="32"
+                              >mdi-arrow-collapse-down</v-icon
+                            >
+                            <div class="ms-3">
+                              <div class="text-grey text-caption">Bottom</div>
+                              <div class="text-h5 font-weight-bold">
+                                {{ SMT_Bottom_Pass }}
+                              </div>
+                            </div>
+                          </div>
+                        </v-card>
+                      </v-col>
+
+                      <v-col cols="6">
+                        <v-card class="pa-3 rounded-xl elevation-2">
+                          <div class="d-flex align-center">
+                            <v-icon color="success" size="32"
+                              >mdi-check-circle</v-icon
+                            >
+                            <div class="ms-3">
+                              <div class="text-grey text-caption">Tổng</div>
+                              <div class="text-h5 font-weight-bold">
+                                {{ Quantity_Detail_Pass }}
+                              </div>
+                            </div>
+                          </div>
+                        </v-card>
+                      </v-col>
+
+                      <v-col cols="6">
+                        <v-card class="pa-3 rounded-xl elevation-2">
+                          <div class="d-flex align-center">
+                            <v-icon color="warning" size="32"
+                              >mdi-alert-circle</v-icon
+                            >
+                            <div class="ms-3">
+                              <div class="text-grey text-caption">Còn lại</div>
+                              <div class="text-h5 font-weight-bold">
+                                {{ totalInput - Quantity_Detail_Pass }}
+                              </div>
+                            </div>
+                          </div>
+                        </v-card>
+                      </v-col>
+                    </v-row>
                   </div>
                   <div v-else>
-                    <div class="d-flex">
-                      <h1 class="text-success">Pass:</h1>
-                      <h1 class="ms-2 font-weight-light">
-                        {{ Quantity_Detail_Pass }} pcs
-                      </h1>
-                    </div>
-                    <div class="d-flex">
-                      <h1 class="text-error">Fail:</h1>
-                      <h1 class="ms-2 font-weight-light">
-                        {{ Quantity_Detail_Fail }} pcs
-                      </h1>
-                    </div>
-                    <div class="d-flex">
-                      <h1 class="text-info">Đã sửa:</h1>
-                      <h1 class="ms-2 font-weight-light">
-                        {{ Quantity_Detail_Fixed }} pcs
-                      </h1>
-                    </div>
-                    <div class="d-flex">
-                      <h1 class="text-warning">Còn lại:</h1>
-                      <h1 class="ms-2 font-weight-light">
-                        {{ Quantity_Detail_Remain }} pcs
-                      </h1>
-                    </div>
+                    <v-row dense>
+                      <v-col cols="6">
+                        <v-card class="pa-3 rounded-xl elevation-2">
+                          <div class="d-flex align-center">
+                            <v-icon color="success" size="32"
+                              >mdi-check-decagram</v-icon
+                            >
+                            <div class="ms-3">
+                              <div class="text-grey text-caption">Pass</div>
+                              <div class="text-h5 font-weight-bold">
+                                {{ Quantity_Detail_Pass }}
+                              </div>
+                            </div>
+                          </div>
+                        </v-card>
+                      </v-col>
+
+                      <v-col cols="6">
+                        <v-card class="pa-3 rounded-xl elevation-2">
+                          <div class="d-flex align-center">
+                            <v-icon color="error" size="32"
+                              >mdi-close-circle</v-icon
+                            >
+                            <div class="ms-3">
+                              <div class="text-grey text-caption">Fail</div>
+                              <div class="text-h5 font-weight-bold">
+                                {{ manufactureRW.length || 0 }}
+                              </div>
+                            </div>
+                          </div>
+                        </v-card>
+                      </v-col>
+
+                      <v-col cols="6">
+                        <v-card class="pa-3 rounded-xl elevation-2">
+                          <div class="d-flex align-center">
+                            <v-icon color="info" size="32">mdi-wrench</v-icon>
+                            <div class="ms-3">
+                              <div class="text-grey text-caption">Đã sửa</div>
+                              <div class="text-h5 font-weight-bold">
+                                {{ manufactureRW.filter((item) => item.Status === 'fixed').length || 0 }}
+                              </div>
+                            </div>
+                          </div>
+                        </v-card>
+                      </v-col>
+
+                      <v-col cols="6">
+                        <v-card class="pa-3 rounded-xl elevation-2">
+                          <div class="d-flex align-center">
+                            <v-icon color="warning" size="32"
+                              >mdi-timer-sand</v-icon
+                            >
+                            <div class="ms-3">
+                              <div class="text-grey text-caption">Còn lại</div>
+                              <div class="text-h5 font-weight-bold">
+                                {{ Quantity_Detail_Remain }}
+                              </div>
+                            </div>
+                          </div>
+                        </v-card>
+                      </v-col>
+                    </v-row>
                   </div>
                 </v-card-text>
               </v-col>
@@ -713,7 +793,6 @@
                   :items="['TOP', 'BOTTOM', '1 Mặt']"
                   hint="Lựa chọn bề mặt phù hợp"
                   v-model="Surface_Add"
-                  :disabled="Type_Add != 'SMT'"
                   :rules="requiredRuleEmpty"
                 />
               </v-col>
@@ -809,7 +888,6 @@
                 :items="['TOP', 'BOTTOM', '1 Mặt']"
                 hint="Lựa chọn bề mặt phù hợp"
                 v-model="Surface_Edit"
-                :disabled="Type_Edit != 'SMT'"
                 :rules="requiredRuleEmpty"
               />
             </v-col>
@@ -951,6 +1029,7 @@ import {
 import axios from "axios";
 import { useRoute, useRouter } from "vue-router";
 import { shallowRef, toRef } from "vue";
+import { debounce } from "lodash-es";
 import Chart from "chart.js/auto";
 import { useDisplay } from "vuetify";
 import InputSearch from "@/components/Input-Search.vue";
@@ -1069,7 +1148,7 @@ const Quantity_Plan_Add = ref("");
 const CycleTime_Add = ref("");
 const Note_Add = ref("");
 const Date_DetailManufacture_Add = ref("");
-const Surface_Add = ref("");
+const Surface_Add = ref("1 Mặt");
 
 // ===== FORM EDIT =====
 const Type_Edit = ref("");
@@ -1245,9 +1324,9 @@ watch(
     // ✅ Sinh mảng object công đoạn tương ứng
     levelArray.value = levels.map((step, index) => ({
       Type: step,
-      Quantity_Pass: 0,
-      Quantity_Fail: 0,
-      Quantity_RW: 0,
+      Quantity_Pass: data.Quantity_Pass || 0,
+      Quantity_Fail: data.Quantity_Error || 0,
+      Quantity_RW: data.Quantity_RW || 0,
       Total_Summary_ID: index + 1,
     }));
 
@@ -1276,9 +1355,36 @@ watch(
 watch(
   manufactureSummary,
   (newValue) => {
+    // Gộp 2 dòng SMT thành 1
+    let mergedValue = newValue;
+    if (newValue && Array.isArray(newValue)) {
+      const smtTop = newValue.find(
+        (v) => v.Type === "SMT" && v.Surface === "TOP"
+      );
+      const smtBottom = newValue.find(
+        (v) => v.Type === "SMT" && v.Surface === "BOTTOM"
+      );
+
+      if (smtTop && smtBottom) {
+        const mergedSMT = {
+          Type: "SMT",
+          Surface: null,
+          Quantity_Pass: smtTop.Quantity_Pass || 0,
+          Quantity_Fail: smtTop.Quantity_Fail || smtBottom.Quantity_Fail || 0,
+          Quantity_RW: smtTop.Quantity_RW || smtBottom.Quantity_RW || 0,
+          Total_Summary_ID:
+            (smtTop.Total_Summary_ID || 0) + (smtBottom.Total_Summary_ID || 0),
+          SMT_Top_Quantity: smtTop.SMT_Top_Quantity || 0,
+          SMT_Bottom_Quantity: smtBottom.SMT_Bottom_Quantity || 0,
+        };
+        mergedValue = newValue.filter((v) => !(v.Type === "SMT"));
+        mergedValue.push(mergedSMT);
+      }
+    }
+
     // Duyệt từng phần tử trong levelArray để cập nhật giá trị tương ứng
     levelArray.value = levelArray.value.map((lvl) => {
-      const match = newValue.find((item) => item.Type === lvl.Type);
+      const match = mergedValue.find((item) => item.Type === lvl.Type);
 
       // Nếu tìm thấy bản ghi tương ứng trong manufactureSummary
       if (match) {
@@ -1294,6 +1400,7 @@ watch(
       // Nếu không có dữ liệu thống kê tương ứng, giữ nguyên
       return lvl;
     });
+
     const resetValues = () => {
       Quantity_Detail_Pass.value = 0;
       Quantity_Detail_Fail.value = 0;
@@ -1312,14 +1419,18 @@ watch(
       ];
     };
 
-    if (!newValue || !Array.isArray(newValue) || newValue.length === 0) {
+    if (
+      !mergedValue ||
+      !Array.isArray(mergedValue) ||
+      mergedValue.length === 0
+    ) {
       resetValues();
       return;
     }
 
     // ✅ Chỉ cập nhật dữ liệu tương ứng với màn hình đang xem
     const currentType = Quantity_Detail_Title.value;
-    const found = newValue.find((x) => x.Type === currentType);
+    const found = mergedValue.find((x) => x.Type === currentType);
 
     if (!found) {
       resetValues();
@@ -1327,9 +1438,39 @@ watch(
     }
 
     if (currentType === "SMT") {
-      Quantity_Detail_Pass.value = totalSMT_1.value + totalSMT_2.value;
+      Quantity_Detail_Pass.value = found.Quantity_Pass || 0;
+      Quantity_Detail_Fail.value = found.Quantity_Fail || 0;
       SMT_Top_Pass.value = found.SMT_Top_Quantity || 0;
       SMT_Bottom_Pass.value = found.SMT_Bottom_Quantity || 0;
+
+      const remain = Math.max(
+        0,
+        totalInput.value -
+          (Quantity_Detail_Pass.value + Quantity_Detail_Fail.value)
+      );
+      Quantity_Detail_Remain.value = remain;
+
+      const round1 = (num) => Number(num.toFixed(1));
+
+      const Percent_Pass = round1(
+        (Quantity_Detail_Pass.value / totalInput.value) * 100
+      );
+      const Percent_Fail = round1(
+        (Quantity_Detail_Fail.value / totalInput.value) * 100
+      );
+      const Percent_Remain = round1((remain / totalInput.value) * 100);
+
+      VPieData.value = [
+        { key: 1, title: "Pass", value: Percent_Pass, color: "#72c789" },
+        { key: 2, title: "Fail", value: Percent_Fail, color: "#d43d51" },
+        {
+          key: 3,
+          title: "Còn lại",
+          value: Percent_Remain,
+          color: "rgba(var(--v-theme-on-surface), .2)",
+          pattern: "url(#pattern-0)",
+        },
+      ];
     } else {
       const pass = found.Quantity_Pass || 0;
       const fail = found.Quantity_Fail || 0;
@@ -1516,7 +1657,39 @@ const GetDetailProgress = async (item) => {
     return router.push(`/San-xuat/RW/${route.params.id}`);
   }
   router.push(`/San-xuat/Chi-tiet/${route.params.id}?Type=${item}`);
-  const found = manufactureSummary.value.find((v) => v.Type === item);
+
+  // Gộp 2 dòng SMT thành 1
+  let manufactureSummaryMerged = manufactureSummary.value;
+
+  if (item === "SMT") {
+    const smtTop = manufactureSummary.value.find(
+      (v) => v.Type === "SMT" && v.Surface === "TOP"
+    );
+    const smtBottom = manufactureSummary.value.find(
+      (v) => v.Type === "SMT" && v.Surface === "BOTTOM"
+    );
+
+    if (smtTop && smtBottom) {
+      // Gộp 2 dòng thành 1
+      const mergedSMT = {
+        Type: "SMT",
+        Surface: null,
+        Quantity_Pass: smtTop.Quantity_Pass || 0,
+        Quantity_Fail: smtTop.Quantity_Fail || smtBottom.Quantity_Fail || 0,
+        Quantity_RW: smtTop.Quantity_RW || smtBottom.Quantity_RW || 0,
+        Total_Summary_ID:
+          (smtTop.Total_Summary_ID || 0) + (smtBottom.Total_Summary_ID || 0),
+        SMT_Top_Quantity: smtTop.SMT_Top_Quantity || 0,
+        SMT_Bottom_Quantity: smtBottom.SMT_Bottom_Quantity || 0,
+      };
+      manufactureSummaryMerged = manufactureSummary.value.filter(
+        (v) => !(v.Type === "SMT")
+      );
+      manufactureSummaryMerged.push(mergedSMT);
+    }
+  }
+
+  const found = manufactureSummaryMerged.find((v) => v.Type === item);
   const found_Fail = manufactureRW.value.filter((v) => v.Type === item);
   Manufacture_Fail.value = found_Fail;
   Type_Add.value = item;
@@ -1543,15 +1716,21 @@ const GetDetailProgress = async (item) => {
         pattern: "url(#pattern-0)",
       },
     ];
-    return; // ✅ Quan trọng: thoát luôn để không xử lý tiếp
+    return;
   }
 
-  // ✅ Đoạn này chỉ chạy khi found có dữ liệu
   Quantity_Detail_Pass.value = found.Quantity_Pass || 0;
   Quantity_Detail_Fail.value = found.Quantity_Fail || 0;
   Quantity_Detail_Fixed.value = found.Quantity_Fixed || 0;
-  SMT_Top_Pass.value = found.SMT_Top_Quantity || 0;
-  SMT_Bottom_Pass.value = found.SMT_Bottom_Quantity || 0;
+
+  // Khi là SMT, lấy cả TOP và BOTTOM
+  if (found.Type === "SMT") {
+    SMT_Top_Pass.value = found.SMT_Top_Quantity || 0;
+    SMT_Bottom_Pass.value = found.SMT_Bottom_Quantity || 0;
+  } else {
+    SMT_Top_Pass.value = 0;
+    SMT_Bottom_Pass.value = 0;
+  }
 
   const remain =
     totalInput.value -
