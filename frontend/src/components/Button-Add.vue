@@ -3,7 +3,7 @@
     prepend-icon="mdi mdi-plus"
     variant="tonal"
     color="primary"
-    class="text-caption ms-2"
+    class="text-caption ms-2 "
     @click="emitAdd()"
     >Thêm</v-btn
   >

@@ -12,7 +12,7 @@
       </v-card-title>
 
       <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
-        <v-icon icon="mdi mdi-tools" color="primary" size="large"></v-icon>
+        <v-icon icon="mdi mdi-tools" color="primary"></v-icon> &nbsp;
         <v-breadcrumbs
           :items="[`${NameManufacture}`, `${Name_Order}`, `${Type_Manufacture}`, `${Name_Category}`]"
         >
@@ -26,71 +26,93 @@
         <!-- Production Statistics Cards -->
         <v-row class="mb-4">
           <v-col cols="12" sm="3">
-            <v-card class="rounded-xl" color="primary" variant="tonal">
-              <v-card-text>
-                <div class="text-subtitle-1">Đầu vào</div>
-                <div class="text-h4 font-weight-bold">
-                  {{ totalInput }}
-                </div>
-                <div class="text-caption">Tổng số lượng đầu vào</div>
-              </v-card-text>
-            </v-card>
+            <CardStatistic
+              title="Đầu vào"
+              :value="totalInput"
+              icon="mdi-import"
+              color="primary"
+              subtitle="Tổng số lượng đầu vào"
+            />
           </v-col>
           <v-col cols="12" sm="3">
-            <v-card class="rounded-xl" color="success" variant="tonal">
-              <v-card-text>
-                <div class="text-subtitle-1">Đầu ra</div>
-                <div class="text-h4 font-weight-bold">
-                  {{ totalOutput }}
+            <CardStatistic
+              title="Đầu ra"
+              :value="totalOutput"
+              icon="mdi-check-circle"
+              color="success"
+            >
+              <template #value-append>
+                <div class="text-h6 font-weight-medium text-success mb-1">
+                  {{ PercentOutput }}%
                 </div>
+              </template>
+              <template #bottom>
                 <v-progress-linear
                   v-model="PercentOutput"
-                  height="20"
-                  class="rounded-lg"
-                >
-                  <strong class="text-black">{{ PercentOutput }}%</strong>
-                </v-progress-linear>
-              </v-card-text>
-            </v-card>
+                  height="8"
+                  color="success"
+                  rounded
+                  class="mt-4"
+                  bg-color="success"
+                  bg-opacity="0.2"
+                ></v-progress-linear>
+              </template>
+            </CardStatistic>
           </v-col>
           <v-col cols="12" sm="3">
-            <v-card class="rounded-xl" color="warning" variant="tonal">
-              <v-card-text>
-                <div class="text-subtitle-1">Lỗi</div>
-                <div class="text-h4 font-weight-bold">
-                  {{ totalErrors }}
+            <CardStatistic
+              title="Lỗi"
+              :value="totalErrors"
+              icon="mdi-alert-circle"
+              color="warning"
+            >
+              <template #value-append>
+                <div class="text-h6 font-weight-medium text-warning mb-1">
+                  {{ PercentError }}%
                 </div>
+              </template>
+              <template #bottom>
                 <v-progress-linear
                   v-model="PercentError"
-                  height="20"
-                  class="rounded-lg"
-                >
-                  <strong class="text-black">{{ PercentError }}%</strong>
-                </v-progress-linear>
-              </v-card-text>
-            </v-card>
+                  height="8"
+                  color="warning"
+                  rounded
+                  class="mt-4"
+                  bg-color="warning"
+                  bg-opacity="0.2"
+                ></v-progress-linear>
+              </template>
+            </CardStatistic>
           </v-col>
           <v-col cols="12" sm="3">
-            <v-card class="rounded-xl" color="info" variant="tonal">
-              <v-card-text>
-                <div class="text-subtitle-1">Đã sửa</div>
-                <div class="text-h4 font-weight-bold">
-                  {{ totalFixed }}
+            <CardStatistic
+              title="Đã sửa"
+              :value="totalFixed"
+              icon="mdi-wrench"
+              color="info"
+            >
+              <template #value-append>
+                <div class="text-h6 font-weight-medium text-info mb-1">
+                  {{ PercentFixed }}%
                 </div>
+              </template>
+              <template #bottom>
                 <v-progress-linear
                   v-model="PercentFixed"
-                  height="20"
-                  class="rounded-lg"
-                >
-                  <strong class="text-black">{{ PercentFixed }}%</strong>
-                </v-progress-linear>
-              </v-card-text>
-            </v-card>
+                  height="8"
+                  color="info"
+                  rounded
+                  class="mt-4"
+                  bg-color="info"
+                  bg-opacity="0.2"
+                ></v-progress-linear>
+              </template>
+            </CardStatistic>
           </v-col>
         </v-row>
 
         <!-- Input Section -->
-        <v-card class="mb-4 rounded-lg" elevation="4" v-if="lgAndUp">
+        <v-card class="mb-4 rounded-xl border" variant="elevated" elevation="0" v-if="lgAndUp">
           <v-card-text>
             <v-row dense>
               <v-col cols="12" md="5">
@@ -154,7 +176,7 @@
         </v-card>
 
         <!-- Table -->
-        <v-card class="mt-4 rounded-lg" variant="text">
+        <v-card class="mt-4 rounded-xl border" variant="elevated" elevation="0">
           <v-card-title class="d-flex align-center">
             <span class="text-h6" v-if="lgAndUp">Bảng chi tiết sản xuất</span>
             <!-- Filter Select -->
@@ -478,6 +500,7 @@ import ButtonBack from "@/components/Button-Back.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";
+import CardStatistic from "@/components/Card-Statistic.vue";
 
 // ===== Constants & Configuration =====
 const Url = import.meta.env.VITE_API_URL;

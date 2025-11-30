@@ -266,13 +266,13 @@ const menuItems = computed(() => [
     to: "/Bao-cao-san-xuat",
     disabled: StatusOption_8.value,
   },
-  {
-    icon: "mdi-clipboard-list-outline",
-    title: "Danh sách công việc",
-    value: "ListWork",
-    to: "/Danh-sach-cong-viec",
-    disabled: StatusOption_11.value,
-  },
+  // {
+  //   icon: "mdi-clipboard-list-outline",
+  //   title: "Danh sách công việc",
+  //   value: "ListWork",
+  //   to: "/Danh-sach-cong-viec",
+  //   disabled: StatusOption_11.value,
+  // },
   {
     icon: "mdi-wrench-outline",
     title: "Bảo trì",

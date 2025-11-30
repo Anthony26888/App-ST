@@ -3,105 +3,96 @@
     <v-card-title class="text-h4 font-weight-light"
       >Danh sách đơn hàng
     </v-card-title>
-    <v-card-title>
+    <v-card-text>
       <v-row>
         <v-col cols="12" sm="4" md="4">
-          <v-card class="rounded-xl" color="primary" variant="tonal">
-            <v-card-text>
-              <div class="text-subtitle-1">Tổng số đơn hàng</div>
-              <div class="text-h4 font-weight-bold">
-                {{ orders?.length || 0 }}
-              </div>
-            </v-card-text>
-          </v-card>
+          <CardStatistic
+            title="Tổng số đơn hàng"
+            :value="orders?.length || 0"
+            color="primary"
+            icon="mdi-file-document-multiple"
+          />
         </v-col>
         <v-col cols="12" sm="4" md="4">
-          <v-card class="rounded-xl" color="success" variant="tonal">
-            <v-card-text>
-              <div class="text-subtitle-1">Đơn hàng đã xác nhận</div>
-              <div class="text-h4 font-weight-bold">
-                {{
-                  orders?.filter((p) => p.Status === '1').length || 0
-                }}
-              </div>
-            </v-card-text>
-          </v-card>
+          <CardStatistic
+            title="Đơn hàng đã xác nhận"
+            :value="orders?.filter((p) => p.Status === '1').length || 0"
+            color="success"
+            icon="mdi-check-circle"
+          />
         </v-col>
         <v-col cols="12" sm="4" md="4">
-          <v-card class="rounded-xl" color="warning" variant="tonal">
-            <v-card-text>
-              <div class="text-subtitle-1">Đơn hàng chưa xác nhận</div>
-              <div class="text-h4 font-weight-bold">
-                {{
-                  orders?.filter((p) => p.Status === '0').length ||
-                  0
-                }}
-              </div>
-            </v-card-text>
-          </v-card>
+          <CardStatistic
+            title="Đơn hàng chưa xác nhận"
+            :value="orders?.filter((p) => p.Status === '0').length || 0"
+            color="warning"
+            icon="mdi-clock-alert"
+          />
         </v-col>
       </v-row>
-    </v-card-title>
-    <v-card-title class="d-flex align-center pe-2">
-      <p class="text-subtitle-1 font-weight-thin text-subtitle-1">
-        {{ orders.length }} đơn hàng
-      </p>
-      <v-spacer></v-spacer>
-      <InputSearch v-model="search" />
-    </v-card-title>
-    <v-card-text v-if="orders.length > 0">
-      <v-data-table
-        :headers="Headers"
-        :items="orders"
-        :search="search"
-        :items-per-page="itemsPerPage"
-        class="elevation-1"
-        :footer-props="{
-          'items-per-page-options': [10, 20, 50, 100],
-          'items-per-page-text': 'Số hàng mỗi trang',
-        }"
-        :header-props="{
-          sortByText: 'Sắp xếp theo',
-          sortDescText: 'Giảm dần',
-          sortAscText: 'Tăng dần',
-        }"
-        :loading="DialogLoading"
-        loading-text="Đang tải dữ liệu..."
-        no-data-text="Không có dữ liệu"
-        no-results-text="Không tìm thấy kết quả"
-        :hover="true"
-        :dense="false"
-        :fixed-header="true"
-        height="calc(100vh - 330px)"
-      >
-        <template v-slot:item.id="{ value }">
-          <div class="d-flex">
-            <ButtonEye @detail="PushItem(value)" />
-            <ButtonRemove @remove="GetItem(value)" />
-          </div>
-        </template>
-        <template v-slot:item.Status="{ value }">
-          <div class="text-start">
-            <v-chip
-              :color="value == 1 ? 'green' : 'red'"
-              :text="value == 1 ? 'Kho đã xác nhận' : 'Chờ kho xác nhận'"
-              size="small"
-              label
-            ></v-chip>
-          </div>
-        </template>
-        <template v-slot:bottom>
-          <div class="text-center pt-2">
-            <v-pagination
-              v-model="page"
-              :length="Math.ceil(orders.length / itemsPerPage)"
-            ></v-pagination>
-          </div>
-        </template>
-      </v-data-table>
     </v-card-text>
-    <v-card-text v-else>
+    <v-card-text>
+      <v-card variant="elevated" elevation="0" class="rounded-xl border" v-if="orders.length > 0">
+        <v-card-title class="d-flex align-center pe-2">
+          <p class="text-subtitle-1 font-weight-thin text-subtitle-1">
+            {{ orders.length }} đơn hàng
+          </p>
+          <v-spacer></v-spacer>
+          <InputSearch v-model="search" />
+        </v-card-title>
+        <v-data-table
+          density="comfortable"
+          :headers="Headers"
+          :items="orders"
+          :search="search"
+          :items-per-page="itemsPerPage"
+          class="elevation-0"
+          :footer-props="{
+            'items-per-page-options': [10, 20, 50, 100],
+            'items-per-page-text': 'Số hàng mỗi trang',
+          }"
+          :header-props="{
+            sortByText: 'Sắp xếp theo',
+            sortDescText: 'Giảm dần',
+            sortAscText: 'Tăng dần',
+          }"
+          :loading="DialogLoading"
+          loading-text="Đang tải dữ liệu..."
+          no-data-text="Không có dữ liệu"
+          no-results-text="Không tìm thấy kết quả"
+          :hover="true"
+          :dense="false"
+          :fixed-header="true"
+          height="61vh"
+        >
+          <template v-slot:item.id="{ value }">
+            <div class="d-flex">
+              <ButtonEye @detail="PushItem(value)" />
+              <ButtonRemove @remove="GetItem(value)" />
+            </div>
+          </template>
+          <template v-slot:item.Status="{ value }">
+            <div class="text-start">
+              <v-chip
+                :color="value == 1 ? 'green' : 'red'"
+                :text="value == 1 ? 'Kho đã xác nhận' : 'Chờ kho xác nhận'"
+                size="small"
+                label
+              ></v-chip>
+            </div>
+          </template>
+          <template v-slot:bottom>
+            <div class="text-center pt-2">
+              <v-pagination
+                v-model="page"
+                :length="Math.ceil(orders.length / itemsPerPage)"
+              ></v-pagination>
+            </div>
+          </template>
+        </v-data-table>
+      </v-card>
       <v-empty-state
+        v-else
         headline="OPPS !"
         title="Chưa có dữ liệu"
         text="Hãy tạo đơn hàng mới"
@@ -112,8 +103,8 @@
 
   <EmptyMobile v-else />
 
-  <v-dialog v-model="DialogRemove" width="400" scrollable>
-    <v-card class="overflow-y-auto">
+  <v-dialog v-model="DialogRemove" width="400" scrollable class="rounded-xl">
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
         Xoá dữ liệu
@@ -145,7 +136,9 @@ import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonEye from "@/components/Button-Eye.vue";
-import EmptyMobile from "@/components/Empty-Mobile.vue"
+import ButtonRemove from "@/components/Button-Remove.vue";
+import EmptyMobile from "@/components/Empty-Mobile.vue";
+import CardStatistic from "@/components/Card-Statistic.vue";
 
 // ===== STATE MANAGEMENT =====
 // API Configuration

@@ -5,86 +5,99 @@
     >
     <v-card-text>
       <v-card variant="text">
-        <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
-          <ButtonImportFile @import-file="Dialog = true" />
-          <ButtonImportFile color="warning" class="ms-2" @import-file="DialogOutput = true" />
-          <ButtonAdd @click="DialogAdd = true" />
-          <ButtonDownload @download-file="DownloadWareHouse()" />
-          <p class="ms-2 font-weight-thin text-subtitle-1">
-            ( {{ warehouse2.length }} linh kiện)
-          </p>
-          <v-spacer></v-spacer>
-          <InputSearch v-model="search" />
-        </v-card-title>
-
-        <v-card-title class="d-flex align-center pe-2" v-else>
-          <InputSearch v-model="search" />
-        </v-card-title>
-
         <v-card-text class="overflow-auto">
-          <v-data-table
+          <v-card
+            variant="elevated"
+            elevation="0"
+            class="rounded-xl border"
             v-if="lgAndUp"
-            density="compact"
-            :headers="Headers"
-            :items="warehouse2"
-            :search="search"
-            :items-per-page="itemsPerPage"
-            v-model:page="page"
-            :loading="DialogLoading"
-            loading-text="Đang tải dữ liệu..."
-            no-data-text="Không có dữ liệu"
-            no-results-text="Không tìm thấy kết quả"
-            :hover="true"
-            :dense="false"
-            :fixed-header="true"
-            height="calc(100vh - 220px)"
           >
-            <template v-slot:bottom>
-              <div class="text-center pt-2">
-                <v-pagination
-                  v-model="page"
-                  :length="Math.ceil(warehouse2.length / itemsPerPage)"
-                ></v-pagination>
-              </div>
-            </template>
-            <template v-slot:item.id="{ value }">
-              <div>
-                <ButtonEdit @edit="GetItem(value)" v-if="LevelUser == 'Admin' || LevelUser == 'Thủ kho'" />
-                <ButtonSearch @search="getAccessToken(value)" />
-              </div>
-            </template>
-          </v-data-table>
+            <v-card-title class="d-flex align-center pe-2">
+              <ButtonImportFile @import-file="Dialog = true" />
+              <ButtonImportFile
+                color="warning"
+                class="ms-2"
+                @import-file="DialogOutput = true"
+              />
+              <ButtonAdd @click="DialogAdd = true" />
+              <ButtonDownload @download-file="DownloadWareHouse()" />
+              <p class="ms-2 font-weight-thin text-subtitle-1">
+                ( {{ warehouse2.length }} linh kiện)
+              </p>
+              <v-spacer></v-spacer>
+              <InputSearch v-model="search" />
+            </v-card-title>
+            <v-data-table
+              density="comfortable"
+              :headers="Headers"
+              :items="warehouse2"
+              :search="search"
+              :items-per-page="itemsPerPage"
+              v-model:page="page"
+              class="elevation-0"
+              :loading="DialogLoading"
+              loading-text="Đang tải dữ liệu..."
+              no-data-text="Không có dữ liệu"
+              no-results-text="Không tìm thấy kết quả"
+              :hover="true"
+              :dense="false"
+              :fixed-header="true"
+              height="76vh"
+            >
+              <template v-slot:bottom>
+                <div class="text-center pt-2">
+                  <v-pagination
+                    v-model="page"
+                    :length="Math.ceil(warehouse2.length / itemsPerPage)"
+                  ></v-pagination>
+                </div>
+              </template>
+              <template v-slot:item.id="{ value }">
+                <div>
+                  <ButtonEdit
+                    @edit="GetItem(value)"
+                    v-if="LevelUser == 'Admin' || LevelUser == 'Thủ kho'"
+                  />
+                  <ButtonSearch @search="getAccessToken(value)" />
+                </div>
+              </template>
+            </v-data-table>
+          </v-card>
 
-          <v-data-table-virtual
-            v-else
-            :headers="Headers"
-            :items="warehouse2"
-            :search="search"
-            :items-per-page="itemsPerPage"
-            v-model:page="page"
-            :loading="DialogLoading"
-            loading-text="Đang tải dữ liệu..."
-            no-data-text="Không có dữ liệu"
-            no-results-text="Không tìm thấy kết quả"
-            :hover="true"
-            :dense="false"
-            :fixed-header="true"
-            height="calc(100vh - 150px)"
-          >
-            <template v-slot:item.id="{ value }">
-              <div>
-                <ButtonEdit @edit="GetItem(value)" v-if="LevelUser == 'Admin' || LevelUser == 'Thủ kho'" />
-                <ButtonSearch @search="getAccessToken(value)" />
-              </div>
-            </template>
-          </v-data-table-virtual>
+          <div v-else>
+            <v-card-title class="d-flex align-center pe-2">
+              <InputSearch v-model="search" />
+            </v-card-title>
+            <v-data-table-virtual
+              :headers="Headers"
+              :items="warehouse2"
+              :search="search"
+              :items-per-page="itemsPerPage"
+              v-model:page="page"
+              :loading="DialogLoading"
+              loading-text="Đang tải dữ liệu..."
+              no-data-text="Không có dữ liệu"
+              no-results-text="Không tìm thấy kết quả"
+              :hover="true"
+              :dense="false"
+              :fixed-header="true"
+              height="calc(100vh - 150px)"
+            >
+              <template v-slot:item.id="{ value }">
+                <div>
+                  <ButtonEdit @edit="GetItem(value)" v-if="LevelUser == 'Admin' || LevelUser == 'Thủ kho'" />
+                  <ButtonSearch @search="getAccessToken(value)" />
+                </div>
+              </template>
+            </v-data-table-virtual>
+          </div>
         </v-card-text>
       </v-card>
     </v-card-text>
   </v-card>
 
-  <v-dialog v-model="DialogOutput" width="500">
-    <v-card max-width="500">
+  <v-dialog v-model="DialogOutput" width="600" class="rounded-xl">
+    <v-card max-width="600" color="#F5F5F5" class="rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-magnify" color="primary" class="me-2"></v-icon>
         Thêm dữ liệu trừ linh kiện
@@ -111,8 +124,8 @@
     </v-card>
   </v-dialog>
 
-  <v-dialog v-model="DialogPreview" width="1200">
-    <v-card max-width="1200">
+  <v-dialog v-model="DialogPreview" width="1200" class="rounded-xl">
+    <v-card max-width="1200" color="#F5F5F5" class="rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
         Kiểm tra dữ liệu sẽ trừ
@@ -186,8 +199,13 @@
     </v-card>
   </v-dialog>
 
-  <v-dialog v-model="Dialog" width="400">
-    <v-card max-width="400" prepend-icon="mdi-update" title="Thêm dữ liệu">
+  <v-dialog v-model="Dialog" width="400" class="rounded-xl">
+    <v-card
+      max-width="400"
+      prepend-icon="mdi-update"
+      title="Thêm dữ liệu"
+      class="rounded-xl"
+    >
       <v-card-text>
         <InputFiles abel="Thêm File Excel" v-model="File" />
       </v-card-text>
@@ -197,11 +215,8 @@
       </template>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogAdd" scrollable>
-    <v-card
-      width="600"
-      class="mx-auto overflow-y-auto"
-    >
+  <v-dialog v-model="DialogAdd" scrollable class="rounded-xl">
+    <v-card width="600" class="mx-auto overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
         Thêm linh kiện
@@ -238,11 +253,8 @@
     </v-card>
   </v-dialog>
 
-  <v-dialog v-model="DialogEdit" width="400" scrollable>
-    <v-card
-      width="600"
-      class="mx-auto overflow-y-auto"
-    >
+  <v-dialog v-model="DialogEdit" width="600" scrollable class="rounded-xl">
+    <v-card width="600" class="mx-auto overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
         Cập nhật dữ liệu
@@ -295,8 +307,8 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogRemove" width="400">
-    <v-card>
+  <v-dialog v-model="DialogRemove" width="400" class="rounded-xl">
+    <v-card class="rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
         Xóa linh kiện
@@ -316,8 +328,8 @@
     </v-card>
   </v-dialog>
 
-  <v-dialog v-model="DialogRemoveFile" width="400" scrollable>
-    <v-card class="overflow-y-auto">
+  <v-dialog v-model="DialogRemoveFile" width="400" scrollable class="rounded-xl">
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
         Xóa linh kiện cần trừ
@@ -337,8 +349,8 @@
     </v-card>
   </v-dialog>
 
-  <v-dialog v-model="DialogAgree" width="400" scrollable>
-    <v-card class="overflow-y-auto">
+  <v-dialog v-model="DialogAgree" width="400" scrollable class="rounded-xl">
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-check" color="success" class="me-2"></v-icon>
         Xác nhận trừ linh kiện
@@ -357,8 +369,8 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogInfo" width="800">
-    <v-card>
+  <v-dialog v-model="DialogInfo" width="800" scrollable class="rounded-xl">
+    <v-card class="rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-information-variant-circle" color="primary" class="me-2"></v-icon>
         Thông số kỹ thuật
@@ -440,6 +452,9 @@ import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
+import ButtonRemove from "@/components/Button-Remove.vue";
+import ButtonAdd from "@/components/Button-Add.vue";
+import ButtonAgree from "@/components/Button-Agree.vue";
 import ButtonSearch from "@/components/Button-Search.vue";
 import ButtonEdit from "@/components/Button-Edit.vue";
 import InputSearch from "@/components/Input-Search.vue";
@@ -553,11 +568,15 @@ const Note_Output_Add = ref("");
 // ===== DIGIKEY API STATES =====
 // States for DigiKey API integration
 const GetID = ref("");
+const GetIDRemove = ref("");
 const GetDigikey = ref("");
 const accessToken = ref(null);
 const tokenType = ref(null);
 const expires_in = ref(null);
 const ResultSearch = ref(null);
+
+// Additional state
+const searchFile = ref("");
 
 // ===== User Information =====
 const LevelUser = localStorage.getItem("LevelUser");
@@ -580,8 +599,16 @@ function GetItem(value) {
   Location_Edit.value = found.Location;
   Customer_Edit.value = found.Customer;
   Note_Edit.value = found.Note;
-  Note_Output_Edit.value = found.Note_Output_Edit;
+  Note_Edit.value = found.Note_Output_Edit;
 }
+
+/**
+ * Sets the ID for item removal
+ * @param {Object} item - The item to remove
+ */
+const GetRemove = (item) => {
+  GetIDRemove.value = item.id;
+};
 
 /**
  * Updates inventory count based on input and output values

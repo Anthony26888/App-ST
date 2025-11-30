@@ -3763,7 +3763,7 @@ app.post("/api/PlanManufacture/Add", async (req, res) => {
 // Router update item in PlanManufacture table
 app.put("/api/PlanManufacture/Edit/:id", async (req, res) => {
   const { id } = req.params;
-  const { Name, Timestamp, Creater, Note, Total, DelaySMT, Level, Quantity } =
+  const { Name, Name_Order, Timestamp, Creater, Note, Total, DelaySMT, Level, Quantity } =
     req.body;
   const LevelString = JSON.stringify(Level);
   const LevelCleaned = LevelString.replace(/[\[\]"]/g, "").replace(/,/g, "-");
@@ -3783,6 +3783,7 @@ app.put("/api/PlanManufacture/Edit/:id", async (req, res) => {
   const query = `
       UPDATE PlanManufacture 
       SET Name = ?, 
+          Name_Order = ?, 
           Date = ?, 
           Creater = ?, 
           Note = ?, 
@@ -3796,6 +3797,7 @@ app.put("/api/PlanManufacture/Edit/:id", async (req, res) => {
     query,
     [
       Name,
+      Name_Order,
       Timestamps,
       Creater,
       Note,

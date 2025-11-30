@@ -5,75 +5,81 @@
     >
     <v-card-text>
       <v-card variant="text">
-        <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
-          <ButtonImportFile @import-file="Dialog = true" />
-          <ButtonImportFile
-            color="warning"
-            class="ms-2"
-            @import-file="DialogOutput = true"
-          />
-          <ButtonAdd @click="DialogAdd = true" />
-          <ButtonDownload @download-file="DownloadWareHouse()" />
-          <ButtonHistoryExport
-            @history="DialogHistory = true"
-            v-if="LevelUser == 'Admin' || LevelUser == 'Thủ kho'"
-          />
-          <p class="ms-2 font-weight-thin text-subtitle-1">
-            ( {{ warehouse.length }} linh kiện)
-          </p>
-          <v-spacer></v-spacer>
-          <InputSearch v-model="search" />
-        </v-card-title>
-
-        <v-card-title class="d-flex align-center pe-2" v-else>
-          <InputSearch v-model="search" />
-        </v-card-title>
         <v-card-text class="overflow-auto">
-          <v-data-table
-            density="compact"
+          <v-card
+            variant="elevated"
+            elevation="0"
+            class="rounded-xl border"
             v-if="lgAndUp"
-            :headers="Headers"
-            :items="warehouse"
-            :search="search"
-            :items-per-page="itemsPerPage"
-            v-model:page="page"
-            class="elevation-1"
-            :footer-props="{
-              'items-per-page-options': [10, 20, 50, 100],
-              'items-per-page-text': 'Số hàng mỗi trang',
-            }"
-            :header-props="{
-              sortByText: 'Sắp xếp theo',
-              sortDescText: 'Giảm dần',
-              sortAscText: 'Tăng dần',
-            }"
-            :loading="DialogLoading"
-            loading-text="Đang tải dữ liệu..."
-            no-data-text="Không có dữ liệu"
-            no-results-text="Không tìm thấy kết quả"
-            :hover="true"
-            :dense="false"
-            :fixed-header="true"
-            height="calc(100vh - 220px)"
           >
-            <template v-slot:bottom>
-              <div class="text-center pt-2">
-                <v-pagination
-                  v-model="page"
-                  :length="Math.ceil(warehouse.length / itemsPerPage)"
-                ></v-pagination>
-              </div>
-            </template>
-            <template v-slot:item.id="{ value }">
-              <div>
-                <ButtonEdit
-                  @edit="GetItem(value)"
-                  v-if="LevelUser == 'Admin' || LevelUser == 'Thủ kho'"
-                />
-                <ButtonSearch @search="getAccessToken(value)" />
-              </div>
-            </template>
-          </v-data-table>
+            <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
+              <ButtonImportFile @import-file="Dialog = true" />
+              <ButtonImportFile
+                color="warning"
+                class="ms-2"
+                @import-file="DialogOutput = true"
+              />
+              <ButtonAdd @click="DialogAdd = true" />
+              <ButtonDownload @download-file="DownloadWareHouse()" />
+              <ButtonHistoryExport
+                @history="DialogHistory = true"
+                v-if="LevelUser == 'Admin' || LevelUser == 'Thủ kho'"
+              />
+              <p class="ms-2 font-weight-thin text-subtitle-1">
+                ( {{ warehouse.length }} linh kiện)
+              </p>
+              <v-spacer></v-spacer>
+              <InputSearch v-model="search" />
+            </v-card-title>
+
+            <v-card-title class="d-flex align-center pe-2" v-else>
+              <InputSearch v-model="search" />
+            </v-card-title>
+            <v-data-table
+              density="comfortable"
+              :headers="Headers"
+              :items="warehouse"
+              :search="search"
+              :items-per-page="itemsPerPage"
+              v-model:page="page"
+              class="elevation-0"
+              :footer-props="{
+                'items-per-page-options': [10, 20, 50, 100],
+                'items-per-page-text': 'Số hàng mỗi trang',
+              }"
+              :header-props="{
+                sortByText: 'Sắp xếp theo',
+                sortDescText: 'Giảm dần',
+                sortAscText: 'Tăng dần',
+              }"
+              :loading="DialogLoading"
+              loading-text="Đang tải dữ liệu..."
+              no-data-text="Không có dữ liệu"
+              no-results-text="Không tìm thấy kết quả"
+              :hover="true"
+              :dense="false"
+              :fixed-header="true"
+              height="76vh"
+            >
+              <template v-slot:bottom>
+                <div class="text-center pt-2">
+                  <v-pagination
+                    v-model="page"
+                    :length="Math.ceil(warehouse.length / itemsPerPage)"
+                  ></v-pagination>
+                </div>
+              </template>
+              <template v-slot:item.id="{ value }">
+                <div>
+                  <ButtonEdit
+                    @edit="GetItem(value)"
+                    v-if="LevelUser == 'Admin' || LevelUser == 'Thủ kho'"
+                  />
+                  <ButtonSearch @search="getAccessToken(value)" />
+                </div>
+              </template>
+            </v-data-table>
+          </v-card>
 
           <v-data-table-virtual
             v-else
@@ -116,8 +122,13 @@
     </v-card-text>
   </v-card>
 
-  <v-dialog v-model="Dialog" width="400">
-    <v-card max-width="400" prepend-icon="mdi-update" title="Thêm dữ liệu">
+  <v-dialog v-model="Dialog" width="400" class="rounded-xl">
+    <v-card
+      max-width="400"
+      prepend-icon="mdi-update"
+      title="Thêm dữ liệu"
+      class="rounded-xl"
+    >
       <v-card-text>
         <InputFiles abel="Thêm File Excel" v-model="File" />
       </v-card-text>
@@ -128,8 +139,8 @@
     </v-card>
   </v-dialog>
 
-  <v-dialog v-model="DialogOutput" width="600">
-    <v-card max-width="600" color="#F5F5F5">
+  <v-dialog v-model="DialogOutput" width="600" class="rounded-xl">
+    <v-card max-width="600" color="#F5F5F5" class="rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-magnify" color="primary" class="me-2"></v-icon>
         Thêm dữ liệu trừ linh kiện
@@ -160,7 +171,9 @@
         </div>
       </v-card-text>
       <template v-slot:actions>
-        <p class="text-error ms-2" v-if="temporaryWarehouse != ''">Đang có dữ liệu cần xem trước</p>
+        <p class="text-error ms-2" v-if="temporaryWarehouse != ''">
+          Đang có dữ liệu cần xem trước
+        </p>
         <v-spacer></v-spacer>
         <v-btn
           class="text-caption"
@@ -174,8 +187,8 @@
     </v-card>
   </v-dialog>
 
-  <v-dialog v-model="DialogPreview" width="1200">
-    <v-card max-width="1200" color="#F5F5F5">
+  <v-dialog v-model="DialogPreview" width="1200" class="rounded-xl">
+    <v-card max-width="1200" color="#F5F5F5" class="rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-magnify" color="primary" class="me-2"></v-icon>
         Kiểm tra dữ liệu sẽ trừ
@@ -249,8 +262,8 @@
     </v-card>
   </v-dialog>
 
-  <v-dialog v-model="DialogAdd" scrollable>
-    <v-card width="600" class="mx-auto overflow-y-auto">
+  <v-dialog v-model="DialogAdd" scrollable class="rounded-xl">
+    <v-card width="600" class="mx-auto overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
         Thêm linh kiện
@@ -293,8 +306,8 @@
     </v-card>
   </v-dialog>
 
-  <v-dialog v-model="DialogEdit" width="600" scrollable>
-    <v-card width="600" class="mx-auto overflow-y-auto">
+  <v-dialog v-model="DialogEdit" width="600" scrollable class="rounded-xl">
+    <v-card width="600" class="mx-auto overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
         Cập nhật dữ liệu
@@ -343,7 +356,7 @@
         <InputSelect
           ref="transactionTypeSelect"
           label="Loại giao dịch"
-          :items="['Nhập', 'Xuất','Thay đổi thông tin']"
+          :items="['Nhập', 'Xuất', 'Thay đổi thông tin']"
           v-model="TransactionType_Edit"
           :rules="[(v) => !!v || 'Vui lòng chọn loại giao dịch']"
           required
@@ -357,8 +370,8 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogRemove" width="400" scrollable>
-    <v-card class="overflow-y-auto">
+  <v-dialog v-model="DialogRemove" width="400" scrollable class="rounded-xl">
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
         Xóa linh kiện
@@ -375,8 +388,13 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogRemoveFile" width="400" scrollable>
-    <v-card class="overflow-y-auto">
+  <v-dialog
+    v-model="DialogRemoveFile"
+    width="400"
+    scrollable
+    class="rounded-xl"
+  >
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
         Xóa linh kiện cần trừ
@@ -393,8 +411,8 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogAgree" width="400" scrollable>
-    <v-card class="overflow-y-auto">
+  <v-dialog v-model="DialogAgree" width="400" scrollable class="rounded-xl">
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-check" color="success" class="me-2"></v-icon>
         Xác nhận trừ linh kiện
@@ -413,8 +431,8 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogInfo" width="800" scrollable>
-    <v-card class="overflow-y-auto">
+  <v-dialog v-model="DialogInfo" width="800" scrollable class="rounded-xl">
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon
           icon="mdi-information-variant-circle"
@@ -479,8 +497,8 @@
     </v-card>
   </v-dialog>
 
-  <v-dialog v-model="DialogHistory" width="1200" scrollable>
-    <v-card class="overflow-y-auto" color="#F5F5F5">
+  <v-dialog v-model="DialogHistory" width="1200" scrollable class="rounded-xl">
+    <v-card class="overflow-y-auto rounded-xl" color="#F5F5F5">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-history" color="primary" class="me-2"></v-icon>
         Lịch sử xuất nhập linh kiện
@@ -767,7 +785,7 @@ const GetItem = (value) => {
   Note_Edit.value = found.Note;
   Note_Output_Edit.value = found.Note_Output_Edit;
   TransactionType_Edit.value = found.TransactionType;
-  inventory_Temporary.value = found.Input - found.Output
+  inventory_Temporary.value = found.Input - found.Output;
 };
 
 const GetRemove = (item) => {
@@ -783,7 +801,7 @@ const inventory_Edit = computed(() => {
   return Input_Edit.value - Output_Edit.value;
 });
 const inventory = computed(() => {
-  return Math.abs(inventory_Edit.value - inventory_Temporary.value)
+  return Math.abs(inventory_Edit.value - inventory_Temporary.value);
 });
 /**
  * Updates inventory count based on input and output values
@@ -801,7 +819,7 @@ const SaveEdit = async () => {
       return;
     }
   }
-  
+
   if (!TransactionType_Edit.value) {
     MessageErrorDialog.value = "Vui lòng chọn loại giao dịch";
     DialogFailed.value = true;
@@ -897,15 +915,15 @@ const RemoveItemFile = async () => {
     );
     console.log(response);
     MessageDialog.value = "Xoá dữ liệu thành công";
-    DialogSuccess.value = true
-    DialogLoading.value = false
-    DialogRemoveFile.value = false
+    DialogSuccess.value = true;
+    DialogLoading.value = false;
+    DialogRemoveFile.value = false;
   } catch (error) {
     console.log(error);
     MessageErrorDialog.value = "Xoá dữ liệu thất bại";
-    DialogFailed.value = true
-    DialogLoading.value = false
-    DialogRemoveFile.value = false
+    DialogFailed.value = true;
+    DialogLoading.value = false;
+    DialogRemoveFile.value = false;
   }
 };
 
@@ -934,7 +952,7 @@ const ImportFile = async () => {
     const response = await axios.post(`${Url}/WareHouse/Upload`, formData);
     console.log(response);
     MessageDialog.value = "Thêm dữ liệu thành công";
-    Save_Import_File_Output()
+    Save_Import_File_Output();
     Reset();
   } catch (error) {
     console.log(error);
@@ -956,7 +974,7 @@ const ImportFile_Output = async () => {
     console.log(response);
     MessageDialog.value = "Thêm dữ liệu thành công";
     DialogSuccess.value = true;
-    DialogLoading.value = false
+    DialogLoading.value = false;
   } catch (error) {
     console.log(error);
     MessageErrorDialog.value = "Thêm dữ liệu thất bại";
@@ -973,7 +991,7 @@ const UpdateFile_Output = async () => {
     MessageDialog.value = "Đã trừ dữ liệu thành công";
     RemoveAllFile();
     Save_Export_File_Output();
-    Reset()
+    Reset();
   } catch (error) {
     console.log(error);
     MessageErrorDialog.value = "Trừ dữ liệu thất bại";
@@ -989,7 +1007,7 @@ const SaveLog = async () => {
     Updated_by: UserInfo.value,
     Created_at: formattedSelectedDate.value,
     Customer: Customer_Edit.value,
-    Location: Location_Edit.value
+    Location: Location_Edit.value,
   };
   try {
     const response = await axios.post(
@@ -1069,7 +1087,7 @@ const DownloadWareHouse = async () => {
  * Gets access token from DigiKey API
  * @param {string} value - The ID of the item to search
  */
- const getAccessToken = async (value) => {
+const getAccessToken = async (value) => {
   DialogLoading.value = true;
   const found = warehouse.value.find((v) => v.id === value);
   GetDigikey.value = found.PartNumber_1;
@@ -1077,8 +1095,8 @@ const DownloadWareHouse = async () => {
   const tokenUrl = "https://api.digikey.com/v1/oauth2/token";
   const params = new URLSearchParams();
   params.append("grant_type", "client_credentials");
-  params.append("client_id", clientId);           // <-- Bổ sung
-  params.append("client_secret", clientSecret);   // <-- Bổ sung
+  params.append("client_id", clientId); // <-- Bổ sung
+  params.append("client_secret", clientSecret); // <-- Bổ sung
 
   try {
     const response = await axios.post(tokenUrl, params.toString(), {
@@ -1107,7 +1125,6 @@ const DownloadWareHouse = async () => {
     return false;
   }
 };
-
 
 /**
  * Searches for product details using DigiKey API

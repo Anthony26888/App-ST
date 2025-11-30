@@ -11,76 +11,80 @@
       <v-card-text>
         <v-row class="mb-3">
           <v-col cols="12" md="3">
-            <v-card class="rounded-xl" color="primary" variant="tonal">
-              <v-card-text>
-                <div class="text-subtitle-1">Tổng PO</div>
-                <div class="text-h4 font-weight-bold">
-                  {{ totalUniquePO }}
-                </div>
-                <div class="text-caption">Tổng số PO</div>
-              </v-card-text>
-            </v-card>
+            <CardStatistic
+              title="Tổng PO"
+              :value="totalUniquePO"
+              icon="mdi-file-document-multiple"
+              color="primary"
+              subtitle="Tổng số PO"
+            />
           </v-col>
           <v-col cols="12" md="3">
-            <v-card class="rounded-xl" color="primary" variant="tonal">
-              <v-card-text>
-                <div class="text-subtitle-1">Tổng đơn hàng</div>
-                <div class="text-h4 font-weight-bold">
-                  {{ manufacture.length || 0 }}
-                </div>
-                <div class="text-caption">Tổng số đơn hàng</div>
-              </v-card-text>
-            </v-card>
+            <CardStatistic
+              title="Tổng đơn hàng"
+              :value="manufacture.length || 0"
+              icon="mdi-package-variant-closed"
+              color="primary"
+              subtitle="Tổng số đơn hàng"
+            />
           </v-col>
           <v-col cols="12" md="3">
-            <v-card class="rounded-xl" color="success" variant="tonal">
-              <v-card-text>
-                <div class="text-subtitle-1">Đơn hàng hoàn thành</div>
-                <div class="text-h4 font-weight-bold">
-                  {{ manufacture.filter((item) => item.Status_Output === 'Hoàn thành').length }}
+            <CardStatistic
+              title="Đơn hàng hoàn thành"
+              :value="manufacture.filter((item) => item.Status_Output === 'Hoàn thành').length"
+              icon="mdi-check-circle"
+              color="success"
+            >
+              <template #value-append>
+                <div class="text-h6 font-weight-medium text-success mb-1">
+                  {{ progressCompleted }}%
                 </div>
+              </template>
+              <template #bottom>
                 <v-progress-linear
                   v-model="progressCompleted"
-                  height="20"
-                  class="rounded-lg"
-                >
-                  <strong class="text-black">{{ progressCompleted }}%</strong>
-                </v-progress-linear>
-              </v-card-text>
-            </v-card>
+                  height="8"
+                  color="success"
+                  rounded
+                  class="mt-4"
+                  bg-color="success"
+                  bg-opacity="0.2"
+                ></v-progress-linear>
+              </template>
+            </CardStatistic>
           </v-col>
           <v-col cols="12" md="3">
-            <v-card class="rounded-xl" color="warning" variant="tonal">
-              <v-card-text>
-                <div class="text-subtitle-1">Đơn hàng đang sản xuất</div>
-                <div class="text-h4 font-weight-bold">
-                  {{ manufacture.filter((item) => item.Status_Output === 'Đang sản xuất').length }}
+            <CardStatistic
+              title="Đơn hàng đang sản xuất"
+              :value="manufacture.filter((item) => item.Status_Output === 'Đang sản xuất').length"
+              icon="mdi-progress-wrench"
+              color="warning"
+            >
+              <template #value-append>
+                <div class="text-h6 font-weight-medium text-warning mb-1">
+                  {{ progressManufacture }}%
                 </div>
+              </template>
+              <template #bottom>
                 <v-progress-linear
                   v-model="progressManufacture"
-                  height="20"
-                  class="rounded-lg"
-                >
-                  <strong class="text-black">{{ progressManufacture }}%</strong>
-                </v-progress-linear>
-              </v-card-text>
-            </v-card>
+                  height="8"
+                  color="warning"
+                  rounded
+                  class="mt-4"
+                  bg-color="warning"
+                  bg-opacity="0.2"
+                ></v-progress-linear>
+              </template>
+            </CardStatistic>
           </v-col>
         </v-row>
         <!-- Card chứa bảng dữ liệu -->
-        <v-card variant="text">
+        <v-card variant="elevated" elevation="0" class="rounded-xl border">
           <!-- Header của bảng với các nút chức năng -->
           <v-card-title class="d-flex align-center pe-2">
             <!-- Nút thêm mới -->
-            <v-btn
-              prepend-icon="mdi mdi-plus"
-              variant="tonal"
-              color="primary"
-              class="text-caption ms-2"
-              @click="DialogAdd = true"
-            >
-              Thêm
-            </v-btn>
+            <ButtonAdd @add="DialogAdd = true" />
             <v-spacer></v-spacer>
             <!-- Component tìm kiếm -->
             <InputSearch
@@ -94,14 +98,14 @@
             <!-- Bảng dữ liệu chính -->
             <v-data-table-virtual
               :group-by="groupBy"
-              density="compact"
+              density="comfortable"
               :headers="Headers"
               :items="manufacture"
               :search="search"
               :items-per-page="itemsPerPage"
               :page="page"
               @update:page="page = $event"
-              class="elevation-1"
+              class="elevation-0"
               :footer-props="{
                 'items-per-page-options': [10, 20, 50, 100],
                 'items-per-page-text': 'Số hàng mỗi trang',
@@ -118,7 +122,7 @@
               :hover="true"
               :dense="false"
               :fixed-header="true"
-              height="70vh"
+              height="64vh"
             >
               <template
                 v-slot:group-header="{
@@ -219,6 +223,11 @@
             label="Tên dự án"
             :model-value="Name_Edit"
             @update:model-value="Name_Edit = $event"
+          />
+          <InputField
+            label="Tên đơn hàng"
+            v-model="Name_Order_Edit"
+            @update:model-value="Name_Order_Edit = $event"
           />
           <InputField
             label="Tổng sản phẩm"
@@ -326,6 +335,7 @@
           <InputField
             label="Tên đơn hàng"
             v-model="Name_Order_Manufacture"
+            :rules="[requiredRule]"
             @update:model-value="Name_Order_Manufacture = $event"
           />
           <InputField
@@ -333,6 +343,7 @@
             type="number"
             suffix="pcs"
             :model-value="Total_Manufacture_Add"
+            :rules="[requiredRule]"
             @update:model-value="Total_Manufacture_Add = $event"
           />
           <!-- <InputSelect
@@ -401,6 +412,7 @@
             label="Ngày tạo"
             type="date"
             v-model="Date_Manufacture_Add"
+            :rules="[requiredRule]"
             @update:model-value="Date_Manufacture_Add = $event"
           />
           <InputTextarea
@@ -411,7 +423,7 @@
         </v-card-text>
         <v-card-actions>
           <ButtonCancel @cancel="DialogAdd = false" />
-          <ButtonSave @save="SaveAdd()" />
+          <ButtonSave @save="SaveAdd()" :disabled="!Name_Manufacture_Add || !Name_Order_Manufacture || !Total_Manufacture_Add || !Date_Manufacture_Add" />
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -442,7 +454,11 @@
       @update:model-value="Dialog = $event"
       width="400"
     >
-      <v-card max-width="400" prepend-icon="mdi-update" title="Thêm dữ liệu">
+      <v-card max-width="400" class="rounded-xl">
+        <v-card-title class="d-flex align-center pa-4">
+          <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
+          Thêm dữ liệu sản xuất
+        </v-card-title>
         <v-card-text>
           <InputFiles
             label="Thêm File Excel"
@@ -495,6 +511,7 @@ import ButtonEye from "@/components/Button-Eye.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
+import CardStatistic from "@/components/Card-Statistic.vue";
 import { useManufacture } from "@/composables/Manufacture/useManufacture";
 
 // Khởi tạo các composables và biến môi trường
@@ -517,6 +534,7 @@ const DialogLoading = ref(false);
 // Khởi tạo các biến ref cho form chỉnh sửa
 const File = ref(null);
 const Name_Edit = ref("");
+const Name_Order_Edit = ref("");
 const Total_Edit = ref(0);
 const DelaySMT_Edit = ref(0);
 const Date_Edit = ref("");
@@ -565,6 +583,8 @@ const Headers = [
   { title: "Ghi chú", key: "Note" },
   { title: "Thao tác", key: "id", sortable: false },
 ];
+
+const requiredRule = (value) => !!value || "Không được để trống";
 
 const progressManufacture = computed(() => {
   return Number.parseFloat(
@@ -701,33 +721,12 @@ function GetItem(value) {
   GetID.value = value;
   const found = manufacture.value.find((v) => v.id === value);
   Name_Edit.value = found.Name;
+  Name_Order_Edit.value = found.Name_Order;
   Total_Edit.value = found.Total;
 
   // Xử lý Level để tách quy trình chuẩn và quy trình tùy chỉnh
   const levelArray = found.Level.split("-");
-  const standardProcesses = [
-    "SMT",
-    "AOI",
-    "IPQC (SMT)",
-    "Assembly",
-    "IPQC",
-    "Test 1",
-    "Test 2",
-    "Box Build",
-    "Tẩm phủ",
-    "OQC",
-    "RW",
-    "Thành phẩm",
-  ];
 
-  const customProcesses = levelArray.filter(
-    (process) => !standardProcesses.includes(process)
-  );
-  const standardSelected = levelArray.filter((process) =>
-    standardProcesses.includes(process)
-  );
-
-  Level_Edit.value = standardSelected;
   customProcessListEdit.value = levelArray;
   Date_Edit.value = found.Date_unixepoch;
   Note_Edit.value = found.Note;
@@ -736,17 +735,11 @@ function GetItem(value) {
 }
 
 // Hàm lưu thông tin chỉnh sửa
+// Hàm lưu thông tin chỉnh sửa
 const SaveEdit = async () => {
   DialogLoading.value = true;
 
-  // ✅ Quy tắc ưu tiên
-  const processPriority = {
-    SMT: 1,
-    RW: 99,
-    "Thành phẩm": 100,
-  };
-
-  // ✅ allProcesses là dữ liệu thực tế người dùng chọn và chỉnh sửa
+  // Gom dữ liệu người dùng nhập
   const allProcesses = [
     ...(Array.isArray(Level_Edit.value) ? Level_Edit.value : []),
     ...(Array.isArray(customProcessListEdit.value)
@@ -754,30 +747,29 @@ const SaveEdit = async () => {
       : []),
   ];
 
-  // ✅ loại bỏ khoảng trắng và phần tử rỗng
-  const cleaned = allProcesses.map((p) => p.trim()).filter((p) => p);
+  // Xử lý sạch dữ liệu: trim + bỏ rỗng
+  let cleaned = allProcesses.map(p => p.trim()).filter(p => p);
 
-  // ✅ loại trùng
-  const uniqueLevels = [...new Set(cleaned)];
+  // Loại duplicate theo thứ tự giữ nguyên
+  let uniqueLevels = cleaned.filter((p, i) => cleaned.indexOf(p) === i);
 
-  // ✅ Sắp xếp theo ưu tiên
-  const sortedLevels = uniqueLevels.sort((a, b) => {
-    const pa = processPriority[a] ?? 50;
-    const pb = processPriority[b] ?? 50;
-    return pa - pb;
-  });
+  // ❗ Đảm bảo Thành phẩm cuối cùng
+  uniqueLevels = uniqueLevels.filter(p => p !== "Thành phẩm"); // bỏ tạm
 
-  // ✅ Convert về string để lưu DB
-  const levelString = sortedLevels.join("-");
+  // Nếu người dùng không chọn thì tự thêm
+  uniqueLevels.push("Thành phẩm");
+
+  const levelString = uniqueLevels.join("-");
 
   const formData = reactive({
     Name: Name_Edit.value,
+    Name_Order: Name_Order_Edit.value,
     Timestamp: Date_Edit.value,
     Creater: UserInfo.value,
     Note: Note_Edit.value,
     Total: Total_Edit.value,
     DelaySMT: DelaySMT_Edit.value,
-    Level: levelString, // ✅ Dùng giá trị mới đã sắp xếp
+    Level: levelString, // giá trị đúng
     Quantity: Quantity_Edit.value,
   });
 
@@ -796,6 +788,7 @@ const SaveEdit = async () => {
     DialogLoading.value = false;
   }
 };
+
 
 // Hàm lưu thông tin thêm mới
 const SaveAdd = async () => {

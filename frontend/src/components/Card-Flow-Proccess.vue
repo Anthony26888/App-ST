@@ -65,7 +65,14 @@ const emit = defineEmits(['card-click', 'toggle-bottleneck']);
   max-width: 180px;
   min-width: 150px;
   cursor: pointer;
-  border-radius: 8px !important;
+  border-radius: 16px !important;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+.process-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 20px -8px rgba(0, 0, 0, 0.15) !important;
 }
 
 @media (max-width: 960px) {
@@ -79,25 +86,26 @@ const emit = defineEmits(['card-click', 'toggle-bottleneck']);
 .process-card-title {
   white-space: normal; /* Allow text wrap */
   word-break: break-word; /* Break long words if necessary */
-  line-height: 1.2; /* Adjust line height for wrapped text */
-  font-size: 0.95rem; /* Slightly smaller font to fit more */
+  line-height: 1.3; /* Adjust line height for wrapped text */
+  font-size: 0.9rem; /* Slightly smaller font to fit more */
+  letter-spacing: 0.01em;
 }
 
 .flow-arrow {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 300;
-  color: #3f51b5; 
+  color: #94a3b8; 
 }
 
 /* Đổ bóng cảnh báo cho Bottleneck (viền đỏ) */
 .bottleneck-shadow {
-  box-shadow: 0 0 15px rgba(255, 0, 0, 0.6) !important;
-  border: 2px solid #ef5350 !important; /* Viền đỏ */
+  box-shadow: 0 0 0 2px rgb(var(--v-theme-error)), 0 8px 16px rgba(var(--v-theme-error), 0.2) !important;
+  border-color: transparent !important;
 }
 
-/* 🎯 CSS MỚI: Viền cho trạng thái đã chọn (viền xanh) */
+/* 🎯 CSS MỚI: Viền cho trạng thái đã chọn (viền primary) */
 .selected-border {
-  border: 2px solid #2196F3 !important; 
-  box-shadow: 0 0 10px rgba(33, 150, 243, 0.6) !important;
+  box-shadow: 0 0 0 2px rgb(var(--v-theme-primary)), 0 8px 16px rgba(var(--v-theme-primary), 0.2) !important;
+  border-color: transparent !important;
 }
 </style>

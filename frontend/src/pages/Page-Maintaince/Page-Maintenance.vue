@@ -3,85 +3,63 @@
     <v-card-title class="text-h4 font-weight-light" v-if="lgAndUp"
       >Danh sách bảo trì</v-card-title
     >
-    <v-card-title>
+    <v-card-title class="mb-5">
       <v-row v-if="lgAndUp">
         <v-col cols="12" sm="4" md="4">
-          <v-card class="rounded-xl" color="primary" variant="tonal">
-            <v-card-text>
-              <div class="text-subtitle-1">Tổng số thiết bị</div>
-              <div class="text-h4 font-weight-bold">
-                {{ machine?.length || 0 }}
-              </div>
-            </v-card-text>
-          </v-card>
+          <CardStatistic
+            title="Tổng số thiết bị"
+            :value="machine?.length || 0"
+            icon="mdi-cog"
+            color="primary"
+          />
         </v-col>
         <v-col cols="12" sm="4" md="4">
-          <v-card class="rounded-xl" color="success" variant="tonal">
-            <v-card-text>
-              <div class="text-subtitle-1">Thiết bị đã bảo trì</div>
-              <div class="text-h4 font-weight-bold">
-                {{
-                  machine?.filter((p) => p.Status === "Chưa tới hạn").length || 0
-                }}
-              </div>
-            </v-card-text>
-          </v-card>
+          <CardStatistic
+            title="Thiết bị đã bảo trì"
+            :value="machine?.filter((p) => p.Status === 'Chưa tới hạn').length || 0"
+            icon="mdi-check-circle"
+            color="success"
+          />
         </v-col>
         <v-col cols="12" sm="4" md="4">
-          <v-card class="rounded-xl" color="warning" variant="tonal">
-            <v-card-text>
-              <div class="text-subtitle-1">Thiết bị chưa bảo trì</div>
-              <div class="text-h4 font-weight-bold">
-                {{
-                  machine?.filter((p) => p.Status === "Cần bảo trì").length ||
-                  0
-                }}
-              </div>
-            </v-card-text>
-          </v-card>
+          <CardStatistic
+            title="Thiết bị chưa bảo trì"
+            :value="machine?.filter((p) => p.Status === 'Cần bảo trì').length || 0"
+            icon="mdi-alert-circle"
+            color="warning"
+          />
         </v-col>
       </v-row>
 
       <v-row v-else>
         <v-col cols="4">
-          <v-card class="rounded-xl" color="primary" variant="tonal">
-            <v-card-text>
-              <div class="text-wrap text-subtitle-1">Tổng</div>
-              <div class="text-h6 font-weight-bold">
-                {{ machine?.length || 0 }}
-              </div>
-            </v-card-text>
-          </v-card>
+          <CardStatistic
+            title="Tổng"
+            :value="machine?.length || 0"
+            icon="mdi-cog"
+            color="primary"
+          />
         </v-col>
         <v-col cols="4">
-          <v-card class="rounded-lg" color="success" variant="tonal">
-            <v-card-text>
-              <div class="text-subtitle-1">Đã bảo trì</div>
-              <div class="text-h6 font-weight-bold">
-                {{
-                  machine?.filter((p) => p.Status === "Chưa tới hạn").length || 0
-                }}
-              </div>
-            </v-card-text>
-          </v-card>
+          <CardStatistic
+            title="Đã bảo trì"
+            :value="machine?.filter((p) => p.Status === 'Chưa tới hạn').length || 0"
+            icon="mdi-check-circle"
+            color="success"
+          />
         </v-col>
         <v-col cols="4">
-          <v-card class="rounded-lg" color="warning" variant="tonal">
-            <v-card-text>
-              <div class="text-h6 text-subtitle-1">Đến hạn</div>
-              <div class="text-h6 font-weight-bold">
-                {{
-                  machine?.filter((p) => p.Status === "Cần bảo trì").length ||
-                  0
-                }}
-              </div>
-            </v-card-text>
-          </v-card>
+          <CardStatistic
+            title="Đến hạn"
+            :value="machine?.filter((p) => p.Status === 'Cần bảo trì').length || 0"
+            icon="mdi-alert-circle"
+            color="warning"
+          />
         </v-col>
       </v-row>
     </v-card-title>
     <v-card-text>
-      <v-card variant="text">
+      <v-card variant="elevated" elevation="0" class="rounded-xl border">
         <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
           <v-btn
             prepend-icon="mdi mdi-plus"
@@ -105,13 +83,13 @@
         <v-card-text class="overflow-auto">
           <v-data-table
             v-if="lgAndUp"
-            density="compact"
+            density="comfortable"
             :headers="Headers"
             :items="machine"
             :search="search"
             :items-per-page="itemsPerPage"
             v-model:page="page"
-            class="elevation-1"
+            class="elevation-0"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
               'items-per-page-text': 'Số hàng mỗi trang',
@@ -128,7 +106,7 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="calc(100vh - 330px)"
+            height="58vh"
             
           >
             <template v-slot:bottom>
@@ -171,7 +149,7 @@
             :search="search"
             :items-per-page="itemsPerPage"
             v-model:page="page"
-            class="elevation-1"
+            class="elevation-0"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
               'items-per-page-text': 'Số hàng mỗi trang',
@@ -188,7 +166,7 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="calc(100vh - 250px)"
+            height="58vh"
             v-else
           >
             <template v-slot:item.Status="{ value }">
@@ -222,7 +200,7 @@
     </v-card-text>
   </v-card>
   <v-dialog v-model="DialogEdit" width="500" scrollable>
-    <v-card class="overflow-y-auto">
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-pencil" color="primary" class="me-2"></v-icon>
         Cập nhật bảo trì
@@ -261,7 +239,7 @@
   </v-dialog>
 
   <v-dialog v-model="DialogAdd" width="500" scrollable>
-    <v-card class="overflow-y-auto">
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
         Thêm thiết bị mới
@@ -298,7 +276,7 @@
     </v-card>
   </v-dialog>
   <v-dialog v-model="DialogRemove" width="500">
-    <v-card>
+    <v-card class="rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
         Xóa bảo trì
@@ -341,6 +319,7 @@ import ButtonEye from "@/components/Button-Eye.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
+import CardStatistic from "@/components/Card-Statistic.vue";
 
 // ===== STATE MANAGEMENT =====
 // API Configuration

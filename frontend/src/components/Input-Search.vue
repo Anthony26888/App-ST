@@ -1,14 +1,15 @@
 <template lang="">
   <v-text-field
-    density="compact"
+    density="comfortable"
     label="Tìm kiếm"
     prepend-inner-icon="mdi-magnify"
-    variant="solo"
+    variant="outlined"
     flat
     hide-details
     single-line
     clearable
     max-width="400"
+    rounded
     :model-value="modelValue"
     @update:modelValue="$emit('update:modelValue', $event)"
   ></v-text-field>

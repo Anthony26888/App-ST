@@ -12,7 +12,7 @@
       {{ route.params.id }}
     </v-card-title>
     <v-card-text>
-      <v-card variant="text">
+      <v-card variant="elevated" elevation="0" class="rounded-xl border">
         <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
           <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
           {{ route.params.id }}
@@ -43,13 +43,13 @@
         </v-card-title>
         <v-data-table
           v-if="lgAndUp"
-          density="compact"
+          density="comfortable"
           :search="search"
           :items="maintenance"
           :headers="Headers"
           :items-per-page="itemsPerPage"
           v-model:page="page"
-          class="elevation-1"
+          class="elevation-0"
           :footer-props="{
             'items-per-page-options': [10, 20, 50, 100],
             'items-per-page-text': 'Số hàng mỗi trang',
@@ -66,7 +66,7 @@
           :hover="true"
           :dense="false"
           :fixed-header="true"
-          height="calc(100vh - 200px)"
+          height="79vh"
         >
           <template v-slot:bottom>
             <div class="text-center pt-2">
@@ -118,7 +118,7 @@
           :headers="Headers"
           :items-per-page="itemsPerPage"
           v-model:page="page"
-          class="elevation-1"
+          class="elevation-0"
           :footer-props="{
             'items-per-page-options': [10, 20, 50, 100],
             'items-per-page-text': 'Số hàng mỗi trang',
@@ -135,7 +135,7 @@
           :hover="true"
           :dense="false"
           :fixed-header="true"
-          height="calc(100vh - 200px)"
+          height="66vh"
         >
           <template v-slot:item.TrangThai="{ item }">
             <div class="text-start">
@@ -167,7 +167,7 @@
           </template>
           <template #item.MaBaoTri="{ item }">
             <div class="d-flex">
-              <ButtonEye @detail="PushItem(item)" />
+              <ButtonEye  @detail="PushItem(item)" />
               <ButtonEdit @edit="GetItem(item)" />
             </div>
           </template>
@@ -176,7 +176,7 @@
     </v-card-text>
   </v-card>
   <v-dialog v-model="DialogEdit" width="500" scrollable>
-    <v-card class="overflow-y-auto">
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-pencil" color="primary" class="me-2"></v-icon>
         Cập nhật dữ liệu bảo trì
@@ -279,7 +279,7 @@
   </v-dialog>
 
   <v-dialog v-model="DialogAdd" width="500" scrollable>
-    <v-card class="overflow-y-auto">
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
         Thêm dữ liệu bảo trì
@@ -381,7 +381,7 @@
   </v-dialog>
 
   <v-dialog v-model="DialogRemove" width="400">
-    <v-card>
+    <v-card class="rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
         Xóa bảo trì

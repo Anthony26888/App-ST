@@ -17,9 +17,8 @@
         <v-icon
           icon="mdi mdi-tools"
           color="primary"
-          size="large"
           v-if="lgAndUp"
-        ></v-icon>
+        ></v-icon> &nbsp;
         <v-breadcrumbs
           :items="[
             `${NameManufacture}`,
@@ -84,7 +83,7 @@
                 dark
                 size="large"
               >
-                {{ Delay / 1000 }} s
+                {{ Delay / 1000 }} giây
               </v-chip>
             </template>
           </v-tooltip>
@@ -152,105 +151,137 @@
         <!-- Thống kê -->
         <v-row class="mb-4">
           <v-col cols="12" sm="4">
-            <v-card class="rounded-xl" color="primary" variant="tonal">
-              <v-card-text>
-                <div class="text-subtitle-1">Đầu vào</div>
-                <div class="text-h4 font-weight-bold">{{ totalInput }}</div>
-                <div class="text-caption">Tổng số lượng đầu vào</div>
-              </v-card-text>
-            </v-card>
+            <CardStatistic
+              title="Đầu vào"
+              :value="totalInput"
+              icon="mdi-import"
+              color="primary"
+              subtitle="Tổng số lượng đầu vào"
+            />
           </v-col>
           <v-col cols="12" sm="4">
-            <v-card class="rounded-xl" color="info" variant="tonal">
-              <v-card-text v-if="Line_SMT === 'Line 1'">
-                <div class="text-subtitle-1">Máy Printer</div>
-                <div class="text-h4 font-weight-bold">
-                  {{
-                    QuantityBoard *
-                      manufactureSMT.filter((i) => i.Source === "Máy printer")
-                        .length || 0
-                  }}
+            <CardStatistic
+              v-if="Line_SMT === 'Line 1'"
+              title="Máy Printer"
+              :value="
+                QuantityBoard *
+                  manufactureSMT.filter((i) => i.Source === 'Máy printer')
+                    .length || 0
+              "
+              icon="mdi-printer"
+              color="info"
+            >
+              <template #value-append>
+                <div class="text-h6 font-weight-medium text-info mb-1">
+                  {{ PercentOutput_Source_1 }}%
                 </div>
+              </template>
+              <template #bottom>
                 <v-progress-linear
                   v-model="PercentOutput_Source_1"
-                  height="20"
-                  class="rounded-xl"
-                >
-                  <strong class="text-black"
-                    >{{ PercentOutput_Source_1 }}%</strong
-                  >
-                </v-progress-linear>
-              </v-card-text>
-              <v-card-text v-else>
-                <div class="text-subtitle-1">Máy gắp linh kiện Topaz</div>
-                <div class="text-h4 font-weight-bold">
-                  {{
-                    QuantityBoard *
-                      manufactureSMT.filter(
-                        (i) => i.Source === "Máy gắp linh kiện Topaz"
-                      ).length || 0
-                  }}
+                  height="8"
+                  color="info"
+                  rounded
+                  class="mt-4"
+                  bg-color="info"
+                  bg-opacity="0.2"
+                ></v-progress-linear>
+              </template>
+            </CardStatistic>
+            <CardStatistic
+              v-else
+              title="Máy gắp linh kiện Topaz"
+              :value="
+                QuantityBoard *
+                  manufactureSMT.filter(
+                    (i) => i.Source === 'Máy gắp linh kiện Topaz'
+                  ).length || 0
+              "
+              icon="mdi-robot"
+              color="info"
+            >
+              <template #value-append>
+                <div class="text-h6 font-weight-medium text-info mb-1">
+                  {{ PercentOutput_Source_3 }}%
                 </div>
+              </template>
+              <template #bottom>
                 <v-progress-linear
                   v-model="PercentOutput_Source_3"
-                  height="20"
-                  class="rounded-xl"
-                >
-                  <strong class="text-black"
-                    >{{ PercentOutput_Source_3 }}%</strong
-                  >
-                </v-progress-linear>
-              </v-card-text>
-            </v-card>
+                  height="8"
+                  color="info"
+                  rounded
+                  class="mt-4"
+                  bg-color="info"
+                  bg-opacity="0.2"
+                ></v-progress-linear>
+              </template>
+            </CardStatistic>
           </v-col>
           <v-col cols="12" sm="4">
-            <v-card class="rounded-xl" color="warning" variant="tonal">
-              <v-card-text v-if="Line_SMT === 'Line 1'">
-                <div class="text-subtitle-1">Máy gắp linh kiện Juki</div>
-                <div class="text-h4 font-weight-bold">
-                  {{
-                    QuantityBoard *
-                      manufactureSMT.filter(
-                        (i) => i.Source === "Máy gắp linh kiện Juki"
-                      ).length || 0
-                  }}
+            <CardStatistic
+              v-if="Line_SMT === 'Line 1'"
+              title="Máy gắp linh kiện Juki"
+              :value="
+                QuantityBoard *
+                  manufactureSMT.filter(
+                    (i) => i.Source === 'Máy gắp linh kiện Juki'
+                  ).length || 0
+              "
+              icon="mdi-robot-industrial"
+              color="warning"
+            >
+              <template #value-append>
+                <div class="text-h6 font-weight-medium text-warning mb-1">
+                  {{ PercentOutput_Source_2 }}%
                 </div>
+              </template>
+              <template #bottom>
                 <v-progress-linear
                   v-model="PercentOutput_Source_2"
-                  height="20"
-                  class="rounded-xl"
-                >
-                  <strong class="text-black"
-                    >{{ PercentOutput_Source_2 }}%</strong
-                  >
-                </v-progress-linear>
-              </v-card-text>
-              <v-card-text v-else>
-                <div class="text-subtitle-1">Máy gắp linh kiện Yamaha</div>
-                <div class="text-h4 font-weight-bold">
-                  {{
-                    QuantityBoard *
-                      manufactureSMT.filter(
-                        (i) => i.Source === "Máy gắp linh kiện Yamaha"
-                      ).length || 0
-                  }}
+                  height="8"
+                  color="warning"
+                  rounded
+                  class="mt-4"
+                  bg-color="warning"
+                  bg-opacity="0.2"
+                ></v-progress-linear>
+              </template>
+            </CardStatistic>
+            <CardStatistic
+              v-else
+              title="Máy gắp linh kiện Yamaha"
+              :value="
+                QuantityBoard *
+                  manufactureSMT.filter(
+                    (i) => i.Source === 'Máy gắp linh kiện Yamaha'
+                  ).length || 0
+              "
+              icon="mdi-robot-industrial"
+              color="warning"
+            >
+              <template #value-append>
+                <div class="text-h6 font-weight-medium text-warning mb-1">
+                  {{ PercentOutput_Source_4 }}%
                 </div>
+              </template>
+              <template #bottom>
                 <v-progress-linear
                   v-model="PercentOutput_Source_4"
-                  height="20"
-                  class="rounded-xl"
-                >
-                  <strong class="text-black"
-                    >{{ PercentOutput_Source_4 }}%</strong
-                  >
-                </v-progress-linear>
-              </v-card-text>
-            </v-card>
+                  height="8"
+                  color="warning"
+                  rounded
+                  class="mt-4"
+                  bg-color="warning"
+                  bg-opacity="0.2"
+                ></v-progress-linear>
+              </template>
+            </CardStatistic>
           </v-col>
         </v-row>
 
         <!-- Bảng chi tiết -->
-        <v-card class="mt-4 rounded-lg" variant="text">
+        <v-card class="mt-4 rounded-xl border" variant="elevated" elevation="0">
           <v-card-title class="d-flex align-center">
             <span class="text-h6" v-if="lgAndUp">Bảng chi tiết sản xuất</span>
             <v-tooltip text="Cài đặt">
@@ -287,7 +318,7 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="53vh"
+            height="49vh"
           >
             <template v-slot:item.stt="{ index }">
               {{ (page - 1) * itemsPerPage + index + 1 }}
@@ -535,6 +566,7 @@ import InputSearch from "@/components/Input-Search.vue";
 import ButtonBack from "@/components/Button-Back.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
+import CardStatistic from "@/components/Card-Statistic.vue";
 
 const Url = import.meta.env.VITE_API_URL;
 const route = useRoute();

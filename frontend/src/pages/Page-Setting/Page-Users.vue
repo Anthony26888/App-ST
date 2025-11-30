@@ -4,53 +4,56 @@
       <ButtonBack to="/Cai-dat" />
       <p class="text-h4 font-weight-light ms-3">Danh sách người sử dụng</p>
     </v-card-title>
-    <v-card-title class="d-flex align-center pe-2">
-      <ButtonAdd @add="DialogAdd = true" />
-      <p class="text-subtitle-1 font-weight-thin text-subtitle-1 ms-2">Có {{ users.length }} người dùng</p>
-      <v-spacer></v-spacer>
-      <InputSearch v-model="search" />
-    </v-card-title>
     <v-card-text>
-      <v-data-table
-        :headers="Headers"
-        :items="users"
-        :search="search"
-        class="elevation-1"
-        :items-per-page="10"
-        :footer-props="{
-          'items-per-page-options': [10, 20, 50, 100],
-          'items-per-page-text': 'Số hàng mỗi trang',
-        }"
-        :header-props="{
-          sortByText: 'Sắp xếp theo',
-          sortDescText: 'Giảm dần',
-          sortAscText: 'Tăng dần',
-        }"
-        :loading="DialogLoading"
-        loading-text="Đang tải dữ liệu..."
-        no-data-text="Không có dữ liệu"
-        no-results-text="Không tìm thấy kết quả"
-        :hover="true"
-        :dense="false"
-        :fixed-header="true"
-        height="calc(100vh - 200px)"
-      >
-        <template v-slot:item.id="{ value }">
-          <ButtonEdit @click="GetItem(value)" />
-        </template>
-        <template v-slot:bottom>
-          <div class="text-center pt-2">
-            <v-pagination
-              v-model="page"
-              :length="Math.ceil(users.length / itemsPerPage)"
-            ></v-pagination>
-          </div>
-        </template>
-      </v-data-table>
+      <v-card variant="elevated" elevation="0" class="rounded-xl border">
+        <v-card-title class="d-flex align-center pe-2">
+          <ButtonAdd @add="DialogAdd = true" />
+          <p class="text-subtitle-1 font-weight-thin text-subtitle-1 ms-2">Có {{ users.length }} người dùng</p>
+          <v-spacer></v-spacer>
+          <InputSearch v-model="search" />
+        </v-card-title>
+        <v-data-table
+          density="comfortable"
+          :headers="Headers"
+          :items="users"
+          :search="search"
+          class="elevation-0"
+          :items-per-page="10"
+          :footer-props="{
+            'items-per-page-options': [10, 20, 50, 100],
+            'items-per-page-text': 'Số hàng mỗi trang',
+          }"
+          :header-props="{
+            sortByText: 'Sắp xếp theo',
+            sortDescText: 'Giảm dần',
+            sortAscText: 'Tăng dần',
+          }"
+          :loading="DialogLoading"
+          loading-text="Đang tải dữ liệu..."
+          no-data-text="Không có dữ liệu"
+          no-results-text="Không tìm thấy kết quả"
+          :hover="true"
+          :dense="false"
+          :fixed-header="true"
+          height="79vh"
+        >
+          <template v-slot:item.id="{ value }">
+            <ButtonEdit @click="GetItem(value)" />
+          </template>
+          <template v-slot:bottom>
+            <div class="text-center pt-2">
+              <v-pagination
+                v-model="page"
+                :length="Math.ceil(users.length / itemsPerPage)"
+              ></v-pagination>
+            </div>
+          </template>
+        </v-data-table>
+      </v-card>
     </v-card-text>
   </v-card>
-  <v-dialog v-model="DialogRemove" width="400">
-    <v-card>
+  <v-dialog v-model="DialogRemove" width="400" class="rounded-xl">
+    <v-card class="rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
         Xóa người dùng
@@ -67,8 +70,8 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogEdit" width="500">
-    <v-card>
+  <v-dialog v-model="DialogEdit" width="500" class="rounded-xl">
+    <v-card class="rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-pencil" color="primary" class="me-2"></v-icon>
         Chỉnh sửa người dùng
@@ -104,8 +107,8 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="DialogAdd" width="400">
-    <v-card max-width="400" prepend-icon="mdi-plus" title="Thêm thành viên mới">
+  <v-dialog v-model="DialogAdd" width="400" class="rounded-xl">
+    <v-card max-width="400" prepend-icon="mdi-plus" title="Thêm thành viên mới" class="rounded-xl">
       <v-card-text>
         <InputField label="Tên đăng nhập" v-model="Username_Add" />
         <InputField label="Tên người dùng" v-model="FullName_Add" />

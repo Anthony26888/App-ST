@@ -8,160 +8,137 @@
     <v-card-title class="d-flex justify-space-between align-center pa-4">
       <span class="text-h4 font-weight-light">Báo cáo hằng ngày</span>
       <v-spacer></v-spacer>
-      <v-toolbar
+      <v-sheet
         rounded="lg"
         border
-        floating
-        class="mt-3"
+        class="d-flex align-center px-4 py-2 mt-3"
+        color="surface"
+        elevation="0"
         v-tooltip="'Chọn ngày xem báo cáo'"
       >
-        <div class="d-flex align-center px-4">
-          <div class="text-subtitle-1 mr-4">
-            {{ formattedWeekDate }}
-          </div>
-          <v-menu
-            v-model="dateMenu"
-            :close-on-content-click="false"
-            transition="scale-transition"
-            min-width="auto"
-          >
-            <template v-slot:activator="{ props }">
-              <v-btn
-                v-bind="props"
-                variant="text"
-                class="text-subtitle-1"
-                prepend-icon="mdi-calendar"
-              >
-                {{ formattedSelectedDate }}
-              </v-btn>
-            </template>
-            <v-date-picker
-              v-model="selectedDate"
-              @update:model-value="dateMenu = false"
-              :first-day-of-week="1"
-            ></v-date-picker>
-          </v-menu>
+        <div class="text-subtitle-2 mr-4 text-medium-emphasis">
+          {{ formattedWeekDate }}
         </div>
-      </v-toolbar>
+        <v-menu
+          v-model="dateMenu"
+          :close-on-content-click="false"
+          transition="scale-transition"
+          min-width="auto"
+        >
+          <template v-slot:activator="{ props }">
+            <v-btn
+              v-bind="props"
+              variant="tonal"
+              color="primary"
+              size="small"
+              prepend-icon="mdi-calendar"
+              class="font-weight-bold"
+            >
+              {{ formattedSelectedDate }}
+            </v-btn>
+          </template>
+          <v-date-picker
+            v-model="selectedDate"
+            @update:model-value="dateMenu = false"
+            :first-day-of-week="1"
+            color="primary"
+          ></v-date-picker>
+        </v-menu>
+      </v-sheet>
     </v-card-title>
 
     <!-- Thống kê tổng quan -->
     <v-card-text>
       <v-row>
         <v-col cols="12" sm="6" md="3">
-          <v-card class="rounded-xl" color="primary" variant="tonal">
-            <v-card-text>
+          <CardStatistic
+            title="Tổng số PO"
+            :value="Total_Po_Today"
+            :icon="
+              Percent_Compare_Po > 0
+                ? 'mdi-arrow-up'
+                : Percent_Compare_Po < 0
+                ? 'mdi-arrow-down'
+                : 'mdi-minus'
+            "
+            :color="
+              Percent_Compare_Po > 0
+                ? 'success'
+                : Percent_Compare_Po < 0
+                ? 'error'
+                : 'warning'
+            "
+          >
+            <template #bottom>
               <div
-                class="text-subtitle-1 d-flex justify-space-between align-center"
-              >
-                Tổng số PO
-                <v-icon
-                  :color="
-                    Percent_Compare_Po > 0
-                      ? 'success'
-                      : Percent_Compare_Po < 0
-                      ? 'error'
-                      : 'warning'
-                  "
-                  :icon="
-                    Percent_Compare_Po > 0
-                      ? 'mdi-arrow-up'
-                      : Percent_Compare_Po < 0
-                      ? 'mdi-arrow-down'
-                      : 'mdi-minus'
-                  "
-                  size="small"
-                ></v-icon>
-              </div>
-              <div class="text-h4 font-weight-bold">
-                {{ Total_Po_Today }}
-              </div>
-              <div
-                class="text-caption text-success"
+                class="text-caption text-success mt-2"
                 v-if="Percent_Compare_Po > 0"
               >
                 {{ Percent_Compare_Po }} % vs hôm qua
               </div>
               <div
-                class="text-caption text-error"
+                class="text-caption text-error mt-2"
                 v-else-if="Percent_Compare_Po < 0"
               >
                 {{ Percent_Compare_Po }} % vs hôm qua
               </div>
-              <div class="text-caption text-warning" v-else>
+              <div class="text-caption text-warning mt-2" v-else>
                 100% vs hôm qua
               </div>
-            </v-card-text>
-          </v-card>
+            </template>
+          </CardStatistic>
         </v-col>
 
         <v-col cols="12" sm="6" md="3">
-          <v-card class="rounded-xl" color="info" variant="tonal">
-            <v-card-text>
+          <CardStatistic
+            title="Tổng số hạng mục"
+            :value="Total_Category_Today"
+            :icon="
+              Percent_Compare_Category > 0
+                ? 'mdi-arrow-up'
+                : Percent_Compare_Category < 0
+                ? 'mdi-arrow-down'
+                : 'mdi-minus'
+            "
+            :color="
+              Percent_Compare_Category > 0
+                ? 'success'
+                : Percent_Compare_Category < 0
+                ? 'error'
+                : 'warning'
+            "
+          >
+            <template #bottom>
               <div
-                class="text-subtitle-1 d-flex justify-space-between align-center"
-              >
-                Tổng số hạng mục
-                <v-icon
-                  :color="
-                    Percent_Compare_Category > 0
-                      ? 'success'
-                      : Percent_Compare_Category < 0
-                      ? 'error'
-                      : 'warning'
-                  "
-                  :icon="
-                    Percent_Compare_Category > 0
-                      ? 'mdi-arrow-up'
-                      : Percent_Compare_Category < 0
-                      ? 'mdi-arrow-down'
-                      : 'mdi-minus'
-                  "
-                  size="small"
-                ></v-icon>
-              </div>
-              <div class="text-h4 font-weight-bold">
-                {{ Total_Category_Today }}
-              </div>
-              <div
-                class="text-caption text-success"
+                class="text-caption text-success mt-2"
                 v-if="Percent_Compare_Category > 0"
               >
                 {{ Percent_Compare_Category }} % vs hôm qua
               </div>
               <div
-                class="text-caption text-error"
+                class="text-caption text-error mt-2"
                 v-else-if="Percent_Compare_Category < 0"
               >
                 {{ Percent_Compare_Category }} % vs hôm qua
               </div>
-              <div class="text-caption text-warning" v-else>
+              <div class="text-caption text-warning mt-2" v-else>
                 100% vs hôm qua
               </div>
-            </v-card-text>
-          </v-card>
+            </template>
+          </CardStatistic>
         </v-col>
 
         <v-col cols="12" sm="6" md="3">
-          <v-card class="rounded-xl" color="success" variant="tonal">
-            <v-card-text>
-              <div
-                class="text-subtitle-1 d-flex justify-space-between align-center"
-              >
-                Hạng mục hoàn thành
-                <v-icon
-                  icon="mdi-check-circle"
-                  color="success"
-                  size="small"
-                ></v-icon>
-              </div>
-              <div class="text-h4 font-weight-bold">
-                {{
-                  summary?.filter((item) => Number(item.Percent) >= 100)
-                    .length || 0
-                }}
-              </div>
-              <div class="text-caption text-medium-emphasis">
+          <CardStatistic
+            title="Hạng mục hoàn thành"
+            :value="
+              summary?.filter((item) => Number(item.Percent) >= 100).length || 0
+            "
+            icon="mdi-check-circle"
+            color="success"
+          >
+            <template #bottom>
+              <div class="text-caption text-medium-emphasis mt-2">
                 Đạt mục tiêu:
                 {{
                   (
@@ -173,52 +150,40 @@
                 }}
                 %
               </div>
-            </v-card-text>
-          </v-card>
+            </template>
+          </CardStatistic>
         </v-col>
 
         <v-col cols="12" sm="6" md="3">
-          <v-card class="rounded-xl" color="warning" variant="tonal">
-            <v-card-text>
-              <div
-                class="text-subtitle-1 d-flex justify-space-between align-center"
-              >
-                Dự án đang thực hiện
-                <v-icon
-                  icon="mdi-clock-time-three-outline"
-                  color="warning"
-                  size="small"
-                ></v-icon>
-              </div>
-              <div class="text-h4 font-weight-bold">
-                {{
-                  summary?.filter((item) => Number(item.Percent) < 100)
-                    .length || 0
-                }}
-              </div>
-              <div class="text-caption text-error font-weight-bold">
+          <CardStatistic
+            title="Dự án đang thực hiện"
+            :value="
+              summary?.filter((item) => Number(item.Percent) < 100).length || 0
+            "
+            icon="mdi-clock-time-three-outline"
+            color="warning"
+          >
+            <template #bottom>
+              <div class="text-caption text-error font-weight-bold mt-2">
                 Đang trễ
               </div>
-            </v-card-text>
-          </v-card>
+            </template>
+          </CardStatistic>
         </v-col>
       </v-row>
 
       <!-- Charts -->
       <v-row>
         <v-col cols="12" md="8">
-          <v-card class="mb-4 rounded-xl" elevation="2" height="500px">
-            <v-toolbar flat dense>
-              <v-toolbar-title>
-                <v-icon
-                  color="primary"
-                  icon="mdi-chart-bar"
-                  size="x-small"
-                  start
-                ></v-icon>
-                Biểu đồ kế hoạch và thực tế
-              </v-toolbar-title>
-            </v-toolbar>
+          <v-card class="mb-4 rounded-xl border" elevation="0" height="500px">
+            <v-card-title class="d-flex align-center">
+              <v-avatar color="primary" variant="tonal" size="32" class="me-3">
+                <v-icon icon="mdi-chart-bar" size="20"></v-icon>
+              </v-avatar>
+              <span class="text-h6 font-weight-bold"
+                >Biểu đồ kế hoạch và thực tế</span
+              >
+            </v-card-title>
             <v-card-text>
               <StackedBarChart
                 :labels="progress"
@@ -231,24 +196,21 @@
         </v-col>
         <v-col cols="12" md="4">
           <!-- Thay thế pie chart bằng bảng chi tiết công đoạn -->
-          <v-card class="mb-4 rounded-xl" elevation="2" height="500px">
-            <v-toolbar flat dense>
-              <v-toolbar-title>
-                <v-icon
-                  color="primary"
-                  icon="mdi-book-multiple"
-                  size="x-small"
-                  start
-                ></v-icon>
-                Chi tiết theo công đoạn
-              </v-toolbar-title>
-            </v-toolbar>
+          <v-card class="mb-4 rounded-xl border" elevation="0" height="500px">
+            <v-card-title class="d-flex align-center">
+              <v-avatar color="primary" variant="tonal" size="32" class="me-3">
+                <v-icon icon="mdi-book-multiple" size="20"></v-icon>
+              </v-avatar>
+              <span class="text-h6 font-weight-bold"
+                >Chi tiết theo công đoạn</span
+              >
+            </v-card-title>
             <v-card-text class="pa-4">
               <div class="detail-table-container">
                 <v-table
                   density="compact"
                   height="280px"
-                  class="elevation-1 rounded"
+                  class="elevation-0 rounded-lg"
                 >
                   <thead>
                     <tr>
@@ -332,198 +294,211 @@
         </v-col>
       </v-row>
 
-      <!-- Bảng dữ liệu -->
-      <v-data-table-virtual
-        density="compact"
-        :headers="Headers"
-        :items="summary"
-        :search="search"
-        :group-by="[{ key: 'Type' }]"
-        class="mt-3 rounded-xl elevation-2"
-        fixed-header
-        :header-props="{
-          sortByText: 'Sắp xếp theo',
-          sortDescText: 'Giảm dần',
-          sortAscText: 'Tăng dần',
-        }"
-        :loading="DialogLoading"
-        loading-text="Đang tải dữ liệu..."
-        no-data-text="Không có dữ liệu"
-        no-results-text="Không tìm thấy kết quả"
-        :hover="true"
-        :dense="false"
-        :fixed-header="true"
-        elevation="2"
-      >
-        <template v-slot:top>
-          <v-toolbar flat dense>
-            <v-toolbar-title>
-              <v-icon
-                color="primary"
-                icon="mdi-table-of-contents"
-                size="x-small"
-                start
-              ></v-icon>
-              Báo cáo chi tiết
-            </v-toolbar-title>
-          </v-toolbar>
-        </template>
-
-        <template
-          v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }"
+      <v-card variant="elevated" elevation="0" class="rounded-xl mt-3 bg-surface">
+        <v-data-table-virtual
+          density="compact"
+          :headers="Headers"
+          :items="summary"
+          :search="search"
+          :group-by="[{ key: 'Type' }]"
+          class="bg-transparent"
+          fixed-header
+          :header-props="{
+            sortByText: 'Sắp xếp theo',
+            sortDescText: 'Giảm dần',
+            sortAscText: 'Tăng dần',
+          }"
+          :loading="DialogLoading"
+          loading-text="Đang tải dữ liệu..."
+          no-data-text="Không có dữ liệu"
+          no-results-text="Không tìm thấy kết quả"
+          :hover="true"
+          :dense="false"
+          :fixed-header="true"
         >
-          <tr>
-            <td
-              :colspan="columns.length"
-              class="cursor-pointer"
-              v-ripple
-              @click="toggleGroup(item)"
-            >
-              <div class="d-flex align-center">
-                <v-btn
-                  :icon="isGroupOpen(item) ? '$expand' : '$next'"
-                  color="medium-emphasis"
-                  density="comfortable"
-                  size="small"
-                  variant="text"
-                ></v-btn>
-
-                <span class="ms-4 font-weight-bold text-primary"
-                  >{{ item.value }} ({{ item.items.length }})</span
+          <template v-slot:top>
+            <v-toolbar flat color="transparent" class="border-b px-2">
+              <v-toolbar-title class="d-flex align-center">
+                <v-avatar
+                  color="primary"
+                  variant="tonal"
+                  size="32"
+                  class="me-3"
                 >
-              </div>
-            </td>
-          </tr>
-        </template>
-        <template #[`item.Quantity_Plan`]="{ item }">
-          <v-chip color="primary" variant="tonal" size="small">{{
-            item.Quantity_Plan
-          }}</v-chip>
-        </template>
-        <template #[`item.Quantity_Real`]="{ item }">
-          <v-chip color="success" variant="tonal" size="small">{{
-            item.Quantity_Real
-          }}</v-chip>
-        </template>
-        <template v-slot:item.Percent="{ item }">
-          <v-progress-linear
-            v-model="item.Percent"
-            height="25"
-            color="success"
-            rounded
-            class="rounded-lg"
+                  <v-icon icon="mdi-table-of-contents" size="20"></v-icon>
+                </v-avatar>
+                <span class="text-h6 font-weight-bold">Báo cáo chi tiết</span>
+              </v-toolbar-title>
+            </v-toolbar>
+          </template>
+
+          <template
+            v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }"
           >
-            <strong>{{ item.Percent.toFixed(1) }}%</strong>
-          </v-progress-linear>
-        </template>
-      </v-data-table-virtual>
+            <tr>
+              <td
+                :colspan="columns.length"
+                class="cursor-pointer"
+                v-ripple
+                @click="toggleGroup(item)"
+              >
+                <div class="d-flex align-center">
+                  <v-btn
+                    :icon="isGroupOpen(item) ? '$expand' : '$next'"
+                    color="medium-emphasis"
+                    density="comfortable"
+                    size="small"
+                    variant="text"
+                  ></v-btn>
+
+                  <span class="ms-4 font-weight-bold text-primary"
+                    >{{ item.value }} ({{ item.items.length }})</span
+                  >
+                </div>
+              </td>
+            </tr>
+          </template>
+          <template #[`item.Quantity_Plan`]="{ item }">
+            <v-chip color="primary" variant="tonal" size="small">{{
+              item.Quantity_Plan
+            }}</v-chip>
+          </template>
+          <template #[`item.Quantity_Real`]="{ item }">
+            <v-chip color="success" variant="tonal" size="small">{{
+              item.Quantity_Real
+            }}</v-chip>
+          </template>
+          <template v-slot:item.Percent="{ item }">
+            <v-progress-linear
+              v-model="item.Percent"
+              height="25"
+              color="success"
+              rounded
+              class="rounded-lg"
+            >
+              <strong>{{ item.Percent.toFixed(1) }}%</strong>
+            </v-progress-linear>
+          </template>
+        </v-data-table-virtual>
+      </v-card>
 
       <!-- Bảng dữ liệu tỷ lệ lỗi -->
       <v-row>
         <v-col lg="7" md="12">
-          <v-data-table-virtual
-            density="compact"
-            :headers="HeadersError"
-            :items="Manufacture_Fail"
-            :group-by="[{ key: 'PONumber' }]"
-            class="mt-5 rounded-xl elevation-2"
-            fixed-header
-            :header-props="{
-              sortByText: 'Sắp xếp theo',
-              sortDescText: 'Giảm dần',
-              sortAscText: 'Tăng dần',
-            }"
-            :loading="DialogLoading"
-            loading-text="Đang tải dữ liệu..."
-            no-data-text="Không có dữ liệu"
-            no-results-text="Không tìm thấy kết quả"
-            :hover="true"
-            :dense="false"
-            :fixed-header="true"
-            height="435px"
-            elevation="2"
-          >
-            <template v-slot:top>
-              <v-toolbar flat dense>
-                <v-toolbar-title>
-                  <v-icon
-                    color="primary"
-                    icon="mdi-message-alert"
-                    size="x-small"
-                    start
-                  ></v-icon>
-                  Tỷ lệ lỗi trong đơn hàng
-                </v-toolbar-title>
-              </v-toolbar>
-            </template>
-
-            <template
-              v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }"
+          <v-card variant="elevated" elevation="0" class="rounded-xl mt-5 bg-surface">
+            <v-data-table-virtual
+              density="compact"
+              :headers="HeadersError"
+              :items="Manufacture_Fail"
+              :group-by="[{ key: 'PONumber' }]"
+              class="bg-transparent"
+              fixed-header
+              :header-props="{
+                sortByText: 'Sắp xếp theo',
+                sortDescText: 'Giảm dần',
+                sortAscText: 'Tăng dần',
+              }"
+              :loading="DialogLoading"
+              loading-text="Đang tải dữ liệu..."
+              no-data-text="Không có dữ liệu"
+              no-results-text="Không tìm thấy kết quả"
+              :hover="true"
+              :dense="false"
+              :fixed-header="true"
+              height="435px"
             >
-              <tr>
-                <td
-                  :colspan="columns.length"
-                  class="cursor-pointer"
-                  v-ripple
-                  @click="toggleGroup(item)"
-                >
-                  <div class="d-flex align-center">
-                    <v-btn
-                      :icon="isGroupOpen(item) ? '$expand' : '$next'"
-                      color="medium-emphasis"
-                      density="comfortable"
-                      size="small"
-                      variant="text"
-                    ></v-btn>
-
-                    <span class="ms-4 font-weight-bold text-primary"
-                      >{{ item.value }} ({{ item.items.length }})</span
+              <template v-slot:top>
+                <v-toolbar flat color="transparent" class="border-b px-2">
+                  <v-toolbar-title class="d-flex align-center">
+                    <v-avatar
+                      color="primary"
+                      variant="tonal"
+                      size="32"
+                      class="me-3"
                     >
-                  </div>
-                </td>
-              </tr>
-            </template>
+                      <v-icon icon="mdi-message-alert" size="20"></v-icon>
+                    </v-avatar>
+                    <span class="text-h6 font-weight-bold"
+                      >Tỷ lệ lỗi trong đơn hàng</span
+                    >
+                  </v-toolbar-title>
+                </v-toolbar>
+              </template>
 
-            <template #[`item.Total_Summary_ID`]="{ item }">
-              <v-chip color="success" variant="tonal" size="small">{{
-                item.Total_Summary_ID
-              }}</v-chip>
-            </template>
-            <template #[`item.Quantity_Error`]="{ item }">
-              <v-chip color="warning" variant="tonal" size="small">{{
-                item.Quantity_Error
-              }}</v-chip>
-            </template>
-            <template #[`item.Quantity_RW`]="{ item }">
-              <v-chip color="info" variant="tonal" size="small">{{
-                item.Quantity_RW
-              }}</v-chip>
-            </template>
-            <template #[`item.Percent_Error`]="{ item }">
-              <v-progress-linear
-                :model-value="Number(item.Percent_Error)"
-                height="25"
-                color="success"
-                class="rounded-lg"
+              <template
+                v-slot:group-header="{
+                  item,
+                  columns,
+                  toggleGroup,
+                  isGroupOpen,
+                }"
               >
-                <strong>{{ Number(item.Percent_Error).toFixed(1) }}%</strong>
-              </v-progress-linear>
-            </template>
-          </v-data-table-virtual>
+                <tr>
+                  <td
+                    :colspan="columns.length"
+                    class="cursor-pointer"
+                    v-ripple
+                    @click="toggleGroup(item)"
+                  >
+                    <div class="d-flex align-center">
+                      <v-btn
+                        :icon="isGroupOpen(item) ? '$expand' : '$next'"
+                        color="medium-emphasis"
+                        density="comfortable"
+                        size="small"
+                        variant="text"
+                      ></v-btn>
+
+                      <span class="ms-4 font-weight-bold text-primary"
+                        >{{ item.value }} ({{ item.items.length }})</span
+                      >
+                    </div>
+                  </td>
+                </tr>
+              </template>
+
+              <template #[`item.Total_Summary_ID`]="{ item }">
+                <v-chip color="success" variant="tonal" size="small">{{
+                  item.Total_Summary_ID
+                }}</v-chip>
+              </template>
+              <template #[`item.Quantity_Error`]="{ item }">
+                <v-chip color="warning" variant="tonal" size="small">{{
+                  item.Quantity_Error
+                }}</v-chip>
+              </template>
+              <template #[`item.Quantity_RW`]="{ item }">
+                <v-chip color="info" variant="tonal" size="small">{{
+                  item.Quantity_RW
+                }}</v-chip>
+              </template>
+              <template #[`item.Percent_Error`]="{ item }">
+                <v-progress-linear
+                  :model-value="Number(item.Percent_Error)"
+                  height="25"
+                  color="success"
+                  class="rounded-lg"
+                >
+                  <strong>{{ Number(item.Percent_Error).toFixed(1) }}%</strong>
+                </v-progress-linear>
+              </template>
+            </v-data-table-virtual>
+          </v-card>
         </v-col>
         <v-col lg="5" md="12">
-          <v-card class="mb-4 rounded-xl mt-5" elevation="2" height="500px">
-            <v-toolbar flat dense>
-              <v-toolbar-title>
-                <v-icon
-                  color="primary"
-                  icon="mdi-chart-donut"
-                  size="x-small"
-                  start
-                ></v-icon>
-                Biểu đồ thông tin lỗi
-              </v-toolbar-title>
-            </v-toolbar>
+          <v-card
+            class="mb-4 rounded-xl mt-5 border"
+            variant="elevated" elevation="0"
+            height="500px"
+          >
+            <v-card-title class="d-flex align-center">
+              <v-avatar color="primary" variant="tonal" size="32" class="me-3">
+                <v-icon icon="mdi-chart-donut" size="20"></v-icon>
+              </v-avatar>
+              <span class="text-h6 font-weight-bold"
+                >Biểu đồ thông tin lỗi</span
+              >
+            </v-card-title>
             <v-card-text>
               <v-pie
                 :items="pieItems"
@@ -564,11 +539,12 @@
     v-else
   >
     <v-card-title class="d-flex justify-space-between align-center pa-4">
-      <v-toolbar
+      <v-sheet
         rounded="lg"
         border
-        floating
-        class="mt-3"
+        class="d-flex align-center px-4 py-2 mt-3"
+        color="surface"
+        elevation="0"
         v-tooltip="'Chọn ngày xem báo cáo'"
       >
         <div class="d-flex align-center px-4">
@@ -598,59 +574,49 @@
             ></v-date-picker>
           </v-menu>
         </div>
-      </v-toolbar>
+      </v-sheet>
     </v-card-title>
 
     <!-- Thống kê tổng quan -->
     <v-card-text>
       <v-row>
         <v-col cols="6">
-          <v-card class="rounded-lg" color="primary" variant="tonal">
-            <v-card-text>
-              <div class="text-subtitle-1">Tổng số PO</div>
-              <div class="text-h4 font-weight-bold">
-                {{ summary?.map((item) => item.PONumber).length || 0 }}
-              </div>
-            </v-card-text>
-          </v-card>
+          <CardStatistic
+            title="Tổng số PO"
+            :value="summary?.map((item) => item.PONumber).length || 0"
+            icon="mdi-file-document-multiple-outline"
+            color="primary"
+          />
         </v-col>
         <v-col cols="6">
-          <v-card class="rounded-lg" color="info" variant="tonal">
-            <v-card-text>
-              <div class="text-subtitle-1">Tổng số hạng mục</div>
-              <div class="text-h4 font-weight-bold">
-                {{ summary?.map((item) => item.Category).length || 0 }}
-              </div>
-            </v-card-text>
-          </v-card>
+          <CardStatistic
+            title="Tổng số hạng mục"
+            :value="summary?.map((item) => item.Category).length || 0"
+            icon="mdi-format-list-bulleted"
+            color="info"
+          />
         </v-col>
       </v-row>
       <v-row>
         <v-col cols="6">
-          <v-card class="rounded-lg" color="success" variant="tonal">
-            <v-card-text>
-              <div class="text-subtitle-1">Dự án hoàn thành</div>
-              <div class="text-h4 font-weight-bold">
-                {{
-                  summary?.filter((item) => Number(item.Percent) >= 100)
-                    .length || 0
-                }}
-              </div>
-            </v-card-text>
-          </v-card>
+          <CardStatistic
+            title="Dự án hoàn thành"
+            :value="
+              summary?.filter((item) => Number(item.Percent) >= 100).length || 0
+            "
+            icon="mdi-check-circle"
+            color="success"
+          />
         </v-col>
         <v-col cols="6">
-          <v-card class="rounded-lg" color="warning" variant="tonal">
-            <v-card-text>
-              <div class="text-subtitle-1">Đang thực hiện</div>
-              <div class="text-h4 font-weight-bold">
-                {{
-                  summary?.filter((item) => Number(item.Percent) < 100)
-                    .length || 0
-                }}
-              </div>
-            </v-card-text>
-          </v-card>
+          <CardStatistic
+            title="Đang thực hiện"
+            :value="
+              summary?.filter((item) => Number(item.Percent) < 100).length || 0
+            "
+            icon="mdi-clock-time-three-outline"
+            color="warning"
+          />
         </v-col>
       </v-row>
 
@@ -658,18 +624,15 @@
       <v-row>
         <v-col cols="12" md="12">
           <!-- Thay thế pie chart bằng bảng chi tiết công đoạn -->
-          <v-card class="mb-4 rounded-xl" elevation="2" height="500px">
-            <v-toolbar flat dense>
-              <v-toolbar-title>
-                <v-icon
-                  color="primary"
-                  icon="mdi-book-multiple"
-                  size="x-small"
-                  start
-                ></v-icon>
-                Chi tiết theo công đoạn
-              </v-toolbar-title>
-            </v-toolbar>
+          <v-card class="mb-4 rounded-xl border" elevation="0" height="500px">
+            <v-card-title class="d-flex align-center">
+              <v-avatar color="primary" variant="tonal" size="32" class="me-3">
+                <v-icon icon="mdi-book-multiple" size="20"></v-icon>
+              </v-avatar>
+              <span class="text-h6 font-weight-bold"
+                >Chi tiết theo công đoạn</span
+              >
+            </v-card-title>
             <v-card-text class="pa-4">
               <div class="detail-table-container">
                 <v-table
@@ -759,174 +722,179 @@
         </v-col>
       </v-row>
 
-      <!-- Bảng dữ liệu -->
-      <v-data-table-virtual
-        :headers="Headers"
-        density="compact"
-        :items="summary"
-        :search="search"
-        :group-by="[{ key: 'Type' }]"
-        class="mt-3"
-        fixed-header
-        :header-props="{
-          sortByText: 'Sắp xếp theo',
-          sortDescText: 'Giảm dần',
-          sortAscText: 'Tăng dần',
-        }"
-        :loading="DialogLoading"
-        loading-text="Đang tải dữ liệu..."
-        no-data-text="Không có dữ liệu"
-        no-results-text="Không tìm thấy kết quả"
-        :hover="true"
-        :dense="false"
-        :fixed-header="true"
-        elevation="2"
-      >
-        <template v-slot:top>
-          <v-toolbar flat dense>
-            <v-toolbar-title>
-              <v-icon
-                color="primary"
-                icon="mdi-table-of-contents"
-                size="x-small"
-                start
-              ></v-icon>
-              Báo cáo chi tiết
-            </v-toolbar-title>
-          </v-toolbar>
-        </template>
-
-        <template
-          v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }"
+      <v-card variant="outlined" class="rounded-xl mt-3 bg-surface">
+        <v-data-table-virtual
+          :headers="Headers"
+          density="compact"
+          :items="summary"
+          :search="search"
+          :group-by="[{ key: 'Type' }]"
+          class="bg-transparent"
+          fixed-header
+          :header-props="{
+            sortByText: 'Sắp xếp theo',
+            sortDescText: 'Giảm dần',
+            sortAscText: 'Tăng dần',
+          }"
+          :loading="DialogLoading"
+          loading-text="Đang tải dữ liệu..."
+          no-data-text="Không có dữ liệu"
+          no-results-text="Không tìm thấy kết quả"
+          :hover="true"
+          :dense="false"
+          :fixed-header="true"
         >
-          <tr>
-            <td
-              :colspan="columns.length"
-              class="cursor-pointer"
-              v-ripple
-              @click="toggleGroup(item)"
-            >
-              <div class="d-flex align-center">
-                <v-btn
-                  :icon="isGroupOpen(item) ? '$expand' : '$next'"
-                  color="medium-emphasis"
-                  density="comfortable"
-                  size="small"
-                  variant="text"
-                ></v-btn>
-
-                <span class="ms-4 font-weight-bold text-primary"
-                  >{{ item.value }} ({{ item.items.length }})</span
+          <template v-slot:top>
+            <v-toolbar flat color="transparent" class="border-b px-2">
+              <v-toolbar-title class="d-flex align-center">
+                <v-avatar
+                  color="primary"
+                  variant="tonal"
+                  size="32"
+                  class="me-3"
                 >
-              </div>
-            </td>
-          </tr>
-        </template>
-        <template #[`item.Quantity_Plan`]="{ item }">
-          <v-chip color="primary" variant="tonal">{{
-            item.Quantity_Plan
-          }}</v-chip>
-        </template>
-        <template #[`item.Quantity_Real`]="{ item }">
-          <v-chip color="success" variant="tonal">{{
-            item.Quantity_Real
-          }}</v-chip>
-        </template>
-        <template v-slot:item.Percent="{ item }">
-          <v-progress-linear v-model="item.Percent" height="25" color="success">
-            <strong>{{ item.Percent.toFixed(1) }}%</strong>
-          </v-progress-linear>
-        </template>
-      </v-data-table-virtual>
+                  <v-icon icon="mdi-table-of-contents" size="20"></v-icon>
+                </v-avatar>
+                <span class="text-h6 font-weight-bold">Báo cáo chi tiết</span>
+              </v-toolbar-title>
+            </v-toolbar>
+          </template>
 
-      <!-- Bảng dữ liệu tỷ lệ lỗi -->
-      <v-data-table-virtual
-        :headers="HeadersError"
-        :items="Manufacture_Fail"
-        :group-by="[{ key: 'PONumber' }]"
-        class="mt-5"
-        fixed-header
-        :header-props="{
-          sortByText: 'Sắp xếp theo',
-          sortDescText: 'Giảm dần',
-          sortAscText: 'Tăng dần',
-        }"
-        :loading="DialogLoading"
-        loading-text="Đang tải dữ liệu..."
-        no-data-text="Không có dữ liệu"
-        no-results-text="Không tìm thấy kết quả"
-        :hover="true"
-        :dense="false"
-        :fixed-header="true"
-        elevation="2"
-      >
-        <template v-slot:top>
-          <v-toolbar flat dense>
-            <v-toolbar-title>
-              <v-icon
-                color="primary"
-                icon="mdi-message-alert"
-                size="x-small"
-                start
-              ></v-icon>
-              Tỷ lệ lỗi trong đơn hàng
-            </v-toolbar-title>
-          </v-toolbar>
-        </template>
-
-        <template
-          v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }"
-        >
-          <tr>
-            <td :colspan="columns.length">
-              <v-btn
-                variant="text"
-                :icon="isGroupOpen ? 'mdi-chevron-down' : 'mdi-chevron-up'"
-                @click="toggleGroup(item)"
-                class="me-2"
-              ></v-btn>
-              <span class="font-weight-bold text-primary">{{
-                item.value
-              }}</span>
-            </td>
-          </tr>
-        </template>
-        <template #[`item.Total_Summary_ID`]="{ item }">
-          <v-chip color="success" variant="tonal">{{
-            item.Total_Summary_ID
-          }}</v-chip>
-        </template>
-        <template #[`item.Quantity_Error`]="{ item }">
-          <v-chip color="warning" variant="tonal">{{
-            item.Quantity_Error
-          }}</v-chip>
-        </template>
-        <template #[`item.Quantity_RW`]="{ item }">
-          <v-chip color="info" variant="tonal">{{ item.Quantity_RW }}</v-chip>
-        </template>
-        <template #[`item.Percent_Error`]="{ item }">
-          <v-progress-linear
-            :model-value="Number(item.Percent_Error)"
-            height="25"
-            color="success"
-            class="rounded-lg"
+          <template
+            v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }"
           >
-            <strong>{{ Number(item.Percent_Error).toFixed(1) }}%</strong>
-          </v-progress-linear>
-        </template>
-      </v-data-table-virtual>
-      <v-card class="mb-4 rounded-xl mt-5" elevation="2" height="500px">
-        <v-toolbar flat dense>
-          <v-toolbar-title>
-            <v-icon
-              color="primary"
-              icon="mdi-chart-donut"
-              size="x-small"
-              start
-            ></v-icon>
-            Biểu đồ kế hoạch và thực tế
-          </v-toolbar-title>
-        </v-toolbar>
+            <tr>
+              <td
+                :colspan="columns.length"
+                class="cursor-pointer"
+                v-ripple
+                @click="toggleGroup(item)"
+              >
+                <div class="d-flex align-center">
+                  <v-btn
+                    :icon="isGroupOpen(item) ? '$expand' : '$next'"
+                    color="medium-emphasis"
+                    density="comfortable"
+                    size="small"
+                    variant="text"
+                  ></v-btn>
+
+                  <span class="ms-4 font-weight-bold text-primary"
+                    >{{ item.value }} ({{ item.items.length }})</span
+                  >
+                </div>
+              </td>
+            </tr>
+          </template>
+          <template #[`item.Quantity_Plan`]="{ item }">
+            <v-chip color="primary" variant="tonal">{{
+              item.Quantity_Plan
+            }}</v-chip>
+          </template>
+          <template #[`item.Quantity_Real`]="{ item }">
+            <v-chip color="success" variant="tonal">{{
+              item.Quantity_Real
+            }}</v-chip>
+          </template>
+          <template v-slot:item.Percent="{ item }">
+            <v-progress-linear
+              v-model="item.Percent"
+              height="25"
+              color="success"
+            >
+              <strong>{{ item.Percent.toFixed(1) }}%</strong>
+            </v-progress-linear>
+          </template>
+        </v-data-table-virtual>
+      </v-card>
+
+      <v-card variant="outlined" class="rounded-xl mt-5 bg-surface">
+        <v-data-table-virtual
+          :headers="HeadersError"
+          :items="Manufacture_Fail"
+          :group-by="[{ key: 'PONumber' }]"
+          class="bg-transparent"
+          fixed-header
+          :header-props="{
+            sortByText: 'Sắp xếp theo',
+            sortDescText: 'Giảm dần',
+            sortAscText: 'Tăng dần',
+          }"
+          :loading="DialogLoading"
+          loading-text="Đang tải dữ liệu..."
+          no-data-text="Không có dữ liệu"
+          no-results-text="Không tìm thấy kết quả"
+          :hover="true"
+          :dense="false"
+          :fixed-header="true"
+        >
+          <template v-slot:top>
+            <v-toolbar flat color="transparent" class="border-b px-2">
+              <v-toolbar-title class="d-flex align-center">
+                <v-avatar
+                  color="primary"
+                  variant="tonal"
+                  size="32"
+                  class="me-3"
+                >
+                  <v-icon icon="mdi-message-alert" size="20"></v-icon>
+                </v-avatar>
+                <span class="text-h6 font-weight-bold"
+                  >Tỷ lệ lỗi trong đơn hàng</span
+                >
+              </v-toolbar-title>
+            </v-toolbar>
+          </template>
+
+          <template
+            v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }"
+          >
+            <tr>
+              <td :colspan="columns.length">
+                <v-btn
+                  variant="text"
+                  :icon="isGroupOpen ? 'mdi-chevron-down' : 'mdi-chevron-up'"
+                  @click="toggleGroup(item)"
+                  class="me-2"
+                ></v-btn>
+                <span class="font-weight-bold text-primary">{{
+                  item.value
+                }}</span>
+              </td>
+            </tr>
+          </template>
+          <template #[`item.Total_Summary_ID`]="{ item }">
+            <v-chip color="success" variant="tonal">{{
+              item.Total_Summary_ID
+            }}</v-chip>
+          </template>
+          <template #[`item.Quantity_Error`]="{ item }">
+            <v-chip color="warning" variant="tonal">{{
+              item.Quantity_Error
+            }}</v-chip>
+          </template>
+          <template #[`item.Quantity_RW`]="{ item }">
+            <v-chip color="info" variant="tonal">{{ item.Quantity_RW }}</v-chip>
+          </template>
+          <template #[`item.Percent_Error`]="{ item }">
+            <v-progress-linear
+              :model-value="Number(item.Percent_Error)"
+              height="25"
+              color="success"
+              class="rounded-lg"
+            >
+              <strong>{{ Number(item.Percent_Error).toFixed(1) }}%</strong>
+            </v-progress-linear>
+          </template>
+        </v-data-table-virtual>
+      </v-card>
+      <v-card class="mb-4 rounded-xl mt-5 border" elevation="0" height="500px">
+        <v-card-title class="d-flex align-center">
+          <v-avatar color="primary" variant="tonal" size="32" class="me-3">
+            <v-icon icon="mdi-chart-donut" size="20"></v-icon>
+          </v-avatar>
+          <span class="text-h6 font-weight-bold">Biểu đồ thông tin lỗi</span>
+        </v-card-title>
         <v-card-text>
           <v-pie
             :items="pieItems"
@@ -991,6 +959,7 @@ import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 import StackedBarChart from "@/components/Chart-StackedBar-PageSummary.vue";
+import CardStatistic from "@/components/Card-Statistic.vue";
 
 // Composables
 import { useSummary } from "@/composables/Summary/useSummary";
@@ -1343,6 +1312,7 @@ export default {
     Loading,
     InputSelect,
     InputTextarea,
+    CardStatistic,
   },
   data() {
     return {};

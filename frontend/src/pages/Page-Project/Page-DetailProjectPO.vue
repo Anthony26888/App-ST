@@ -10,58 +10,43 @@
       {{ NameCustomer }}
     </v-card-title>
     <v-card-text>
-      <v-card variant="text">
-        <v-card-title>
-          <v-row v-if="lgAndUp">
-            <v-col cols="12" sm="6" md="3">
-              <v-card class="rounded-xl" color="primary" variant="tonal">
-                <v-card-text>
-                  <div class="text-subtitle-1">Tổng số PO</div>
-                  <div class="text-h4 font-weight-bold">
-                    {{ totalUniquePO || 0 }}
-                  </div>
-                </v-card-text>
-              </v-card>
-            </v-col>
-            <v-col cols="12" sm="6" md="3">
-              <v-card class="rounded-xl" color="info" variant="tonal">
-                <v-card-text>
-                  <div class="text-subtitle-1">Tổng số đơn hàng</div>
-                  <div class="text-h4 font-weight-bold">
-                    {{ detailProjectPO?.length || 0 }}
-                  </div>
-                </v-card-text>
-              </v-card>
-            </v-col>
-            <v-col cols="12" sm="6" md="3">
-              <v-card class="rounded-xl" color="success" variant="tonal">
-                <v-card-text>
-                  <div class="text-subtitle-1">Tổng đơn hàng hoàn thành</div>
-                  <div class="text-h4 font-weight-bold">
-                    {{
-                      detailProjectPO?.filter((p) => p.Status === "Hoàn thành")
-                        .length || 0
-                    }}
-                  </div>
-                </v-card-text>
-              </v-card>
-            </v-col>
-            <v-col cols="12" sm="6" md="3">
-              <v-card class="rounded-xl" color="warning" variant="tonal">
-                <v-card-text>
-                  <div class="text-subtitle-1">Tổng đơn hàng đang sản xuất</div>
-                  <div class="text-h4 font-weight-bold">
-                    {{
-                      detailProjectPO?.filter(
-                        (p) => p.Status === "Đang sản xuất"
-                      ).length || 0
-                    }}
-                  </div>
-                </v-card-text>
-              </v-card>
-            </v-col>
-          </v-row>
-        </v-card-title>
+      <v-card-title class="mb-5">
+        <v-row v-if="lgAndUp">
+          <v-col cols="12" sm="6" md="3">
+            <CardStatistic
+              title="Tổng số PO"
+              :value="totalUniquePO || 0"
+              icon="mdi-file-document-multiple"
+              color="primary"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <CardStatistic
+              title="Tổng số đơn hàng"
+              :value="detailProjectPO?.length || 0"
+              icon="mdi-package-variant-closed"
+              color="info"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <CardStatistic
+              title="Tổng đơn hàng hoàn thành"
+              :value="detailProjectPO?.filter((p) => p.Status === 'Hoàn thành').length || 0"
+              icon="mdi-check-circle"
+              color="success"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <CardStatistic
+              title="Tổng đơn hàng đang sản xuất"
+              :value="detailProjectPO?.filter((p) => p.Status === 'Đang sản xuất').length || 0"
+              icon="mdi-progress-wrench"
+              color="warning"
+            />
+          </v-col>
+        </v-row>
+      </v-card-title>
+      <v-card variant="elevated" elevation="0" class="rounded-xl border">
         <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
           <v-icon icon="mdi mdi-cart-variant"></v-icon> &nbsp;
           {{ NameCustomer }}
@@ -79,7 +64,7 @@
         <v-data-table-virtual
           :group-by="[{ key: 'POID' }]"
           v-if="lgAndUp"
-          density="compact"
+          density="comfortable"
           :search="search"
           :items="detailProjectPO"
           :item-p
@@ -91,7 +76,7 @@
           :hover="true"
           :dense="false"
           :fixed-header="true"
-          height="calc(100vh - 250px)"
+          height="69vh"
         >
           <template
             v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }"
@@ -184,7 +169,7 @@
           :hover="true"
           :dense="false"
           :fixed-header="true"
-          height="calc(100vh - 200px)"
+          height="70vh"
         >
           <template
             v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }"
@@ -265,7 +250,11 @@
     </v-card-text>
   </v-card>
   <v-dialog v-model="DialogEdit" width="500">
-    <v-card max-width="500" prepend-icon="mdi-update" title="Cập nhật dữ liệu">
+    <v-card max-width="500" class="rounded-lg">
+      <v-card-title class="d-flex align-center pa-4">
+        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
+        Cập nhật dữ liệu
+      </v-card-title>
       <v-card-text>
         <InputField label="Tên PO" v-model="PO_Edit" />
         <InputField label="Chi tiết đơn hàng" v-model="Product_Detail_Edit" />
@@ -306,10 +295,12 @@
   <v-dialog v-model="DialogAdd" width="500">
     <v-card
       max-width="500"
-      prepend-icon="mdi-update"
-      title="Thêm dữ liệu"
       class="rounded-lg"
     >
+    <v-card-title class="d-flex align-center pa-4">
+      <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
+      Thêm dữ liệu
+    </v-card-title>
       <v-card-text>
         <InputField label="Tên PO" v-model="PO_Add" />
         <InputField label="Đơn hàng" v-model="Product_Detail_Add" />
@@ -358,15 +349,13 @@
         Chuyển dữ liệu xuống sản xuất
       </v-card-title>
       <v-card-text>
-        <InputField disabled="true" label="Tên dự án" v-model="NamePO" />
+        <InputField label="Tên dự án" v-model="NamePO" />
         <InputField
-          disabled="true"
           label="Tên đơn hàng"
           v-model="Name_Order_Manufacture"
           @update:model-value="Name_Order_Manufacture = $event"
         />
         <InputField
-          disabled="true"
           label="Tổng sản phẩm"
           type="number"
           :model-value="Total_Manufacture_Add"
@@ -436,6 +425,7 @@
           label="Ngày tạo"
           type="date"
           v-model="Date_Manufacture_Add"
+          :rules="[requiredRule]"
           @update:model-value="Date_Manufacture_Add = $event"
         />
         <InputTextarea
@@ -446,7 +436,7 @@
       </v-card-text>
       <v-card-actions>
         <ButtonCancel @cancel="DialogAddManufacture = false" />
-        <ButtonSave @save="SaveAddManufacture()" />
+        <ButtonSave @save="SaveAddManufacture()" :disabled="!NamePO || !Name_Order_Manufacture || !Total_Manufacture_Add || !Date_Manufacture_Add" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -492,6 +482,7 @@ import ButtonAdd from "@/components/Button-Add.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
+import CardStatistic from "@/components/Card-Statistic.vue";
 
 // Composables
 import { useDetailProjectPO } from "@/composables/Project/useDetailProjectPO";
@@ -573,6 +564,7 @@ const Headers = ref([
 const search = ref("");
 const itemsPerPage = ref(12);
 const page = ref(1);
+const requiredRule = (value) => !!value || "Không được để trống";
 
 // ===== USER INFORMATION =====
 const LevelUser = localStorage.getItem("LevelUser");
@@ -632,11 +624,11 @@ function GetItem(item) {
   Quantity_Delivered_Edit.value = item.Quantity_Delivered;
   Quantity_Amount_Edit.value = item.Quantity_Amount;
   Note_Edit.value = item.Note;
-  console.log(item.id);
 }
 
 function GetItemManufacture(item) {
   DialogAddManufacture.value = true;
+  NamePO.value = item.POID;
   Name_Manufacture_Add.value = item.PO;
   Name_Order_Manufacture.value = item.Product_Detail;
   Total_Manufacture_Add.value = item.Quantity_Product;

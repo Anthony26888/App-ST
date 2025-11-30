@@ -4,120 +4,94 @@
       >Danh sách dự án
     </v-card-title>
     <v-card-text>
-      <v-card variant="text">
-        <v-card-title>
-          <v-row v-if="lgAndUp">
-            <v-col cols="12" sm="6" md="3">
-              <v-card class="rounded-xl" color="primary" variant="tonal">
-                <v-card-text>
-                  <div class="text-subtitle-1">Tổng số khách hàng</div>
-                  <div class="text-h4 font-weight-bold">
-                    {{ project?.length || 0 }}
-                  </div>
-                </v-card-text>
-              </v-card>
-            </v-col>
-            <v-col cols="12" sm="6" md="3">
-              <v-card class="rounded-xl" color="info" variant="tonal">
-                <v-card-text>
-                  <div class="text-subtitle-1">Tổng số PO</div>
-                  <div class="text-h4 font-weight-bold">
-                    {{
-                      project?.reduce(
-                        (sum, p) => sum + (p.Quantity_PO || 0),
-                        0
-                      ) || 0
-                    }}
-                  </div>
-                </v-card-text>
-              </v-card>
-            </v-col>
-            <v-col cols="12" sm="6" md="3">
-              <v-card class="rounded-xl" color="success" variant="tonal">
-                <v-card-text>
-                  <div class="text-subtitle-1">Tổng PO hoàn thành</div>
-                  <div class="text-h4 font-weight-bold">
-                    {{
-                      filteredProjectFind?.filter(
-                        (p) => p.Status === "Hoàn thành"
-                      ).length || 0
-                    }}
-                  </div>
-                </v-card-text>
-              </v-card>
-            </v-col>
-            <v-col cols="12" sm="6" md="3">
-              <v-card class="rounded-xl" color="warning" variant="tonal">
-                <v-card-text>
-                  <div class="text-subtitle-1">Tổng PO đang sản xuất</div>
-                  <div class="text-h4 font-weight-bold">
-                    {{
-                      filteredProjectFind?.filter(
-                        (p) => p.Status === "Đang sản xuất"
-                      ).length || 0
-                    }}
-                  </div>
-                </v-card-text>
-              </v-card>
-            </v-col>
-          </v-row>
+      <v-card-title class="mb-5">
+        <v-row v-if="lgAndUp">
+          <v-col cols="12" sm="6" md="3">
+            <CardStatistic
+              title="Tổng số khách hàng"
+              :value="project?.length || 0"
+              icon="mdi-account-group"
+              color="primary"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <CardStatistic
+              title="Tổng số PO"
+              :value="
+                project?.reduce((sum, p) => sum + (p.Quantity_PO || 0), 0) || 0
+              "
+              icon="mdi-file-document-multiple"
+              color="info"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <CardStatistic
+              title="Tổng PO hoàn thành"
+              :value="
+                filteredProjectFind?.filter((p) => p.Status === 'Hoàn thành')
+                  .length || 0
+              "
+              icon="mdi-check-circle"
+              color="success"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <CardStatistic
+              title="Tổng PO đang sản xuất"
+              :value="
+                filteredProjectFind?.filter((p) => p.Status === 'Đang sản xuất')
+                  .length || 0
+              "
+              icon="mdi-progress-wrench"
+              color="warning"
+            />
+          </v-col>
+        </v-row>
 
-          <v-row v-else>
-            <v-col cols="6">
-              <v-card class="rounded-lg" color="primary" variant="tonal">
-                <v-card-text>
-                  <div class="text-subtitle-1">Tổng khách hàng</div>
-                  <div class="text-h4 font-weight-bold">
-                    {{ project?.length || 0 }}
-                  </div>
-                </v-card-text>
-              </v-card>
-            </v-col>
-            <v-col cols="6">
-              <v-card class="rounded-lg" color="info" variant="tonal">
-                <v-card-text>
-                  <div class="text-subtitle-1">Tổng PO</div>
-                  <div class="text-h4 font-weight-bold">
-                    {{
-                      project?.reduce(
-                        (sum, p) => sum + (p.Quantity_PO || 0),
-                        0
-                      ) || 0
-                    }}
-                  </div>
-                </v-card-text>
-              </v-card>
-            </v-col>
-            <v-col cols="6">
-              <v-card class="rounded-lg" color="success" variant="tonal">
-                <v-card-text>
-                  <div class="text-subtitle-1">Hoàn thành</div>
-                  <div class="text-h4 font-weight-bold">
-                    {{
-                      filteredProjectFind?.filter(
-                        (p) => p.Status === "Hoàn thành"
-                      ).length || 0
-                    }}
-                  </div>
-                </v-card-text>
-              </v-card>
-            </v-col>
-            <v-col cols="6">
-              <v-card class="rounded-lg" color="warning" variant="tonal">
-                <v-card-text>
-                  <div class="text-subtitle-1">Đang sản xuất</div>
-                  <div class="text-h4 font-weight-bold">
-                    {{
-                      filteredProjectFind?.filter(
-                        (p) => p.Status === "Đang sản xuất"
-                      ).length || 0
-                    }}
-                  </div>
-                </v-card-text>
-              </v-card>
-            </v-col>
-          </v-row>
-        </v-card-title>
+        <v-row v-else>
+          <v-col cols="6">
+            <CardStatistic
+              title="Tổng khách hàng"
+              :value="project?.length || 0"
+              icon="mdi-account-group"
+              color="primary"
+            />
+          </v-col>
+          <v-col cols="6">
+            <CardStatistic
+              title="Tổng PO"
+              :value="
+                project?.reduce((sum, p) => sum + (p.Quantity_PO || 0), 0) || 0
+              "
+              icon="mdi-file-document-multiple"
+              color="info"
+            />
+          </v-col>
+          <v-col cols="6">
+            <CardStatistic
+              title="Hoàn thành"
+              :value="
+                filteredProjectFind?.filter((p) => p.Status === 'Hoàn thành')
+                  .length || 0
+              "
+              icon="mdi-check-circle"
+              color="success"
+            />
+          </v-col>
+          <v-col cols="6">
+            <CardStatistic
+              title="Đang sản xuất"
+              :value="
+                filteredProjectFind?.filter((p) => p.Status === 'Đang sản xuất')
+                  .length || 0
+              "
+              icon="mdi-progress-wrench"
+              color="warning"
+            />
+          </v-col>
+        </v-row>
+      </v-card-title>
+      <v-card variant="elevated" elevation="0" class="rounded-xl border">
         <v-card-title class="d-flex align-center" v-if="lgAndUp">
           <!-- <ButtonImportFile @import-file="Dialog = true" /> -->
           <ButtonAdd
@@ -199,13 +173,13 @@
         <v-card-text class="overflow-auto">
           <v-data-table-virtual
             v-if="lgAndUp"
-            density="compact"
+            density="comfortable"
             :headers="Headers"
             :items="project"
             :search="search"
             :items-per-page="itemsPerPage"
             v-model:page="page"
-            class="elevation-1"
+            class="elevation-0"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
               'items-per-page-text': 'Số hàng mỗi trang',
@@ -222,7 +196,7 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="calc(100vh - 260px)"
+            height="66vh"
           >
             <template v-slot:item.Status="{ value }">
               <div>
@@ -278,7 +252,7 @@
             :search="search"
             :items-per-page="itemsPerPage"
             v-model:page="page"
-            class="elevation-1"
+            class="elevation-0"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
               'items-per-page-text': 'Số hàng mỗi trang',
@@ -346,7 +320,7 @@
     </v-card-text>
   </v-card>
   <v-dialog v-model="DialogEdit" width="400">
-    <v-card max-width="400">
+    <v-card max-width="400" class="rounded-lg">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
         Cập nhật dữ liệu
@@ -365,7 +339,7 @@
   </v-dialog>
 
   <v-dialog v-model="DialogAdd" width="400">
-    <v-card max-width="400">
+    <v-card max-width="400" class="rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
         Thêm dữ liệu
@@ -381,7 +355,12 @@
     </v-card>
   </v-dialog>
   <v-dialog v-model="DialogRemove" width="400">
-    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
+    <v-card
+      max-width="400"
+      class="rounded-xl"
+      prepend-icon="mdi-delete"
+      title="Xoá dữ liệu"
+    >
       <v-card-text> Bạn có chắc chắn muốn xoá khách hàng này ? </v-card-text>
       <template v-slot:actions>
         <ButtonCancel @cancel="DialogRemove = false" />
@@ -390,7 +369,12 @@
     </v-card>
   </v-dialog>
   <v-dialog v-model="Dialog" width="400">
-    <v-card max-width="400" prepend-icon="mdi-update" title="Thêm dữ liệu">
+    <v-card
+      max-width="400"
+      class="rounded-xl"
+      prepend-icon="mdi-update"
+      title="Thêm dữ liệu"
+    >
       <v-card-text>
         <InputFiles label="Thêm File Excel" v-model="File" />
       </v-card-text>
@@ -402,7 +386,7 @@
   </v-dialog>
 
   <v-dialog v-model="DialogFind" width="1200" scrollable>
-    <v-card class="overflow-y-auto">
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-filter" color="primary" class="me-2"></v-icon>
         Tìm kiếm nâng cao
@@ -555,6 +539,7 @@ import ButtonAI from "@/components/Button-AI.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
+import CardStatistic from "@/components/Card-Statistic.vue";
 
 // Composables
 import { useProject } from "@/composables/Project/useProject";
@@ -605,7 +590,7 @@ const Headers = ref([
   { key: "Customer", title: "Khách hàng" },
   { key: "Status", title: "Trạng thái" },
   { key: "Quantity_PO", title: "Tổng PO" },
-  { key: "Quantity_Orders", title: "Tổng đơn hàng",  },
+  { key: "Quantity_Orders", title: "Tổng đơn hàng" },
   { key: "Percent_Completed", title: "Tỉ lệ hoàn thành", width: "200" },
   { key: "id", sortable: false, title: "Thao tác" },
 ]);

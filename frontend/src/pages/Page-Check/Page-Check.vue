@@ -23,7 +23,7 @@
       <!-- Search and Process -->
       <v-spacer></v-spacer>
       <InputSearch v-model="NamePO" />
-      <v-btn color="primary" class="ms-2 text-caption" @click="Proccess()">
+      <v-btn color="primary" class="ms-2 text-caption mt-1" @click="Proccess()">
         Xử lí
       </v-btn>
     </v-card-title>
@@ -42,14 +42,14 @@
       ></v-empty-state>
 
       <!-- Data Table Card -->
-      <v-card variant="text" v-else>
+      <v-card variant="elevated" elevation="0" class="rounded-xl border" v-else>
         <!-- Table Header -->
         <v-card-title class="d-flex align-center pe-2">
           <p class="text-h6">{{ namePO }}</p>
           <p class="ms-2 font-weight-thin text-subtitle-1">
             ( {{ checkBOM.length }} linh kiện)
           </p>
-          
+
           <!-- Action Buttons -->
           <ButtonDownload @download-file="DownloadPO()" />
           <v-btn
@@ -69,50 +69,49 @@
         </v-card-title>
 
         <!-- Data Table -->
-        <v-card-text>
-          <v-data-table
-            :headers="Headers"
-            :items="checkBOM"
-            :search="search"
-            :items-per-page="itemsPerPage"
-            v-model:page="page"
-            class="elevation-1"
-            :footer-props="{
-              'items-per-page-options': [10, 20, 50, 100],
-              'items-per-page-text': 'Số hàng mỗi trang',
-            }"
-            :header-props="{
-              sortByText: 'Sắp xếp theo',
-              sortDescText: 'Giảm dần',
-              sortAscText: 'Tăng dần',
-            }"
-            :loading="DialogLoading"
-            loading-text="Đang tải dữ liệu..."
-            no-data-text="Không có dữ liệu"
-            no-results-text="Không tìm thấy kết quả"
-            :hover="true"
-            :dense="false"
-            :fixed-header="true"
-            height="calc(100vh - 270px)"
-          >
-            <!-- Pagination -->
-            <template v-slot:bottom>
-              <div class="text-center pt-2">
-                <v-pagination
-                  v-model="page"
-                  :length="Math.ceil(checkBOM.length / itemsPerPage)"
-                ></v-pagination>
-              </div>
-            </template>
+        <v-data-table
+          density="comfortable"
+          :headers="Headers"
+          :items="checkBOM"
+          :search="search"
+          :items-per-page="itemsPerPage"
+          v-model:page="page"
+          class="elevation-0"
+          :footer-props="{
+            'items-per-page-options': [10, 20, 50, 100],
+            'items-per-page-text': 'Số hàng mỗi trang',
+          }"
+          :header-props="{
+            sortByText: 'Sắp xếp theo',
+            sortDescText: 'Giảm dần',
+            sortAscText: 'Tăng dần',
+          }"
+          :loading="DialogLoading"
+          loading-text="Đang tải dữ liệu..."
+          no-data-text="Không có dữ liệu"
+          no-results-text="Không tìm thấy kết quả"
+          :hover="true"
+          :dense="false"
+          :fixed-header="true"
+          height="75vh"
+        >
+          <!-- Pagination -->
+          <template v-slot:bottom>
+            <div class="text-center pt-2">
+              <v-pagination
+                v-model="page"
+                :length="Math.ceil(checkBOM.length / itemsPerPage)"
+              ></v-pagination>
+            </div>
+          </template>
 
-            <!-- Edit Action Column -->
-            <template v-slot:item.Sửa="{ value }">
-              <div>
-                <ButtonEdit @edit="GetItem(value)" />
-              </div>
-            </template>
-          </v-data-table>
-        </v-card-text>
+          <!-- Edit Action Column -->
+          <template v-slot:item.Sửa="{ value }">
+            <div>
+              <ButtonEdit @edit="GetItem(value)" />
+            </div>
+          </template>
+        </v-data-table>
       </v-card>
     </v-card-text>
   </v-card>
@@ -120,8 +119,8 @@
   <EmptyMobile v-else />
 
   <!-- Import File Dialog -->
-  <v-dialog v-model="Dialog" width="400" scrollable>
-    <v-card class="overflow-y-auto">
+  <v-dialog v-model="Dialog" width="400" scrollable class="rounded-xl">
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
         Thêm dữ liệu
@@ -144,8 +143,8 @@
   </v-dialog>
 
   <!-- Edit Item Dialog -->
-  <v-dialog v-model="DialogEdit" width="400" scrollable>
-    <v-card class="overflow-y-auto">
+  <v-dialog v-model="DialogEdit" width="400" scrollable class="rounded-xl">
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
         Cập nhật dữ liệu
@@ -161,8 +160,8 @@
   </v-dialog>
 
   <!-- Accept Order Dialog -->
-  <v-dialog v-model="DialogAccept" width="400">
-    <v-card class="overflow-y-auto">
+  <v-dialog v-model="DialogAccept" width="400" class="rounded-xl">
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-check" color="success" class="me-2"></v-icon>
         Xác nhận đơn hàng
@@ -184,8 +183,8 @@
   </v-dialog>
 
   <!-- Remove Item Dialog -->
-  <v-dialog v-model="DialogRemove" width="400">
-    <v-card class="overflow-y-auto">
+  <v-dialog v-model="DialogRemove" width="400" class="rounded-xl">
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
         Xoá dữ liệu
@@ -229,7 +228,10 @@ import InputFiles from "@/components/Input-Files.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
-import EmptyMpbile from "@/components/Empty-Mobile.vue"
+import EmptyMobile from "@/components/Empty-Mobile.vue";
+import ButtonEdit from "@/components/Button-Edit.vue";
+import ButtonDelete from "@/components/Button-Delete.vue";
+import InputSelect from "@/components/Input-Select.vue";
 // ===== STATE MANAGEMENT =====
 // Initialize composables
 const { checkBOM, fetchData } = useCheckBOM();

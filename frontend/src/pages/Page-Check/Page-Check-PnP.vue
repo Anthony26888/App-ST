@@ -4,253 +4,263 @@
       <ButtonBack to="/Danh-sach-pnp" />
       <p class="text-h4 font-weight-light ms-3">{{ project_name }}</p>
     </v-card-title>
-    <v-card-title class="d-flex align-center pe-2">
-      <v-btn
-        @click="DialogAddBom = true"
-        prepend-icon="mdi-plus"
-        class="text-caption"
-        color="primary"
-        variant="tonal"
-        >Bom</v-btn
-      >
-      <v-btn
-        @click="DialogAddPnP = true"
-        prepend-icon="mdi-plus"
-        class="text-caption"
-        color="primary ms-2"
-        variant="tonal"
-        >Pick & Place</v-btn
-      >
-      <v-btn
-        @click="DialogAddGerber = true"
-        prepend-icon="mdi-plus"
-        class="text-caption ms-2"
-        color="primary"
-        variant="tonal"
-        >Gerber</v-btn
-      >
-      <ButtonDownload @download-file="DownloadPnP()" />
-      <p class="text-subtitle-1 font-weight-thin text-subtitle-1 ms-2">
-        {{ combineBom.length }} linh kiện
-        <span v-if="componentsWithSize > 0" class="text-caption text-grey">
-          ({{ componentsWithSize }} có kích thước)
-        </span>
-      </p>
-      <v-spacer></v-spacer>
-      <InputSearch v-model="searchBom" />
-    </v-card-title>
-    <v-card-text>
-      <v-data-table
-        :headers="Headers"
-        :items="combineBom"
-        :search="searchBom"
-        :items-per-page="itemsPerPageBom"
-        v-model:page="pageBom"
-        class="elevation-1"
-        :footer-props="{
-          'items-per-page-options': [10, 20, 50, 100],
-          'items-per-page-text': 'Số hàng mỗi trang',
-        }"
-        :header-props="{
-          sortByText: 'Sắp xếp theo',
-          sortDescText: 'Giảm dần',
-          sortAscText: 'Tăng dần',
-        }"
-        :loading="DialogLoading"
-        loading-text="Đang tải dữ liệu..."
-        no-data-text="Không có dữ liệu"
-        no-results-text="Không tìm thấy kết quả"
-        :hover="true"
-        :dense="false"
-        :fixed-header="true"
-        height="calc(100vh - 200px)"
-      >
-        <template v-slot:bottom>
-          <div class="text-center pt-2">
-            <v-pagination
-              v-model="pageBom"
-              :length="Math.ceil(combineBom.length / itemsPerPageBom)"
-            ></v-pagination>
-          </div>
-        </template>
-        <template v-slot:item.stt="{ index }">
-          {{ (pageBom - 1) * itemsPerPageBom + index + 1 }}
-        </template>
-        <template v-slot:item.id="{ item }">
-          <div class="d-flex">
-            <ButtonEdit @edit="GetItemEdit(item)" />
-            <ButtonSearch @search="getAccessToken(item)" class="ms-2" />
-            <v-btn
-              icon="mdi-update"
-              color="success"
-              variant="text"
-              @click="GetAddSize(item)"
-            ></v-btn>
-          </div>
-        </template>
-        <template v-slot:item.mount_type="{ value }">
-          <v-chip
-            :color="value === 'SMT' ? 'primary' : 'warning'"
-            size="small"
-            variant="tonal"
-          >
-            {{ value }}
-          </v-chip>
-        </template>
-        <template v-slot:item.layer="{ value }">
-          <v-chip
-            :color="value === 'Top' ? 'success' : 'error'"
-            size="small"
-            variant="tonal"
-          >
-            {{ value }}
-          </v-chip>
-        </template>
-        <template v-slot:item.type="{ value }">
-          <v-chip
-            :color="value === 'SMT' ? 'primary' : 'warning'"
-            size="small"
-            variant="tonal"
-          >
-            {{ value }}
-          </v-chip>
-        </template>
-        <template v-slot:item.x="{ item }">
-          {{ item.x }}
-        </template>
-        <template v-slot:item.y="{ item }">
-          {{ item.y }}
-        </template>
-      </v-data-table>
-    </v-card-text>
-    <v-card-title class="d-flex align-center mt-5">
-      <span>So sánh Gerber và Pick & Place</span>
-      <p class="text-subtitle-1 font-weight-thin text-subtitle-1 ms-2">
-        ({{ filteredPnP.length }} điểm)
-      </p>
-      <!-- <Button-Download @click="downloadExcelPnP()"/> -->
-      <v-spacer></v-spacer>
-      <!-- Coordinate scaling controls -->
-      <v-btn
-        @click="GetSettingSVG()"
-        prepend-icon="mdi-tune"
-        variant="tonal"
-        class="me-2 ms-2 text-caption"
-        title="Cài đặt tọa độ"
-        >Cài đặt</v-btn
-      >
-
-      <!-- Controls for overlay -->
-
-      <!-- Layer select -->
-      <v-select
-        v-model="selectedLayer"
-        :items="['Top', 'Bottom']"
-        label="Layer"
-        class="me-4"
-        density="comfortable"
-        variant="outlined"
-        hide-details
-        style="max-width: 160px"
-      />
-
-      <!-- <InputSearch v-model="searchPnP" /> -->
-
-      <!-- <v-btn
-        @click="showGrid = !showGrid"
-        :icon="showGrid ? 'mdi-grid-off' : 'mdi-grid'"
-        size="small"
-        variant="outlined"
-        :color="showGrid ? 'success' : 'default'"
-        title="Toggle Grid"
-        class="ms-2"
-      ></v-btn>
-
-      <v-btn
-        @click="showComponentBoxes = !showComponentBoxes"
-        :icon="showComponentBoxes ? 'mdi-square-outline' : 'mdi-square'"
-        size="small"
-        variant="outlined"
-        :color="showComponentBoxes ? 'success' : 'default'"
-        title="Toggle Component Boxes"
-        class="ms-2"
-      ></v-btn> -->
-    </v-card-title>
-    <v-card-text class="mt-3">
+    <!-- Stats Cards -->
+    <v-card-title>
       <v-row>
-        <v-col cols="12" class="mt-5">
-          <!-- Hiển thị SVG với overlay Pick & Place -->
-          <div
-            v-if="svgWithPnP && overlayMode !== 'pnp'"
-            class="gerber-svg-container"
-            ref="svgContainer"
-            @wheel="handleZoom"
-            @mousedown="handleMouseDown"
-            @mousemove="handleMouseMove"
-            @mouseup="handleMouseUp"
-            @mouseleave="handleMouseUp"
-          >
-            <!-- Coordinate grid overlay -->
-            <div v-if="showGrid" class="coordinate-grid-overlay">
-              <svg width="100%" height="100%" class="grid-svg">
-                <defs>
-                  <pattern
-                    id="grid"
-                    width="20"
-                    height="20"
-                    patternUnits="userSpaceOnUse"
-                  >
-                    <path
-                      d="M 20 0 L 0 0 0 20"
-                      fill="none"
-                      stroke="#e0e0e0"
-                      stroke-width="0.5"
-                    />
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#grid)" />
-              </svg>
-            </div>
-
-            <div v-html="currentSvgContent" :style="svgContainerStyle"></div>
-
-            <!-- Zoom indicator -->
-            <div class="zoom-indicator">{{ Math.round(zoomLevel * 100) }}%</div>
-          </div>
-
-          <div
-            v-if="overlayMode !== 'pnp' && !currentGerberSvg"
-            class="text-center pa-8"
-          >
-            <v-icon size="64" color="grey">mdi-image-off</v-icon>
-            <p class="text-h6 text-grey mt-4">
-              Chưa có dữ liệu Gerber cho layer đã chọn
-            </p>
-          </div>
-
-          <!-- Hiển thị chỉ tọa độ PnP nếu chọn mode PnP -->
-          <!-- <div
-            v-if="
-              overlayMode === 'pnp' && filteredPnP && filteredPnP.length > 0
+        <v-col cols="12" sm="4" md="4">
+          <CardStatistic
+            title="Tổng linh kiện"
+            :value="combineBom.length || 0"
+            icon="mdi-chip"
+            color="primary"
+          />
+        </v-col>
+        <v-col cols="12" sm="4" md="4">
+          <CardStatistic
+            title="Top Layer"
+            :value="
+              combineBom.filter(
+                (item) => item.layer === 'Top' || item.layer === 'TopLayer'
+              ).length || 0
             "
-            class="pnp-only-view"
-          >
-            <div class="text-center pa-8">
-              <v-icon size="64" color="primary">mdi-map-marker</v-icon>
-              <p class="text-h6 mt-4">Chế độ xem tọa độ Pick & Place</p>
-              <p class="text-body-2 text-grey">
-                Sử dụng bảng bên dưới để xem chi tiết
-              </p>
-            </div>
-          </div> -->
+            icon="mdi-arrow-up-bold"
+            color="success"
+          />
+        </v-col>
+        <v-col cols="12" sm="4" md="4">
+          <CardStatistic
+            title="Bottom Layer"
+            :value="
+              combineBom.filter(
+                (item) =>
+                  item.layer === 'Bottom' || item.layer === 'BottomLayer'
+              ).length || 0
+            "
+            icon="mdi-arrow-down-bold"
+            color="error"
+          />
         </v-col>
       </v-row>
+    </v-card-title>
+
+    <v-card-text>
+      <v-card variant="elevated" elevation="0" class="rounded-xl border">
+        <v-tabs v-model="tab" align-tabs="center" color="deep-orange">
+          <v-tab :value="1" class="text-caption">Bom và Pick & Place</v-tab>
+          <v-tab :value="2" class="text-caption">Gerber</v-tab>
+        </v-tabs>
+
+        <v-tabs-window v-model="tab">
+          <v-tabs-window-item :value="1">
+            <v-card-title class="d-flex align-center pe-2">
+              <v-btn
+                @click="DialogAddBom = true"
+                prepend-icon="mdi-plus"
+                class="text-caption"
+                color="primary"
+                variant="tonal"
+                >Bom</v-btn
+              >
+              <v-btn
+                @click="DialogAddPnP = true"
+                prepend-icon="mdi-plus"
+                class="text-caption"
+                color="primary ms-2"
+                variant="tonal"
+                >Pick & Place</v-btn
+              >
+              <v-btn
+                @click="DialogAddGerber = true"
+                prepend-icon="mdi-plus"
+                class="text-caption ms-2"
+                color="primary"
+                variant="tonal"
+                >Gerber</v-btn
+              >
+              <ButtonDownload @download-file="DownloadPnP()" />
+              <v-spacer></v-spacer>
+              <InputSearch v-model="searchBom" />
+            </v-card-title>
+            <v-card-text>
+              <v-data-table
+                density="comfortable"
+                :headers="Headers"
+                :items="combineBom"
+                :search="searchBom"
+                :items-per-page="itemsPerPageBom"
+                v-model:page="pageBom"
+                class="elevation-0"
+                :footer-props="{
+                  'items-per-page-options': [10, 20, 50, 100],
+                  'items-per-page-text': 'Số hàng mỗi trang',
+                }"
+                :header-props="{
+                  sortByText: 'Sắp xếp theo',
+                  sortDescText: 'Giảm dần',
+                  sortAscText: 'Tăng dần',
+                }"
+                :loading="DialogLoading"
+                loading-text="Đang tải dữ liệu..."
+                no-data-text="Không có dữ liệu"
+                no-results-text="Không tìm thấy kết quả"
+                :hover="true"
+                :dense="false"
+                :fixed-header="true"
+                height="58vh"
+              >
+                <template v-slot:bottom>
+                  <div class="text-center pt-2">
+                    <v-pagination
+                      v-model="pageBom"
+                      :length="Math.ceil(combineBom.length / itemsPerPageBom)"
+                    ></v-pagination>
+                  </div>
+                </template>
+                <template v-slot:item.stt="{ index }">
+                  {{ (pageBom - 1) * itemsPerPageBom + index + 1 }}
+                </template>
+                <template v-slot:item.id="{ item }">
+                  <div class="d-flex">
+                    <ButtonEdit @edit="GetItemEdit(item)" />
+                    <ButtonSearch @search="getAccessToken(item)" class="ms-2" />
+                    <v-btn
+                      icon="mdi-update"
+                      color="success"
+                      variant="text"
+                      @click="GetAddSize(item)"
+                    ></v-btn>
+                  </div>
+                </template>
+                <template v-slot:item.mount_type="{ value }">
+                  <v-chip
+                    :color="value === 'SMT' ? 'primary' : 'warning'"
+                    size="small"
+                    variant="tonal"
+                  >
+                    {{ value }}
+                  </v-chip>
+                </template>
+                <template v-slot:item.layer="{ value }">
+                  <v-chip
+                    :color="value === 'Top' ? 'success' : 'error'"
+                    size="small"
+                    variant="tonal"
+                  >
+                    {{ value }}
+                  </v-chip>
+                </template>
+                <template v-slot:item.type="{ value }">
+                  <v-chip
+                    :color="value === 'SMT' ? 'primary' : 'warning'"
+                    size="small"
+                    variant="tonal"
+                  >
+                    {{ value }}
+                  </v-chip>
+                </template>
+                <template v-slot:item.x="{ item }">
+                  {{ item.x }}
+                </template>
+                <template v-slot:item.y="{ item }">
+                  {{ item.y }}
+                </template>
+              </v-data-table>
+            </v-card-text>
+          </v-tabs-window-item>
+          <v-tabs-window-item :value="2" >
+            <v-card height="100vh" variant="text">
+            <v-card-title class="d-flex align-center mt-5" height="62vh">
+              <span>So sánh Gerber và Pick & Place</span>
+              <!-- <Button-Download @click="downloadExcelPnP()"/> -->
+              <v-spacer></v-spacer>
+              <!-- Coordinate scaling controls -->
+              <v-btn
+                @click="GetSettingSVG()"
+                prepend-icon="mdi-tune"
+                variant="tonal"
+                class="me-2 ms-2 text-caption"
+                title="Cài đặt tọa độ"
+                >Cài đặt</v-btn
+              >
+
+              <!-- Controls for overlay -->
+
+              <!-- Layer select -->
+              <v-select
+                v-model="selectedLayer"
+                :items="['Top', 'Bottom']"
+                label="Layer"
+                class="me-4"
+                density="comfortable"
+                variant="outlined"
+                hide-details
+                style="max-width: 160px"
+              />
+            </v-card-title>
+            <v-card-text class="mt-3">
+              <v-row>
+                <v-col cols="12" class="mt-5">
+                  <!-- Hiển thị SVG với overlay Pick & Place -->
+                  <div
+                    v-if="svgWithPnP && overlayMode !== 'pnp'"
+                    class="gerber-svg-container"
+                    ref="svgContainer"
+                    @wheel="handleZoom"
+                    @mousedown="handleMouseDown"
+                    @mousemove="handleMouseMove"
+                    @mouseup="handleMouseUp"
+                    @mouseleave="handleMouseUp"
+                  >
+                    <!-- Coordinate grid overlay -->
+                    <div v-if="showGrid" class="coordinate-grid-overlay">
+                      <svg width="100%" height="100%" class="grid-svg">
+                        <defs>
+                          <pattern
+                            id="grid"
+                            width="20"
+                            height="20"
+                            patternUnits="userSpaceOnUse"
+                          >
+                            <path
+                              d="M 20 0 L 0 0 0 20"
+                              fill="none"
+                              stroke="#e0e0e0"
+                              stroke-width="0.5"
+                            />
+                          </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill="url(#grid)" />
+                      </svg>
+                    </div>
+
+                    <div
+                      v-html="currentSvgContent"
+                      :style="svgContainerStyle"
+                    ></div>
+
+                    <!-- Zoom indicator -->
+                    <div class="zoom-indicator">
+                      {{ Math.round(zoomLevel * 100) }}%
+                    </div>
+                  </div>
+                  <v-empty-state
+                    v-if="overlayMode !== 'pnp' && !currentGerberSvg"
+                    title="Dữ liệu trống"
+                    text="Chưa có dữ liệu Gerber cho layer đã chọn"
+                    icon="mdi-image-off"
+                  ></v-empty-state>
+                </v-col>
+              </v-row>
+            </v-card-text>
+            </v-card>
+          </v-tabs-window-item>
+        </v-tabs-window>
+      </v-card>
     </v-card-text>
   </v-card>
 
-
   <v-dialog v-model="DialogAddBom" width="600" scrollable>
-    <v-card class="overflow-y-auto">
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
         Thêm dữ liệu BOM
@@ -270,7 +280,7 @@
     </v-card>
   </v-dialog>
   <v-dialog v-model="DialogAddPnP" width="700" scrollable>
-    <v-card class="overflow-y-auto">
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
         Thêm dữ liệu Pick & Place
@@ -299,7 +309,7 @@
     </v-card>
   </v-dialog>
   <v-dialog v-model="DialogAddGerber" width="700" scrollable>
-    <v-card class="overflow-y-auto">
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
         Thêm dữ liệu Gerber
@@ -326,7 +336,7 @@
     </v-card>
   </v-dialog>
   <v-dialog v-model="DialogAddSize" width="600" scrollable>
-    <v-card class="overflow-y-auto">
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
         Cập nhật kích thước linh kiện
@@ -354,7 +364,12 @@
     </v-card>
   </v-dialog>
   <v-dialog v-model="DialogRemove" width="400">
-    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
+    <v-card
+      max-width="400"
+      prepend-icon="mdi-delete"
+      title="Xoá dữ liệu"
+      class="rounded-xl"
+    >
       <v-card-text> Bạn có chắc chắn muốn xoá Bom này ? </v-card-text>
       <template v-slot:actions>
         <ButtonCancel @cancel="DialogRemove = false" />
@@ -363,7 +378,7 @@
     </v-card>
   </v-dialog>
   <v-dialog v-model="DialogEdit" width="600">
-    <v-card max-width="600">
+    <v-card max-width="600" class="rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
         Chỉnh sửa Pick & Place
@@ -371,13 +386,25 @@
       <v-card-text>
         <v-row>
           <v-col cols="4">
-            <InputField label="Toạ độ X (mm)" v-model="PnP_X_Edit" hint="Toa độ X linh kiện"/>
+            <InputField
+              label="Toạ độ X (mm)"
+              v-model="PnP_X_Edit"
+              hint="Toa độ X linh kiện"
+            />
           </v-col>
           <v-col cols="4">
-            <InputField label="Toạ độ Y (mm)" v-model="PnP_Y_Edit" hint="Toa độ Y linh kiện"/>
+            <InputField
+              label="Toạ độ Y (mm)"
+              v-model="PnP_Y_Edit"
+              hint="Toa độ Y linh kiện"
+            />
           </v-col>
           <v-col cols="4">
-            <InputField label="Góc" v-model="PnP_Angle_Edit" hint="Góc linh kiện"/>
+            <InputField
+              label="Góc"
+              v-model="PnP_Angle_Edit"
+              hint="Góc linh kiện"
+            />
           </v-col>
         </v-row>
 
@@ -406,7 +433,7 @@
     </v-card>
   </v-dialog>
   <v-dialog v-model="DialogInfo" width="800" scrollable>
-    <v-card class="overflow-y-auto">
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon
           icon="mdi-information-variant-circle"
@@ -473,7 +500,7 @@
   </v-dialog>
 
   <v-dialog v-model="DialogCoordinateSettings" width="700" scrollable>
-    <v-card class="overflow-y-auto">
+    <v-card class="overflow-y-auto rounded-xl">
       <v-card-title class="d-flex align-center pa-4">
         <v-icon icon="mdi-tune" color="primary" class="me-2"></v-icon>
         Cài đặt tọa độ
@@ -785,8 +812,8 @@
 
         <v-divider class="my-3"></v-divider>
         <!-- <v-row> -->
-          <!-- Điều khiển góc designator label -->
-          <!-- <v-col cols="6">
+        <!-- Điều khiển góc designator label -->
+        <!-- <v-col cols="6">
             <p class="text-caption text-grey mb-2">
               Điều khiển góc designator label:
             </p>
@@ -804,8 +831,8 @@
               />
             </div> -->
 
-            <!-- Nút xoay nhanh designator label -->
-            <!-- <div class="d-flex flex-wrap ga-2 mt-2">
+        <!-- Nút xoay nhanh designator label -->
+        <!-- <div class="d-flex flex-wrap ga-2 mt-2">
               <v-btn
                 @click="rotateDesignatorLabel(90)"
                 color="info"
@@ -847,8 +874,8 @@
             </div>
           </v-col>
           <v-col cols="6"> -->
-            <!-- Điều khiển góc xoay component body rectangle -->
-            <!-- <p class="text-caption text-grey mb-2">
+        <!-- Điều khiển góc xoay component body rectangle -->
+        <!-- <p class="text-caption text-grey mb-2">
               Điều khiển góc xoay component body rectangle:
             </p>
 
@@ -865,8 +892,8 @@
               />
             </div> -->
 
-            <!-- Nút xoay nhanh component body -->
-            <!-- <div class="d-flex flex-wrap ga-2 mt-2">
+        <!-- Nút xoay nhanh component body -->
+        <!-- <div class="d-flex flex-wrap ga-2 mt-2">
               <v-btn
                 @click="rotateComponentBody(90)"
                 color="success"
@@ -974,7 +1001,7 @@
           >
             +180°
           </v-btn> -->
-          <!-- <v-btn
+        <!-- <v-btn
             @click="autoRotateSvgToFitPnP"
             color="success"
             prepend-icon="mdi-auto-fix"
@@ -984,7 +1011,7 @@
           >
             Tự động xoay
           </v-btn> -->
-          <!-- <v-btn
+        <!-- <v-btn
             @click="resetSvgRotation"
             color="warning"
             prepend-icon="mdi-refresh"
@@ -995,7 +1022,7 @@
           >
             Reset xoay
           </v-btn> -->
-          <!-- <v-btn
+        <!-- <v-btn
             @click="testSvgRotation"
             color="info"
             prepend-icon="mdi-bug"
@@ -1062,7 +1089,8 @@ import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import Loading from "@/components/Loading.vue";
-import EmptyMobile from "@/components/Empty-Mobile.vue"
+import EmptyMobile from "@/components/Empty-Mobile.vue";
+import CardStatistic from "@/components/Card-Statistic.vue";
 
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
@@ -1114,6 +1142,7 @@ const PnP_Type_Edit = ref("");
 const PnP_Layer_Edit = ref("");
 
 // Overlay controls
+const tab = ref(null);
 const overlayMode = ref("both"); // 'both', 'gerber', 'pnp'
 const svgContainer = ref(null);
 const zoomLevel = ref(1);
@@ -1754,11 +1783,19 @@ const svgWithPnP = computed(() => {
       // Prefer inverting around PnP bounds (handles non-zero origins); fallback to SVG height
       {
         const extraYOffsetUnits =
-          ((unit === "mm" ? pnpYOffsetMm.value : pnpYOffsetMm.value / 25.4) *
-            coordinateScale.value);
-        if (pnpBounds.value && Number.isFinite(pnpBounds.value.minY) && Number.isFinite(pnpBounds.value.maxY)) {
-          const yRawInverted = (pnpBounds.value.maxY + pnpBounds.value.minY) - (pnp.y ?? 0);
-          transformedY = yRawInverted * coordinateScale.value + coordinateOffsetY.value + extraYOffsetUnits;
+          (unit === "mm" ? pnpYOffsetMm.value : pnpYOffsetMm.value / 25.4) *
+          coordinateScale.value;
+        if (
+          pnpBounds.value &&
+          Number.isFinite(pnpBounds.value.minY) &&
+          Number.isFinite(pnpBounds.value.maxY)
+        ) {
+          const yRawInverted =
+            pnpBounds.value.maxY + pnpBounds.value.minY - (pnp.y ?? 0);
+          transformedY =
+            yRawInverted * coordinateScale.value +
+            coordinateOffsetY.value +
+            extraYOffsetUnits;
         } else if (svgHeight !== null) {
           transformedY = svgHeight - transformedY + extraYOffsetUnits;
         } else {
@@ -1795,7 +1832,9 @@ const svgWithPnP = computed(() => {
       if (rectWidth > 0 && rectLength > 0 && showComponentBoxes.value) {
         componentMarkup = `
           <!-- Component body rectangle with rotation -->
-          <g transform="rotate(${componentBodyAngle.value}) scale(${squareScale})">
+          <g transform="rotate(${
+            componentBodyAngle.value
+          }) scale(${squareScale})">
             <rect
               class="pnp-component-body"
               x="${-(rectLength / 2)}"
@@ -2440,6 +2479,17 @@ const GetSetting = () => {
   }
 };
 
+// Computed properties for layer counts
+const topLayerCount = computed(() => {
+  if (!combineBom.value) return 0;
+  return combineBom.value.filter((item) => item.layer === "Top").length;
+});
+
+const bottomLayerCount = computed(() => {
+  if (!combineBom.value) return 0;
+  return combineBom.value.filter((item) => item.layer === "Bottom").length;
+});
+
 // Computed bounds and center of current PnP dataset (raw units)
 const pnpBounds = computed(() => {
   if (!filteredPnP.value || filteredPnP.value.length === 0) return null;
@@ -2622,7 +2672,7 @@ export default {
 /* Component body rectangle */
 .gerber-svg-container :deep(.pnp-component-body) {
   fill: rgba(255, 179, 0, 0.4);
-  stroke: #E65100;
+  stroke: #e65100;
   stroke-width: 3;
   transition: all 0.2s ease;
 }
@@ -2630,7 +2680,7 @@ export default {
 /* Component outline for better visibility */
 .gerber-svg-container :deep(.pnp-component-outline) {
   fill: none;
-  stroke: #FFFFFF;
+  stroke: #ffffff;
   stroke-width: 1.5;
   stroke-dasharray: 2, 2;
   opacity: 1;
@@ -2644,12 +2694,12 @@ export default {
 
 .gerber-svg-container :deep(.pnp-marker:hover .pnp-component-body) {
   fill: rgba(255, 179, 0, 0.6);
-  stroke: #BF360C;
+  stroke: #bf360c;
   stroke-width: 3.5;
 }
 
 .gerber-svg-container :deep(.pnp-marker:hover .pnp-component-outline) {
-  stroke: #FFFFFF;
+  stroke: #ffffff;
   stroke-width: 2;
   opacity: 1;
 }
@@ -2657,12 +2707,12 @@ export default {
 .gerber-svg-container :deep(.pnp-marker:hover circle) {
   stroke-width: 1.5;
   r: 3;
-  stroke: #E65100;
+  stroke: #e65100;
 }
 
 .gerber-svg-container :deep(.pnp-marker:hover line) {
   stroke-width: 2.5;
-  stroke: #E65100;
+  stroke: #e65100;
 }
 
 .gerber-svg-container :deep(.pnp-marker:hover text) {

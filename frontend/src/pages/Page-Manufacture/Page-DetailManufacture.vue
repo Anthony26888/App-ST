@@ -20,50 +20,66 @@
       <v-card-text class="pa-6">
         <!-- Main Stats Overview -->
         <v-row class="mb-6">
-          <v-col cols="" md="4">
-            <v-card class="rounded-xl" color="primary" variant="tonal">
-              <v-card-text>
-                <div class="text-subtitle-1">Đầu vào</div>
-                <div class="text-h4 font-weight-bold">
-                  {{ totalInput }}
-                </div>
-                <div class="text-caption">Tổng số lượng đầu vào</div>
-              </v-card-text>
-            </v-card>
-          </v-col>
           <v-col cols="12" md="4">
-            <v-card class="rounded-xl" color="success" variant="tonal">
-              <v-card-text>
-                <div class="text-subtitle-1">Hàng thành phẩm</div>
-                <div class="text-h4 font-weight-bold">
-                  {{ totalOutput }}
+            <CardStatistic
+              title="Đầu vào"
+              :value="totalInput"
+              icon="mdi-import"
+              color="primary"
+              subtitle="Tổng số lượng đầu vào"
+            />
+          </v-col>
+          
+          <v-col cols="12" md="4">
+            <CardStatistic
+              title="Hàng thành phẩm"
+              :value="totalOutput"
+              icon="mdi-check-circle"
+              color="success"
+            >
+              <template #value-append>
+                <div class="text-h6 font-weight-medium text-success mb-1">
+                  {{ PercentOutput }}%
                 </div>
+              </template>
+              <template #bottom>
                 <v-progress-linear
                   v-model="PercentOutput"
-                  height="20"
-                  class="rounded-lg"
-                >
-                  <strong class="text-black">{{ PercentOutput }}%</strong>
-                </v-progress-linear>
-              </v-card-text>
-            </v-card>
+                  height="8"
+                  color="success"
+                  rounded
+                  class="mt-4"
+                  bg-color="success"
+                  bg-opacity="0.2"
+                ></v-progress-linear>
+              </template>
+            </CardStatistic>
           </v-col>
+
           <v-col cols="12" md="4">
-            <v-card class="rounded-xl" color="warning" variant="tonal">
-              <v-card-text>
-                <div class="text-subtitle-1">Tổng hàng lỗi</div>
-                <div class="text-h4 font-weight-bold">
-                  {{ totalError }}
+            <CardStatistic
+              title="Tổng hàng lỗi"
+              :value="totalError"
+              icon="mdi-alert-circle"
+              color="error"
+            >
+              <template #value-append>
+                <div class="text-h6 font-weight-medium text-error mb-1">
+                  {{ PercentError }}%
                 </div>
+              </template>
+              <template #bottom>
                 <v-progress-linear
                   v-model="PercentError"
-                  height="20"
-                  class="rounded-lg"
-                >
-                  <strong class="text-black">{{ PercentError }}%</strong>
-                </v-progress-linear>
-              </v-card-text>
-            </v-card>
+                  height="8"
+                  color="error"
+                  rounded
+                  class="mt-4"
+                  bg-color="error"
+                  bg-opacity="0.2"
+                ></v-progress-linear>
+              </template>
+            </CardStatistic>
           </v-col>
         </v-row>
         <div class="d-flex align-center justify-start flex-wrap gap-4">
@@ -116,38 +132,37 @@
             </template>
           </v-tooltip>
         </div>
-        <v-card v-show="Detail_Popup_Card" class="rounded-xl">
-          <v-card-title
-            class="d-flex align-center pa-4 bg-grey-lighten-2 rounded-t-lg"
-          >
-            <v-icon
-              icon="mdi-information"
-              color="primary"
-              class="me-2"
-            ></v-icon>
-            Chi tiết công đoạn sản xuất
-          </v-card-title>
-          <v-card-text>
-            <v-row>
-              <v-col cols="3">
-                <v-card-title
-                  ><h2 class="text-bold font-italic">
-                    {{ Quantity_Detail_Title }}
-                  </h2></v-card-title
-                >
-                <v-divider width="200px"></v-divider>
-                <v-card-text>
+        <v-card v-show="Detail_Popup_Card" class="rounded-xl mt-6 border-0" elevation="0" color="transparent">
+          <v-card class="rounded-xl border" elevation="0">
+            <v-card-title
+              class="d-flex align-center pa-4 bg-surface border-b"
+            >
+              <v-avatar color="primary" variant="tonal" size="32" class="me-3">
+                <v-icon icon="mdi-information" size="20"></v-icon>
+              </v-avatar>
+              <span class="text-h6 font-weight-bold">Chi tiết công đoạn sản xuất</span>
+            </v-card-title>
+            <v-card-text class="pa-6">
+              <v-row>
+                <v-col cols="12" md="3">
+                  <div class="mb-4">
+                    <div class="text-overline text-medium-emphasis mb-1">Công đoạn</div>
+                    <h2 class="text-h4 font-weight-bold text-primary">
+                      {{ Quantity_Detail_Title }}
+                    </h2>
+                  </div>
+                  <v-divider class="mb-4"></v-divider>
                   <div v-if="Quantity_Detail_Title === 'SMT'" :key="Quantity_Detail_Title">
                     <v-row dense>
                       <v-col cols="6">
-                        <v-card class="pa-3 rounded-xl elevation-2">
+                        <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
                           <div class="d-flex align-center">
-                            <v-icon color="info" size="32"
-                              >mdi-arrow-collapse-up</v-icon
-                            >
-                            <div class="ms-3">
-                              <div class="text-grey text-caption">Top</div>
-                              <div class="text-h5 font-weight-bold">
+                            <v-avatar color="info" variant="tonal" size="40" class="me-3">
+                              <v-icon size="24">mdi-arrow-collapse-up</v-icon>
+                            </v-avatar>
+                            <div>
+                              <div class="text-medium-emphasis text-caption font-weight-medium">Top</div>
+                              <div class="text-h6 font-weight-bold">
                                 {{ SMT_Top_Pass }}
                               </div>
                             </div>
@@ -156,14 +171,14 @@
                       </v-col>
 
                       <v-col cols="6">
-                        <v-card class="pa-3 rounded-xl elevation-2">
+                        <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
                           <div class="d-flex align-center">
-                            <v-icon color="error" size="32"
-                              >mdi-arrow-collapse-down</v-icon
-                            >
-                            <div class="ms-3">
-                              <div class="text-grey text-caption">Bottom</div>
-                              <div class="text-h5 font-weight-bold">
+                            <v-avatar color="error" variant="tonal" size="40" class="me-3">
+                              <v-icon size="24">mdi-arrow-collapse-down</v-icon>
+                            </v-avatar>
+                            <div>
+                              <div class="text-medium-emphasis text-caption font-weight-medium">Bottom</div>
+                              <div class="text-h6 font-weight-bold">
                                 {{ SMT_Bottom_Pass }}
                               </div>
                             </div>
@@ -172,14 +187,14 @@
                       </v-col>
 
                       <v-col cols="6">
-                        <v-card class="pa-3 rounded-xl elevation-2">
+                        <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
                           <div class="d-flex align-center">
-                            <v-icon color="success" size="32"
-                              >mdi-check-circle</v-icon
-                            >
-                            <div class="ms-3">
-                              <div class="text-grey text-caption">Tổng</div>
-                              <div class="text-h5 font-weight-bold">
+                            <v-avatar color="success" variant="tonal" size="40" class="me-3">
+                              <v-icon size="24">mdi-check-circle</v-icon>
+                            </v-avatar>
+                            <div>
+                              <div class="text-medium-emphasis text-caption font-weight-medium">Tổng</div>
+                              <div class="text-h6 font-weight-bold">
                                 {{ Quantity_Detail_Pass }}
                               </div>
                             </div>
@@ -188,14 +203,14 @@
                       </v-col>
 
                       <v-col cols="6">
-                        <v-card class="pa-3 rounded-xl elevation-2">
+                        <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
                           <div class="d-flex align-center">
-                            <v-icon color="warning" size="32"
-                              >mdi-alert-circle</v-icon
-                            >
-                            <div class="ms-3">
-                              <div class="text-grey text-caption">Còn lại</div>
-                              <div class="text-h5 font-weight-bold">
+                            <v-avatar color="warning" variant="tonal" size="40" class="me-3">
+                              <v-icon size="24">mdi-alert-circle</v-icon>
+                            </v-avatar>
+                            <div>
+                              <div class="text-medium-emphasis text-caption font-weight-medium">Còn lại</div>
+                              <div class="text-h6 font-weight-bold">
                                 {{ totalInput - Quantity_Detail_Pass }}
                               </div>
                             </div>
@@ -207,14 +222,14 @@
                   <div v-else>
                     <v-row dense>
                       <v-col cols="6">
-                        <v-card class="pa-3 rounded-xl elevation-2">
+                        <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
                           <div class="d-flex align-center">
-                            <v-icon color="success" size="32"
-                              >mdi-check-decagram</v-icon
-                            >
-                            <div class="ms-3">
-                              <div class="text-grey text-caption">Pass</div>
-                              <div class="text-h5 font-weight-bold">
+                            <v-avatar color="success" variant="tonal" size="40" class="me-3">
+                              <v-icon size="24">mdi-check-decagram</v-icon>
+                            </v-avatar>
+                            <div>
+                              <div class="text-medium-emphasis text-caption font-weight-medium">Pass</div>
+                              <div class="text-h6 font-weight-bold">
                                 {{ Quantity_Detail_Pass }}
                               </div>
                             </div>
@@ -223,14 +238,14 @@
                       </v-col>
 
                       <v-col cols="6">
-                        <v-card class="pa-3 rounded-xl elevation-2">
+                        <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
                           <div class="d-flex align-center">
-                            <v-icon color="error" size="32"
-                              >mdi-close-circle</v-icon
-                            >
-                            <div class="ms-3">
-                              <div class="text-grey text-caption">Fail</div>
-                              <div class="text-h5 font-weight-bold">
+                            <v-avatar color="error" variant="tonal" size="40" class="me-3">
+                              <v-icon size="24">mdi-close-circle</v-icon>
+                            </v-avatar>
+                            <div>
+                              <div class="text-medium-emphasis text-caption font-weight-medium">Fail</div>
+                              <div class="text-h6 font-weight-bold">
                                 {{ manufactureRW.length || 0 }}
                               </div>
                             </div>
@@ -239,12 +254,14 @@
                       </v-col>
 
                       <v-col cols="6">
-                        <v-card class="pa-3 rounded-xl elevation-2">
+                        <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
                           <div class="d-flex align-center">
-                            <v-icon color="info" size="32">mdi-wrench</v-icon>
-                            <div class="ms-3">
-                              <div class="text-grey text-caption">Đã sửa</div>
-                              <div class="text-h5 font-weight-bold">
+                            <v-avatar color="info" variant="tonal" size="40" class="me-3">
+                              <v-icon size="24">mdi-wrench</v-icon>
+                            </v-avatar>
+                            <div>
+                              <div class="text-medium-emphasis text-caption font-weight-medium">Đã sửa</div>
+                              <div class="text-h6 font-weight-bold">
                                 {{ manufactureRW.filter((item) => item.Status === 'fixed').length || 0 }}
                               </div>
                             </div>
@@ -253,14 +270,14 @@
                       </v-col>
 
                       <v-col cols="6">
-                        <v-card class="pa-3 rounded-xl elevation-2">
+                        <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
                           <div class="d-flex align-center">
-                            <v-icon color="warning" size="32"
-                              >mdi-timer-sand</v-icon
-                            >
-                            <div class="ms-3">
-                              <div class="text-grey text-caption">Còn lại</div>
-                              <div class="text-h5 font-weight-bold">
+                            <v-avatar color="warning" variant="tonal" size="40" class="me-3">
+                              <v-icon size="24">mdi-timer-sand</v-icon>
+                            </v-avatar>
+                            <div>
+                              <div class="text-medium-emphasis text-caption font-weight-medium">Còn lại</div>
+                              <div class="text-h6 font-weight-bold">
                                 {{ Quantity_Detail_Remain }}
                               </div>
                             </div>
@@ -269,7 +286,7 @@
                       </v-col>
                     </v-row>
                   </div>
-                </v-card-text>
+
               </v-col>
               <v-col
                 cols="4"
@@ -311,16 +328,22 @@
                   </svg>
                 </div>
               </v-col>
-              <v-col cols="5">
-                <v-card-title>Danh sách hàng lỗi</v-card-title>
-                <v-card-text>
+              <v-col cols="12" md="5">
+                <div class="d-flex align-center justify-space-between mb-4">
+                  <div class="text-h6 font-weight-bold">Danh sách hàng lỗi</div>
+                  <v-chip color="error" variant="tonal" size="small" class="font-weight-bold">
+                    {{ manufactureRW.length }} lỗi
+                  </v-chip>
+                </div>
+                <v-card variant="elevated" elevation="0" class="rounded-lg bg-surface">
                   <v-data-table
                     :headers="HeadersHistoryPartError"
                     :items="manufactureRW"
                     fixed-header
+                    height="300"
                     v-model:page="pageRW"
                     v-model:items-per-page="itemsPerPageRW"
-                    class="elevation-0"
+                    class="bg-transparent"
                     :footer-props="{
                       'items-per-page-options': [10, 20, 50, 100],
                       'items-per-page-text': 'Số hàng mỗi trang',
@@ -334,9 +357,8 @@
                     loading-text="Đang tải dữ liệu..."
                     no-data-text="Không có dữ liệu"
                     no-results-text="Không tìm thấy kết quả"
-                    :hover="true"
-                    :dense="false"
-                    :fixed-header="true"
+                    hover
+                    density="compact"
                   >
                     <template v-slot:item.stt="{ index }">
                       {{ (page - 1) * itemsPerPage + index + 1 }}
@@ -407,7 +429,7 @@
                       </div>
                     </template>
                   </v-data-table>
-                </v-card-text>
+                </v-card>
               </v-col>
               <v-row>
                 <v-col cols="2"></v-col>
@@ -418,40 +440,39 @@
               </v-row>
 
               <v-col cols="12">
-                <v-data-table
-                  :group-by="groupBy"
-                  density="compact"
-                  :headers="HeadersHistory"
-                  :items="history"
-                  fixed-header
-                  loading-text="Đang tải dữ liệu..."
-                  no-data-text="Không có dữ liệu"
-                  no-results-text="Không tìm thấy kết quả"
-                  class="elevation-0"
-                  v-model:page="pageDetail"
-                  v-model:items-per-page="itemsPerPageDetail"
-                >
-                  <template v-slot:top>
-                    <v-toolbar flat dense class="rounded-t-lg" color="white">
-                      <v-toolbar-title class="d-flex align-center">
-                        <v-icon
-                          color="primary"
-                          icon="mdi-book-multiple"
-                          size="small"
-                          class="me-2"
-                        ></v-icon>
-                        <span class="text-h6">Kế hoạch sản xuất</span>
-                      </v-toolbar-title>
+                <v-card variant="elevated" elevation="0" class="rounded-xl">
+                  <v-data-table
+                    :group-by="groupBy"
+                    density="comfortable"
+                    :headers="HeadersHistory"
+                    :items="history"
+                    fixed-header
+                    loading-text="Đang tải dữ liệu..."
+                    no-data-text="Không có dữ liệu"
+                    no-results-text="Không tìm thấy kết quả"
+                    class="bg-transparent"
+                    v-model:page="pageDetail"
+                    v-model:items-per-page="itemsPerPageDetail"
+                    hover
+                  >
+                    <template v-slot:top>
+                      <v-toolbar flat color="transparent" class="border-b px-2">
+                        <v-toolbar-title class="d-flex align-center">
+                          <v-avatar color="primary" variant="tonal" size="32" class="me-3">
+                            <v-icon icon="mdi-book-multiple" size="20"></v-icon>
+                          </v-avatar>
+                          <span class="text-h6 font-weight-bold">Kế hoạch sản xuất</span>
+                        </v-toolbar-title>
 
-                      <v-spacer></v-spacer>
+                        <v-spacer></v-spacer>
 
-                      <ButtonAdd
-                        label="Thêm"
-                        class="mr-2"
-                        @click="DialogAdd = true"
-                      />
-                    </v-toolbar>
-                  </template>
+                        <ButtonAdd
+                          label="Thêm"
+                          class="mr-2"
+                          @click="DialogAdd = true"
+                        />
+                      </v-toolbar>
+                    </template>
 
                   <template
                     v-slot:group-header="{
@@ -549,6 +570,7 @@
                     </div>
                   </template>
                 </v-data-table>
+                </v-card>
               </v-col>
               <v-row>
                 <v-col cols="2"></v-col>
@@ -568,22 +590,22 @@
               </v-col>
             </v-row>
           </v-card-text>
+
+          </v-card>
         </v-card>
 
         <!-- Chart thống kê công đoạn -->
         <v-row class="mb-6 mt-5">
           <!-- Chart Card -->
           <v-col cols="12" md="7">
-            <v-card class="rounded-xl h-100" elevation="2">
+            <v-card class="rounded-xl h-100 border" elevation="0">
               <v-card-title
-                class="d-flex align-center pa-4 bg-grey-lighten-2 rounded-t-lg"
+                class="d-flex align-center pa-4 bg-surface border-b"
               >
-                <v-icon
-                  icon="mdi-chart-bar"
-                  color="primary"
-                  class="me-2"
-                ></v-icon>
-                Thống kê theo công đoạn sản xuất
+                <v-avatar color="primary" variant="tonal" size="32" class="me-3">
+                  <v-icon icon="mdi-chart-bar" size="20"></v-icon>
+                </v-avatar>
+                <span class="text-h6 font-weight-bold">Thống kê theo công đoạn sản xuất</span>
               </v-card-title>
               <v-card-text class="pa-4">
                 <StackedBarChartSummary
@@ -598,16 +620,14 @@
 
           <!-- Chart chi tiết công đoạn -->
           <v-col cols="12" md="5">
-            <v-card class="rounded-xl h-100" elevation="2">
+            <v-card class="rounded-xl h-100 border" elevation="0">
               <v-card-title
-                class="d-flex align-center pa-4 bg-grey-lighten-2 rounded-t-lg"
+                class="d-flex align-center pa-4 bg-surface border-b"
               >
-                <v-icon
-                  icon="mdi-chart-donut"
-                  class="me-2"
-                  color="primary"
-                ></v-icon>
-                Tổng hợp lỗi
+                <v-avatar color="primary" variant="tonal" size="32" class="me-3">
+                  <v-icon icon="mdi-chart-donut" size="20"></v-icon>
+                </v-avatar>
+                <span class="text-h6 font-weight-bold">Tổng hợp lỗi</span>
               </v-card-title>
               <v-card-text class="pa-4">
                 <v-pie
@@ -628,10 +648,10 @@
                 >
                   <template v-slot:center>
                     <div class="text-center">
-                      <div class="text-h3">
+                      <div class="text-h3 font-weight-bold text-primary">
                         {{ manufactureFail.length || 0 }}
                       </div>
-                      <div class="opacity-70 mt-1 mb-n1">Tổng</div>
+                      <div class="text-caption text-medium-emphasis mt-1">Tổng lỗi</div>
                     </div>
                   </template>
                 </v-pie>
@@ -641,7 +661,7 @@
         </v-row>
 
         <!-- Lịch sử sản xuất -->
-        <v-card class="rounded-xl mt-5" elevation="2">
+        <v-card class="rounded-xl mt-5 border" elevation="0">
           <v-data-table
             :headers="HeadersHistoryPart"
             :items="historyPart"
@@ -649,7 +669,7 @@
             fixed-header
             v-model:page="page"
             v-model:items-per-page="itemsPerPage"
-            class="elevation-0"
+            class="bg-transparent"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
               'items-per-page-text': 'Số hàng mỗi trang',
@@ -663,21 +683,17 @@
             loading-text="Đang tải dữ liệu..."
             no-data-text="Không có dữ liệu"
             no-results-text="Không tìm thấy kết quả"
-            :hover="true"
-            :dense="false"
-            :fixed-header="true"
+            hover
+            density="comfortable"
             height="calc(100vh - 350px)"
           >
             <template v-slot:top>
-              <v-toolbar flat dense class="rounded-t-lg">
+              <v-toolbar flat color="transparent" class="border-b px-2">
                 <v-toolbar-title class="d-flex align-center">
-                  <v-icon
-                    color="primary"
-                    icon="mdi-history"
-                    size="small"
-                    class="me-2"
-                  ></v-icon>
-                  <span class="text-h6">Lịch sử sản xuất</span>
+                  <v-avatar color="primary" variant="tonal" size="32" class="me-3">
+                    <v-icon icon="mdi-history" size="20"></v-icon>
+                  </v-avatar>
+                  <span class="text-h6 font-weight-bold">Lịch sử sản xuất</span>
                 </v-toolbar-title>
 
                 <v-spacer></v-spacer>
@@ -851,7 +867,7 @@
         </v-card-text>
         <v-card-actions>
           <ButtonCancel @cancel="DialogAdd = false" />
-          <ButtonSave @save="SaveAdd()" />
+          <ButtonSave @save="SaveAdd()" :disabled="!PONumber_Add || !Name_Order_Add || !Type_Add || !Surface_Add || !Category_Add || !Quantity_Plan_Add || !CycleTime_Add || !Time_Add || !Date_DetailManufacture_Add"/>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -1053,6 +1069,7 @@ import Loading from "@/components/Loading.vue";
 import ProcessCard from "@/components/Card-Flow-Proccess.vue";
 import StackedBarChart from "@/components/Chart-StackedBar.vue";
 import StackedBarChartSummary from "@/components/Chart-StackedBar-Summary.vue";
+import CardStatistic from "@/components/Card-Statistic.vue";
 
 // ... existing imports ...
 import { useManufactureDetails } from "@/composables/Manufacture/useManufactureDetails";
@@ -1948,6 +1965,7 @@ export default {
     SnackbarFailed,
     Loading,
     StackedBarChart,
+    CardStatistic,
   },
 };
 </script>

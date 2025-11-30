@@ -4,51 +4,55 @@
       <ButtonBack to="/Kiem-tra-so-lieu" />
       <p class="text-h4 font-weight-light ms-3">Chỉnh sửa số liệu</p>
     </v-card-title>
-    <v-card-title class="d-flex align-center pe-2">
-      <p class="text-subtitle-1 font-weight-thin text-subtitle-1">{{ detailBom.length }} dự án</p>
-      <v-spacer></v-spacer>
-      <InputSearch v-model="search" />
-    </v-card-title>
     <v-card-text>
-      <v-data-table
-        :headers="Headers"
-        :items="detailBom"
-        :search="search"
-        :items-per-page="itemsPerPage"
-        v-model:page="page"
-        class="elevation-1"
-            :footer-props="{
-              'items-per-page-options': [10, 20, 50, 100],
-              'items-per-page-text': 'Số hàng mỗi trang',
-            }"
-            :header-props="{
-              sortByText: 'Sắp xếp theo',
-              sortDescText: 'Giảm dần',
-              sortAscText: 'Tăng dần',
-            }"
-            :loading="DialogLoading"
-            loading-text="Đang tải dữ liệu..."
-            no-data-text="Không có dữ liệu"
-            no-results-text="Không tìm thấy kết quả"
-            :hover="true"
-            :dense="false"
-            :fixed-header="true"
-            height="calc(100vh - 200px)"
-      >
-        <template v-slot:bottom>
-          <div class="text-center pt-2">
-            <v-pagination
-              v-model="page"
-              :length="Math.ceil(detailBom.length / itemsPerPage)"
-            ></v-pagination>
-          </div>
-        </template>
-        <template v-slot:item.id="{ value }">
-          <div class="d-flex">
-            <ButtonEdit @edit="GetItem(value)" />
-          </div>
-        </template>
-      </v-data-table>
+      <v-card variant="elevated" elevation="0" class="rounded-xl">
+        <v-card-title class="d-flex align-center pe-2">
+          <p class="text-subtitle-1 font-weight-thin text-subtitle-1">
+            {{ detailBom.length }} dự án
+          </p>
+          <v-spacer></v-spacer>
+          <InputSearch v-model="search" />
+        </v-card-title>
+        <v-data-table
+          :headers="Headers"
+          :items="detailBom"
+          :search="search"
+          :items-per-page="itemsPerPage"
+          v-model:page="page"
+          class="elevation-1"
+          :footer-props="{
+            'items-per-page-options': [10, 20, 50, 100],
+            'items-per-page-text': 'Số hàng mỗi trang',
+          }"
+          :header-props="{
+            sortByText: 'Sắp xếp theo',
+            sortDescText: 'Giảm dần',
+            sortAscText: 'Tăng dần',
+          }"
+          :loading="DialogLoading"
+          loading-text="Đang tải dữ liệu..."
+          no-data-text="Không có dữ liệu"
+          no-results-text="Không tìm thấy kết quả"
+          :hover="true"
+          :dense="false"
+          :fixed-header="true"
+          height="79vh"
+        >
+          <template v-slot:bottom>
+            <div class="text-center pt-2">
+              <v-pagination
+                v-model="page"
+                :length="Math.ceil(detailBom.length / itemsPerPage)"
+              ></v-pagination>
+            </div>
+          </template>
+          <template v-slot:item.id="{ value }">
+            <div class="d-flex">
+              <ButtonEdit @edit="GetItem(value)" />
+            </div>
+          </template>
+        </v-data-table>
+      </v-card>
     </v-card-text>
   </v-card>
   <v-dialog v-model="DialogEdit" width="400" scrollable>
@@ -93,7 +97,7 @@ import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import ButtonEdit from "@/components/Button-Edit.vue";
 import ButtonRemove from "@/components/Button-Remove.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
-import Loading from "@/components/Loading.vue"
+import Loading from "@/components/Loading.vue";
 const { detailBom } = useDetailBom();
 const Url = import.meta.env.VITE_API_URL;
 const GetID = ref("");
@@ -116,8 +120,8 @@ function GetItem(value) {
   Quantity_Edit.value = found.SL_Board;
 }
 const SaveEdit = async () => {
-  DialogLoading.value = true
-  DialogLoading.value = true
+  DialogLoading.value = true;
+  DialogLoading.value = true;
   const formData = {
     PO: PO_Edit.value,
     SL_Board: Quantity_Edit.value,
@@ -136,7 +140,7 @@ const SaveEdit = async () => {
     });
 };
 const RemoveItem = async () => {
-  DialogLoading.value = true
+  DialogLoading.value = true;
   axios
     .delete(`${Url}/CheckBom/Delete-Item/${Bom_Edit.value}`)
     .then(function (response) {
@@ -160,7 +164,7 @@ function Reset() {
 }
 function Error() {
   DialogFailed.value = true;
-  DialogLoading.value = false
+  DialogLoading.value = false;
 }
 </script>
 <script>
@@ -173,7 +177,7 @@ export default {
     InputSearch,
     SnackbarSuccess,
     SnackbarFailed,
-    Loading
+    Loading,
   },
   data() {
     return {
