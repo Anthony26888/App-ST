@@ -1021,6 +1021,59 @@ io.on("connection", (socket) => {
                           END
                       )
 
+                      -- AOI: công thức đặc biệt (giống SMT)
+                      WHEN a.Type = 'AOI' THEN (
+                          CASE 
+                              WHEN a.Surface = '1 Mặt' THEN (
+                                  -- AOI 1 mặt
+                                  COALESCE((
+                                      SELECT SUM(CASE WHEN m.Status = 'pass' THEN 1 ELSE 0 END)
+                                      FROM ManufactureCounting m
+                                      WHERE m.HistoryID IN (
+                                          SELECT id FROM Summary 
+                                          WHERE PlanID = a.PlanID AND Type = 'AOI' AND Surface = '1 Mặt'
+                                      )
+                                  ), 0)
+                              )
+
+                              ELSE (
+                                  -- AOI 2 mặt: lấy min(TOP, BOTTOM) pass
+                                  CASE 
+                                      WHEN (
+                                          SELECT COALESCE(SUM(CASE WHEN m.Status = 'pass' THEN 1 ELSE 0 END), 0)
+                                          FROM ManufactureCounting m
+                                          WHERE m.HistoryID IN (
+                                              SELECT id FROM Summary 
+                                              WHERE PlanID = a.PlanID AND Type = 'AOI' AND Surface = 'TOP'
+                                          )
+                                      ) < (
+                                          SELECT COALESCE(SUM(CASE WHEN m.Status = 'pass' THEN 1 ELSE 0 END), 0)
+                                          FROM ManufactureCounting m
+                                          WHERE m.HistoryID IN (
+                                              SELECT id FROM Summary 
+                                              WHERE PlanID = a.PlanID AND Type = 'AOI' AND Surface = 'BOTTOM'
+                                          )
+                                      ) THEN (
+                                          SELECT COALESCE(SUM(CASE WHEN m.Status = 'pass' THEN 1 ELSE 0 END), 0)
+                                          FROM ManufactureCounting m
+                                          WHERE m.HistoryID IN (
+                                              SELECT id FROM Summary 
+                                              WHERE PlanID = a.PlanID AND Type = 'AOI' AND Surface = 'TOP'
+                                          )
+                                      )
+                                      ELSE (
+                                          SELECT COALESCE(SUM(CASE WHEN m.Status = 'pass' THEN 1 ELSE 0 END), 0)
+                                          FROM ManufactureCounting m
+                                          WHERE m.HistoryID IN (
+                                              SELECT id FROM Summary 
+                                              WHERE PlanID = a.PlanID AND Type = 'AOI' AND Surface = 'BOTTOM'
+                                          )
+                                      )
+                                  END
+                              )
+                          END
+                      )
+
                       ELSE (
                           -- Loại khác: PASS = số bản ghi status pass
                           COALESCE((
@@ -1057,8 +1110,9 @@ io.on("connection", (socket) => {
                   -- Tổng số SummaryID
                   COUNT(DISTINCT a.id) AS Total_Summary_ID,
 
-                  -- SMT TOP
+                  -- SMT TOP (chỉ khi Type = 'SMT')
                   CASE 
+                      WHEN a.Type != 'SMT' THEN 0
                       WHEN a.Surface = '1 Mặt' THEN 0
                       WHEN a.Surface = 'TOP' THEN 
                           COALESCE((
@@ -1071,15 +1125,16 @@ io.on("connection", (socket) => {
                               FROM ManufactureSMT s 
                               WHERE s.HistoryID IN (
                                   SELECT id FROM Summary 
-                                  WHERE PlanID = a.PlanID AND Surface = 'TOP'
+                                  WHERE PlanID = a.PlanID AND Type = 'SMT' AND Surface = 'TOP'
                               )
                               AND s.Source IN ('source_2', 'source_4')
                           ), 0)
                       ELSE 0
                   END AS SMT_Top_Quantity,
 
-                  -- SMT BOTTOM
+                  -- SMT BOTTOM (chỉ khi Type = 'SMT')
                   CASE 
+                      WHEN a.Type != 'SMT' THEN 0
                       WHEN a.Surface = '1 Mặt' THEN 0
                       WHEN a.Surface = 'BOTTOM' THEN 
                           COALESCE((
@@ -1092,12 +1147,42 @@ io.on("connection", (socket) => {
                               FROM ManufactureSMT s 
                               WHERE s.HistoryID IN (
                                   SELECT id FROM Summary 
-                                  WHERE PlanID = a.PlanID AND Surface = 'BOTTOM'
+                                  WHERE PlanID = a.PlanID AND Type = 'SMT' AND Surface = 'BOTTOM'
                               )
                               AND s.Source IN ('source_2', 'source_4')
                           ), 0)
                       ELSE 0
-                  END AS SMT_Bottom_Quantity
+                  END AS SMT_Bottom_Quantity,
+
+                  -- AOI TOP PASS (chỉ khi Type = 'AOI' và Surface = 'TOP')
+                  CASE 
+                      WHEN a.Type != 'AOI' THEN 0
+                      WHEN a.Surface != 'TOP' THEN 0
+                      ELSE 
+                          COALESCE((
+                              SELECT SUM(CASE WHEN m.Status = 'pass' THEN 1 ELSE 0 END)
+                              FROM ManufactureCounting m
+                              WHERE m.HistoryID IN (
+                                  SELECT id FROM Summary 
+                                  WHERE PlanID = a.PlanID AND Type = 'AOI' AND Surface = 'TOP'
+                              )
+                          ), 0)
+                  END AS AOI_Top_Quantity,
+
+                  -- AOI BOTTOM PASS (chỉ khi Type = 'AOI' và Surface = 'BOTTOM')
+                  CASE 
+                      WHEN a.Type != 'AOI' THEN 0
+                      WHEN a.Surface != 'BOTTOM' THEN 0
+                      ELSE 
+                          COALESCE((
+                              SELECT SUM(CASE WHEN m.Status = 'pass' THEN 1 ELSE 0 END)
+                              FROM ManufactureCounting m
+                              WHERE m.HistoryID IN (
+                                  SELECT id FROM Summary 
+                                  WHERE PlanID = a.PlanID AND Type = 'AOI' AND Surface = 'BOTTOM'
+                              )
+                          ), 0)
+                  END AS AOI_Bottom_Quantity
 
               FROM Summary a
               WHERE a.PlanID = ?

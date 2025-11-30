@@ -29,7 +29,7 @@
               subtitle="Tổng số lượng đầu vào"
             />
           </v-col>
-          
+
           <v-col cols="12" md="4">
             <CardStatistic
               title="Hàng thành phẩm"
@@ -89,13 +89,7 @@
                 <ProcessCard
                   v-bind="props"
                   :title="card.Type"
-                  :pass="
-                    card.Type === 'RW'
-                      ? `${totalError + totalFixed - totalFixed}`
-                      : Number.parseFloat(
-                          (card.Quantity_Pass / totalInput) * 100
-                        ).toFixed(1) + '%'
-                  "
+                  :pass="getPassRate(card)"
                   :fail="
                     card.Type === 'RW'
                       ? Number.parseFloat(
@@ -121,6 +115,7 @@
               </template>
             </v-tooltip>
           </template>
+
           <v-tooltip text="Đóng">
             <template v-slot:activator="{ props }">
               <v-btn
@@ -132,37 +127,69 @@
             </template>
           </v-tooltip>
         </div>
-        <v-card v-show="Detail_Popup_Card" class="rounded-xl mt-6 border-0" elevation="0" color="transparent">
+        <v-card
+          v-show="Detail_Popup_Card"
+          class="rounded-xl mt-6 border-0"
+          elevation="0"
+          color="transparent"
+        >
           <v-card class="rounded-xl border" elevation="0">
-            <v-card-title
-              class="d-flex align-center pa-4 bg-surface border-b"
-            >
+            <v-card-title class="d-flex align-center pa-4 bg-surface border-b">
               <v-avatar color="primary" variant="tonal" size="32" class="me-3">
                 <v-icon icon="mdi-information" size="20"></v-icon>
               </v-avatar>
-              <span class="text-h6 font-weight-bold">Chi tiết công đoạn sản xuất</span>
+              <span class="text-h6 font-weight-bold"
+                >Chi tiết công đoạn sản xuất</span
+              >
             </v-card-title>
             <v-card-text class="pa-6">
               <v-row>
                 <v-col cols="12" md="3">
                   <div class="mb-4">
-                    <div class="text-overline text-medium-emphasis mb-1">Công đoạn</div>
+                    <div class="text-overline text-medium-emphasis mb-1">
+                      Công đoạn
+                    </div>
                     <h2 class="text-h4 font-weight-bold text-primary">
                       {{ Quantity_Detail_Title }}
                     </h2>
                   </div>
                   <v-divider class="mb-4"></v-divider>
-                  <div v-if="Quantity_Detail_Title === 'SMT'" :key="Quantity_Detail_Title">
+                  <div
+                    v-if="
+                      Quantity_Detail_Title === 'SMT' ||
+                      Quantity_Detail_Title === 'AOI'
+                    "
+                    :key="Quantity_Detail_Title"
+                  >
                     <v-row dense>
                       <v-col cols="6">
-                        <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
+                        <v-card
+                          class="pa-4 rounded-xl border"
+                          elevation="0"
+                          color="surface-light"
+                        >
                           <div class="d-flex align-center">
-                            <v-avatar color="info" variant="tonal" size="40" class="me-3">
+                            <v-avatar
+                              color="info"
+                              variant="tonal"
+                              size="40"
+                              class="me-3"
+                            >
                               <v-icon size="24">mdi-arrow-collapse-up</v-icon>
                             </v-avatar>
                             <div>
-                              <div class="text-medium-emphasis text-caption font-weight-medium">Top</div>
-                              <div class="text-h6 font-weight-bold">
+                              <div
+                                class="text-medium-emphasis text-caption font-weight-medium"
+                              >
+                                Top
+                              </div>
+                              <div
+                                class="text-h6 font-weight-bold d-flex align-center"
+                                v-if="Quantity_Detail_Title === 'AOI'"
+                              >
+                                {{ AOI_Top_Pass || 0 }}
+                              </div>
+                              <div class="text-h6 font-weight-bold" v-else>
                                 {{ SMT_Top_Pass }}
                               </div>
                             </div>
@@ -171,14 +198,33 @@
                       </v-col>
 
                       <v-col cols="6">
-                        <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
+                        <v-card
+                          class="pa-4 rounded-xl border"
+                          elevation="0"
+                          color="surface-light"
+                        >
                           <div class="d-flex align-center">
-                            <v-avatar color="error" variant="tonal" size="40" class="me-3">
+                            <v-avatar
+                              color="error"
+                              variant="tonal"
+                              size="40"
+                              class="me-3"
+                            >
                               <v-icon size="24">mdi-arrow-collapse-down</v-icon>
                             </v-avatar>
                             <div>
-                              <div class="text-medium-emphasis text-caption font-weight-medium">Bottom</div>
-                              <div class="text-h6 font-weight-bold">
+                              <div
+                                class="text-medium-emphasis text-caption font-weight-medium"
+                              >
+                                Bottom
+                              </div>
+                              <div
+                                class="text-h6 font-weight-bold d-flex align-center"
+                                v-if="Quantity_Detail_Title === 'AOI'"
+                              >
+                                {{ AOI_Bottom_Pass || 0 }}
+                              </div>
+                              <div class="text-h6 font-weight-bold" v-else>
                                 {{ SMT_Bottom_Pass }}
                               </div>
                             </div>
@@ -186,16 +232,66 @@
                         </v-card>
                       </v-col>
 
-                      <v-col cols="6">
-                        <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
+                      <v-col cols="6" v-if="Quantity_Detail_Title === 'AOI'">
+                        <v-card
+                          class="pa-4 rounded-xl border"
+                          elevation="0"
+                          color="surface-light"
+                        >
                           <div class="d-flex align-center">
-                            <v-avatar color="success" variant="tonal" size="40" class="me-3">
-                              <v-icon size="24">mdi-check-circle</v-icon>
+                            <v-avatar
+                              color="error"
+                              variant="tonal"
+                              size="40"
+                              class="me-3"
+                            >
+                              <v-icon size="24">mdi-close-circle</v-icon>
                             </v-avatar>
                             <div>
-                              <div class="text-medium-emphasis text-caption font-weight-medium">Tổng</div>
-                              <div class="text-h6 font-weight-bold">
-                                {{ Quantity_Detail_Pass }}
+                              <div
+                                class="text-medium-emphasis text-caption font-weight-medium"
+                              >
+                                Fail
+                              </div>
+                              <div
+                                class="text-h6 font-weight-bold d-flex align-center"
+                              >
+                                {{ manufactureRW.length || 0 }}
+                              </div>
+                            </div>
+                          </div>
+                        </v-card>
+                      </v-col>
+
+                      <v-col cols="6" v-if="Quantity_Detail_Title === 'AOI'">
+                        <v-card
+                          class="pa-4 rounded-xl border"
+                          elevation="0"
+                          color="surface-light"
+                        >
+                          <div class="d-flex align-center">
+                            <v-avatar
+                              color="info"
+                              variant="tonal"
+                              size="40"
+                              class="me-3"
+                            >
+                              <v-icon size="24">mdi-wrench</v-icon>
+                            </v-avatar>
+                            <div>
+                              <div
+                                class="text-medium-emphasis text-caption font-weight-medium"
+                              >
+                                Đã sửa
+                              </div>
+                              <div
+                                class="text-h6 font-weight-bold d-flex align-center"
+                              >
+                                {{
+                                  manufactureRW.filter(
+                                    (item) => item.Status === "fixed"
+                                  ).length || 0
+                                }}
                               </div>
                             </div>
                           </div>
@@ -203,15 +299,104 @@
                       </v-col>
 
                       <v-col cols="6">
-                        <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
+                        <v-card
+                          class="pa-4 rounded-xl border"
+                          elevation="0"
+                          color="surface-light"
+                        >
                           <div class="d-flex align-center">
-                            <v-avatar color="warning" variant="tonal" size="40" class="me-3">
+                            <v-avatar
+                              color="success"
+                              variant="tonal"
+                              size="40"
+                              class="me-3"
+                            >
+                              <v-icon size="24">mdi-check-circle</v-icon>
+                            </v-avatar>
+                            <div>
+                              <div
+                                class="text-medium-emphasis text-caption font-weight-medium"
+                              >
+                                Tổng
+                              </div>
+                              <div
+                                class="text-h6 font-weight-bold"
+                                v-if="Quantity_Detail_Title === 'SMT'"
+                              >
+                                {{
+                                  SMT_Top_Pass === 0 || SMT_Bottom_Pass === 0
+                                    ? 0
+                                    : SMT_Top_Pass > SMT_Bottom_Pass
+                                    ? SMT_Bottom_Pass
+                                    : SMT_Top_Pass
+                                }}
+                              </div>
+                              <div class="text-h6 font-weight-bold" v-else>
+                                {{
+                                  AOI_Top_Pass === 0 || AOI_Bottom_Pass === 0
+                                    ? 0
+                                    : AOI_Top_Pass > AOI_Bottom_Pass
+                                    ? AOI_Bottom_Pass
+                                    : AOI_Top_Pass
+                                }}
+                              </div>
+                            </div>
+                          </div>
+                        </v-card>
+                      </v-col>
+
+                      <v-col cols="6">
+                        <v-card
+                          class="pa-4 rounded-xl border"
+                          elevation="0"
+                          color="surface-light"
+                        >
+                          <div class="d-flex align-center">
+                            <v-avatar
+                              color="warning"
+                              variant="tonal"
+                              size="40"
+                              class="me-3"
+                            >
                               <v-icon size="24">mdi-alert-circle</v-icon>
                             </v-avatar>
                             <div>
-                              <div class="text-medium-emphasis text-caption font-weight-medium">Còn lại</div>
-                              <div class="text-h6 font-weight-bold">
-                                {{ totalInput - Quantity_Detail_Pass }}
+                              <div
+                                class="text-medium-emphasis text-caption font-weight-medium"
+                              >
+                                Còn lại
+                              </div>
+                              <div
+                                class="text-h6 font-weight-bold"
+                                v-if="typeFilter === 'SMT'"
+                              >
+                                {{
+                                  totalInput -
+                                  (SMT_Top_Pass === 0 || SMT_Bottom_Pass === 0
+                                    ? 0
+                                    : SMT_Top_Pass > SMT_Bottom_Pass
+                                    ? SMT_Bottom_Pass
+                                    : SMT_Top_Pass)
+                                }}
+                              </div>
+                              <div
+                                class="text-h6 font-weight-bold"
+                                v-if="typeFilter === 'AOI'"
+                              >
+                                {{
+                                  totalInput -
+                                  (AOI_Top_Pass === 0 || AOI_Bottom_Pass === 0
+                                    ? 0
+                                    : AOI_Top_Pass > AOI_Bottom_Pass
+                                    ? AOI_Bottom_Pass
+                                    : AOI_Top_Pass)
+                                }}
+                              </div>
+                              <div
+                                class="text-h6 font-weight-bold"
+                                v-if="typeFilter === 'RW'"
+                              >
+                                {{ totalInput - RW_Top_Pass }}
                               </div>
                             </div>
                           </div>
@@ -222,13 +407,26 @@
                   <div v-else>
                     <v-row dense>
                       <v-col cols="6">
-                        <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
+                        <v-card
+                          class="pa-4 rounded-xl border"
+                          elevation="0"
+                          color="surface-light"
+                        >
                           <div class="d-flex align-center">
-                            <v-avatar color="success" variant="tonal" size="40" class="me-3">
+                            <v-avatar
+                              color="success"
+                              variant="tonal"
+                              size="40"
+                              class="me-3"
+                            >
                               <v-icon size="24">mdi-check-decagram</v-icon>
                             </v-avatar>
                             <div>
-                              <div class="text-medium-emphasis text-caption font-weight-medium">Pass</div>
+                              <div
+                                class="text-medium-emphasis text-caption font-weight-medium"
+                              >
+                                Pass
+                              </div>
                               <div class="text-h6 font-weight-bold">
                                 {{ Quantity_Detail_Pass }}
                               </div>
@@ -238,13 +436,26 @@
                       </v-col>
 
                       <v-col cols="6">
-                        <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
+                        <v-card
+                          class="pa-4 rounded-xl border"
+                          elevation="0"
+                          color="surface-light"
+                        >
                           <div class="d-flex align-center">
-                            <v-avatar color="error" variant="tonal" size="40" class="me-3">
+                            <v-avatar
+                              color="error"
+                              variant="tonal"
+                              size="40"
+                              class="me-3"
+                            >
                               <v-icon size="24">mdi-close-circle</v-icon>
                             </v-avatar>
                             <div>
-                              <div class="text-medium-emphasis text-caption font-weight-medium">Fail</div>
+                              <div
+                                class="text-medium-emphasis text-caption font-weight-medium"
+                              >
+                                Fail
+                              </div>
                               <div class="text-h6 font-weight-bold">
                                 {{ manufactureRW.length || 0 }}
                               </div>
@@ -254,15 +465,32 @@
                       </v-col>
 
                       <v-col cols="6">
-                        <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
+                        <v-card
+                          class="pa-4 rounded-xl border"
+                          elevation="0"
+                          color="surface-light"
+                        >
                           <div class="d-flex align-center">
-                            <v-avatar color="info" variant="tonal" size="40" class="me-3">
+                            <v-avatar
+                              color="info"
+                              variant="tonal"
+                              size="40"
+                              class="me-3"
+                            >
                               <v-icon size="24">mdi-wrench</v-icon>
                             </v-avatar>
                             <div>
-                              <div class="text-medium-emphasis text-caption font-weight-medium">Đã sửa</div>
+                              <div
+                                class="text-medium-emphasis text-caption font-weight-medium"
+                              >
+                                Đã sửa
+                              </div>
                               <div class="text-h6 font-weight-bold">
-                                {{ manufactureRW.filter((item) => item.Status === 'fixed').length || 0 }}
+                                {{
+                                  manufactureRW.filter(
+                                    (item) => item.Status === "fixed"
+                                  ).length || 0
+                                }}
                               </div>
                             </div>
                           </div>
@@ -270,13 +498,26 @@
                       </v-col>
 
                       <v-col cols="6">
-                        <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
+                        <v-card
+                          class="pa-4 rounded-xl border"
+                          elevation="0"
+                          color="surface-light"
+                        >
                           <div class="d-flex align-center">
-                            <v-avatar color="warning" variant="tonal" size="40" class="me-3">
+                            <v-avatar
+                              color="warning"
+                              variant="tonal"
+                              size="40"
+                              class="me-3"
+                            >
                               <v-icon size="24">mdi-timer-sand</v-icon>
                             </v-avatar>
                             <div>
-                              <div class="text-medium-emphasis text-caption font-weight-medium">Còn lại</div>
+                              <div
+                                class="text-medium-emphasis text-caption font-weight-medium"
+                              >
+                                Còn lại
+                              </div>
                               <div class="text-h6 font-weight-bold">
                                 {{ Quantity_Detail_Remain }}
                               </div>
@@ -286,311 +527,342 @@
                       </v-col>
                     </v-row>
                   </div>
-
-              </v-col>
-              <v-col
-                cols="4"
-                class="d-flex flex-column align-center justify-center"
-              >
-                <v-pie
-                  title="Biểu đồ phần trăm %"
-                  animation
-                  :legend="{
-                    position: $vuetify.display.mdAndUp ? 'right' : 'bottom',
-                  }"
-                  :tooltip="{ subtitleFormat: '[value]%' }"
-                  reveal
-                  :items="VPieData"
-                />
-                <div class="h-0">
-                  <svg
-                    height="0"
-                    version="1.1"
-                    width="0"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <defs>
-                      <pattern
-                        id="pattern-0"
-                        height="20"
-                        patternTransform="rotate(145) scale(.2)"
-                        patternUnits="userSpaceOnUse"
-                        width="20"
-                      >
-                        <path
-                          d="M0 10h20zm0 20h20zm0 20h20zm0 20h20z"
-                          fill="none"
-                          stroke="rgb(var(--v-theme-surface))"
-                          stroke-width="3"
-                        />
-                      </pattern>
-                    </defs>
-                  </svg>
-                </div>
-              </v-col>
-              <v-col cols="12" md="5">
-                <div class="d-flex align-center justify-space-between mb-4">
-                  <div class="text-h6 font-weight-bold">Danh sách hàng lỗi</div>
-                  <v-chip color="error" variant="tonal" size="small" class="font-weight-bold">
-                    {{ manufactureRW.length }} lỗi
-                  </v-chip>
-                </div>
-                <v-card variant="elevated" elevation="0" class="rounded-lg bg-surface">
-                  <v-data-table
-                    :headers="HeadersHistoryPartError"
-                    :items="manufactureRW"
-                    fixed-header
-                    height="300"
-                    v-model:page="pageRW"
-                    v-model:items-per-page="itemsPerPageRW"
-                    class="bg-transparent"
-                    :footer-props="{
-                      'items-per-page-options': [10, 20, 50, 100],
-                      'items-per-page-text': 'Số hàng mỗi trang',
-                    }"
-                    :header-props="{
-                      sortByText: 'Sắp xếp theo',
-                      sortDescText: 'Giảm dần',
-                      sortAscText: 'Tăng dần',
-                    }"
-                    :loading="DialogLoading"
-                    loading-text="Đang tải dữ liệu..."
-                    no-data-text="Không có dữ liệu"
-                    no-results-text="Không tìm thấy kết quả"
-                    hover
-                    density="compact"
-                  >
-                    <template v-slot:item.stt="{ index }">
-                      {{ (page - 1) * itemsPerPage + index + 1 }}
-                    </template>
-                    <template #[`item.Status`]="{ item }">
-                      <v-chip
-                        :color="
-                          item.Status === 'fail'
-                            ? 'warning'
-                            : item.Status === 'fixed'
-                            ? 'info'
-                            : 'success'
-                        "
-                        size="small"
-                        variant="tonal"
-                      >
-                        {{
-                          item.Status === "fail"
-                            ? "Fail"
-                            : item.Status === "fixed"
-                            ? "Fixed"
-                            : "Pass"
-                        }}
-                      </v-chip>
-                      <v-chip
-                        class="ms-2"
-                        size="small"
-                        color="info"
-                        variant="tonal"
-                        v-if="item.Note"
-                        >Fixed</v-chip
-                      >
-                    </template>
-                    <template #[`item.PartNumber`]="{ item }">
-                      <p v-if="item.PartNumber == 1">{{ NameOrder }}</p>
-                      <p v-else>{{ item.PartNumber }}</p>
-                    </template>
-                    <template #[`item.RWID`]="{ item }">
-                      <v-chip color="success" variant="tonal" v-if="item.RWID">
-                        <v-icon>mdi-check</v-icon>
-                      </v-chip>
-                      <v-chip v-else variant="tonal" color="error">
-                        <v-icon>mdi-alert</v-icon>
-                      </v-chip>
-                    </template>
-                    <template #item.Note="{ item }">
-                      <div style="white-space: pre-line" class="text-error">
-                        {{ item.Note }}
-                      </div>
-                    </template>
-                    <template #item.id="{ item }">
-                      <v-btn
-                        size="small"
-                        variant="text"
-                        color="error"
-                        icon="mdi-trash-can"
-                        @click="GetItemHistory(item)"
-                      ></v-btn>
-                    </template>
-                    <template #[`bottom`]>
-                      <div class="text-center pt-2">
-                        <v-pagination
-                          v-model="pageRW"
-                          :length="
-                            Math.ceil(manufactureRW.length / itemsPerPageRW)
-                          "
-                        ></v-pagination>
-                      </div>
-                    </template>
-                  </v-data-table>
-                </v-card>
-              </v-col>
-              <v-row>
-                <v-col cols="2"></v-col>
-                <v-col cols="8">
-                  <v-divider :thickness="3"></v-divider>
                 </v-col>
-                <v-col cols="2"></v-col>
-              </v-row>
-
-              <v-col cols="12">
-                <v-card variant="elevated" elevation="0" class="rounded-xl">
-                  <v-data-table
-                    :group-by="groupBy"
-                    density="comfortable"
-                    :headers="HeadersHistory"
-                    :items="history"
-                    fixed-header
-                    loading-text="Đang tải dữ liệu..."
-                    no-data-text="Không có dữ liệu"
-                    no-results-text="Không tìm thấy kết quả"
-                    class="bg-transparent"
-                    v-model:page="pageDetail"
-                    v-model:items-per-page="itemsPerPageDetail"
-                    hover
-                  >
-                    <template v-slot:top>
-                      <v-toolbar flat color="transparent" class="border-b px-2">
-                        <v-toolbar-title class="d-flex align-center">
-                          <v-avatar color="primary" variant="tonal" size="32" class="me-3">
-                            <v-icon icon="mdi-book-multiple" size="20"></v-icon>
-                          </v-avatar>
-                          <span class="text-h6 font-weight-bold">Kế hoạch sản xuất</span>
-                        </v-toolbar-title>
-
-                        <v-spacer></v-spacer>
-
-                        <ButtonAdd
-                          label="Thêm"
-                          class="mr-2"
-                          @click="DialogAdd = true"
-                        />
-                      </v-toolbar>
-                    </template>
-
-                  <template
-                    v-slot:group-header="{
-                      item,
-                      columns,
-                      toggleGroup,
-                      isGroupOpen,
+                <v-col
+                  cols="4"
+                  class="d-flex flex-column align-center justify-center"
+                >
+                  <v-pie
+                    title="Biểu đồ phần trăm %"
+                    animation
+                    :legend="{
+                      position: $vuetify.display.mdAndUp ? 'right' : 'bottom',
                     }"
-                  >
-                    <tr>
-                      <td
-                        :colspan="columns.length"
-                        class="cursor-pointer"
-                        v-ripple
-                        @click="toggleGroup(item)"
-                      >
-                        <div class="d-flex align-center">
-                          <v-btn
-                            :icon="isGroupOpen(item) ? '$expand' : '$next'"
-                            color="medium-emphasis"
-                            density="comfortable"
-                            size="small"
-                            variant="text"
-                          ></v-btn>
-
-                          <span class="ms-4 font-weight-bold text-primary"
-                            >{{ item.value }} ({{ item.items.length }})</span
-                          >
-                        </div>
-                      </td>
-                    </tr>
-                  </template>
-
-                  <template #[`item.id`]="{ item }">
-                    <div class="d-flex gap-2">
-                      <ButtonEye @click="PushItem(item)" />
-                      <ButtonEdit @click="GetItem(item)" />
+                    :tooltip="{ subtitleFormat: '[value]%' }"
+                    reveal
+                    :items="VPieData"
+                  />
+                  <div class="h-0">
+                    <svg
+                      height="0"
+                      version="1.1"
+                      width="0"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <defs>
+                        <pattern
+                          id="pattern-0"
+                          height="20"
+                          patternTransform="rotate(145) scale(.2)"
+                          patternUnits="userSpaceOnUse"
+                          width="20"
+                        >
+                          <path
+                            d="M0 10h20zm0 20h20zm0 20h20zm0 20h20z"
+                            fill="none"
+                            stroke="rgb(var(--v-theme-surface))"
+                            stroke-width="3"
+                          />
+                        </pattern>
+                      </defs>
+                    </svg>
+                  </div>
+                </v-col>
+                <v-col cols="12" md="5">
+                  <div class="d-flex align-center justify-space-between mb-4">
+                    <div class="text-h6 font-weight-bold">
+                      Danh sách hàng lỗi
                     </div>
-                  </template>
-
-                  <template #[`item.Category`]="{ item }">
-                    {{ item.Category }}
                     <v-chip
-                      v-if="item?.Line_SMT"
-                      :color="
-                        item.Line_SMT === 'Line 1' ? 'brown' : 'deep-orange'
-                      "
-                      size="small"
+                      color="error"
                       variant="tonal"
-                      class="ms-2"
+                      size="small"
+                      class="font-weight-bold"
                     >
-                      {{ item.Line_SMT }}
+                      {{ manufactureRW.length }} lỗi
                     </v-chip>
-                  </template>
-
-                  <template #[`item.Quantity_Plan`]="{ item }">
-                    <v-chip color="primary" variant="tonal" size="small">{{
-                      item.Quantity_Plan
-                    }}</v-chip>
-                  </template>
-
-                  <template #[`item.Quantity_Real`]="{ item }">
-                    <v-chip color="success" variant="tonal" size="small">{{
-                      item.Quantity_Real
-                    }}</v-chip>
-                  </template>
-
-                  <template #[`item.Quantity_Error`]="{ item }">
-                    <v-chip color="warning" variant="tonal" size="small">{{
-                      item.Quantity_Error
-                    }}</v-chip>
-                  </template>
-
-                  <template #[`item.Percent`]="{ item }">
-                    <v-progress-linear
-                      v-model="item.Percent"
-                      height="25"
-                      color="success"
-                      rounded
-                      class="rounded-lg"
+                  </div>
+                  <v-card
+                    variant="elevated"
+                    elevation="0"
+                    class="rounded-lg bg-surface"
+                  >
+                    <v-data-table
+                      :headers="HeadersHistoryPartError"
+                      :items="manufactureRW"
+                      fixed-header
+                      height="300"
+                      v-model:page="pageRW"
+                      v-model:items-per-page="itemsPerPageRW"
+                      class="bg-transparent"
+                      :footer-props="{
+                        'items-per-page-options': [10, 20, 50, 100],
+                        'items-per-page-text': 'Số hàng mỗi trang',
+                      }"
+                      :header-props="{
+                        sortByText: 'Sắp xếp theo',
+                        sortDescText: 'Giảm dần',
+                        sortAscText: 'Tăng dần',
+                      }"
+                      :loading="DialogLoading"
+                      loading-text="Đang tải dữ liệu..."
+                      no-data-text="Không có dữ liệu"
+                      no-results-text="Không tìm thấy kết quả"
+                      hover
+                      density="compact"
                     >
-                      <strong
-                        >{{
-                          Number.parseFloat(item.Percent).toFixed(1)
-                        }}%</strong
-                      >
-                    </v-progress-linear>
-                  </template>
-                  <template #[`bottom`]>
-                    <div class="text-center pt-2">
-                      <v-pagination
-                        v-model="pageDetail"
-                        :length="Math.ceil(history.length / itemsPerPageDetail)"
-                      ></v-pagination>
-                    </div>
-                  </template>
-                </v-data-table>
-                </v-card>
-              </v-col>
-              <v-row>
-                <v-col cols="2"></v-col>
-                <v-col cols="8">
-                  <v-divider :thickness="3"></v-divider>
+                      <template v-slot:item.stt="{ index }">
+                        {{ (page - 1) * itemsPerPage + index + 1 }}
+                      </template>
+                      <template #[`item.Status`]="{ item }">
+                        <v-chip
+                          :color="
+                            item.Status === 'fail'
+                              ? 'warning'
+                              : item.Status === 'fixed'
+                              ? 'info'
+                              : 'success'
+                          "
+                          size="small"
+                          variant="tonal"
+                        >
+                          {{
+                            item.Status === "fail"
+                              ? "Fail"
+                              : item.Status === "fixed"
+                              ? "Fixed"
+                              : "Pass"
+                          }}
+                        </v-chip>
+                        <v-chip
+                          class="ms-2"
+                          size="small"
+                          color="info"
+                          variant="tonal"
+                          v-if="item.Note"
+                          >Fixed</v-chip
+                        >
+                      </template>
+                      <template #[`item.PartNumber`]="{ item }">
+                        <p v-if="item.PartNumber == 1">{{ NameOrder }}</p>
+                        <p v-else>{{ item.PartNumber }}</p>
+                      </template>
+                      <template #[`item.RWID`]="{ item }">
+                        <v-chip
+                          color="success"
+                          variant="tonal"
+                          v-if="item.RWID"
+                        >
+                          <v-icon>mdi-check</v-icon>
+                        </v-chip>
+                        <v-chip v-else variant="tonal" color="error">
+                          <v-icon>mdi-alert</v-icon>
+                        </v-chip>
+                      </template>
+                      <template #item.Note="{ item }">
+                        <div style="white-space: pre-line" class="text-error">
+                          {{ item.Note }}
+                        </div>
+                      </template>
+                      <template #item.id="{ item }">
+                        <v-btn
+                          size="small"
+                          variant="text"
+                          color="error"
+                          icon="mdi-trash-can"
+                          @click="GetItemHistory(item)"
+                        ></v-btn>
+                      </template>
+                      <template #[`bottom`]>
+                        <div class="text-center pt-2">
+                          <v-pagination
+                            v-model="pageRW"
+                            :length="
+                              Math.ceil(manufactureRW.length / itemsPerPageRW)
+                            "
+                          ></v-pagination>
+                        </div>
+                      </template>
+                    </v-data-table>
+                  </v-card>
                 </v-col>
-                <v-col cols="2"></v-col>
-              </v-row>
-              <v-col cols="12">
-                <StackedBarChart
-                  :labels="days"
-                  :passData="passList"
-                  :failData="failList"
-                  :planData="planList"
-                  title="Kết quả sản xuất theo ngày"
-                />
-              </v-col>
-            </v-row>
-          </v-card-text>
+                <v-row>
+                  <v-col cols="2"></v-col>
+                  <v-col cols="8">
+                    <v-divider :thickness="3"></v-divider>
+                  </v-col>
+                  <v-col cols="2"></v-col>
+                </v-row>
 
+                <v-col cols="12">
+                  <v-card variant="elevated" elevation="0" class="rounded-xl">
+                    <v-data-table
+                      :group-by="groupBy"
+                      density="comfortable"
+                      :headers="HeadersHistory"
+                      :items="history"
+                      fixed-header
+                      loading-text="Đang tải dữ liệu..."
+                      no-data-text="Không có dữ liệu"
+                      no-results-text="Không tìm thấy kết quả"
+                      class="bg-transparent"
+                      v-model:page="pageDetail"
+                      v-model:items-per-page="itemsPerPageDetail"
+                      hover
+                    >
+                      <template v-slot:top>
+                        <v-toolbar
+                          flat
+                          color="transparent"
+                          class="border-b px-2"
+                        >
+                          <v-toolbar-title class="d-flex align-center">
+                            <v-avatar
+                              color="primary"
+                              variant="tonal"
+                              size="32"
+                              class="me-3"
+                            >
+                              <v-icon
+                                icon="mdi-book-multiple"
+                                size="20"
+                              ></v-icon>
+                            </v-avatar>
+                            <span class="text-h6 font-weight-bold"
+                              >Kế hoạch sản xuất</span
+                            >
+                          </v-toolbar-title>
+
+                          <v-spacer></v-spacer>
+
+                          <ButtonAdd
+                            label="Thêm"
+                            class="mr-2"
+                            @click="DialogAdd = true"
+                          />
+                        </v-toolbar>
+                      </template>
+
+                      <template
+                        v-slot:group-header="{
+                          item,
+                          columns,
+                          toggleGroup,
+                          isGroupOpen,
+                        }"
+                      >
+                        <tr>
+                          <td
+                            :colspan="columns.length"
+                            class="cursor-pointer"
+                            v-ripple
+                            @click="toggleGroup(item)"
+                          >
+                            <div class="d-flex align-center">
+                              <v-btn
+                                :icon="isGroupOpen(item) ? '$expand' : '$next'"
+                                color="medium-emphasis"
+                                density="comfortable"
+                                size="small"
+                                variant="text"
+                              ></v-btn>
+
+                              <span class="ms-4 font-weight-bold text-primary"
+                                >{{ item.value }} ({{
+                                  item.items.length
+                                }})</span
+                              >
+                            </div>
+                          </td>
+                        </tr>
+                      </template>
+
+                      <template #[`item.id`]="{ item }">
+                        <div class="d-flex gap-2">
+                          <ButtonEye @click="PushItem(item)" />
+                          <ButtonEdit @click="GetItem(item)" />
+                        </div>
+                      </template>
+
+                      <template #[`item.Category`]="{ item }">
+                        {{ item.Category }}
+                        <v-chip
+                          v-if="item?.Line_SMT"
+                          :color="
+                            item.Line_SMT === 'Line 1' ? 'brown' : 'deep-orange'
+                          "
+                          size="small"
+                          variant="tonal"
+                          class="ms-2"
+                        >
+                          {{ item.Line_SMT }}
+                        </v-chip>
+                      </template>
+
+                      <template #[`item.Quantity_Plan`]="{ item }">
+                        <v-chip color="primary" variant="tonal" size="small">{{
+                          item.Quantity_Plan
+                        }}</v-chip>
+                      </template>
+
+                      <template #[`item.Quantity_Real`]="{ item }">
+                        <v-chip color="success" variant="tonal" size="small">{{
+                          item.Quantity_Real
+                        }}</v-chip>
+                      </template>
+
+                      <template #[`item.Quantity_Error`]="{ item }">
+                        <v-chip color="warning" variant="tonal" size="small">{{
+                          item.Quantity_Error
+                        }}</v-chip>
+                      </template>
+
+                      <template #[`item.Percent`]="{ item }">
+                        <v-progress-linear
+                          v-model="item.Percent"
+                          height="25"
+                          color="success"
+                          rounded
+                          class="rounded-lg"
+                        >
+                          <strong
+                            >{{
+                              Number.parseFloat(item.Percent).toFixed(1)
+                            }}%</strong
+                          >
+                        </v-progress-linear>
+                      </template>
+                      <template #[`bottom`]>
+                        <div class="text-center pt-2">
+                          <v-pagination
+                            v-model="pageDetail"
+                            :length="
+                              Math.ceil(history.length / itemsPerPageDetail)
+                            "
+                          ></v-pagination>
+                        </div>
+                      </template>
+                    </v-data-table>
+                  </v-card>
+                </v-col>
+                <v-row>
+                  <v-col cols="2"></v-col>
+                  <v-col cols="8">
+                    <v-divider :thickness="3"></v-divider>
+                  </v-col>
+                  <v-col cols="2"></v-col>
+                </v-row>
+                <v-col cols="12">
+                  <StackedBarChart
+                    :labels="days"
+                    :passData="passList"
+                    :failData="failList"
+                    :planData="planList"
+                    title="Kết quả sản xuất theo ngày"
+                  />
+                </v-col>
+              </v-row>
+            </v-card-text>
           </v-card>
         </v-card>
 
@@ -602,10 +874,17 @@
               <v-card-title
                 class="d-flex align-center pa-4 bg-surface border-b"
               >
-                <v-avatar color="primary" variant="tonal" size="32" class="me-3">
+                <v-avatar
+                  color="primary"
+                  variant="tonal"
+                  size="32"
+                  class="me-3"
+                >
                   <v-icon icon="mdi-chart-bar" size="20"></v-icon>
                 </v-avatar>
-                <span class="text-h6 font-weight-bold">Thống kê theo công đoạn sản xuất</span>
+                <span class="text-h6 font-weight-bold"
+                  >Thống kê theo công đoạn sản xuất</span
+                >
               </v-card-title>
               <v-card-text class="pa-4">
                 <StackedBarChartSummary
@@ -624,7 +903,12 @@
               <v-card-title
                 class="d-flex align-center pa-4 bg-surface border-b"
               >
-                <v-avatar color="primary" variant="tonal" size="32" class="me-3">
+                <v-avatar
+                  color="primary"
+                  variant="tonal"
+                  size="32"
+                  class="me-3"
+                >
                   <v-icon icon="mdi-chart-donut" size="20"></v-icon>
                 </v-avatar>
                 <span class="text-h6 font-weight-bold">Tổng hợp lỗi</span>
@@ -651,7 +935,9 @@
                       <div class="text-h3 font-weight-bold text-primary">
                         {{ manufactureFail.length || 0 }}
                       </div>
-                      <div class="text-caption text-medium-emphasis mt-1">Tổng lỗi</div>
+                      <div class="text-caption text-medium-emphasis mt-1">
+                        Tổng lỗi
+                      </div>
                     </div>
                   </template>
                 </v-pie>
@@ -690,7 +976,12 @@
             <template v-slot:top>
               <v-toolbar flat color="transparent" class="border-b px-2">
                 <v-toolbar-title class="d-flex align-center">
-                  <v-avatar color="primary" variant="tonal" size="32" class="me-3">
+                  <v-avatar
+                    color="primary"
+                    variant="tonal"
+                    size="32"
+                    class="me-3"
+                  >
                     <v-icon icon="mdi-history" size="20"></v-icon>
                   </v-avatar>
                   <span class="text-h6 font-weight-bold">Lịch sử sản xuất</span>
@@ -867,7 +1158,20 @@
         </v-card-text>
         <v-card-actions>
           <ButtonCancel @cancel="DialogAdd = false" />
-          <ButtonSave @save="SaveAdd()" :disabled="!PONumber_Add || !Name_Order_Add || !Type_Add || !Surface_Add || !Category_Add || !Quantity_Plan_Add || !CycleTime_Add || !Time_Add || !Date_DetailManufacture_Add"/>
+          <ButtonSave
+            @save="SaveAdd()"
+            :disabled="
+              !PONumber_Add ||
+              !Name_Order_Add ||
+              !Type_Add ||
+              !Surface_Add ||
+              !Category_Add ||
+              !Quantity_Plan_Add ||
+              !CycleTime_Add ||
+              !Time_Add ||
+              !Date_DetailManufacture_Add
+            "
+          />
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -1154,6 +1458,8 @@ const Quantity_Detail_Fixed = ref(0);
 const Quantity_Detail_Remain = ref(0);
 const SMT_Top_Pass = ref(0);
 const SMT_Bottom_Pass = ref(0);
+const AOI_Top_Pass = ref(0);
+const AOI_Bottom_Pass = ref(0);
 
 // ===== FORM ADD =====
 const Type_Add = ref("");
@@ -1372,9 +1678,10 @@ watch(
 watch(
   manufactureSummary,
   (newValue) => {
-    // Gộp 2 dòng SMT thành 1
     let mergedValue = newValue;
+
     if (newValue && Array.isArray(newValue)) {
+      // ========== XỬ LÝ SMT ==========
       const smtTop = newValue.find(
         (v) => v.Type === "SMT" && v.Surface === "TOP"
       );
@@ -1383,27 +1690,106 @@ watch(
       );
 
       if (smtTop && smtBottom) {
+        // Lưu pass về cho template
+        SMT_Top_Pass.value = smtTop.Quantity_Pass || 0;
+        SMT_Bottom_Pass.value = smtBottom.Quantity_Pass || 0;
+
+        // Điều kiện Pass - lấy minimum
+        let SMT_Pass = 0;
+        if (SMT_Top_Pass.value === 0 || SMT_Bottom_Pass.value === 0) {
+          SMT_Pass = 0;
+        } else {
+          SMT_Pass = Math.min(SMT_Top_Pass.value, SMT_Bottom_Pass.value);
+        }
+
+        // Gộp 2 SMT thành 1 dòng
         const mergedSMT = {
           Type: "SMT",
           Surface: null,
-          Quantity_Pass: smtTop.Quantity_Pass || 0,
-          Quantity_Fail: smtTop.Quantity_Fail || smtBottom.Quantity_Fail || 0,
-          Quantity_RW: smtTop.Quantity_RW || smtBottom.Quantity_RW || 0,
+          Quantity_Pass: SMT_Pass,
+          Quantity_Fail:
+            (smtTop.Quantity_Fail || 0) + (smtBottom.Quantity_Fail || 0),
+          Quantity_RW: (smtTop.Quantity_RW || 0) + (smtBottom.Quantity_RW || 0),
           Total_Summary_ID:
             (smtTop.Total_Summary_ID || 0) + (smtBottom.Total_Summary_ID || 0),
-          SMT_Top_Quantity: smtTop.SMT_Top_Quantity || 0,
-          SMT_Bottom_Quantity: smtBottom.SMT_Bottom_Quantity || 0,
+
+          // Lưu số lượng pass từng mặt
+          SMT_Top_Quantity: SMT_Top_Pass.value,
+          SMT_Bottom_Quantity: SMT_Bottom_Pass.value,
         };
-        mergedValue = newValue.filter((v) => !(v.Type === "SMT"));
+
+        mergedValue = newValue.filter((v) => v.Type !== "SMT");
         mergedValue.push(mergedSMT);
+      }
+
+      // ========== XỬ LÝ AOI (GIỐNG SMT) ==========
+      let aoiTop = newValue.find(
+        (v) => v.Type === "AOI" && v.Surface === "TOP"
+      );
+      let aoiBottom = newValue.find(
+        (v) => v.Type === "AOI" && v.Surface === "BOTTOM"
+      );
+
+      // ✅ Nếu có ít nhất 1 trong 2 mặt, vẫn cần gộp
+      if (aoiTop || aoiBottom) {
+        // Nếu thiếu mặt nào, tạo object mặc định
+        if (!aoiTop) {
+          aoiTop = {
+            Type: "AOI",
+            Surface: "TOP",
+            AOI_Top_Quantity: 0,
+            Quantity_Fail: 0,
+            Quantity_RW: 0,
+            Total_Summary_ID: 0,
+          };
+        }
+        if (!aoiBottom) {
+          aoiBottom = {
+            Type: "AOI",
+            Surface: "BOTTOM",
+            AOI_Bottom_Quantity: 0,
+            Quantity_Fail: 0,
+            Quantity_RW: 0,
+            Total_Summary_ID: 0,
+          };
+        }
+
+        // Lưu pass về cho template từ đúng surface
+        AOI_Top_Pass.value = aoiTop.AOI_Top_Quantity || 0;
+        AOI_Bottom_Pass.value = aoiBottom.AOI_Bottom_Quantity || 0;
+
+        // Điều kiện Pass - lấy minimum (nếu cả 2 đều > 0)
+        let AOI_Pass = 0;
+        if (AOI_Top_Pass.value === 0 || AOI_Bottom_Pass.value === 0) {
+          AOI_Pass = 0;
+        } else {
+          AOI_Pass = Math.min(AOI_Top_Pass.value, AOI_Bottom_Pass.value);
+        }
+
+        // Gộp 2 AOI thành 1 dòng
+        const mergedAOI = {
+          Type: "AOI",
+          Surface: null,
+          Quantity_Pass: AOI_Pass,
+          Quantity_Fail:
+            (aoiTop.Quantity_Fail || 0) + (aoiBottom.Quantity_Fail || 0),
+          Quantity_RW: (aoiTop.Quantity_RW || 0) + (aoiBottom.Quantity_RW || 0),
+          Total_Summary_ID:
+            (aoiTop.Total_Summary_ID || 0) + (aoiBottom.Total_Summary_ID || 0),
+
+          // Lưu số lượng pass từng mặt
+          AOI_Top_Quantity: AOI_Top_Pass.value,
+          AOI_Bottom_Quantity: AOI_Bottom_Pass.value,
+        };
+
+        mergedValue = mergedValue.filter((v) => v.Type !== "AOI");
+        mergedValue.push(mergedAOI);
       }
     }
 
-    // Duyệt từng phần tử trong levelArray để cập nhật giá trị tương ứng
+    // Cập nhật levelArray
     levelArray.value = levelArray.value.map((lvl) => {
       const match = mergedValue.find((item) => item.Type === lvl.Type);
-
-      // Nếu tìm thấy bản ghi tương ứng trong manufactureSummary
       if (match) {
         return {
           ...lvl,
@@ -1413,50 +1799,42 @@ watch(
           Total_Summary_ID: match.Total_Summary_ID || lvl.Total_Summary_ID,
         };
       }
-
-      // Nếu không có dữ liệu thống kê tương ứng, giữ nguyên
       return lvl;
     });
 
-    const resetValues = () => {
-      Quantity_Detail_Pass.value = 0;
-      Quantity_Detail_Fail.value = 0;
-      Quantity_Detail_Remain.value = 0;
-
-      VPieData.value = [
-        { key: 1, title: "Pass", value: 0, color: "#72c789" },
-        { key: 2, title: "Fail", value: 0, color: "#d43d51" },
-        {
-          key: 3,
-          title: "Còn lại",
-          value: 100,
-          color: "rgba(var(--v-theme-on-surface), .2)",
-          pattern: "url(#pattern-0)",
-        },
-      ];
-    };
-
-    if (
-      !mergedValue ||
-      !Array.isArray(mergedValue) ||
-      mergedValue.length === 0
-    ) {
-      resetValues();
-      return;
-    }
-
-    // ✅ Chỉ cập nhật dữ liệu tương ứng với màn hình đang xem
+    // Reset khi không có data
     const currentType = Quantity_Detail_Title.value;
     const found = mergedValue.find((x) => x.Type === currentType);
 
-    if (!found) {
+    if (!found && currentType) {
+      const resetValues = () => {
+        Quantity_Detail_Pass.value = 0;
+        Quantity_Detail_Fail.value = 0;
+        Quantity_Detail_Remain.value = 0;
+
+        VPieData.value = [
+          { key: 1, title: "Pass", value: 0, color: "#72c789" },
+          { key: 2, title: "Fail", value: 0, color: "#d43d51" },
+          {
+            key: 3,
+            title: "Còn lại",
+            value: 100,
+            color: "rgba(var(--v-theme-on-surface), .2)",
+            pattern: "url(#pattern-0)",
+          },
+        ];
+      };
       resetValues();
       return;
     }
+
+    // Cập nhật màn hình đang xem
+    if (!found) return;
 
     if (currentType === "SMT") {
       Quantity_Detail_Pass.value = found.Quantity_Pass || 0;
       Quantity_Detail_Fail.value = found.Quantity_Fail || 0;
+
       SMT_Top_Pass.value = found.SMT_Top_Quantity || 0;
       SMT_Bottom_Pass.value = found.SMT_Bottom_Quantity || 0;
 
@@ -1469,52 +1847,104 @@ watch(
 
       const round1 = (num) => Number(num.toFixed(1));
 
-      const Percent_Pass = round1(
-        (Quantity_Detail_Pass.value / totalInput.value) * 100
-      );
-      const Percent_Fail = round1(
-        (Quantity_Detail_Fail.value / totalInput.value) * 100
-      );
-      const Percent_Remain = round1((remain / totalInput.value) * 100);
-
       VPieData.value = [
-        { key: 1, title: "Pass", value: Percent_Pass, color: "#72c789" },
-        { key: 2, title: "Fail", value: Percent_Fail, color: "#d43d51" },
+        {
+          key: 1,
+          title: "Pass",
+          value: round1((Quantity_Detail_Pass.value / totalInput.value) * 100),
+          color: "#72c789",
+        },
+        {
+          key: 2,
+          title: "Fail",
+          value: round1((Quantity_Detail_Fail.value / totalInput.value) * 100),
+          color: "#d43d51",
+        },
         {
           key: 3,
           title: "Còn lại",
-          value: Percent_Remain,
+          value: round1((remain / totalInput.value) * 100),
           color: "rgba(var(--v-theme-on-surface), .2)",
           pattern: "url(#pattern-0)",
         },
       ];
-    } else {
-      const pass = found.Quantity_Pass || 0;
-      const fail = found.Quantity_Fail || 0;
-      const remain = Math.max(0, totalInput.value - (pass + fail));
+      return;
+    }
 
-      Quantity_Detail_Pass.value = pass;
-      Quantity_Detail_Fail.value = fail;
+    // Xử lý AOI - GIỐNG SMT
+    if (currentType === "AOI") {
+      Quantity_Detail_Pass.value = found.Quantity_Pass || 0;
+      Quantity_Detail_Fail.value = found.Quantity_Fail || 0;
+
+      // ✅ LẤY TỪ merged data (đã gộp TOP + BOTTOM)
+      AOI_Top_Pass.value = found.AOI_Top_Quantity || 0;
+      AOI_Bottom_Pass.value = found.AOI_Bottom_Quantity || 0;
+
+      const remain = Math.max(
+        0,
+        totalInput.value -
+          (Quantity_Detail_Pass.value + Quantity_Detail_Fail.value)
+      );
       Quantity_Detail_Remain.value = remain;
 
       const round1 = (num) => Number(num.toFixed(1));
 
-      const Percent_Pass = round1((pass / totalInput.value) * 100);
-      const Percent_Fail = round1((fail / totalInput.value) * 100);
-      const Percent_Remain = round1((remain / totalInput.value) * 100);
-
       VPieData.value = [
-        { key: 1, title: "Pass", value: Percent_Pass, color: "#72c789" },
-        { key: 2, title: "Fail", value: Percent_Fail, color: "#d43d51" },
+        {
+          key: 1,
+          title: "Pass",
+          value: round1((Quantity_Detail_Pass.value / totalInput.value) * 100),
+          color: "#72c789",
+        },
+        {
+          key: 2,
+          title: "Fail",
+          value: round1((Quantity_Detail_Fail.value / totalInput.value) * 100),
+          color: "#d43d51",
+        },
         {
           key: 3,
           title: "Còn lại",
-          value: Percent_Remain,
+          value: round1((remain / totalInput.value) * 100),
           color: "rgba(var(--v-theme-on-surface), .2)",
           pattern: "url(#pattern-0)",
         },
       ];
+      return;
     }
+
+    // Xử lý các type khác
+    const pass = found.Quantity_Pass || 0;
+    const fail = found.Quantity_Fail || 0;
+    const remain = Math.max(0, totalInput.value - (pass + fail));
+
+    Quantity_Detail_Pass.value = pass;
+    Quantity_Detail_Fail.value = fail;
+    Quantity_Detail_Remain.value = remain;
+
+    const round1 = (num) => Number(num.toFixed(1));
+
+    VPieData.value = [
+      {
+        key: 1,
+        title: "Pass",
+        value: round1((pass / totalInput.value) * 100),
+        color: "#72c789",
+      },
+      {
+        key: 2,
+        title: "Fail",
+        value: round1((fail / totalInput.value) * 100),
+        color: "#d43d51",
+      },
+      {
+        key: 3,
+        title: "Còn lại",
+        value: round1((remain / totalInput.value) * 100),
+        color: "rgba(var(--v-theme-on-surface), .2)",
+        pattern: "url(#pattern-0)",
+      },
+    ];
   },
   { immediate: true, deep: true }
 );
@@ -1525,6 +1955,76 @@ watch(
     typeFilter.value = newType || null;
   }
 );
+
+const getPassRate = (card) => {
+  // Xử lý RW
+  if (card.Type === "RW") {
+    const totalRWItems = totalError.value + totalFixed.value;
+    if (totalRWItems === 0) return "0%";
+    return (
+      Number.parseFloat((totalFixed.value / totalRWItems) * 100).toFixed(1) +
+      "%"
+    );
+  }
+
+  // Xử lý SMT - ĐÂY LÀ PHẦN QUAN TRỌNG
+  if (card.Type === "SMT") {
+    if (totalInput.value === 0) return "0%";
+
+    // Ưu tiên lấy từ levelArray (đã được cập nhật từ manufactureSummary)
+    const smtData = levelArray.value.find((item) => item.Type === "SMT");
+    if (smtData && smtData.Quantity_Pass > 0) {
+      const percentage = (smtData.Quantity_Pass / totalInput.value) * 100;
+      return Number.parseFloat(percentage.toFixed(1)) + "%";
+    }
+
+    // Nếu levelArray chưa có dữ liệu, tính từ SMT_Top_Pass và SMT_Bottom_Pass
+    const topPass = SMT_Top_Pass.value || 0;
+    const bottomPass = SMT_Bottom_Pass.value || 0;
+
+    // Nếu cả 2 đều bằng 0, trả về 0%
+    if (topPass === 0 && bottomPass === 0) return "0%";
+
+    // Lấy giá trị nhỏ nhất từ 2 mặt
+    const minPass = Math.min(topPass, bottomPass);
+
+    // Tính phần trăm
+    const percentage = (minPass / totalInput.value) * 100;
+    return Number.parseFloat(percentage.toFixed(1)) + "%";
+  }
+
+  // Xử lý AOI - GIỐNG Y CHANG SMT
+  if (card.Type === "AOI") {
+    if (totalInput.value === 0) return "0%";
+
+    // Ưu tiên lấy từ levelArray (đã được cập nhật từ manufactureSummary)
+    const aoiData = levelArray.value.find((item) => item.Type === "AOI");
+    if (aoiData && aoiData.Quantity_Pass > 0) {
+      const percentage = (aoiData.Quantity_Pass / totalInput.value) * 100;
+      return Number.parseFloat(percentage.toFixed(1)) + "%";
+    }
+
+    // Nếu levelArray chưa có dữ liệu, tính từ AOI_Top_Pass và AOI_Bottom_Pass
+    const topPass = AOI_Top_Pass.value || 0;
+    const bottomPass = AOI_Bottom_Pass.value || 0;
+
+    // Nếu cả 2 đều bằng 0, trả về 0%
+    if (topPass === 0 && bottomPass === 0) return "0%";
+
+    // Lấy giá trị nhỏ nhất từ 2 mặt
+    const minPass = Math.min(topPass, bottomPass);
+
+    // Tính phần trăm
+    const percentage = (minPass / totalInput.value) * 100;
+    return Number.parseFloat(percentage.toFixed(1)) + "%";
+  }
+
+  // Xử lý các type khác (RW, Thành phẩm, v.v)
+  if (totalInput.value === 0) return "0%";
+
+  const percentage = ((card.Quantity_Pass || 0) / totalInput.value) * 100;
+  return Number.parseFloat(percentage.toFixed(1)) + "%";
+};
 
 const summaryFailChart = ref({
   "Lỗi hàn": 0,
@@ -1655,29 +2155,16 @@ const GetItem = (item) => {
   GetID.value = item.id;
 };
 
-const GetItemHistory = (item) => {
-  DialogRemoveHistory.value = true;
-  GetIDHistory.value = item.id;
-  if (
-    item.Source == "SMT - Printer" ||
-    item.Source == "SMT - Gắp linh kiện Juki" ||
-    item.Source == "SMT - Gắp linh kiện Yamaha" ||
-    item.Source == "SMT - Gắp linh kiện Topaz"
-  ) {
-    GetSourceHistory.value = "ManufactureSMT";
-  } else {
-    GetSourceHistory.value = `Manufacture${item.Source}`;
-  }
-};
 const GetDetailProgress = async (item) => {
   if (item == "RW") {
     return router.push(`/San-xuat/RW/${route.params.id}`);
   }
+
   router.push(`/San-xuat/Chi-tiet/${route.params.id}?Type=${item}`);
 
-  // Gộp 2 dòng SMT thành 1
   let manufactureSummaryMerged = manufactureSummary.value;
 
+  // 🔥 GỘP SMT TOP + BOTTOM
   if (item === "SMT") {
     const smtTop = manufactureSummary.value.find(
       (v) => v.Type === "SMT" && v.Surface === "TOP"
@@ -1687,38 +2174,51 @@ const GetDetailProgress = async (item) => {
     );
 
     if (smtTop && smtBottom) {
-      // Gộp 2 dòng thành 1
       const mergedSMT = {
         Type: "SMT",
         Surface: null,
-        Quantity_Pass: smtTop.Quantity_Pass || 0,
-        Quantity_Fail: smtTop.Quantity_Fail || smtBottom.Quantity_Fail || 0,
-        Quantity_RW: smtTop.Quantity_RW || smtBottom.Quantity_RW || 0,
+
+        // 🔥 Tổng Pass = SUM Pass 2 mặt
+        Quantity_Pass:
+          (smtTop.Quantity_Pass || 0) + (smtBottom.Quantity_Pass || 0),
+
+        // 🔥 Tổng Fail = SUM Fail 2 mặt
+        Quantity_Fail:
+          (smtTop.Quantity_Fail || 0) + (smtBottom.Quantity_Fail || 0),
+
+        // 🔥 Tổng RW = SUM RW 2 mặt
+        Quantity_RW: (smtTop.Quantity_RW || 0) + (smtBottom.Quantity_RW || 0),
+
         Total_Summary_ID:
           (smtTop.Total_Summary_ID || 0) + (smtBottom.Total_Summary_ID || 0),
-        SMT_Top_Quantity: smtTop.SMT_Top_Quantity || 0,
-        SMT_Bottom_Quantity: smtBottom.SMT_Bottom_Quantity || 0,
+
+        // 🔥 LƯU RIÊNG TOP/BOTTOM PASS cho SMT PASS %
+        SMT_Top_Pass: smtTop.SMT_Top_Quantity || 0,
+        SMT_Bottom_Pass: smtBottom.SMT_Bottom_Quantity || 0,
       };
+
       manufactureSummaryMerged = manufactureSummary.value.filter(
-        (v) => !(v.Type === "SMT")
+        (v) => v.Type !== "SMT"
       );
+
       manufactureSummaryMerged.push(mergedSMT);
     }
   }
 
   const found = manufactureSummaryMerged.find((v) => v.Type === item);
   const found_Fail = manufactureRW.value.filter((v) => v.Type === item);
+
   Manufacture_Fail.value = found_Fail;
   Type_Add.value = item;
-
   Quantity_Detail_Title.value = item;
 
+  // ❌ Không có dữ liệu
   if (!found) {
-    // Nếu không có dữ liệu
     Quantity_Detail_Pass.value = 0;
     Quantity_Detail_Fail.value = 0;
     Quantity_Detail_Fixed.value = 0;
     Quantity_Detail_Remain.value = totalInput.value || 0;
+
     SMT_Top_Pass.value = 0;
     SMT_Bottom_Pass.value = 0;
 
@@ -1736,24 +2236,27 @@ const GetDetailProgress = async (item) => {
     return;
   }
 
+  // ---- SET GIÁ TRỊ CHUNG ----
   Quantity_Detail_Pass.value = found.Quantity_Pass || 0;
   Quantity_Detail_Fail.value = found.Quantity_Fail || 0;
   Quantity_Detail_Fixed.value = found.Quantity_Fixed || 0;
 
-  // Khi là SMT, lấy cả TOP và BOTTOM
+  // ---- SMT SPECIAL DATA ----
   if (found.Type === "SMT") {
-    SMT_Top_Pass.value = found.SMT_Top_Quantity || 0;
-    SMT_Bottom_Pass.value = found.SMT_Bottom_Quantity || 0;
+    SMT_Top_Pass.value = found.SMT_Top_Pass || 0;
+    SMT_Bottom_Pass.value = found.SMT_Bottom_Pass || 0;
   } else {
     SMT_Top_Pass.value = 0;
     SMT_Bottom_Pass.value = 0;
   }
 
+  // ---- REMAIN ----
   const remain =
     totalInput.value -
     (Quantity_Detail_Pass.value + Quantity_Detail_Fail.value);
   Quantity_Detail_Remain.value = remain > 0 ? remain : 0;
 
+  // ---- PERCENT ----
   const round1 = (num) => Number(num.toFixed(1));
 
   const percentPass =
