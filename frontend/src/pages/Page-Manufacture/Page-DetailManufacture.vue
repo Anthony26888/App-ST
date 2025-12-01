@@ -287,11 +287,7 @@
                               <div
                                 class="text-h6 font-weight-bold d-flex align-center"
                               >
-                                {{
-                                  manufactureRW.filter(
-                                    (item) => item.Status === "fixed"
-                                  ).length || 0
-                                }}
+                                {{ manufactureRW.filter((item) => item.Status === "fixed").length || 0 }}
                               </div>
                             </div>
                           </div>
@@ -324,20 +320,22 @@
                                 v-if="Quantity_Detail_Title === 'SMT'"
                               >
                                 {{
-                                  SMT_Top_Pass === 0 || SMT_Bottom_Pass === 0
-                                    ? 0
-                                    : SMT_Top_Pass > SMT_Bottom_Pass
-                                    ? SMT_Bottom_Pass
-                                    : SMT_Top_Pass
+                                  SMT_Top_Pass === 0 && SMT_Bottom_Pass === 0
+                                    ? Quantity_Detail_Pass
+                                    : SMT_Top_Pass === 0 || SMT_Bottom_Pass === 0
+                                      ? 0
+                                      : Math.min(SMT_Top_Pass, SMT_Bottom_Pass)
+                                  
+
                                 }}
                               </div>
                               <div class="text-h6 font-weight-bold" v-else>
                                 {{
-                                  AOI_Top_Pass === 0 || AOI_Bottom_Pass === 0
-                                    ? 0
-                                    : AOI_Top_Pass > AOI_Bottom_Pass
-                                    ? AOI_Bottom_Pass
-                                    : AOI_Top_Pass
+                                  AOI_Top_Pass === 0 && AOI_Bottom_Pass === 0
+                                    ? Quantity_Detail_Pass
+                                    : AOI_Top_Pass === 0 || AOI_Bottom_Pass === 0
+                                      ? 0
+                                      : Math.min(AOI_Top_Pass, AOI_Bottom_Pass)
                                 }}
                               </div>
                             </div>
@@ -371,8 +369,8 @@
                                 v-if="typeFilter === 'SMT'"
                               >
                                 {{
-                                  totalInput -
-                                  (SMT_Top_Pass === 0 || SMT_Bottom_Pass === 0
+                                  totalInput - (SMT_Top_Pass === 0 ||
+                                  SMT_Bottom_Pass === 0
                                     ? 0
                                     : SMT_Top_Pass > SMT_Bottom_Pass
                                     ? SMT_Bottom_Pass
@@ -384,8 +382,8 @@
                                 v-if="typeFilter === 'AOI'"
                               >
                                 {{
-                                  totalInput -
-                                  (AOI_Top_Pass === 0 || AOI_Bottom_Pass === 0
+                                  totalInput - (AOI_Top_Pass === 0 ||
+                                  AOI_Bottom_Pass === 0
                                     ? 0
                                     : AOI_Top_Pass > AOI_Bottom_Pass
                                     ? AOI_Bottom_Pass
