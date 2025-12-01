@@ -21,47 +21,55 @@
         <!-- Production Statistics Cards -->
         <v-row class="mb-4">
           <v-col cols="12" sm="6">
-            <v-card class="rounded-xl" color="warning" variant="tonal">
-              <v-card-text>
-                <div class="text-subtitle-1">Đầu vào</div>
-                <div class="text-h4 font-weight-bold">
-                  {{ manufactureRW.length || 0 }}
-                </div>
-                <div class="text-caption">Tổng số lượng hàng lỗi</div>
-              </v-card-text>
-            </v-card>
+            <CardStatistic
+              title="Đầu vào"
+              :value="manufactureRW.length || 0"
+              icon="mdi-import"
+              color="warning"
+              subtitle="Tổng số lượng hàng lỗi"
+            />
           </v-col>
           <v-col cols="12" sm="6">
-            <v-card class="rounded-xl" color="info" variant="tonal">
-              <v-card-text>
-                <div class="text-subtitle-1">RW đã sửa</div>
-                <div class="text-h4 font-weight-bold">{{ totalFixed }}</div>
+            <CardStatistic
+              title="RW đã sửa"
+              :value="totalFixed"
+              icon="mdi-check-circle"
+              color="info"
+            >
+              <template #value-append>
+                <div class="text-h6 font-weight-medium text-primary mb-1">
+                  {{ PercentOutput }}%
+                </div>
+              </template>
+              <template #bottom>
                 <v-progress-linear
                   :model-value="PercentOutput"
-                  height="20"
-                  class="rounded-lg"
+                  height="8"
+                  color="info"
+                  rounded
+                  class="mt-2"
                 >
-                  <strong class="text-black">{{ PercentOutput }}%</strong>
                 </v-progress-linear>
-              </v-card-text>
-            </v-card>
+              </template>
+            </CardStatistic>
           </v-col>
         </v-row>
 
         <!-- Table -->
-        <v-card class="mt-4 rounded-lg" variant="text">
+        <v-card variant="elevated" elevation="0" class="rounded-xl border">
           <v-card-title class="d-flex align-center">
             <span class="text-h6">Bảng chi tiết sản xuất</span>
             <v-spacer></v-spacer>
             <InputSearch v-model="search" />
           </v-card-title>
           <v-data-table
+            density="comfortable"
             :headers="Headers"
             :items="manufactureRW"
             :search="search"
             :items-per-page="itemsPerPage"
             v-model:page="page"
-            class="elevation-1 mt-4"
+            class="elevation-0"
             :footer-props="{
               'items-per-page-options': [10, 20, 50, 100],
               'items-per-page-text': 'Số hàng mỗi trang',
@@ -78,14 +86,14 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="calc(100vh - 300px)"
+            height="62vh"
           >
             <template #[`item.Status`]="{ item }">
               <v-chip
                 :color="
                   item.Status === 'fail'
                     ? 'warning'
-                    : 'infor'
+                    : 'info'
                 "
                 size="small"
                 variant="tonal"
@@ -145,12 +153,16 @@
       :model-value="DialogFix"
       @update:model-value="DialogFix = $event"
       width="600"
+      class="rounded-xl"
     >
       <v-card
         max-width="600"
-        prepend-icon="mdi-wrench-clock"
-        title="Sản phẩm đã sửa chữa hoàn tất ?"
+        class="rounded-lg"
       >
+        <v-card-title>
+          <v-icon icon="mdi-wrench-clock" size="24" color="primary" class="mr-2"></v-icon>
+          <span>Sản phẩm đã sửa chữa hoàn tất ?</span>
+        </v-card-title>
         <v-card-text> 
           <InputTextarea label="Ghi chú sửa" v-model="Note_RW_Edit"></InputTextarea>
         </v-card-text>
@@ -190,6 +202,7 @@ import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonSave from "@/components/Button-Save.vue";
+import CardStatistic from "@/components/Card-Statistic.vue";
 
 // ===== Constants & Configuration =====
 const Url = import.meta.env.VITE_API_URL;
