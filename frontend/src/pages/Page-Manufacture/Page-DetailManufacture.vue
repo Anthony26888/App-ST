@@ -90,15 +90,7 @@
                   v-bind="props"
                   :title="card.Type"
                   :pass="getPassRate(card)"
-                  :fail="
-                    card.Type === 'RW'
-                      ? Number.parseFloat(
-                          (totalFixed / (totalError + totalFixed)) * 100
-                        ).toFixed(1) + '%'
-                      : Number.parseFloat(
-                          (card.Quantity_Fail / totalInput) * 100
-                        ).toFixed(1) + '%'
-                  "
+                  :fail="getFailRate(card)"
                   color="success"
                   :is-selected="selectedTitle === card.Type"
                   @card-click="selectCard"
@@ -150,386 +142,152 @@
                       Công đoạn
                     </div>
                     <h2 class="text-h4 font-weight-bold text-primary">
-                      {{ Quantity_Detail_Title }}
+                      {{ selectedTitle }}
                     </h2>
                   </div>
                   <v-divider class="mb-4"></v-divider>
 
-                  <div
-                    v-if="
-                      Quantity_Detail_Title === 'SMT' ||
-                      Quantity_Detail_Title === 'AOI'
-                    "
-                    :key="Quantity_Detail_Title"
-                  >
+                  <div v-if="currentDetailStats">
                     <v-row dense>
-                      <v-col cols="6">
-                        <v-card
-                          class="pa-4 rounded-xl border"
-                          elevation="0"
-                          color="surface-light"
-                        >
-                          <div class="d-flex align-center">
-                            <v-avatar
-                              color="info"
-                              variant="tonal"
-                              size="40"
-                              class="me-3"
-                            >
-                              <v-icon size="24">mdi-arrow-collapse-up</v-icon>
-                            </v-avatar>
-                            <div>
-                              <div
-                                class="text-medium-emphasis text-caption font-weight-medium"
-                              >
-                                Top
-                              </div>
-                              <div
-                                class="text-h6 font-weight-bold d-flex align-center"
-                                v-if="Quantity_Detail_Title === 'AOI'"
-                              >
-                                {{ AOI_Top_Pass || 0 }}
-                              </div>
-                              <div class="text-h6 font-weight-bold" v-else>
-                                {{ SMT_Top_Pass || 0}}
+                      <!-- Top/Bottom Cards for SMT/AOI -->
+                      <template v-if="currentDetailStats.isSplitSurface">
+                        <v-col cols="6">
+                          <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
+                            <div class="d-flex align-center">
+                              <v-avatar color="info" variant="tonal" size="40" class="me-3">
+                                <v-icon size="24">mdi-arrow-collapse-up</v-icon>
+                              </v-avatar>
+                              <div>
+                                <div class="text-medium-emphasis text-caption font-weight-medium">Top</div>
+                                <div class="text-h6 font-weight-bold">{{ currentDetailStats.top.quantity }} </div>
                               </div>
                             </div>
-                          </div>
-                        </v-card>
-                      </v-col>
+                          </v-card>
+                        </v-col>
 
-                      <v-col cols="6">
-                        <v-card
-                          class="pa-4 rounded-xl border"
-                          elevation="0"
-                          color="surface-light"
-                        >
-                          <div class="d-flex align-center">
-                            <v-avatar
-                              color="error"
-                              variant="tonal"
-                              size="40"
-                              class="me-3"
-                            >
-                              <v-icon size="24">mdi-arrow-collapse-down</v-icon>
-                            </v-avatar>
-                            <div>
-                              <div
-                                class="text-medium-emphasis text-caption font-weight-medium"
-                              >
-                                Bottom
-                              </div>
-                              <div
-                                class="text-h6 font-weight-bold d-flex align-center"
-                                v-if="Quantity_Detail_Title === 'AOI'"
-                              >
-                                {{ AOI_Bottom_Pass || 0 }}
-                              </div>
-                              <div class="text-h6 font-weight-bold" v-else>
-                                {{ SMT_Bottom_Pass  || 0}}
+                        <v-col cols="6">
+                          <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
+                            <div class="d-flex align-center">
+                              <v-avatar color="error" variant="tonal" size="40" class="me-3">
+                                <v-icon size="24">mdi-arrow-collapse-down</v-icon>
+                              </v-avatar>
+                              <div>
+                                <div class="text-medium-emphasis text-caption font-weight-medium">Bottom</div>
+                                <div class="text-h6 font-weight-bold">{{ currentDetailStats.bottom.quantity }}</div>
                               </div>
                             </div>
-                          </div>
-                        </v-card>
-                      </v-col>
+                          </v-card>
+                        </v-col>
+                      </template>
 
-                      <v-col cols="6" v-if="Quantity_Detail_Title === 'AOI'">
-                        <v-card
-                          class="pa-4 rounded-xl border"
-                          elevation="0"
-                          color="surface-light"
-                        >
-                          <div class="d-flex align-center">
-                            <v-avatar
-                              color="error"
-                              variant="tonal"
-                              size="40"
-                              class="me-3"
-                            >
-                              <v-icon size="24">mdi-close-circle</v-icon>
-                            </v-avatar>
-                            <div>
-                              <div
-                                class="text-medium-emphasis text-caption font-weight-medium"
-                              >
-                                Fail
-                              </div>
-                              <div
-                                class="text-h6 font-weight-bold d-flex align-center"
-                              >
-                                {{ manufactureRW.length || 0 }}
+                      <!-- Fail/Fixed Cards (Only for AOI or Generic) -->
+                      <!-- Original code showed Fail/Fixed for AOI specifically in the first block, and for generic in else block -->
+                      <!-- For AOI, it showed Fail and Fixed. For SMT it did NOT show Fail/Fixed in the first block? -->
+                      <!-- Wait, original code: if (selectedTitle === 'AOI' || selectedTitle === 'SMT') -->
+                      <!-- Inside: v-col cols="6" v-if="selectedTitle === 'AOI'" for Fail and Fixed cards. -->
+                      <!-- So SMT only showed Top/Bottom/Total/Remain. AOI showed Top/Bottom/Fail/Fixed/Total/Remain. -->
+                      
+                      <template v-if="selectedTitle === 'AOI'">
+                         <v-col cols="6">
+                          <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
+                            <div class="d-flex align-center">
+                              <v-avatar color="error" variant="tonal" size="40" class="me-3">
+                                <v-icon size="24">mdi-close-circle</v-icon>
+                              </v-avatar>
+                              <div>
+                                <div class="text-medium-emphasis text-caption font-weight-medium">Fail Top / Bottom</div>
+                                <div class="text-h6 font-weight-bold">{{ currentDetailStats.top.fail || 0 }} / {{ currentDetailStats.bottom.fail || 0 }}</div>
                               </div>
                             </div>
-                          </div>
-                        </v-card>
-                      </v-col>
+                          </v-card>
+                        </v-col>
 
-                      <v-col cols="6" v-if="Quantity_Detail_Title === 'AOI'">
-                        <v-card
-                          class="pa-4 rounded-xl border"
-                          elevation="0"
-                          color="surface-light"
-                        >
-                          <div class="d-flex align-center">
-                            <v-avatar
-                              color="info"
-                              variant="tonal"
-                              size="40"
-                              class="me-3"
-                            >
-                              <v-icon size="24">mdi-wrench</v-icon>
-                            </v-avatar>
-                            <div>
-                              <div
-                                class="text-medium-emphasis text-caption font-weight-medium"
-                              >
-                                Đã sửa
-                              </div>
-                              <div
-                                class="text-h6 font-weight-bold d-flex align-center"
-                              >
-                                {{
-                                  manufactureRW.filter(
-                                    (item) => item.Status === "fixed"
-                                  ).length || 0
-                                }}
+                        <v-col cols="6">
+                          <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
+                            <div class="d-flex align-center">
+                              <v-avatar color="info" variant="tonal" size="40" class="me-3">
+                                <v-icon size="24">mdi-wrench</v-icon>
+                              </v-avatar>
+                              <div>
+                                <div class="text-medium-emphasis text-caption font-weight-medium">Đã sửa</div>
+                                <div class="text-h6 font-weight-bold">{{ currentDetailStats.fixed }}</div>
                               </div>
                             </div>
-                          </div>
-                        </v-card>
-                      </v-col>
+                          </v-card>
+                        </v-col>
+                      </template>
 
-                      <v-col cols="6">
-                        <v-card
-                          class="pa-4 rounded-xl border"
-                          elevation="0"
-                          color="surface-light"
-                        >
+                      <!-- Pass/Fail/Fixed for Generic (Not SMT/AOI) -->
+                      <template v-if="!currentDetailStats.isSplitSurface">
+                         <v-col cols="6">
+                          <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
+                            <div class="d-flex align-center">
+                              <v-avatar color="success" variant="tonal" size="40" class="me-3">
+                                <v-icon size="24">mdi-check-decagram</v-icon>
+                              </v-avatar>
+                              <div>
+                                <div class="text-medium-emphasis text-caption font-weight-medium">Pass</div>
+                                <div class="text-h6 font-weight-bold">{{ currentDetailStats.pass }}</div>
+                              </div>
+                            </div>
+                          </v-card>
+                        </v-col>
+
+                        <v-col cols="6">
+                          <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
+                            <div class="d-flex align-center">
+                              <v-avatar color="error" variant="tonal" size="40" class="me-3">
+                                <v-icon size="24">mdi-close-circle</v-icon>
+                              </v-avatar>
+                              <div>
+                                <div class="text-medium-emphasis text-caption font-weight-medium">Fail</div>
+                                <div class="text-h6 font-weight-bold">{{ currentDetailStats.fail }}</div>
+                              </div>
+                            </div>
+                          </v-card>
+                        </v-col>
+
+                        <v-col cols="6">
+                          <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
+                            <div class="d-flex align-center">
+                              <v-avatar color="info" variant="tonal" size="40" class="me-3">
+                                <v-icon size="24">mdi-wrench</v-icon>
+                              </v-avatar>
+                              <div>
+                                <div class="text-medium-emphasis text-caption font-weight-medium">Đã sửa</div>
+                                <div class="text-h6 font-weight-bold">{{ currentDetailStats.fixed }}</div>
+                              </div>
+                            </div>
+                          </v-card>
+                        </v-col>
+                      </template>
+
+                      <!-- Total/Remain (Common) -->
+                      <!-- For SMT/AOI, "Tổng" means Pass count? Original code: "Tổng" card showed Pass count. -->
+                      <!-- Yes, line 343 "Tổng" -> shows calculated pass value. -->
+                      <v-col cols="6" v-if="currentDetailStats.isSplitSurface">
+                        <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
                           <div class="d-flex align-center">
-                            <v-avatar
-                              color="success"
-                              variant="tonal"
-                              size="40"
-                              class="me-3"
-                            >
+                            <v-avatar color="success" variant="tonal" size="40" class="me-3">
                               <v-icon size="24">mdi-check-circle</v-icon>
                             </v-avatar>
                             <div>
-                              <div
-                                class="text-medium-emphasis text-caption font-weight-medium"
-                              >
-                                Tổng
-                              </div>
-
-                              <!-- SMT -->
-                              <!-- SMT -->
-                              <div
-                                class="text-h6 font-weight-bold"
-                                v-if="Quantity_Detail_Title === 'SMT'"
-                              >
-                                {{
-                                  SMT_Top_Pass === 0 && SMT_Bottom_Pass === 0
-                                    ? Quantity_Pass || 0
-                                    : Math.min(
-                                        SMT_Top_Pass || 0,
-                                        SMT_Bottom_Pass || 0
-                                      )
-                                }}
-                              </div>
-
-                              <!-- AOI -->
-                              <div class="text-h6 font-weight-bold" v-else>
-                                {{
-                                  AOI_Top_Pass === 0 && AOI_Bottom_Pass === 0
-                                    ? Quantity_Pass || 0
-                                    : Math.min(
-                                        AOI_Top_Pass || 0,
-                                        AOI_Bottom_Pass || 0
-                                      )
-                                }}
-                              </div>
+                              <div class="text-medium-emphasis text-caption font-weight-medium">Tổng</div>
+                              <div class="text-h6 font-weight-bold">{{ currentDetailStats.pass }}</div>
                             </div>
                           </div>
                         </v-card>
                       </v-col>
 
                       <v-col cols="6">
-                        <v-card
-                          class="pa-4 rounded-xl border"
-                          elevation="0"
-                          color="surface-light"
-                        >
+                        <v-card class="pa-4 rounded-xl border" elevation="0" color="surface-light">
                           <div class="d-flex align-center">
-                            <v-avatar
-                              color="warning"
-                              variant="tonal"
-                              size="40"
-                              class="me-3"
-                            >
-                              <v-icon size="24">mdi-alert-circle</v-icon>
-                            </v-avatar>
-                            <div>
-                              <div
-                                class="text-medium-emphasis text-caption font-weight-medium"
-                              >
-                                Còn lại
-                              </div>
-                              <div
-                                class="text-h6 font-weight-bold"
-                                v-if="typeFilter === 'SMT'"
-                              >
-                                {{
-                                  totalInput -
-                                  (SMT_Top_Pass === 0 && SMT_Bottom_Pass === 0
-                                    ? Quantity_Detail_Pass
-                                    : SMT_Top_Pass === 0 ||
-                                      SMT_Bottom_Pass === 0
-                                    ? 0
-                                    : Math.min(SMT_Top_Pass, SMT_Bottom_Pass))
-                                }}
-                              </div>
-                              <div
-                                class="text-h6 font-weight-bold"
-                                v-if="typeFilter === 'AOI'"
-                              >
-                                {{
-                                  totalInput -
-                                  (AOI_Top_Pass === 0 && AOI_Bottom_Pass === 0
-                                    ? Quantity_Detail_Pass
-                                    : AOI_Top_Pass > AOI_Bottom_Pass
-                                    ? AOI_Bottom_Pass
-                                    : AOI_Top_Pass)
-                                }}
-                              </div>
-                              <div
-                                class="text-h6 font-weight-bold"
-                                v-if="typeFilter === 'RW'"
-                              >
-                                {{ totalInput - RW_Top_Pass }}
-                              </div>
-                            </div>
-                          </div>
-                        </v-card>
-                      </v-col>
-                    </v-row>
-                  </div>
-                  <div v-else>
-                    <v-row dense>
-                      <v-col cols="6">
-                        <v-card
-                          class="pa-4 rounded-xl border"
-                          elevation="0"
-                          color="surface-light"
-                        >
-                          <div class="d-flex align-center">
-                            <v-avatar
-                              color="success"
-                              variant="tonal"
-                              size="40"
-                              class="me-3"
-                            >
-                              <v-icon size="24">mdi-check-decagram</v-icon>
-                            </v-avatar>
-                            <div>
-                              <div
-                                class="text-medium-emphasis text-caption font-weight-medium"
-                              >
-                                Pass
-                              </div>
-                              <div class="text-h6 font-weight-bold">
-                                {{ Quantity_Detail_Pass }}
-                              </div>
-                            </div>
-                          </div>
-                        </v-card>
-                      </v-col>
-
-                      <v-col cols="6">
-                        <v-card
-                          class="pa-4 rounded-xl border"
-                          elevation="0"
-                          color="surface-light"
-                        >
-                          <div class="d-flex align-center">
-                            <v-avatar
-                              color="error"
-                              variant="tonal"
-                              size="40"
-                              class="me-3"
-                            >
-                              <v-icon size="24">mdi-close-circle</v-icon>
-                            </v-avatar>
-                            <div>
-                              <div
-                                class="text-medium-emphasis text-caption font-weight-medium"
-                              >
-                                Fail
-                              </div>
-                              <div class="text-h6 font-weight-bold">
-                                {{ manufactureRW.length || 0 }}
-                              </div>
-                            </div>
-                          </div>
-                        </v-card>
-                      </v-col>
-
-                      <v-col cols="6">
-                        <v-card
-                          class="pa-4 rounded-xl border"
-                          elevation="0"
-                          color="surface-light"
-                        >
-                          <div class="d-flex align-center">
-                            <v-avatar
-                              color="info"
-                              variant="tonal"
-                              size="40"
-                              class="me-3"
-                            >
-                              <v-icon size="24">mdi-wrench</v-icon>
-                            </v-avatar>
-                            <div>
-                              <div
-                                class="text-medium-emphasis text-caption font-weight-medium"
-                              >
-                                Đã sửa
-                              </div>
-                              <div class="text-h6 font-weight-bold">
-                                {{
-                                  manufactureRW.filter(
-                                    (item) => item.Status === "fixed"
-                                  ).length || 0
-                                }}
-                              </div>
-                            </div>
-                          </div>
-                        </v-card>
-                      </v-col>
-
-                      <v-col cols="6">
-                        <v-card
-                          class="pa-4 rounded-xl border"
-                          elevation="0"
-                          color="surface-light"
-                        >
-                          <div class="d-flex align-center">
-                            <v-avatar
-                              color="warning"
-                              variant="tonal"
-                              size="40"
-                              class="me-3"
-                            >
+                            <v-avatar color="warning" variant="tonal" size="40" class="me-3">
                               <v-icon size="24">mdi-timer-sand</v-icon>
                             </v-avatar>
                             <div>
-                              <div
-                                class="text-medium-emphasis text-caption font-weight-medium"
-                              >
-                                Còn lại
-                              </div>
-                              <div class="text-h6 font-weight-bold">
-                                {{ Quantity_Detail_Remain }}
-                              </div>
+                              <div class="text-medium-emphasis text-caption font-weight-medium">Còn lại</div>
+                              <div class="text-h6 font-weight-bold">{{ currentDetailStats.remain }}</div>
                             </div>
                           </div>
                         </v-card>
@@ -549,8 +307,9 @@
                     }"
                     :tooltip="{ subtitleFormat: '[value]%' }"
                     reveal
-                    :items="VPieData"
+                    :items="pieData"
                   />
+
                   <div class="h-0">
                     <svg
                       height="0"
@@ -588,7 +347,14 @@
                       size="small"
                       class="font-weight-bold"
                     >
-                      {{ manufactureRW.length }} lỗi
+                      {{
+                        manufactureRW.filter(
+                          (item) =>
+                            item.Type === selectedTitle &&
+                            item.Status === "fail"
+                        ).length
+                      }}
+                      lỗi
                     </v-chip>
                   </div>
                   <v-card
@@ -598,7 +364,13 @@
                   >
                     <v-data-table
                       :headers="HeadersHistoryPartError"
-                      :items="manufactureRW"
+                      :items="
+                        manufactureRW.filter(
+                          (item) =>
+                            item.Type === selectedTitle &&
+                            item.Status === 'fail'
+                        )
+                      "
                       fixed-header
                       height="300"
                       v-model:page="pageRW"
@@ -618,7 +390,7 @@
                       no-data-text="Không có dữ liệu"
                       no-results-text="Không tìm thấy kết quả"
                       hover
-                      density="compact"
+                      density="comfortable"
                     >
                       <template v-slot:item.stt="{ index }">
                         {{ (page - 1) * itemsPerPage + index + 1 }}
@@ -687,7 +459,13 @@
                           <v-pagination
                             v-model="pageRW"
                             :length="
-                              Math.ceil(manufactureRW.length / itemsPerPageRW)
+                              Math.ceil(
+                                manufactureRW.filter(
+                                  (item) =>
+                                    item.Type === selectedTitle &&
+                                    item.Status === 'fail'
+                                ).length / itemsPerPageRW
+                              )
                             "
                           ></v-pagination>
                         </div>
@@ -705,11 +483,13 @@
 
                 <v-col cols="12">
                   <v-card variant="elevated" elevation="0" class="rounded-xl">
-                    <v-data-table
+                    <v-data-table-virtual
                       :group-by="groupBy"
                       density="comfortable"
                       :headers="HeadersHistory"
-                      :items="history"
+                      :items="
+                        history.filter((item) => item.Type === selectedTitle)
+                      "
                       fixed-header
                       loading-text="Đang tải dữ liệu..."
                       no-data-text="Không có dữ liệu"
@@ -846,12 +626,16 @@
                           <v-pagination
                             v-model="pageDetail"
                             :length="
-                              Math.ceil(history.length / itemsPerPageDetail)
+                              Math.ceil(
+                                history.filter(
+                                  (item) => item.Type === selectedTitle
+                                ).length / itemsPerPageDetail
+                              )
                             "
                           ></v-pagination>
                         </div>
                       </template>
-                    </v-data-table>
+                    </v-data-table-virtual>
                   </v-card>
                 </v-col>
                 <v-row>
@@ -1431,17 +1215,8 @@ const GetSourceHistory = ref(null);
 // Production statistics
 const totalInput = ref(0);
 const totalOutput = ref(0);
-const totalSMT_1 = ref(0);
-const totalSMT_2 = ref(0);
-const totalSMT_3 = ref(0);
-const totalSMT_4 = ref(0);
-const totalRW = ref(0);
-
 const totalError = ref(0);
-const totalRWError = ref(0);
 const totalFixed = ref(0);
-const percentRW = ref(0);
-const totalOutput_Fail = ref(0);
 
 const PercentOutput = computed(() =>
   Number.parseFloat((totalOutput.value * 100) / totalInput.value).toFixed(1)
@@ -1467,8 +1242,12 @@ const Quantity_Detail_Fixed = ref(0);
 const Quantity_Detail_Remain = ref(0);
 const SMT_Top_Pass = ref(0);
 const SMT_Bottom_Pass = ref(0);
+const SMT_Top_Fail = ref(0);
+const SMT_Bottom_Fail = ref(0);
 const AOI_Top_Pass = ref(0);
 const AOI_Bottom_Pass = ref(0);
+const AOI_Top_Fail = ref(0);
+const AOI_Bottom_Fail = ref(0);
 
 // ===== FORM ADD =====
 const Type_Add = ref("");
@@ -1492,7 +1271,6 @@ const Line_Edit = ref("");
 const Quantity_Plan_Edit = ref("");
 const CycleTime_Edit = ref("");
 const Note_Edit = ref("");
-const Note_RW_Edit = ref("");
 const Date_DetailManufacture_Edit = ref("");
 
 // ===== FORM SETTING SMT =====
@@ -1508,21 +1286,33 @@ const itemsPerPage = ref(10);
 const itemsPerPageDetail = ref(5);
 const itemsPerPageRW = ref(5);
 
+// Choose card with hightlight board
+const selectedTitle = ref(null);
+const Detail_Popup_Card = ref(false);
+
 // Chart
 const days = computed(() => {
-  return history.value.map((item) => formatDate(item.Created_At));
+  return history.value
+    .filter((item) => item.Type === selectedTitle.value)
+    .map((item) => formatDate(item.Created_At));
 });
 
 const passList = computed(() =>
-  history.value.map((item) => Number(item.Quantity_Real || 0))
+  history.value
+    .filter((item) => item.Type === selectedTitle.value)
+    .map((item) => Number(item.Quantity_Real || 0))
 );
 
 const failList = computed(() =>
-  history.value.map((item) => Number(item.Quantity_Error || 0))
+  history.value
+    .filter((item) => item.Type === selectedTitle.value)
+    .map((item) => Number(item.Quantity_Error || 0))
 );
 
 const planList = computed(() =>
-  history.value.map((item) => Number(item.Quantity_Plan || 0))
+  history.value
+    .filter((item) => item.Type === selectedTitle.value)
+    .map((item) => Number(item.Quantity_Plan || 0))
 );
 
 const progress = computed(() => {
@@ -1536,15 +1326,98 @@ const passListSummary = computed(() =>
 const failListSummary = computed(() =>
   manufactureSummary.value.map((item) => Number(item.Quantity_Fail || 0))
 );
-const VPieData = ref([]);
 
-// Choose card with hightlight board
-const selectedTitle = ref(null);
-const Detail_Popup_Card = ref(false);
+
+const currentDetailStats = computed(() => {
+  const type = selectedTitle.value;
+  if (!type) return null;
+
+  const summaryItems = manufactureSummary.value;
+  const isSplitSurface = type === 'AOI' || type === 'SMT';
+
+  // Helper to find item
+  const findItem = (t, s) => summaryItems.find(i => i.Type === t && (s ? i.Surface === s : true));
+
+  // Common data
+  const mainItem = findItem(type);
+  const oneSideItem = findItem(type, '1 Mặt');
+  
+  // Default structure
+  const stats = {
+    isSplitSurface,
+    top: { quantity: 0 },
+    bottom: { quantity: 0 },
+    pass: 0,
+    fail: 0,
+    fixed: 0,
+    remain: 0
+  };
+
+  if (isSplitSurface) {
+    const topItem = findItem(type, 'TOP');
+    const bottomItem = findItem(type, 'BOTTOM');
+
+    stats.top.quantity = type === 'AOI' ? (topItem?.AOI_Top_Quantity || 0) : (topItem?.SMT_Top_Quantity || 0);
+    stats.bottom.quantity = type === 'AOI' ? (bottomItem?.AOI_Bottom_Quantity || 0) : (bottomItem?.SMT_Bottom_Quantity || 0);
+
+    stats.top.fail = topItem?.Quantity_Fail || 0;
+    stats.bottom.fail = bottomItem?.Quantity_Fail || 0;
+    
+    if (oneSideItem) {
+      stats.pass = Number(oneSideItem.Quantity_Pass || 0);
+    } else {
+      stats.pass = Math.min(stats.top.quantity, stats.bottom.quantity) + Math.min(stats.top.fail, stats.bottom.fail);
+    }
+  } else {
+    stats.pass = mainItem?.Quantity_Pass || 0;
+  }
+
+
+  // Fail & Fixed
+  stats.fail = manufactureRW.value.filter(item => item.Status === 'fail' && item.Type === type).length || 0;
+  stats.fixed = manufactureRW.value.filter(item => item.Status === 'fixed').length || 0;
+
+  // Remaining
+  if (isSplitSurface) {
+    stats.remain = Math.max(0, Number(totalInput.value) - ( Math.min(stats.top.quantity || 0  , stats.bottom.quantity || 0) + Math.min(stats.top.fail || 0, stats.bottom.fail || 0)));
+  } else {
+    stats.remain = Math.max(0, Number(totalInput.value) - (stats.pass + stats.fail));
+  }
+
+  return stats;
+});
+
+const pieData = computed(() => {
+  const item = manufactureSummary.value.find(i => i.Type === selectedTitle.value) || {};
+  const pass = Number(item.Quantity_Pass) || 0;
+  const fail = Number(item.Quantity_Fail) || 0;
+  const total = Number(totalInput.value) || 0;
+
+  let remaining;
+  if (total === 0 && pass === 0 && fail === 0) {
+    // chưa có dữ liệu → remaining = 100
+    return [
+      {
+        key: 1,
+        title: 'Còn lại',
+        value: 100,
+        color: 'rgba(var(--v-theme-on-surface), .2)',
+        pattern: 'url(#pattern-0)'
+      }
+    ];
+  } else {
+    remaining = Math.max(total - pass - fail, 0);
+    return [
+      { key: 1, title: 'Pass', value: pass, color: '#72c789' },
+      { key: 2, title: 'Fail', value: fail, color: '#d43d51' },
+      { key: 3, title: 'Còn lại', value: remaining, color: 'rgba(var(--v-theme-on-surface), .2)', pattern: 'url(#pattern-0)' },
+    ];
+  }
+});
+
 
 // Table Fail
-const Manufacture_Fail = ref([]);
-const Manufacture_History = ref([]);
+
 
 // Table
 const groupBy = [{ key: "Category" }];
@@ -1657,7 +1530,7 @@ watch(
     levelArray.value = levels.map((step, index) => ({
       Type: step,
       Quantity_Pass: data.Quantity_Pass || 0,
-      Quantity_Fail: data.Quantity_Error || 0,
+      Quantity_Fail: data.Quantity_Fail || 0,
       Quantity_RW: data.Quantity_RW || 0,
       Total_Summary_ID: index + 1,
     }));
@@ -1669,11 +1542,6 @@ watch(
     totalOutput.value = data.Quantity_Pass || 0;
     totalError.value = data.Quantity_Error || 0;
     totalFixed.value = data.Quantity_Fixed || 0;
-    totalOutput_Fail.value = data.Quantity_Output_Fail || 0;
-    totalSMT_1.value = data.SMT_1 || 0;
-    totalSMT_2.value = data.SMT_2 || 0;
-    totalSMT_3.value = data.SMT_3 || 0;
-    totalSMT_4.value = data.SMT_4 || 0;
     Quantity_Edit.value = data.Quantity;
     DelaySMT_Edit.value = data.DelaySMT;
     LevelSelectAdd.value = data.Level.split("-");
@@ -1705,16 +1573,17 @@ watch(
         const mergedSMT = {
           Type: "SMT",
           Surface: null,
-          Quantity_Pass:
-            Math.min(
-              smtTop?.Quantity_Pass || 0,
-              smtBottom?.Quantity_Pass || 0
-            ),
+          Quantity_Pass: Math.min(
+            smtTop?.Quantity_Pass || 0,
+            smtBottom?.Quantity_Pass || 0
+          ),
           Quantity_Fail:
             (smtTop?.Quantity_Fail || 0) + (smtBottom?.Quantity_Fail || 0),
-          Quantity_RW: (smtTop?.Quantity_RW || 0) + (smtBottom?.Quantity_RW || 0),
+          Quantity_RW:
+            (smtTop?.Quantity_RW || 0) + (smtBottom?.Quantity_RW || 0),
           Total_Summary_ID:
-            (smtTop?.Total_Summary_ID || 0) + (smtBottom?.Total_Summary_ID || 0),
+            (smtTop?.Total_Summary_ID || 0) +
+            (smtBottom?.Total_Summary_ID || 0),
           SMT_Top_Quantity: smtTop?.SMT_Top_Quantity || 0,
           SMT_Bottom_Quantity: smtBottom?.SMT_Bottom_Quantity || 0,
         };
@@ -1734,20 +1603,23 @@ watch(
       if (aoiTop || aoiBottom) {
         AOI_Top_Pass.value = aoiTop?.AOI_Top_Quantity || 0;
         AOI_Bottom_Pass.value = aoiBottom?.AOI_Bottom_Quantity || 0;
+        AOI_Top_Fail.value = aoiTop?.AOI_Top_Quantity_Fail || 0;
+        AOI_Bottom_Fail.value = aoiBottom?.AOI_Bottom_Quantity_Fail || 0;
 
         const mergedAOI = {
           Type: "AOI",
           Surface: null,
-          Quantity_Pass:
-            Math.min(
-              aoiTop?.Quantity_Pass || 0,
-              aoiBottom?.Quantity_Pass || 0
-            ),
+          Quantity_Pass: Math.min(
+            aoiTop?.Quantity_Pass || 0,
+            aoiBottom?.Quantity_Pass || 0
+          ),
           Quantity_Fail:
             (aoiTop?.Quantity_Fail || 0) + (aoiBottom?.Quantity_Fail || 0),
-          Quantity_RW: (aoiTop?.Quantity_RW || 0) + (aoiBottom?.Quantity_RW || 0),
+          Quantity_RW:
+            (aoiTop?.Quantity_RW || 0) + (aoiBottom?.Quantity_RW || 0),
           Total_Summary_ID:
-            (aoiTop?.Total_Summary_ID || 0) + (aoiBottom?.Total_Summary_ID || 0),
+            (aoiTop?.Total_Summary_ID || 0) +
+            (aoiBottom?.Total_Summary_ID || 0),
           AOI_Top_Quantity: aoiTop?.AOI_Top_Quantity || 0,
           AOI_Bottom_Quantity: aoiBottom?.AOI_Bottom_Quantity || 0,
         };
@@ -1782,17 +1654,7 @@ watch(
         Quantity_Detail_Fail.value = 0;
         Quantity_Detail_Remain.value = 0;
 
-        VPieData.value = [
-          { key: 1, title: "Pass", value: 0, color: "#72c789" },
-          { key: 2, title: "Fail", value: 0, color: "#d43d51" },
-          {
-            key: 3,
-            title: "Còn lại",
-            value: 100,
-            color: "rgba(var(--v-theme-on-surface), .2)",
-            pattern: "url(#pattern-0)",
-          },
-        ];
+
       };
       resetValues();
       return;
@@ -1811,11 +1673,15 @@ watch(
     } else if (found.Type === "AOI") {
       AOI_Top_Pass.value = found.AOI_Top_Quantity || 0;
       AOI_Bottom_Pass.value = found.AOI_Bottom_Quantity || 0;
+      AOI_Top_Fail.value = found.AOI_Top_Quantity_Fail || 0;
+      AOI_Bottom_Fail.value = found.AOI_Bottom_Quantity_Fail || 0;
     } else {
       SMT_Top_Pass.value = 0;
       SMT_Bottom_Pass.value = 0;
       AOI_Top_Pass.value = 0;
       AOI_Bottom_Pass.value = 0;
+      AOI_Top_Fail.value = 0;
+      AOI_Bottom_Fail.value = 0;
     }
 
     const remain = Math.max(
@@ -1827,49 +1693,35 @@ watch(
     Quantity_Detail_Remain.value = remain;
     let percentPass = 0;
     if (found.Type === "SMT") {
-      percentPass =
-        round1( 
-          (Math.min(SMT_Top_Pass.value, SMT_Bottom_Pass.value) / totalInput.value) * 100
-        ) || 0;
+      // Nếu là 1 Mặt (Surface = '1 Mặt') thì dùng found.Quantity_Pass
+      const isSingleSide = found.Surface === "1 Mặt";
+      percentPass = isSingleSide
+        ? round1((found.Quantity_Pass / totalInput.value) * 100) || 0
+        : round1(
+            (Math.min(SMT_Top_Pass.value, SMT_Bottom_Pass.value) /
+              totalInput.value) *
+              100
+          ) || 0;
     } else if (found.Type === "AOI") {
-      percentPass =
-        round1(
-          (Math.min(AOI_Top_Pass.value, AOI_Bottom_Pass.value) / totalInput.value) * 100
-        ) || 0;
+      // Nếu là 1 Mặt (Surface = '1 Mặt') thì dùng found.Quantity_Pass
+      const isSingleSide = found.Surface === "1 Mặt";
+      percentPass = isSingleSide
+        ? round1((found.Quantity_Pass / totalInput.value) * 100) || 0
+        : round1(
+            (Math.min(AOI_Top_Pass.value, AOI_Bottom_Pass.value) /
+              totalInput.value) *
+              100
+          ) || 0;
     } else {
       percentPass =
         round1((Quantity_Detail_Pass.value / totalInput.value) * 100) || 0;
     }
 
     const percentFail =
-    round1((Quantity_Detail_Fail.value / totalInput.value) * 100) || 0;
-    const percentRemain =
-    round1(100 - (percentPass + percentFail)) || 0;
+      round1((Quantity_Detail_Fail.value / totalInput.value) * 100) || 0;
+    const percentRemain = round1(100 - (percentPass + percentFail)) || 0;
 
-    
 
-    // ✅ V-Pie chung cho tất cả type
-    VPieData.value = [
-      {
-        key: 1,
-        title: "Pass",
-        value: percentPass,
-        color: "#72c789",
-      },
-      {
-        key: 2,
-        title: "Fail",
-        value: percentFail,
-        color: "#d43d51",
-      },
-      {
-        key: 3,
-        title: "Còn lại",
-        value: 100 - (percentPass + percentFail),
-        color: "rgba(var(--v-theme-on-surface), .2)",
-        pattern: "url(#pattern-0)",
-      },
-    ];
   },
   { immediate: true, deep: true }
 );
@@ -1948,6 +1800,64 @@ const getPassRate = (card) => {
   if (totalInput.value === 0) return "0%";
 
   const percentage = ((card.Quantity_Pass || 0) / totalInput.value) * 100;
+  return Number.parseFloat(percentage.toFixed(1)) + "%";
+};
+
+const getFailRate = (card) => {
+  // Normalize card type - xoá khoảng trắng và chuyển hoa
+  const cardType = card.Type?.trim().toUpperCase() || "";
+  
+  // Xử lý RW
+  if (cardType === "RW") {
+    const totalRWItems = totalError.value + totalFixed.value;
+    if (totalRWItems === 0) return "0%";
+    return (
+      Number.parseFloat((totalFixed.value / totalRWItems) * 100).toFixed(1) +
+      "%"
+    );
+  }
+
+  // Xử lý AOI - Lấy MIN từ 2 mặt
+  if (cardType === "AOI") {
+    if (totalInput.value === 0) return "0%";
+
+    // Ưu tiên lấy từ levelArray (đã được cập nhật từ manufactureSummary)
+    const aoiData = levelArray.value.find((item) => item.Type === "AOI");
+    if (aoiData && aoiData.Quantity_Fail > 0) {
+      const percentage = (aoiData.Quantity_Fail / totalInput.value) * 100;
+      return Number.parseFloat(percentage.toFixed(1)) + "%";
+    }
+
+    // Nếu levelArray chưa có dữ liệu, tính từ AOI_Top_Fail và AOI_Bottom_Fail
+    const topFail = AOI_Top_Fail.value || 0;
+    const bottomFail = AOI_Bottom_Fail.value || 0;
+
+    // Nếu cả 2 đều bằng 0, trả về 0%
+    if (topFail === 0 && bottomFail === 0) return "0%";
+
+    // Lấy giá trị nhỏ nhất từ 2 mặt (MIN)
+    const minFail = Math.min(topFail, bottomFail);
+
+    // Tính phần trăm
+    const percentage = (minFail / totalInput.value) * 100;
+    return Number.parseFloat(percentage.toFixed(1)) + "%";
+  }
+
+  // Xử lý các type khác - Tổng lỗi (SMT, v.v)
+  if (totalInput.value === 0) return "0%";
+
+  const topFail = (card.Quantity_Top_Fail || 0);
+  const bottomFail = (card.Quantity_Bottom_Fail || 0);
+  
+  // Nếu có top/bottom fail, lấy min; nếu không thì lấy Quantity_Fail
+  let totalFail;
+  if (topFail > 0 || bottomFail > 0) {
+    totalFail = Math.min(topFail, bottomFail);
+  } else {
+    totalFail = (card.Quantity_Fail || 0);
+  }
+
+  const percentage = (totalFail / totalInput.value) * 100;
   return Number.parseFloat(percentage.toFixed(1)) + "%";
 };
 
@@ -2080,143 +1990,13 @@ const GetItem = (item) => {
   GetID.value = item.id;
 };
 
-const GetDetailProgress = async (item) => {
-  if (item == "RW") {
-    return router.push(`/San-xuat/RW/${route.params.id}`);
-  }
-
-  router.push(`/San-xuat/Chi-tiet/${route.params.id}?Type=${item}`);
-
-  let found = null;
-
-  // ✅ MERGE TOP + BOTTOM cho SMT và AOI
-  if (item === "SMT" || item === "AOI") {
-    const typeTop = manufactureSummary.value.find(
-      (v) => v.Type === item && v.Surface === "TOP"
-    );
-    const typeBottom = manufactureSummary.value.find(
-      (v) => v.Type === item && v.Surface === "BOTTOM"
-    );
-
-    if (typeTop || typeBottom) {
-      const topQuantityKey =
-        item === "SMT" ? "SMT_Top_Quantity" : "AOI_Top_Quantity";
-      const bottomQuantityKey =
-        item === "SMT" ? "SMT_Bottom_Quantity" : "AOI_Bottom_Quantity";
-
-      found = {
-        Type: item,
-        Surface: null,
-        Quantity_Pass:
-          (typeTop?.Quantity_Pass || 0) + (typeBottom?.Quantity_Pass || 0),
-        Quantity_Fail:
-          (typeTop?.Quantity_Fail || 0) + (typeBottom?.Quantity_Fail || 0),
-        Quantity_RW:
-          (typeTop?.Quantity_RW || 0) + (typeBottom?.Quantity_RW || 0),
-        Total_Summary_ID:
-          (typeTop?.Total_Summary_ID || 0) +
-          (typeBottom?.Total_Summary_ID || 0),
-        [topQuantityKey]: typeTop?.[topQuantityKey] || 0,
-        [bottomQuantityKey]: typeBottom?.[bottomQuantityKey] || 0,
-      };
-    }
-  } else {
-    // ✅ INSPECTION, etc: Lấy record đầu tiên
-    found = manufactureSummary.value.find((v) => v.Type === item);
-  }
-
-  const found_Fail = manufactureRW.value.filter((v) => v.Type === item);
-
-  Manufacture_Fail.value = found_Fail;
-  Type_Add.value = item;
-  Quantity_Detail_Title.value = item;
-
-  if (!found) {
-    Quantity_Detail_Pass.value = 0;
-    Quantity_Detail_Fail.value = 0;
-    Quantity_Detail_Fixed.value = 0;
-    Quantity_Detail_Remain.value = totalInput.value || 0;
-
-    SMT_Top_Pass.value = 0;
-    SMT_Bottom_Pass.value = 0;
-    AOI_Top_Pass.value = 0;
-    AOI_Bottom_Pass.value = 0;
-
-    VPieData.value = [
-      { key: 1, title: "Pass", value: 0, color: "#72c789" },
-      { key: 2, title: "Fail", value: 0, color: "#d43d51" },
-      {
-        key: 3,
-        title: "Còn lại",
-        value: 100,
-        color: "rgba(var(--v-theme-on-surface), .2)",
-        pattern: "url(#pattern-0)",
-      },
-    ];
-    return;
-  }
-
-  Quantity_Detail_Pass.value = found.Quantity_Pass || 0;
-  Quantity_Detail_Fail.value = found.Quantity_Fail || 0;
-  Quantity_Detail_Fixed.value = found.Quantity_Fixed || 0;
-
-  // ✅ GÁN GIỐNG AOI
-  if (found.Type === "SMT") {
-    SMT_Top_Pass.value = found.SMT_Top_Quantity || 0;
-    SMT_Bottom_Pass.value = found.SMT_Bottom_Quantity || 0;
-  } else if (found.Type === "AOI") {
-    AOI_Top_Pass.value = found.AOI_Top_Quantity || 0;
-    AOI_Bottom_Pass.value = found.AOI_Bottom_Quantity || 0;
-  } else {
-    SMT_Top_Pass.value = 0;
-    SMT_Bottom_Pass.value = 0;
-    AOI_Top_Pass.value = 0;
-    AOI_Bottom_Pass.value = 0;
-  }
-
-  const remain =
-    totalInput.value -
-    (Quantity_Detail_Pass.value + Quantity_Detail_Fail.value);
-  Quantity_Detail_Remain.value = remain > 0 ? remain : 0;
-
-  const round1 = (num) => Number(num.toFixed(1));
-
-  let percentPass = 0;
-  if(found.Type === "SMT") {
-    percentPass =
-    round1((Math.min(SMT_Top_Pass.value, SMT_Bottom_Pass.value) / totalInput.value) * 100) || 0;
-  }else if(found.Type === "AOI") {
-    percentPass =
-    round1((Math.min(AOI_Top_Pass.value, AOI_Bottom_Pass.value) / totalInput.value) * 100) || 0;
-  }else {
-    percentPass =
-    round1((Quantity_Detail_Pass.value / totalInput.value) * 100) || 0;
-  }
-  
-  const percentFail =
-    round1((Quantity_Detail_Fail.value / totalInput.value) * 100) || 0;
-  const percentRemain =
-    round1(100 - (percentPass + percentFail)) || 0;
-
-  VPieData.value = [
-    { key: 1, title: "Pass", value: percentPass, color: "#72c789" },
-    { key: 2, title: "Fail", value: percentFail, color: "#d43d51" },
-    {
-      key: 3,
-      title: "Còn lại",
-      value: percentRemain,
-      color: "rgba(var(--v-theme-on-surface), .2)",
-      pattern: "url(#pattern-0)",
-    },
-  ];
-};
 const selectCard = (title) => {
   selectedTitle.value = title; // Đặt thẻ này là thẻ được chọn
   Detail_Popup_Card.value = true;
   Type_Add.value = title;
   // Tìm thẻ trong mảng để xác định nó có phải là bottleneck không
   // Phân nhánh logic hành động
-  GetDetailProgress(title);
+  // GetDetailProgress(title);
 };
 
 const toggleBottleneck = () => {

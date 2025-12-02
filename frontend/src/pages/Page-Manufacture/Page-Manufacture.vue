@@ -434,7 +434,7 @@
       @update:model-value="DialogRemove = $event"
       width="500"
     >
-      <v-card max-width="500" class="rounded-xl">
+      <v-card max-width="500" class="rounded-lg">
         <v-card-title class="d-flex align-center pa-4">
           <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
           Xoá dữ liệu sản xuất

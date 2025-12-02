@@ -1162,6 +1162,20 @@ io.on("connection", (socket) => {
                                 )
                             ),0)
                     END AS AOI_Top_Quantity,
+					
+					 -- AOI TOP FAIL
+					CASE 
+                        WHEN a.Type!='AOI' THEN 0
+                        WHEN a.Surface!='TOP' THEN 0
+                        ELSE 
+                            COALESCE((
+                                SELECT SUM(CASE WHEN m.Status='fail' THEN 1 ELSE 0 END)
+                                FROM ManufactureCounting m
+                                WHERE m.HistoryID IN (
+                                    SELECT id FROM Summary WHERE PlanID=a.PlanID AND Type='AOI' AND Surface='TOP'
+                                )
+                            ),0)
+                    END AS AOI_Top_Quantity_Fail,
 
                     -- AOI BOTTOM
                     CASE 
@@ -1175,7 +1189,21 @@ io.on("connection", (socket) => {
                                     SELECT id FROM Summary WHERE PlanID=a.PlanID AND Type='AOI' AND Surface='BOTTOM'
                                 )
                             ),0)
-                    END AS AOI_Bottom_Quantity
+                    END AS AOI_Bottom_Quantity,
+					
+					-- AOI BOTTOM FAIL
+                    CASE 
+                        WHEN a.Type!='AOI' THEN 0
+                        WHEN a.Surface!='BOTTOM' THEN 0
+                        ELSE 
+                            COALESCE((
+                                SELECT SUM(CASE WHEN m.Status='fail' THEN 1 ELSE 0 END)
+                                FROM ManufactureCounting m
+                                WHERE m.HistoryID IN (
+                                    SELECT id FROM Summary WHERE PlanID=a.PlanID AND Type='AOI' AND Surface='BOTTOM'
+                                )
+                            ),0)
+                    END AS AOI_Bottom_Quantity_Fail
 
                 FROM Summary a
                 WHERE a.PlanID = ?
@@ -1185,11 +1213,6 @@ io.on("connection", (socket) => {
                 ORDER BY a.Type, a.Surface;
 
 
-                -- ============================================
-                -- TỐI ƯU: THÊM CÁC INDEX SAU
-                -- ============================================
-
-                -- Index cho Summary
                 CREATE INDEX idx_summary_planid ON Summary(PlanID);
                 CREATE INDEX idx_summary_planid_type_surface ON Summary(PlanID, Type, Surface);
                 CREATE INDEX idx_summary_id ON Summary(id);
@@ -3925,8 +3948,17 @@ app.post("/api/PlanManufacture/Add", async (req, res) => {
 // Router update item in PlanManufacture table
 app.put("/api/PlanManufacture/Edit/:id", async (req, res) => {
   const { id } = req.params;
-  const { Name, Name_Order, Timestamp, Creater, Note, Total, DelaySMT, Level, Quantity } =
-    req.body;
+  const {
+    Name,
+    Name_Order,
+    Timestamp,
+    Creater,
+    Note,
+    Total,
+    DelaySMT,
+    Level,
+    Quantity,
+  } = req.body;
   const LevelString = JSON.stringify(Level);
   const LevelCleaned = LevelString.replace(/[\[\]"]/g, "").replace(/,/g, "-");
 
