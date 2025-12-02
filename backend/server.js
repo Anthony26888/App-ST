@@ -699,38 +699,53 @@ io.on("connection", (socket) => {
       try {
         const query = `
                     SELECT 
-                        a.id,
-                        a.Name,
-                        a.Name_Order,
-                        a.Total,
-                        a.DelaySMT,
-                        a.Quantity,
-                        a.Level,
-                        a.Date,
-
-                        -- SMT count theo từng source
-                        COALESCE(SUM(CASE WHEN s.Source = 'source_1' THEN 1 END), 0) AS SMT_1,
-                        COALESCE(SUM(CASE WHEN s.Source = 'source_2' THEN 1 END), 0) AS SMT_2,
-                        COALESCE(SUM(CASE WHEN s.Source = 'source_3' THEN 1 END), 0) AS SMT_3,
-                        COALESCE(SUM(CASE WHEN s.Source = 'source_4' THEN 1 END), 0) AS SMT_4,
-
-                        -- PASS (thành phẩm pass)
-                        COALESCE(SUM(CASE WHEN m.Type = 'Thành phẩm' AND m.Status = 'pass' THEN 1 END), 0) AS Quantity_Pass,
-
-                        -- FAIL (thành phẩm fail)
-                        COALESCE(SUM(CASE WHEN m.Type = 'Thành phẩm' AND m.Status = 'fail' THEN 1 END), 0) AS Quantity_Output_Fail,
-
-                        -- TOTAL ERROR (mọi lỗi)
-                        COALESCE(SUM(CASE WHEN m.Status = 'fail' THEN 1 END), 0) AS Quantity_Error,
-
-                        -- FIXED
-                        COALESCE(SUM(CASE WHEN m.Status_Fixed = 'fixed' THEN 1 END), 0) AS Quantity_Fixed
+                      a.id,
+                      a.Name,
+                      a.Name_Order,
+                      a.Total,
+                      a.DelaySMT,
+                      a.Quantity,
+                      a.Level,
+                      a.Date,
+                      
+                      COALESCE(smt.SMT_1, 0) AS SMT_1,
+                      COALESCE(smt.SMT_2, 0) AS SMT_2,
+                      COALESCE(smt.SMT_3, 0) AS SMT_3,
+                      COALESCE(smt.SMT_4, 0) AS SMT_4,
+                      
+                      COALESCE(cnt.Quantity_Pass, 0) AS Quantity_Pass,
+                      COALESCE(cnt.Quantity_Output_Fail, 0) AS Quantity_Output_Fail,
+                      COALESCE(cnt.Quantity_Error, 0) AS Quantity_Error,
+                      COALESCE(cnt.Quantity_Fixed, 0) AS Quantity_Fixed
 
                     FROM PlanManufacture a
-                    LEFT JOIN ManufactureSMT s ON s.PlanID = a.id
-                    LEFT JOIN ManufactureCounting m ON m.PlanID = a.id
+
+                    -- Subquery SMT được tối ưu (GROUP BY để đếm một lần)
+                    LEFT JOIN (
+                      SELECT 
+                        PlanID,
+                        SUM(CASE WHEN Source = 'source_1' THEN 1 ELSE 0 END) AS SMT_1,
+                        SUM(CASE WHEN Source = 'source_2' THEN 1 ELSE 0 END) AS SMT_2,
+                        SUM(CASE WHEN Source = 'source_3' THEN 1 ELSE 0 END) AS SMT_3,
+                        SUM(CASE WHEN Source = 'source_4' THEN 1 ELSE 0 END) AS SMT_4
+                      FROM ManufactureSMT
+                      GROUP BY PlanID
+                    ) smt ON smt.PlanID = a.id
+
+                    -- Subquery Counting được tối ưu (GROUP BY để đếm một lần)
+                    LEFT JOIN (
+                      SELECT 
+                        PlanID,
+                        SUM(CASE WHEN Type = 'Thành phẩm' AND Status = 'pass' THEN 1 ELSE 0 END) AS Quantity_Pass,
+                        SUM(CASE WHEN Type = 'Thành phẩm' AND Status = 'fail' THEN 1 ELSE 0 END) AS Quantity_Output_Fail,
+                        SUM(CASE WHEN Status = 'fail' THEN 1 ELSE 0 END) AS Quantity_Error,
+                        SUM(CASE WHEN Status_Fixed = 'fixed' THEN 1 ELSE 0 END) AS Quantity_Fixed
+                      FROM ManufactureCounting
+                      GROUP BY PlanID
+                    ) cnt ON cnt.PlanID = a.id
+
                     WHERE a.id = ?
-                    GROUP BY a.id;`;
+                  `;
 
         db.get(query, [id], (err, row) => {
           if (err) return socket.emit("ManufactureDetailsError", err);
@@ -838,74 +853,126 @@ io.on("connection", (socket) => {
     }),
     socket.on("getSummary", async (endDay) => {
       try {
-        const query = `SELECT 
-                          a.id,
-                          a.Type,
-                          a.Category,
-                          a.Quantity_Plan,
-                          a.PlanID,
-                          c.Name_Order,
-                          a.PONumber,
-                          a.Time_Plan,
-                          a.CycleTime_Plan,
-                          b.GroupFail,
-                          CASE 
-                            WHEN a.Line_SMT = 'Line 1' THEN c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0 END), 0)
-                            WHEN a.Line_SMT = 'Line 2' THEN c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0 END), 0)
-                            ELSE COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) 
-                          END AS Quantity_Real,
+        const query = `WITH DateFilter AS (
+                        SELECT 
+                          strftime('%Y-%m-%d', ?, '+0 days') AS target_date
+                      ),
 
-                          COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) AS Quantity_Error,
-                          COALESCE(SUM(CASE WHEN b.TimestampRW IS NOT NULL AND b.TimestampRW <> '' THEN 1 ELSE 0 END), 0) AS Quantity_RW,
-                          COUNT(DISTINCT b.id) AS Total_Summary_ID,
+                      CountingData AS (
+                        -- Pre-aggregate tất cả Counting data
+                        SELECT 
+                          HistoryID,
+                          SUM(CASE WHEN Status = 'pass' THEN 1 ELSE 0 END) AS pass_count,
+                          SUM(CASE WHEN Status = 'fail' THEN 1 ELSE 0 END) AS fail_count,
+                          SUM(CASE WHEN TimestampRW IS NOT NULL AND TimestampRW <> '' THEN 1 ELSE 0 END) AS rw_count,
+                          COUNT(*) AS total_count
+                        FROM ManufactureCounting
+                        GROUP BY HistoryID
+                      ),
 
-                          COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0)
-                          + COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) AS Total_Quantity,
+                      SMTData AS (
+                        -- Pre-aggregate SMT data
+                        SELECT 
+                          HistoryID,
+                          SUM(CASE WHEN Source = 'source_2' THEN 1 ELSE 0 END) AS source_2_count,
+                          SUM(CASE WHEN Source = 'source_4' THEN 1 ELSE 0 END) AS source_4_count
+                        FROM ManufactureSMT
+                        GROUP BY HistoryID
+                      )
 
-                          COALESCE(
+                      SELECT 
+                        a.id,
+                        a.Type,
+                        a.Category,
+                        a.Quantity_Plan,
+                        a.PlanID,
+                        c.Name_Order,
+                        a.PONumber,
+                        a.Time_Plan,
+                        a.CycleTime_Plan,
+                        COALESCE(b.fail_count, 0) AS GroupFail,
+                        
+                        -- Quantity_Real (tính dựa trên Line_SMT)
+                        CASE 
+                          WHEN a.Line_SMT = 'Line 1' THEN c.Quantity * COALESCE(d.source_2_count, 0)
+                          WHEN a.Line_SMT = 'Line 2' THEN c.Quantity * COALESCE(d.source_4_count, 0)
+                          ELSE COALESCE(b.pass_count, 0)
+                        END AS Quantity_Real,
+
+                        COALESCE(b.fail_count, 0) AS Quantity_Error,
+                        COALESCE(b.rw_count, 0) AS Quantity_RW,
+                        COUNT(DISTINCT b.HistoryID) AS Total_Summary_ID,
+
+                        COALESCE(b.pass_count, 0) + COALESCE(b.fail_count, 0) AS Total_Quantity,
+
+                        -- Percent_Error
+                        COALESCE(
+                          ROUND(
+                            (COALESCE(b.fail_count, 0) * 100.0) 
+                            / NULLIF(COALESCE(b.pass_count, 0) + COALESCE(b.fail_count, 0), 0), 
+                            1
+                          ), 
+                          0.0
+                        ) AS Percent_Error,
+
+                        -- Percent (dựa trên Line_SMT)
+                        CASE
+                          WHEN a.Line_SMT = 'Line 1' THEN 
                             ROUND(
-                              (COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) * 100.0) 
-                              / NULLIF(
-                                  COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0)
-                                  + COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0), 
-                                0
-                              ), 
-                            1),
-                          0.0) AS Percent_Error,
+                              (c.Quantity * COALESCE(d.source_2_count, 0) * 100.0) 
+                              / NULLIF(a.Quantity_Plan, 0.0), 
+                              1
+                            )
+                          WHEN a.Line_SMT = 'Line 2' THEN  
+                            ROUND(
+                              (c.Quantity * COALESCE(d.source_4_count, 0) * 100.0) 
+                              / NULLIF(a.Quantity_Plan, 0.0), 
+                              1
+                            )
+                          ELSE 
+                            ROUND(
+                              (COALESCE(b.pass_count, 0) * 100.0) 
+                              / NULLIF(a.Quantity_Plan, 0.0), 
+                              1
+                            )
+                        END AS Percent,
 
-                          CASE
-                            WHEN a.Line_SMT = 'Line 1' THEN 
-                              ROUND(
-                                (c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0.0 END), 0.0) * 100.0) 
-                                / NULLIF(a.Quantity_Plan, 0.0), 
-                              1)
-                            WHEN a.Line_SMT = 'Line 2' THEN  
-                              ROUND(
-                                (c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0.0 END), 0.0) * 100.0) 
-                                / NULLIF(a.Quantity_Plan, 0.0), 
-                              1)
-                            ELSE 
-                              ROUND(
-                                (COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) * 100.0) 
-                                / NULLIF(a.Quantity_Plan, 0.0), 
-                              1)
-                          END AS Percent,
+                        strftime('%d-%m-%Y', a.Created_At, 'unixepoch', 'localtime') AS Created_At
 
-                          strftime('%d-%m-%Y', a.Created_At, 'unixepoch', 'localtime') AS Created_At
-                        FROM 
-                          Summary a
-                        LEFT JOIN 
-                          ManufactureCounting b ON b.HistoryID = a.id
-                        LEFT JOIN 
-                          PlanManufacture c ON a.PlanID = c.id
-                        LEFT JOIN 
-                          ManufactureSMT d ON d.HistoryID = a.id
-                        WHERE 
-                          strftime('%Y-%m-%d', a.Created_At, 'unixepoch', '+7 hours') = ?
-                        GROUP BY 
-                          a.id, a.Line_SMT 
-                        ORDER BY 
-                          a.Created_At DESC`;
+                      FROM Summary a
+                      LEFT JOIN CountingData b ON b.HistoryID = a.id
+                      LEFT JOIN PlanManufacture c ON a.PlanID = c.id
+                      LEFT JOIN SMTData d ON d.HistoryID = a.id
+
+                      WHERE strftime('%Y-%m-%d', a.Created_At, 'unixepoch', '+7 hours') = (
+                        SELECT target_date FROM DateFilter
+                      )
+
+                      GROUP BY a.id, a.Line_SMT
+
+                      ORDER BY a.Created_At DESC;
+
+
+                      -- ============================================
+                      -- TỐI ƯU: THÊM CÁC INDEX SAU
+                      -- ============================================
+
+                      -- Index cho Summary
+                      CREATE INDEX IF NOT EXISTS idx_summary_created_at ON Summary(Created_At);
+                      CREATE INDEX IF NOT EXISTS idx_summary_planid ON Summary(PlanID);
+                      CREATE INDEX IF NOT EXISTS idx_summary_line_smt ON Summary(Line_SMT);
+
+                      -- Index cho ManufactureCounting
+                      CREATE INDEX IF NOT EXISTS idx_counting_historyid ON ManufactureCounting(HistoryID);
+                      CREATE INDEX IF NOT EXISTS idx_counting_status ON ManufactureCounting(Status);
+                      CREATE INDEX IF NOT EXISTS idx_counting_timestamprw ON ManufactureCounting(TimestampRW);
+
+                      -- Index cho ManufactureSMT
+                      CREATE INDEX IF NOT EXISTS idx_smt_historyid ON ManufactureSMT(HistoryID);
+                      CREATE INDEX IF NOT EXISTS idx_smt_source ON ManufactureSMT(Source);
+
+                      -- Index cho PlanManufacture
+                      CREATE INDEX IF NOT EXISTS idx_plan_id ON PlanManufacture(id);`;
         db.all(query, [endDay], (err, rows) => {
           if (err) return socket.emit("SummaryError", err);
           socket.emit("SummaryData", rows);
@@ -917,163 +984,226 @@ io.on("connection", (socket) => {
     socket.on("getManufactureSummary", async (id) => {
       try {
         const query = `
-                -- Tối ưu: gom ManufactureSMT và ManufactureCounting 1 lần, rồi aggregate theo Summary
-                    WITH
-                        -- 1) Số SMT (source_2, source_4) theo HistoryID
-                        smt_history AS (
-                            SELECT
-                                s.HistoryID,
-                                COUNT(*) AS SMT_Count
-                            FROM ManufactureSMT s
-                            WHERE s.Source IN ('source_2','source_4')
-                            GROUP BY s.HistoryID
-                        ),
+                    SELECT 
+                    a.Type,
+                    a.Surface AS Surface,
 
-                        -- 2) Tổng pass/fail/rw theo HistoryID (dùng cho AOI và các loại khác)
-                        counting_history AS (
-                            SELECT
-                                m.HistoryID,
-                                SUM(CASE WHEN m.Status = 'pass' THEN 1 ELSE 0 END)   AS Counting_Pass,
-                                SUM(CASE WHEN m.Status = 'fail' THEN 1 ELSE 0 END)   AS Counting_Fail,
-                                SUM(CASE WHEN m.TimestampRW IS NOT NULL AND m.TimestampRW <> '' THEN 1 ELSE 0 END) AS Counting_RW
-                            FROM ManufactureCounting m
-                            GROUP BY m.HistoryID
-                        ),
+                    -- PASS cho từng loại
+                    CASE 
+                        -- SMT: công thức đặc biệt
+                        WHEN a.Type = 'SMT' THEN (
+                            CASE 
+                                WHEN a.Surface = '1 Mặt' THEN (
+                                    -- SMT 1 mặt -> Quantity * tổng số record SMT 1 mặt
+                                    COALESCE((
+                                        SELECT d.Quantity
+                                        FROM PlanManufacture d
+                                        WHERE d.id = a.PlanID
+                                    ), 0) *
+                                    COALESCE((
+                                        SELECT COUNT(*)
+                                        FROM ManufactureSMT s 
+                                        WHERE s.HistoryID IN (
+                                            SELECT id FROM Summary 
+                                            WHERE PlanID = a.PlanID AND Surface = '1 Mặt'
+                                        )
+                                        AND s.Source IN ('source_2', 'source_4')
+                                    ), 0)
+                                )
 
-                        -- 3) Nối Summary với các tổng per-history để dễ tính
-                        summary_join AS (
-                            SELECT
-                                a.*,
-                                COALESCE(sh.SMT_Count, 0)        AS SMT_Count,
-                                COALESCE(ch.Counting_Pass, 0)   AS Counting_Pass,
-                                COALESCE(ch.Counting_Fail, 0)   AS Counting_Fail,
-                                COALESCE(ch.Counting_RW, 0)     AS Counting_RW
-                            FROM Summary a
-                            LEFT JOIN smt_history sh ON sh.HistoryID = a.id
-                            LEFT JOIN counting_history ch ON ch.HistoryID = a.id
-                            WHERE a.PlanID = ?
-                        ),
+                                ELSE (
+                                    -- SMT 2 mặt: min(TOP, BOTTOM)
+                                    COALESCE((
+                                        SELECT d.Quantity
+                                        FROM PlanManufacture d
+                                        WHERE d.id = a.PlanID
+                                    ), 0) *
+                                    (
+                                        SELECT MIN(cnt)
+                                        FROM (
+                                            SELECT COUNT(*) AS cnt
+                                            FROM ManufactureSMT s
+                                            WHERE s.HistoryID IN (
+                                                SELECT id FROM Summary 
+                                                WHERE PlanID = a.PlanID AND Type='SMT' AND Surface='TOP'
+                                            ) AND s.Source IN ('source_2','source_4')
 
-                        -- 4) Tổng SMT theo PlanID + Surface (chỉ SMT type)
-                        smt_plan_surface AS (
-                            SELECT
-                                sj.PlanID,
-                                sj.Surface,
-                                SUM(sj.SMT_Count) AS SMT_Total
-                            FROM summary_join sj
-                            WHERE sj.Type = 'SMT'
-                            GROUP BY sj.PlanID, sj.Surface
-                        ),
+                                            UNION ALL
 
-                        -- 5) Lấy MIN(TOP,BOTTOM) cho SMT (nếu cả hai tồn tại)
-                        smt_plan_min AS (
-                            SELECT
-                                sps.PlanID,
-                                MIN(sps.SMT_Total) AS SMT_Min
-                            FROM smt_plan_surface sps
-                            WHERE sps.Surface IN ('TOP','BOTTOM')
-                            GROUP BY sps.PlanID
-                        ),
-
-                        -- 6) Tổng AOI pass theo PlanID + Surface (chỉ AOI type)
-                        aoi_plan_surface AS (
-                            SELECT
-                                sj.PlanID,
-                                sj.Surface,
-                                SUM(sj.Counting_Pass) AS AOI_Pass_Total
-                            FROM summary_join sj
-                            WHERE sj.Type = 'AOI'
-                            GROUP BY sj.PlanID, sj.Surface
-                        ),
-
-                        -- 7) Lấy MIN(TOP,BOTTOM) cho AOI pass
-                        aoi_plan_min AS (
-                            SELECT
-                                aps.PlanID,
-                                MIN(aps.AOI_Pass_Total) AS AOI_Min
-                            FROM aoi_plan_surface aps
-                            WHERE aps.Surface IN ('TOP','BOTTOM')
-                            GROUP BY aps.PlanID
+                                            SELECT COUNT(*)
+                                            FROM ManufactureSMT s
+                                            WHERE s.HistoryID IN (
+                                                SELECT id FROM Summary 
+                                                WHERE PlanID = a.PlanID AND Type='SMT' AND Surface='BOTTOM'
+                                            ) AND s.Source IN ('source_2','source_4')
+                                        )
+                                    )
+                                )
+                            END
                         )
 
-                    SELECT
-                        sj.PlanID,
-                        sj.Type,
-                        sj.Surface,
+                        -- AOI: công thức đặc biệt
+                        WHEN a.Type = 'AOI' THEN (
+                            CASE 
+                                WHEN a.Surface = '1 Mặt' THEN (
+                                    -- AOI 1 mặt
+                                    COALESCE((
+                                        SELECT SUM(CASE WHEN m.Status = 'pass' THEN 1 ELSE 0 END)
+                                        FROM ManufactureCounting m
+                                        WHERE m.HistoryID IN (
+                                            SELECT id FROM Summary 
+                                            WHERE PlanID = a.PlanID AND Type = 'AOI' AND Surface = '1 Mặt'
+                                        )
+                                    ), 0)
+                                )
 
-                        -- Quantity_Pass (giữ logic cũ: SMT/ AOI/ khác)
-                        CASE
-                            WHEN sj.Type = 'SMT' THEN
-                                CASE
-                                    WHEN sj.Surface = '1 Mặt' THEN
-                                        -- SMT 1 mặt: Quantity * tổng SMT_Count trên toàn bộ summary có Surface='1 Mặt'
-                                        COALESCE(p.Quantity, 0) * COALESCE(SUM(sj.SMT_Count), 0)
-                                    ELSE
-                                        -- SMT 2 mặt: dùng MIN(TOP,BOTTOM) ở cấp Plan (tính trước ở CTE smt_plan_min)
-                                        COALESCE(p.Quantity, 0) * COALESCE((
-                                            SELECT SMT_Min FROM smt_plan_min WHERE PlanID = sj.PlanID
-                                        ), 0)
-                                END
+                                ELSE (
+                                    -- AOI 2 mặt: min(TOP_PASS, BOTTOM_PASS)
+                                    (
+                                        SELECT MIN(pass_cnt)
+                                        FROM (
+                                            SELECT COALESCE(SUM(CASE WHEN m.Status='pass' THEN 1 ELSE 0 END),0) AS pass_cnt
+                                            FROM ManufactureCounting m
+                                            WHERE m.HistoryID IN (
+                                                SELECT id FROM Summary WHERE PlanID = a.PlanID AND Type='AOI' AND Surface='TOP'
+                                            )
 
-                            WHEN sj.Type = 'AOI' THEN
-                                CASE
-                                    WHEN sj.Surface = '1 Mặt' THEN
-                                        -- AOI 1 mặt: tổng pass của các history có Surface='1 Mặt'
-                                        COALESCE(SUM(sj.Counting_Pass), 0)
-                                    ELSE
-                                        -- AOI 2 mặt: lấy min(TOP_PASS, BOTTOM_PASS) đã tính ở aoi_plan_min
-                                        COALESCE((
-                                            SELECT AOI_Min FROM aoi_plan_min WHERE PlanID = sj.PlanID
-                                        ), 0)
-                                END
+                                            UNION ALL
 
-                            ELSE
-                                -- Loại khác: tổng pass (Counting_Pass) trong nhóm Type+Surface
-                                COALESCE(SUM(sj.Counting_Pass), 0)
-                        END AS Quantity_Pass,
+                                            SELECT COALESCE(SUM(CASE WHEN m.Status='pass' THEN 1 ELSE 0 END),0)
+                                            FROM ManufactureCounting m
+                                            WHERE m.HistoryID IN (
+                                                SELECT id FROM Summary WHERE PlanID = a.PlanID AND Type='AOI' AND Surface='BOTTOM'
+                                            )
+                                        )
+                                    )
+                                )
+                            END
+                        )
 
-                        -- FAIL tổng (mọi loại)
-                        COALESCE(SUM(sj.Counting_Fail), 0) AS Quantity_Fail,
+                        ELSE (
+                            -- Các loại khác -> PASS
+                            COALESCE((
+                                SELECT SUM(CASE WHEN m.Status = 'pass' THEN 1 ELSE 0 END)
+                                FROM ManufactureCounting m
+                                WHERE m.HistoryID IN (
+                                    SELECT id FROM Summary 
+                                    WHERE PlanID = a.PlanID AND Type = a.Type AND Surface = a.Surface
+                                )
+                            ), 0)
+                        )
+                    END AS Quantity_Pass,
 
-                        -- RW tổng
-                        COALESCE(SUM(sj.Counting_RW), 0) AS Quantity_RW,
+                    -- FAIL
+                    COALESCE((
+                        SELECT SUM(CASE WHEN m.Status = 'fail' THEN 1 ELSE 0 END)
+                        FROM ManufactureCounting m 
+                        WHERE m.HistoryID IN (
+                            SELECT id FROM Summary 
+                            WHERE PlanID = a.PlanID AND Type = a.Type AND Surface = a.Surface
+                        )
+                    ), 0) AS Quantity_Fail,
 
-                        -- Tổng summary id (số bản ghi)
-                        COUNT(*) AS Total_Summary_ID,
+                    -- RW
+                    COALESCE((
+                        SELECT SUM(CASE WHEN m.TimestampRW IS NOT NULL AND m.TimestampRW <> '' THEN 1 ELSE 0 END)
+                        FROM ManufactureCounting m 
+                        WHERE m.HistoryID IN (
+                            SELECT id FROM Summary 
+                            WHERE PlanID = a.PlanID AND Type = a.Type AND Surface = a.Surface
+                        )
+                    ), 0) AS Quantity_RW,
 
-                        -- SMT Top Quantity (chỉ khi Type='SMT' & Surface='TOP')
-                        CASE
-                            WHEN sj.Type = 'SMT' AND sj.Surface = 'TOP' THEN
-                                COALESCE(p.Quantity, 0) * COALESCE(SUM(sj.SMT_Count), 0)
-                            ELSE 0
-                        END AS SMT_Top_Quantity,
+                    -- Tổng số SummaryID
+                    COUNT(DISTINCT a.id) AS Total_Summary_ID,
 
-                        -- SMT Bottom Quantity (chỉ khi Type='SMT' & Surface='BOTTOM')
-                        CASE
-                            WHEN sj.Type = 'SMT' AND sj.Surface = 'BOTTOM' THEN
-                                COALESCE(p.Quantity, 0) * COALESCE(SUM(sj.SMT_Count), 0)
-                            ELSE 0
-                        END AS SMT_Bottom_Quantity,
+                    -- SMT TOP
+                    CASE 
+                        WHEN a.Type != 'SMT' THEN 0
+                        WHEN a.Surface != 'TOP' THEN 0
+                        ELSE 
+                            COALESCE((
+                                SELECT d.Quantity FROM PlanManufacture d WHERE d.id = a.PlanID
+                            ), 0) *
+                            COALESCE((
+                                SELECT COUNT(*) FROM ManufactureSMT s
+                                WHERE s.HistoryID IN (
+                                    SELECT id FROM Summary WHERE PlanID=a.PlanID AND Type='SMT' AND Surface='TOP'
+                                ) AND s.Source IN ('source_2','source_4')
+                            ), 0)
+                    END AS SMT_Top_Quantity,
 
-                        -- AOI Top PASS (chỉ khi Type='AOI' & Surface='TOP')
-                        CASE
-                            WHEN sj.Type = 'AOI' AND sj.Surface = 'TOP' THEN
-                                COALESCE(SUM(sj.Counting_Pass), 0)
-                            ELSE 0
-                        END AS AOI_Top_Quantity,
+                    -- SMT BOTTOM
+                    CASE 
+                        WHEN a.Type != 'SMT' THEN 0
+                        WHEN a.Surface != 'BOTTOM' THEN 0
+                        ELSE 
+                            COALESCE((
+                                SELECT d.Quantity FROM PlanManufacture d WHERE d.id = a.PlanID
+                            ), 0) *
+                            COALESCE((
+                                SELECT COUNT(*) FROM ManufactureSMT s
+                                WHERE s.HistoryID IN (
+                                    SELECT id FROM Summary WHERE PlanID=a.PlanID AND Type='SMT' AND Surface='BOTTOM'
+                                ) AND s.Source IN ('source_2','source_4')
+                            ), 0)
+                    END AS SMT_Bottom_Quantity,
 
-                        -- AOI Bottom PASS (chỉ khi Type='AOI' & Surface='BOTTOM')
-                        CASE
-                            WHEN sj.Type = 'AOI' AND sj.Surface = 'BOTTOM' THEN
-                                COALESCE(SUM(sj.Counting_Pass), 0)
-                            ELSE 0
-                        END AS AOI_Bottom_Quantity
+                    -- AOI TOP
+                    CASE 
+                        WHEN a.Type!='AOI' THEN 0
+                        WHEN a.Surface!='TOP' THEN 0
+                        ELSE 
+                            COALESCE((
+                                SELECT SUM(CASE WHEN m.Status='pass' THEN 1 ELSE 0 END)
+                                FROM ManufactureCounting m
+                                WHERE m.HistoryID IN (
+                                    SELECT id FROM Summary WHERE PlanID=a.PlanID AND Type='AOI' AND Surface='TOP'
+                                )
+                            ),0)
+                    END AS AOI_Top_Quantity,
 
-                    FROM summary_join sj
-                    LEFT JOIN PlanManufacture p ON p.id = sj.PlanID
-                    -- Group theo PlanID + Type + Surface để các SUM / COUNT hoạt động chính xác
-                    GROUP BY sj.PlanID, sj.Type, sj.Surface
-                    ORDER BY sj.Type, sj.Surface;`;
+                    -- AOI BOTTOM
+                    CASE 
+                        WHEN a.Type!='AOI' THEN 0
+                        WHEN a.Surface!='BOTTOM' THEN 0
+                        ELSE 
+                            COALESCE((
+                                SELECT SUM(CASE WHEN m.Status='pass' THEN 1 ELSE 0 END)
+                                FROM ManufactureCounting m
+                                WHERE m.HistoryID IN (
+                                    SELECT id FROM Summary WHERE PlanID=a.PlanID AND Type='AOI' AND Surface='BOTTOM'
+                                )
+                            ),0)
+                    END AS AOI_Bottom_Quantity
+
+                FROM Summary a
+                WHERE a.PlanID = ?
+                GROUP BY 
+                    a.Type,
+                    CASE WHEN a.Surface = '1 Mặt' THEN '1 Mặt' ELSE a.Surface END
+                ORDER BY a.Type, a.Surface;
+
+
+                -- ============================================
+                -- TỐI ƯU: THÊM CÁC INDEX SAU
+                -- ============================================
+
+                -- Index cho Summary
+                CREATE INDEX idx_summary_planid ON Summary(PlanID);
+                CREATE INDEX idx_summary_planid_type_surface ON Summary(PlanID, Type, Surface);
+                CREATE INDEX idx_summary_id ON Summary(id);
+
+                -- Index cho ManufactureSMT
+                CREATE INDEX idx_smt_historyid ON ManufactureSMT(HistoryID);
+                CREATE INDEX idx_smt_source ON ManufactureSMT(Source);
+
+                -- Index cho ManufactureCounting
+                CREATE INDEX idx_counting_historyid ON ManufactureCounting(HistoryID);
+                CREATE INDEX idx_counting_status ON ManufactureCounting(Status);
+
+                -- Index cho PlanManufacture
+                CREATE INDEX idx_plan_id ON PlanManufacture(id);`;
 
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("ManufactureSummaryError", err);
@@ -1187,64 +1317,125 @@ io.on("connection", (socket) => {
     }),
     socket.on("getHistory", async (id) => {
       try {
-        const query = `SELECT 
-                          a.id,
-                          a.Type,
-                          a.Category,
-                          a.Quantity_Plan,
-                          a.PlanID,
-                          c.Name_Order,
-                          c.DelaySMT,
-                          a.PONumber,
-                          a.Line_SMT,
-                          a.Time_Plan,
-                          a.CycleTime_Plan,
-                          a.Action,
-                          c.Quantity,
-                          a.Surface,
-                          a.Note,
-                          CASE 
-                            WHEN a.Line_SMT = 'Line 1' THEN c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0 END), 0)
-                            WHEN a.Line_SMT = 'Line 2' THEN c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0 END), 0)
-                            ELSE COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) 
-                          END AS Quantity_Real,
-                          COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0) AS Quantity_Error,
-                          COALESCE(SUM(CASE WHEN b.RWID = 'Done' THEN 1 ELSE 0 END), 0) AS Quantity_Fixed_Done,
-                          CASE
-                            WHEN a.Line_SMT = 'Line 1' THEN ROUND(c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_2' THEN 1 ELSE 0.0 END) * 100  / a.Quantity_Plan , 0.0), 1)
-                            WHEN a.Line_SMT = 'Line 2' THEN  ROUND(c.Quantity * COALESCE(SUM(CASE WHEN d.Source = 'source_4' THEN 1 ELSE 0.0 END) * 100  / a.Quantity_Plan, 0.0), 1)
+        const query = `WITH CountingData AS (
+                        SELECT 
+                          HistoryID,
+                          SUM(CASE WHEN Status = 'pass' THEN 1 ELSE 0 END) AS pass_count,
+                          SUM(CASE WHEN Status = 'fail' THEN 1 ELSE 0 END) AS fail_count,
+                          SUM(CASE WHEN RWID = 'Done' THEN 1 ELSE 0 END) AS fixed_done_count,
+                          SUM(CASE WHEN TimestampRW IS NOT NULL AND TimestampRW <> '' THEN 1 ELSE 0 END) AS rw_count
+                        FROM ManufactureCounting
+                        GROUP BY HistoryID
+                      ),
+
+                      SMTData AS (
+                        -- Pre-aggregate SMT data theo HistoryID
+                        SELECT 
+                          HistoryID,
+                          SUM(CASE WHEN Source = 'source_2' THEN 1 ELSE 0 END) AS source_2_count,
+                          SUM(CASE WHEN Source = 'source_4' THEN 1 ELSE 0 END) AS source_4_count
+                        FROM ManufactureSMT
+                        GROUP BY HistoryID
+                      )
+
+                      SELECT 
+                        a.id,
+                        a.Type,
+                        a.Category,
+                        a.Quantity_Plan,
+                        a.PlanID,
+                        c.Name_Order,
+                        c.DelaySMT,
+                        a.PONumber,
+                        a.Line_SMT,
+                        a.Time_Plan,
+                        a.CycleTime_Plan,
+                        a.Action,
+                        c.Quantity,
+                        a.Surface,
+                        a.Note,
+
+                        -- Quantity_Real (tính dựa trên Line_SMT)
+                        CASE 
+                          WHEN a.Line_SMT = 'Line 1' THEN c.Quantity * COALESCE(d.source_2_count, 0)
+                          WHEN a.Line_SMT = 'Line 2' THEN c.Quantity * COALESCE(d.source_4_count, 0)
+                          ELSE COALESCE(b.pass_count, 0)
+                        END AS Quantity_Real,
+
+                        -- Quantity_Error
+                        COALESCE(b.fail_count, 0) AS Quantity_Error,
+
+                        -- Quantity_Fixed_Done
+                        COALESCE(b.fixed_done_count, 0) AS Quantity_Fixed_Done,
+
+                        -- Percent (dựa trên Line_SMT)
+                        CASE
+                          WHEN a.Line_SMT = 'Line 1' THEN 
+                            ROUND(
+                              (c.Quantity * COALESCE(d.source_2_count, 0) * 100.0) / NULLIF(a.Quantity_Plan, 0.0), 
+                              1
+                            )
+                          WHEN a.Line_SMT = 'Line 2' THEN  
+                            ROUND(
+                              (c.Quantity * COALESCE(d.source_4_count, 0) * 100.0) / NULLIF(a.Quantity_Plan, 0.0), 
+                              1
+                            )
                           ELSE 
                             ROUND(
-                              (
-                                COALESCE(SUM(CASE WHEN b.Status = 'pass' THEN 1 ELSE 0 END), 0) +
-                                COALESCE(SUM(CASE WHEN b.Status = 'fail' THEN 1 ELSE 0 END), 0)
-                              ) * 100.0 / a.Quantity_Plan, 1
+                              (COALESCE(b.pass_count, 0) + COALESCE(b.fail_count, 0)) * 100.0 / NULLIF(a.Quantity_Plan, 0.0), 
+                              1
                             )
-                          END AS Percent,
-                          COALESCE(SUM(CASE WHEN b.TimestampRW IS NOT NULL AND b.TimestampRW <> '' THEN 1 ELSE 0 END), 0) AS TimestampRW,
-                          strftime('%d-%m-%Y', a.Created_At, 'unixepoch', 'localtime') AS Created_At,
-                          strftime('%Y-%m-%d', a.Created_At, 'unixepoch', 'localtime') AS Created_At_unixepoch
+                        END AS Percent,
+
+                        -- TimestampRW
+                        COALESCE(b.rw_count, 0) AS TimestampRW,
+
+                        strftime('%d-%m-%Y', a.Created_At, 'unixepoch', 'localtime') AS Created_At,
+                        strftime('%Y-%m-%d', a.Created_At, 'unixepoch', 'localtime') AS Created_At_unixepoch
+
                       FROM Summary a
-                      LEFT JOIN ManufactureCounting b 
-                        ON b.HistoryID = a.id
-                      LEFT JOIN PlanManufacture c 
-                        ON a.PlanID = c.id
-                      LEFT JOIN ManufactureSMT d
-						            ON d.HistoryID = a.id
+                      LEFT JOIN CountingData b ON b.HistoryID = a.id
+                      LEFT JOIN PlanManufacture c ON a.PlanID = c.id
+                      LEFT JOIN SMTData d ON d.HistoryID = a.id
+
                       WHERE a.PlanID = ?
+
                       GROUP BY 
-                          a.id,
-                          a.Type,
-                          a.Category,
-                          a.Quantity_Plan,
-                          a.PlanID,
-                          c.Name_Order,
-                          a.PONumber,
-                          a.Line_SMT,
-                          a.Time_Plan,
-                          a.CycleTime_Plan,
-                          a.Created_At
+                        a.id,
+                        a.Type,
+                        a.Category,
+                        a.Quantity_Plan,
+                        a.PlanID,
+                        a.PONumber,
+                        a.Line_SMT,
+                        a.Time_Plan,
+                        a.CycleTime_Plan,
+                        a.Created_At
+
                       ORDER BY a.id DESC;
+
+
+                      -- ============================================
+                      -- TỐI ƯU: THÊM CÁC INDEX SAU
+                      -- ============================================
+
+                      -- Index cho Summary
+                      CREATE INDEX IF NOT EXISTS idx_summary_planid ON Summary(PlanID);
+                      CREATE INDEX IF NOT EXISTS idx_summary_id ON Summary(id);
+                      CREATE INDEX IF NOT EXISTS idx_summary_line_smt ON Summary(Line_SMT);
+
+                      -- Index cho ManufactureCounting
+                      CREATE INDEX IF NOT EXISTS idx_counting_historyid ON ManufactureCounting(HistoryID);
+                      CREATE INDEX IF NOT EXISTS idx_counting_status ON ManufactureCounting(Status);
+                      CREATE INDEX IF NOT EXISTS idx_counting_rwid ON ManufactureCounting(RWID);
+                      CREATE INDEX IF NOT EXISTS idx_counting_timestamprw ON ManufactureCounting(TimestampRW);
+
+                      -- Index cho ManufactureSMT
+                      CREATE INDEX IF NOT EXISTS idx_smt_historyid ON ManufactureSMT(HistoryID);
+                      CREATE INDEX IF NOT EXISTS idx_smt_source ON ManufactureSMT(Source);
+
+                      -- Index cho PlanManufacture
+                      CREATE INDEX IF NOT EXISTS idx_plan_id ON PlanManufacture(id);
                       `;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("HistoryError", err);

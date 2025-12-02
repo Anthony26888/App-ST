@@ -9,7 +9,7 @@
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
         <v-breadcrumbs
-          :items="[`${NameManufacture}`, `${Name_Order}`, `RW`, `${Name_Category}`]"
+          :items="[`${NameManufacture}`, `${Name_Order}`, `RW`]"
         >
           <template v-slot:divider>
             <v-icon icon="mdi-chevron-right"></v-icon>
@@ -311,6 +311,16 @@ watch(
       return;
     }
 
+    const data = Array.isArray(newData.value) ? newData.value[0] : newData.value;
+    if (!data) {
+      return;
+    }else{
+      Name_Order.value = data.Name_Order ?? "";
+      NameManufacture.value = data.PONumber ?? "";
+      Name_Category.value = data.Category ?? "";
+      totalInput.value = data.Quantity_Plan ?? 0;
+    }
+
     // Convert id to number for comparison since it's coming from route params
     const numericId = Number(id);
     const foundHistory = newData.value.find(
@@ -318,16 +328,9 @@ watch(
     );
 
     if (foundHistory) {
-      Name_Order.value = foundHistory.Name_Order ?? "";
-      NameManufacture.value = foundHistory.PONumber ?? "";
-      Name_Category.value = foundHistory.Category ?? "";
       totalInput.value = foundHistory.Quantity_Plan ?? 0;
     } else {
-
-      // Set default values if no match found
-      Name_Order.value = "";
-      NameManufacture.value = "";
-      Name_Category.value = "";
+      totalInput.value = 0;
     }
   },
   { immediate: true, deep: true }

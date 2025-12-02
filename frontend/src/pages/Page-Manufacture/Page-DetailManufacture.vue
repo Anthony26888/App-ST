@@ -154,6 +154,7 @@
                     </h2>
                   </div>
                   <v-divider class="mb-4"></v-divider>
+
                   <div
                     v-if="
                       Quantity_Detail_Title === 'SMT' ||
@@ -190,7 +191,7 @@
                                 {{ AOI_Top_Pass || 0 }}
                               </div>
                               <div class="text-h6 font-weight-bold" v-else>
-                                {{ SMT_Top_Pass }}
+                                {{ SMT_Top_Pass || 0}}
                               </div>
                             </div>
                           </div>
@@ -225,7 +226,7 @@
                                 {{ AOI_Bottom_Pass || 0 }}
                               </div>
                               <div class="text-h6 font-weight-bold" v-else>
-                                {{ SMT_Bottom_Pass }}
+                                {{ SMT_Bottom_Pass  || 0}}
                               </div>
                             </div>
                           </div>
@@ -287,7 +288,11 @@
                               <div
                                 class="text-h6 font-weight-bold d-flex align-center"
                               >
-                                {{ manufactureRW.filter((item) => item.Status === "fixed").length || 0 }}
+                                {{
+                                  manufactureRW.filter(
+                                    (item) => item.Status === "fixed"
+                                  ).length || 0
+                                }}
                               </div>
                             </div>
                           </div>
@@ -315,27 +320,32 @@
                               >
                                 Tổng
                               </div>
+
+                              <!-- SMT -->
+                              <!-- SMT -->
                               <div
                                 class="text-h6 font-weight-bold"
                                 v-if="Quantity_Detail_Title === 'SMT'"
                               >
                                 {{
                                   SMT_Top_Pass === 0 && SMT_Bottom_Pass === 0
-                                    ? Quantity_Detail_Pass
-                                    : SMT_Top_Pass === 0 || SMT_Bottom_Pass === 0
-                                      ? 0
-                                      : Math.min(SMT_Top_Pass, SMT_Bottom_Pass)
-                                  
-
+                                    ? Quantity_Pass || 0
+                                    : Math.min(
+                                        SMT_Top_Pass || 0,
+                                        SMT_Bottom_Pass || 0
+                                      )
                                 }}
                               </div>
+
+                              <!-- AOI -->
                               <div class="text-h6 font-weight-bold" v-else>
                                 {{
                                   AOI_Top_Pass === 0 && AOI_Bottom_Pass === 0
-                                    ? Quantity_Detail_Pass
-                                    : AOI_Top_Pass === 0 || AOI_Bottom_Pass === 0
-                                      ? 0
-                                      : Math.min(AOI_Top_Pass, AOI_Bottom_Pass)
+                                    ? Quantity_Pass || 0
+                                    : Math.min(
+                                        AOI_Top_Pass || 0,
+                                        AOI_Bottom_Pass || 0
+                                      )
                                 }}
                               </div>
                             </div>
@@ -369,12 +379,13 @@
                                 v-if="typeFilter === 'SMT'"
                               >
                                 {{
-                                  totalInput - (SMT_Top_Pass === 0 ||
-                                  SMT_Bottom_Pass === 0
+                                  totalInput -
+                                  (SMT_Top_Pass === 0 && SMT_Bottom_Pass === 0
+                                    ? Quantity_Detail_Pass
+                                    : SMT_Top_Pass === 0 ||
+                                      SMT_Bottom_Pass === 0
                                     ? 0
-                                    : SMT_Top_Pass > SMT_Bottom_Pass
-                                    ? SMT_Bottom_Pass
-                                    : SMT_Top_Pass)
+                                    : Math.min(SMT_Top_Pass, SMT_Bottom_Pass))
                                 }}
                               </div>
                               <div
@@ -382,9 +393,9 @@
                                 v-if="typeFilter === 'AOI'"
                               >
                                 {{
-                                  totalInput - (AOI_Top_Pass === 0 ||
-                                  AOI_Bottom_Pass === 0
-                                    ? 0
+                                  totalInput -
+                                  (AOI_Top_Pass === 0 && AOI_Bottom_Pass === 0
+                                    ? Quantity_Detail_Pass
                                     : AOI_Top_Pass > AOI_Bottom_Pass
                                     ? AOI_Bottom_Pass
                                     : AOI_Top_Pass)
@@ -1687,33 +1698,25 @@ watch(
         (v) => v.Type === "SMT" && v.Surface === "BOTTOM"
       );
 
-      if (smtTop && smtBottom) {
-        // Lưu pass về cho template
-        SMT_Top_Pass.value = smtTop.Quantity_Pass || 0;
-        SMT_Bottom_Pass.value = smtBottom.Quantity_Pass || 0;
+      if (smtTop || smtBottom) {
+        SMT_Top_Pass.value = smtTop?.SMT_Top_Quantity || 0;
+        SMT_Bottom_Pass.value = smtBottom?.SMT_Bottom_Quantity || 0;
 
-        // Điều kiện Pass - lấy minimum
-        let SMT_Pass = 0;
-        if (SMT_Top_Pass.value === 0 || SMT_Bottom_Pass.value === 0) {
-          SMT_Pass = 0;
-        } else {
-          SMT_Pass = Math.min(SMT_Top_Pass.value, SMT_Bottom_Pass.value);
-        }
-
-        // Gộp 2 SMT thành 1 dòng
         const mergedSMT = {
           Type: "SMT",
           Surface: null,
-          Quantity_Pass: SMT_Pass,
+          Quantity_Pass:
+            Math.min(
+              smtTop?.Quantity_Pass || 0,
+              smtBottom?.Quantity_Pass || 0
+            ),
           Quantity_Fail:
-            (smtTop.Quantity_Fail || 0) + (smtBottom.Quantity_Fail || 0),
-          Quantity_RW: (smtTop.Quantity_RW || 0) + (smtBottom.Quantity_RW || 0),
+            (smtTop?.Quantity_Fail || 0) + (smtBottom?.Quantity_Fail || 0),
+          Quantity_RW: (smtTop?.Quantity_RW || 0) + (smtBottom?.Quantity_RW || 0),
           Total_Summary_ID:
-            (smtTop.Total_Summary_ID || 0) + (smtBottom.Total_Summary_ID || 0),
-
-          // Lưu số lượng pass từng mặt
-          SMT_Top_Quantity: SMT_Top_Pass.value,
-          SMT_Bottom_Quantity: SMT_Bottom_Pass.value,
+            (smtTop?.Total_Summary_ID || 0) + (smtBottom?.Total_Summary_ID || 0),
+          SMT_Top_Quantity: smtTop?.SMT_Top_Quantity || 0,
+          SMT_Bottom_Quantity: smtBottom?.SMT_Bottom_Quantity || 0,
         };
 
         mergedValue = newValue.filter((v) => v.Type !== "SMT");
@@ -1721,63 +1724,32 @@ watch(
       }
 
       // ========== XỬ LÝ AOI (GIỐNG SMT) ==========
-      let aoiTop = newValue.find(
+      const aoiTop = newValue.find(
         (v) => v.Type === "AOI" && v.Surface === "TOP"
       );
-      let aoiBottom = newValue.find(
+      const aoiBottom = newValue.find(
         (v) => v.Type === "AOI" && v.Surface === "BOTTOM"
       );
 
-      // ✅ Nếu có ít nhất 1 trong 2 mặt, vẫn cần gộp
       if (aoiTop || aoiBottom) {
-        // Nếu thiếu mặt nào, tạo object mặc định
-        if (!aoiTop) {
-          aoiTop = {
-            Type: "AOI",
-            Surface: "TOP",
-            AOI_Top_Quantity: 0,
-            Quantity_Fail: 0,
-            Quantity_RW: 0,
-            Total_Summary_ID: 0,
-          };
-        }
-        if (!aoiBottom) {
-          aoiBottom = {
-            Type: "AOI",
-            Surface: "BOTTOM",
-            AOI_Bottom_Quantity: 0,
-            Quantity_Fail: 0,
-            Quantity_RW: 0,
-            Total_Summary_ID: 0,
-          };
-        }
+        AOI_Top_Pass.value = aoiTop?.AOI_Top_Quantity || 0;
+        AOI_Bottom_Pass.value = aoiBottom?.AOI_Bottom_Quantity || 0;
 
-        // Lưu pass về cho template từ đúng surface
-        AOI_Top_Pass.value = aoiTop.AOI_Top_Quantity || 0;
-        AOI_Bottom_Pass.value = aoiBottom.AOI_Bottom_Quantity || 0;
-
-        // Điều kiện Pass - lấy minimum (nếu cả 2 đều > 0)
-        let AOI_Pass = 0;
-        if (AOI_Top_Pass.value === 0 || AOI_Bottom_Pass.value === 0) {
-          AOI_Pass = 0;
-        } else {
-          AOI_Pass = Math.min(AOI_Top_Pass.value, AOI_Bottom_Pass.value);
-        }
-
-        // Gộp 2 AOI thành 1 dòng
         const mergedAOI = {
           Type: "AOI",
           Surface: null,
-          Quantity_Pass: AOI_Pass,
+          Quantity_Pass:
+            Math.min(
+              aoiTop?.Quantity_Pass || 0,
+              aoiBottom?.Quantity_Pass || 0
+            ),
           Quantity_Fail:
-            (aoiTop.Quantity_Fail || 0) + (aoiBottom.Quantity_Fail || 0),
-          Quantity_RW: (aoiTop.Quantity_RW || 0) + (aoiBottom.Quantity_RW || 0),
+            (aoiTop?.Quantity_Fail || 0) + (aoiBottom?.Quantity_Fail || 0),
+          Quantity_RW: (aoiTop?.Quantity_RW || 0) + (aoiBottom?.Quantity_RW || 0),
           Total_Summary_ID:
-            (aoiTop.Total_Summary_ID || 0) + (aoiBottom.Total_Summary_ID || 0),
-
-          // Lưu số lượng pass từng mặt
-          AOI_Top_Quantity: AOI_Top_Pass.value,
-          AOI_Bottom_Quantity: AOI_Bottom_Pass.value,
+            (aoiTop?.Total_Summary_ID || 0) + (aoiBottom?.Total_Summary_ID || 0),
+          AOI_Top_Quantity: aoiTop?.AOI_Top_Quantity || 0,
+          AOI_Bottom_Quantity: aoiBottom?.AOI_Bottom_Quantity || 0,
         };
 
         mergedValue = mergedValue.filter((v) => v.Type !== "AOI");
@@ -1826,119 +1798,74 @@ watch(
       return;
     }
 
-    // Cập nhật màn hình đang xem
     if (!found) return;
 
-    if (currentType === "SMT") {
-      Quantity_Detail_Pass.value = found.Quantity_Pass || 0;
-      Quantity_Detail_Fail.value = found.Quantity_Fail || 0;
+    // ✅ ĐỤC HÓA: Tính V-Pie chung cho tất cả type
+    Quantity_Detail_Pass.value = found.Quantity_Pass || 0;
+    Quantity_Detail_Fail.value = found.Quantity_Fail || 0;
 
+    // Gán giá trị TOP/BOTTOM nếu có
+    if (found.Type === "SMT") {
       SMT_Top_Pass.value = found.SMT_Top_Quantity || 0;
       SMT_Bottom_Pass.value = found.SMT_Bottom_Quantity || 0;
-
-      const remain = Math.max(
-        0,
-        totalInput.value -
-          (Quantity_Detail_Pass.value + Quantity_Detail_Fail.value)
-      );
-      Quantity_Detail_Remain.value = remain;
-
-      const round1 = (num) => Number(num.toFixed(1));
-
-      VPieData.value = [
-        {
-          key: 1,
-          title: "Pass",
-          value: round1((Quantity_Detail_Pass.value / totalInput.value) * 100),
-          color: "#72c789",
-        },
-        {
-          key: 2,
-          title: "Fail",
-          value: round1((Quantity_Detail_Fail.value / totalInput.value) * 100),
-          color: "#d43d51",
-        },
-        {
-          key: 3,
-          title: "Còn lại",
-          value: round1((remain / totalInput.value) * 100),
-          color: "rgba(var(--v-theme-on-surface), .2)",
-          pattern: "url(#pattern-0)",
-        },
-      ];
-      return;
-    }
-
-    // Xử lý AOI - GIỐNG SMT
-    if (currentType === "AOI") {
-      Quantity_Detail_Pass.value = found.Quantity_Pass || 0;
-      Quantity_Detail_Fail.value = found.Quantity_Fail || 0;
-
-      // ✅ LẤY TỪ merged data (đã gộp TOP + BOTTOM)
+    } else if (found.Type === "AOI") {
       AOI_Top_Pass.value = found.AOI_Top_Quantity || 0;
       AOI_Bottom_Pass.value = found.AOI_Bottom_Quantity || 0;
-
-      const remain = Math.max(
-        0,
-        totalInput.value -
-          (Quantity_Detail_Pass.value + Quantity_Detail_Fail.value)
-      );
-      Quantity_Detail_Remain.value = remain;
-
-      const round1 = (num) => Number(num.toFixed(1));
-
-      VPieData.value = [
-        {
-          key: 1,
-          title: "Pass",
-          value: round1((Quantity_Detail_Pass.value / totalInput.value) * 100),
-          color: "#72c789",
-        },
-        {
-          key: 2,
-          title: "Fail",
-          value: round1((Quantity_Detail_Fail.value / totalInput.value) * 100),
-          color: "#d43d51",
-        },
-        {
-          key: 3,
-          title: "Còn lại",
-          value: round1((remain / totalInput.value) * 100),
-          color: "rgba(var(--v-theme-on-surface), .2)",
-          pattern: "url(#pattern-0)",
-        },
-      ];
-      return;
+    } else {
+      SMT_Top_Pass.value = 0;
+      SMT_Bottom_Pass.value = 0;
+      AOI_Top_Pass.value = 0;
+      AOI_Bottom_Pass.value = 0;
     }
 
-    // Xử lý các type khác
-    const pass = found.Quantity_Pass || 0;
-    const fail = found.Quantity_Fail || 0;
-    const remain = Math.max(0, totalInput.value - (pass + fail));
-
-    Quantity_Detail_Pass.value = pass;
-    Quantity_Detail_Fail.value = fail;
-    Quantity_Detail_Remain.value = remain;
-
+    const remain = Math.max(
+      0,
+      totalInput.value -
+        (Quantity_Detail_Pass.value + Quantity_Detail_Fail.value)
+    );
     const round1 = (num) => Number(num.toFixed(1));
+    Quantity_Detail_Remain.value = remain;
+    let percentPass = 0;
+    if (found.Type === "SMT") {
+      percentPass =
+        round1( 
+          (Math.min(SMT_Top_Pass.value, SMT_Bottom_Pass.value) / totalInput.value) * 100
+        ) || 0;
+    } else if (found.Type === "AOI") {
+      percentPass =
+        round1(
+          (Math.min(AOI_Top_Pass.value, AOI_Bottom_Pass.value) / totalInput.value) * 100
+        ) || 0;
+    } else {
+      percentPass =
+        round1((Quantity_Detail_Pass.value / totalInput.value) * 100) || 0;
+    }
 
+    const percentFail =
+    round1((Quantity_Detail_Fail.value / totalInput.value) * 100) || 0;
+    const percentRemain =
+    round1(100 - (percentPass + percentFail)) || 0;
+
+    
+
+    // ✅ V-Pie chung cho tất cả type
     VPieData.value = [
       {
         key: 1,
         title: "Pass",
-        value: round1((pass / totalInput.value) * 100),
+        value: percentPass,
         color: "#72c789",
       },
       {
         key: 2,
         title: "Fail",
-        value: round1((fail / totalInput.value) * 100),
+        value: percentFail,
         color: "#d43d51",
       },
       {
         key: 3,
         title: "Còn lại",
-        value: round1((remain / totalInput.value) * 100),
+        value: 100 - (percentPass + percentFail),
         color: "rgba(var(--v-theme-on-surface), .2)",
         pattern: "url(#pattern-0)",
       },
@@ -2160,57 +2087,50 @@ const GetDetailProgress = async (item) => {
 
   router.push(`/San-xuat/Chi-tiet/${route.params.id}?Type=${item}`);
 
-  let manufactureSummaryMerged = manufactureSummary.value;
+  let found = null;
 
-  // 🔥 GỘP SMT TOP + BOTTOM
-  if (item === "SMT") {
-    const smtTop = manufactureSummary.value.find(
-      (v) => v.Type === "SMT" && v.Surface === "TOP"
+  // ✅ MERGE TOP + BOTTOM cho SMT và AOI
+  if (item === "SMT" || item === "AOI") {
+    const typeTop = manufactureSummary.value.find(
+      (v) => v.Type === item && v.Surface === "TOP"
     );
-    const smtBottom = manufactureSummary.value.find(
-      (v) => v.Type === "SMT" && v.Surface === "BOTTOM"
+    const typeBottom = manufactureSummary.value.find(
+      (v) => v.Type === item && v.Surface === "BOTTOM"
     );
 
-    if (smtTop && smtBottom) {
-      const mergedSMT = {
-        Type: "SMT",
+    if (typeTop || typeBottom) {
+      const topQuantityKey =
+        item === "SMT" ? "SMT_Top_Quantity" : "AOI_Top_Quantity";
+      const bottomQuantityKey =
+        item === "SMT" ? "SMT_Bottom_Quantity" : "AOI_Bottom_Quantity";
+
+      found = {
+        Type: item,
         Surface: null,
-
-        // 🔥 Tổng Pass = SUM Pass 2 mặt
         Quantity_Pass:
-          (smtTop.Quantity_Pass || 0) + (smtBottom.Quantity_Pass || 0),
-
-        // 🔥 Tổng Fail = SUM Fail 2 mặt
+          (typeTop?.Quantity_Pass || 0) + (typeBottom?.Quantity_Pass || 0),
         Quantity_Fail:
-          (smtTop.Quantity_Fail || 0) + (smtBottom.Quantity_Fail || 0),
-
-        // 🔥 Tổng RW = SUM RW 2 mặt
-        Quantity_RW: (smtTop.Quantity_RW || 0) + (smtBottom.Quantity_RW || 0),
-
+          (typeTop?.Quantity_Fail || 0) + (typeBottom?.Quantity_Fail || 0),
+        Quantity_RW:
+          (typeTop?.Quantity_RW || 0) + (typeBottom?.Quantity_RW || 0),
         Total_Summary_ID:
-          (smtTop.Total_Summary_ID || 0) + (smtBottom.Total_Summary_ID || 0),
-
-        // 🔥 LƯU RIÊNG TOP/BOTTOM PASS cho SMT PASS %
-        SMT_Top_Pass: smtTop.SMT_Top_Quantity || 0,
-        SMT_Bottom_Pass: smtBottom.SMT_Bottom_Quantity || 0,
+          (typeTop?.Total_Summary_ID || 0) +
+          (typeBottom?.Total_Summary_ID || 0),
+        [topQuantityKey]: typeTop?.[topQuantityKey] || 0,
+        [bottomQuantityKey]: typeBottom?.[bottomQuantityKey] || 0,
       };
-
-      manufactureSummaryMerged = manufactureSummary.value.filter(
-        (v) => v.Type !== "SMT"
-      );
-
-      manufactureSummaryMerged.push(mergedSMT);
     }
+  } else {
+    // ✅ INSPECTION, etc: Lấy record đầu tiên
+    found = manufactureSummary.value.find((v) => v.Type === item);
   }
 
-  const found = manufactureSummaryMerged.find((v) => v.Type === item);
   const found_Fail = manufactureRW.value.filter((v) => v.Type === item);
 
   Manufacture_Fail.value = found_Fail;
   Type_Add.value = item;
   Quantity_Detail_Title.value = item;
 
-  // ❌ Không có dữ liệu
   if (!found) {
     Quantity_Detail_Pass.value = 0;
     Quantity_Detail_Fail.value = 0;
@@ -2219,6 +2139,8 @@ const GetDetailProgress = async (item) => {
 
     SMT_Top_Pass.value = 0;
     SMT_Bottom_Pass.value = 0;
+    AOI_Top_Pass.value = 0;
+    AOI_Bottom_Pass.value = 0;
 
     VPieData.value = [
       { key: 1, title: "Pass", value: 0, color: "#72c789" },
@@ -2234,35 +2156,47 @@ const GetDetailProgress = async (item) => {
     return;
   }
 
-  // ---- SET GIÁ TRỊ CHUNG ----
   Quantity_Detail_Pass.value = found.Quantity_Pass || 0;
   Quantity_Detail_Fail.value = found.Quantity_Fail || 0;
   Quantity_Detail_Fixed.value = found.Quantity_Fixed || 0;
 
-  // ---- SMT SPECIAL DATA ----
+  // ✅ GÁN GIỐNG AOI
   if (found.Type === "SMT") {
-    SMT_Top_Pass.value = found.SMT_Top_Pass || 0;
-    SMT_Bottom_Pass.value = found.SMT_Bottom_Pass || 0;
+    SMT_Top_Pass.value = found.SMT_Top_Quantity || 0;
+    SMT_Bottom_Pass.value = found.SMT_Bottom_Quantity || 0;
+  } else if (found.Type === "AOI") {
+    AOI_Top_Pass.value = found.AOI_Top_Quantity || 0;
+    AOI_Bottom_Pass.value = found.AOI_Bottom_Quantity || 0;
   } else {
     SMT_Top_Pass.value = 0;
     SMT_Bottom_Pass.value = 0;
+    AOI_Top_Pass.value = 0;
+    AOI_Bottom_Pass.value = 0;
   }
 
-  // ---- REMAIN ----
   const remain =
     totalInput.value -
     (Quantity_Detail_Pass.value + Quantity_Detail_Fail.value);
   Quantity_Detail_Remain.value = remain > 0 ? remain : 0;
 
-  // ---- PERCENT ----
   const round1 = (num) => Number(num.toFixed(1));
 
-  const percentPass =
+  let percentPass = 0;
+  if(found.Type === "SMT") {
+    percentPass =
+    round1((Math.min(SMT_Top_Pass.value, SMT_Bottom_Pass.value) / totalInput.value) * 100) || 0;
+  }else if(found.Type === "AOI") {
+    percentPass =
+    round1((Math.min(AOI_Top_Pass.value, AOI_Bottom_Pass.value) / totalInput.value) * 100) || 0;
+  }else {
+    percentPass =
     round1((Quantity_Detail_Pass.value / totalInput.value) * 100) || 0;
+  }
+  
   const percentFail =
     round1((Quantity_Detail_Fail.value / totalInput.value) * 100) || 0;
   const percentRemain =
-    round1((Quantity_Detail_Remain.value / totalInput.value) * 100) || 0;
+    round1(100 - (percentPass + percentFail)) || 0;
 
   VPieData.value = [
     { key: 1, title: "Pass", value: percentPass, color: "#72c789" },
@@ -2276,10 +2210,10 @@ const GetDetailProgress = async (item) => {
     },
   ];
 };
-
 const selectCard = (title) => {
   selectedTitle.value = title; // Đặt thẻ này là thẻ được chọn
   Detail_Popup_Card.value = true;
+  Type_Add.value = title;
   // Tìm thẻ trong mảng để xác định nó có phải là bottleneck không
   // Phân nhánh logic hành động
   GetDetailProgress(title);
@@ -2416,6 +2350,7 @@ function Reset() {
   CycleTime_Add.value = "";
   Note_Add.value = "";
   Date_DetailManufacture_Add.value = "";
+  Surface_Add.value = "1 Mặt";
 }
 
 /**

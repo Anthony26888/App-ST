@@ -411,7 +411,7 @@
                 <v-toolbar flat color="transparent" class="border-b px-2">
                   <v-toolbar-title class="d-flex align-center">
                     <v-avatar
-                      color="primary"
+                      color="error"
                       variant="tonal"
                       size="32"
                       class="me-3"
@@ -832,7 +832,7 @@
             <v-toolbar flat color="transparent" class="border-b px-2">
               <v-toolbar-title class="d-flex align-center">
                 <v-avatar
-                  color="primary"
+                  color="error"
                   variant="tonal"
                   size="32"
                   class="me-3"
