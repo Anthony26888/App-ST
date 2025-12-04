@@ -471,12 +471,16 @@
                   >
                     <template v-slot:center>
                       <div class="text-center">
-                        <div class="text-h3">
-                          {{ currentDetailStats.top.quantity + currentDetailStats.bottom.quantity }}
-                          <span class="text-h6">pcs</span>
+                        <div class="text-h4" v-if="currentDetailStats.top.quantity > 0 || currentDetailStats.bottom.quantity > 0">
+                          {{ currentDetailStats.pass }}
+                          <span style="font-size: 14px">pcs</span>
+                        </div>
+                        <div class="text-h4" v-else>
+                          {{ currentDetailStats.pass }}
+                          <span style="font-size: 14px">pcs</span>
                         </div>
                         <div class="opacity-70 mt-1 mb-n1">
-                          Tổng đã sản xuất
+                          Tổng Pass
                         </div>
                       </div>
                     </template>
@@ -552,10 +556,7 @@
                       position: 'bottom',
                       enabled: true,
                     }"
-                    :tooltip="{
-                      subtitleFormat: (value) => `${value}%`,
-                      enabled: true,
-                    }"
+                    :tooltip="{ subtitleFormat: '[value]%' }"
                     reveal
                     :palette="['#0080bb', '#ff6361']"
                     :items="currentDetailStats.pieTopBottom"
@@ -568,12 +569,12 @@
                   >
                     <template v-slot:center>
                       <div class="text-center">
-                        <div class="text-h3">
+                        <div class="text-h4">
                           {{
                             currentDetailStats.top.quantity +
                             currentDetailStats.bottom.quantity
                           }}
-                          <span class="text-h6">pcs</span>
+                          <span style="font-size: 14px">pcs</span>
                         </div>
                         <div class="opacity-70 mt-1 mb-n1">
                           Tổng đã sản xuất
@@ -991,7 +992,7 @@
             no-results-text="Không tìm thấy kết quả"
             hover
             density="comfortable"
-            height="calc(100vh - 350px)"
+            height="50vh"
           >
             <template v-slot:top>
               <v-toolbar flat color="transparent" class="border-b px-2">
@@ -1542,17 +1543,6 @@ const planList = computed(() =>
     .map((item) => Number(item.Quantity_Plan || 0))
 );
 
-const progress = computed(() => {
-  return manufactureSummary.value.map((item) => formatDate(item.Type));
-});
-
-const passListSummary = computed(() =>
-  manufactureSummary.value.map((item) => Number(item.Quantity_Pass || 0))
-);
-
-const failListSummary = computed(() =>
-  manufactureSummary.value.map((item) => Number(item.Quantity_Fail || 0))
-);
 
 const currentDetailStats = computed(() => {
   const type = selectedTitle.value;
@@ -1703,7 +1693,7 @@ const pieData = computed(() => {
     {
       key: 3,
       title: "Còn lại",
-      value: Number(((remaining / divisor) * 100).toFixed(1)),
+      value: 100 - Number(((pass / divisor) * 100).toFixed(1)) - Number(((fail / divisor) * 100).toFixed(1)),
       color: "rgba(var(--v-theme-on-surface), .2)",
       pattern: "url(#pattern-0)",
     },
@@ -1785,8 +1775,10 @@ function formatDate(dateString) {
 watch(
   manufactureDetails,
   (newValue) => {
-    if (!newValue || typeof newValue !== "object") return;
-
+    if (!newValue || typeof newValue !== "object"){
+      DialogLoading.value = true;
+      return;
+    }
     const data = Array.isArray(newValue) ? newValue[0] : newValue;
     if (!data || typeof data.Level !== "string" || !data.Level.trim()) {
       levelArray.value = [];
@@ -1794,6 +1786,7 @@ watch(
       return;
     }
     DialogLoading.value = false;
+    
 
     // ✅ Tách chuỗi Level thành mảng công đoạn
     let levels = data.Level.split("-").map((s) => s.trim());
@@ -1806,10 +1799,6 @@ watch(
       // 1️⃣ SMT luôn ở đầu
       if (upperA.includes("SMT") && !upperB.includes("SMT")) return -1;
       if (!upperA.includes("SMT") && upperB.includes("SMT")) return 1;
-
-      // 2️⃣ OQC ngay sau SMT
-      if (upperA.includes("AOI") && !upperB.includes("AOI")) return -1;
-      if (!upperA.includes("AOI") && upperB.includes("AOI")) return 1;
 
       // 3️⃣ RW và Thành phẩm luôn ở cuối
       const isAEnd = ["RW", "THÀNH PHẨM"].some((x) => upperA.includes(x));
@@ -1829,6 +1818,7 @@ watch(
       Quantity_RW: data.Quantity_RW || 0,
       Total_Summary_ID: index + 1,
     }));
+    
 
     // ---- Gán các giá trị khác như cũ ----
     DataManufacture.value = data.Level;
@@ -1850,9 +1840,14 @@ watch(
 watch(
   manufactureSummary,
   (newValue) => {
+    DialogLoading.value = true;
     let mergedValue = newValue;
-
+    if (!newValue || typeof newValue !== "object"){
+      DialogLoading.value = true;
+      return;
+    } 
     if (newValue && Array.isArray(newValue)) {
+      DialogLoading.value = false;
       // ========== XỬ LÝ SMT ==========
       const smtTop = newValue.find(
         (v) => v.Type === "SMT" && v.Surface === "TOP"
@@ -1885,9 +1880,12 @@ watch(
 
         mergedValue = newValue.filter((v) => v.Type !== "SMT");
         mergedValue.push(mergedSMT);
+      } else {
+        SMT_Top_Pass.value = 0;
+        SMT_Bottom_Pass.value = 0;
       }
 
-      // ========== XỬ LÝ AOI (GIỐNG SMT) ==========
+      // ========== XỬ LÝ AOI ==========
       const aoiTop = newValue.find(
         (v) => v.Type === "AOI" && v.Surface === "TOP"
       );
@@ -1921,10 +1919,23 @@ watch(
 
         mergedValue = mergedValue.filter((v) => v.Type !== "AOI");
         mergedValue.push(mergedAOI);
+      } else {
+        AOI_Top_Pass.value = 0;
+        AOI_Bottom_Pass.value = 0;
+        AOI_Top_Fail.value = 0;
+        AOI_Bottom_Fail.value = 0;
       }
     }
 
-    // Cập nhật levelArray
+    // ✅ RESET levelArray hoàn toàn trước
+    levelArray.value = levelArray.value.map((lvl) => ({
+      ...lvl,
+      Quantity_Pass: 0,
+      Quantity_Fail: 0,
+      Quantity_RW: 0,
+    }));
+
+    // ✅ Sau đó cập nhật chỉ những card có trong mergedValue
     levelArray.value = levelArray.value.map((lvl) => {
       const match = mergedValue.find((item) => item.Type === lvl.Type);
       if (match) {
@@ -1936,30 +1947,26 @@ watch(
           Total_Summary_ID: match.Total_Summary_ID || lvl.Total_Summary_ID,
         };
       }
+      // Không match = giữ giá trị 0 từ bước reset trước
       return lvl;
     });
 
-    // Reset khi không có data
+    DialogLoading.value = false;
+
+    // ✅ Xử lý chi tiết cho card đang chọn
     const currentType = Quantity_Detail_Title.value;
     const found = mergedValue.find((x) => x.Type === currentType);
 
-    if (!found && currentType) {
-      const resetValues = () => {
-        Quantity_Detail_Pass.value = 0;
-        Quantity_Detail_Fail.value = 0;
-        Quantity_Detail_Remain.value = 0;
-      };
-      resetValues();
+    if (!found || !currentType) {
+      Quantity_Detail_Pass.value = 0;
+      Quantity_Detail_Fail.value = 0;
+      Quantity_Detail_Remain.value = 0;
       return;
     }
 
-    if (!found) return;
-
-    // ✅ ĐỤC HÓA: Tính V-Pie chung cho tất cả type
     Quantity_Detail_Pass.value = found.Quantity_Pass || 0;
     Quantity_Detail_Fail.value = found.Quantity_Fail || 0;
 
-    // Gán giá trị TOP/BOTTOM nếu có
     if (found.Type === "SMT") {
       SMT_Top_Pass.value = found.SMT_Top_Quantity || 0;
       SMT_Bottom_Pass.value = found.SMT_Bottom_Quantity || 0;
@@ -1968,13 +1975,6 @@ watch(
       AOI_Bottom_Pass.value = found.AOI_Bottom_Quantity || 0;
       AOI_Top_Fail.value = found.AOI_Top_Quantity_Fail || 0;
       AOI_Bottom_Fail.value = found.AOI_Bottom_Quantity_Fail || 0;
-    } else {
-      SMT_Top_Pass.value = 0;
-      SMT_Bottom_Pass.value = 0;
-      AOI_Top_Pass.value = 0;
-      AOI_Bottom_Pass.value = 0;
-      AOI_Top_Fail.value = 0;
-      AOI_Bottom_Fail.value = 0;
     }
 
     const remain = Math.max(
@@ -1984,9 +1984,9 @@ watch(
     );
     const round1 = (num) => Number(num.toFixed(1));
     Quantity_Detail_Remain.value = remain;
+
     let percentPass = 0;
     if (found.Type === "SMT") {
-      // Nếu là 1 Mặt (Surface = '1 Mặt') thì dùng found.Quantity_Pass
       const isSingleSide = found.Surface === "1 Mặt";
       percentPass = isSingleSide
         ? round1((found.Quantity_Pass / totalInput.value) * 100) || 0
@@ -1996,7 +1996,6 @@ watch(
               100
           ) || 0;
     } else if (found.Type === "AOI") {
-      // Nếu là 1 Mặt (Surface = '1 Mặt') thì dùng found.Quantity_Pass
       const isSingleSide = found.Surface === "1 Mặt";
       percentPass = isSingleSide
         ? round1((found.Quantity_Pass / totalInput.value) * 100) || 0
@@ -2017,6 +2016,10 @@ watch(
   { immediate: true, deep: true }
 );
 
+const progress = computed(() => levelArray.value.map((item) => item.Type));
+const passListSummary = computed(() => levelArray.value.map((item) => item.Quantity_Pass));
+const failListSummary = computed(() => levelArray.value.map((item) => item.Quantity_Fail));
+
 watch(
   () => route.query.Type,
   (newType) => {
@@ -2024,6 +2027,7 @@ watch(
   }
 );
 
+// ✅ CÁCH FIX
 const getPassRate = (card) => {
   // Xử lý RW
   if (card.Type === "RW") {
@@ -2035,9 +2039,12 @@ const getPassRate = (card) => {
     );
   }
 
-  // Xử lý SMT - ĐÂY LÀ PHẦN QUAN TRỌNG
+  // Xử lý SMT
   if (card.Type === "SMT") {
     if (totalInput.value === 0) return "0%";
+
+    // ✅ KIỂM TRA: Nếu card.Quantity_Pass === 0, trả về 0% luôn
+    if (!card.Quantity_Pass || card.Quantity_Pass === 0) return "0%";
 
     // Ưu tiên lấy từ levelArray (đã được cập nhật từ manufactureSummary)
     const smtData = levelArray.value.find((item) => item.Type === "SMT");
@@ -2061,11 +2068,14 @@ const getPassRate = (card) => {
     return Number.parseFloat(percentage.toFixed(1)) + "%";
   }
 
-  // Xử lý AOI - GIỐNG Y CHANG SMT
+  // Xử lý AOI
   if (card.Type === "AOI") {
     if (totalInput.value === 0) return "0%";
 
-    // Ưu tiên lấy từ levelArray (đã được cập nhật từ manufactureSummary)
+    // ✅ KIỂM TRA: Nếu card.Quantity_Pass === 0, trả về 0% luôn
+    if (!card.Quantity_Pass || card.Quantity_Pass === 0) return "0%";
+
+    // Ưu tiên lấy từ levelArray
     const aoiData = levelArray.value.find((item) => item.Type === "AOI");
     if (aoiData && aoiData.Quantity_Pass > 0) {
       const percentage = (aoiData.Quantity_Pass / totalInput.value) * 100;
@@ -2090,7 +2100,10 @@ const getPassRate = (card) => {
   // Xử lý các type khác (RW, Thành phẩm, v.v)
   if (totalInput.value === 0) return "0%";
 
-  const percentage = ((card.Quantity_Pass || 0) / totalInput.value) * 100;
+  // ✅ KIỂM TRA: Nếu card không có dữ liệu, trả về 0% luôn
+  if (!card.Quantity_Pass || card.Quantity_Pass === 0) return "0%";
+
+  const percentage = (card.Quantity_Pass / totalInput.value) * 100;
   return Number.parseFloat(percentage.toFixed(1)) + "%";
 };
 
