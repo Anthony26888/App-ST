@@ -173,6 +173,17 @@ db.serialize(() => {
           FOREIGN KEY (CustomerID) REFERENCES Customers(id) ON DELETE CASCADE
       )
   `);
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS ScheduleDelivery (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ItemId INTEGER NOT NULL,
+    DeliveryDate TEXT,
+    DeliveryQuantity INTEGER NOT NULL,
+    DeliveryStatus TEXT,
+    FOREIGN KEY(ItemId) REFERENCES ProductDetails(id) ON DELETE CASCADE
+  )
+`);
   db.run(`
     CREATE TABLE IF NOT EXISTS Machine (
       MaThietBi INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -537,16 +537,41 @@ io.on("connection", (socket) => {
                           CASE
                               WHEN a.QuantityProduct = a.QuantityDelivered THEN 'Hoàn thành'
                               ELSE 'Đang sản xuất'
-                          END AS Status
+                          END AS Status,
+                          COALESCE(
+                              GROUP_CONCAT(
+                                  json_object(
+                                      'id', d.id,
+                                      'DeliveryDate', strftime('%Y-%m-%d', d.DeliveryDate, 'unixepoch', 'localtime'),
+                                      'DeliveryDateConvert', strftime('%d-%m-%Y', d.DeliveryDate, 'unixepoch', 'localtime'),
+                                      'DeliveryQuantity', d.DeliveryQuantity,
+                                      'DeliveryCheck', d.DeliveryStatus,
+                                      'DeliveryStatus', CASE
+                                          WHEN d.DeliveryDate IS NULL THEN 'Chưa có lịch'
+                                          WHEN datetime(d.DeliveryDate, 'unixepoch', 'localtime') < datetime('now', 'localtime') THEN 'Trễ hạn'
+                                          WHEN datetime(d.DeliveryDate, 'unixepoch', 'localtime') >= datetime('now', 'localtime') THEN 'Chưa đến hạn'
+                                          ELSE 'Không xác định'
+                                      END,
+                                      'DaysRemaining', CAST(
+                                          ROUND(
+                                              (CAST(d.DeliveryDate AS REAL) - CAST(strftime('%s', 'now') AS REAL)) / 86400.0
+                                          )
+                                          AS INTEGER
+                                      )
+                                  ), ','
+                              ),
+                              ''
+                          ) AS DeliverySchedules
                       FROM ProductDetails a
                       LEFT JOIN PlanManufacture b ON b.ProjectID = a.id
                       LEFT JOIN ManufactureCounting c ON c.PlanID = b.id
+                      LEFT JOIN ScheduleDelivery d ON d.ItemId = a.id
                       WHERE a.CustomerID = ?
                       GROUP BY 
                           a.id, a.POID, a.ProductDetail, 
                           a.QuantityProduct, a.QuantityDelivered, 
                           a.Note
-                      ORDER BY Status DESC, Product_Detail ASC;`;
+                      ORDER BY Status DESC, Product_Detail ASC`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("DetailProjectPOError", err);
           socket.emit("DetailProjectPOData", rows);
@@ -1435,7 +1460,7 @@ io.on("connection", (socket) => {
                         a.CycleTime_Plan,
                         a.Created_At
 
-                      ORDER BY a.id DESC;
+                      ORDER BY a.Created_At DESC;
 
 
                       -- ============================================
@@ -3259,11 +3284,18 @@ app.put("/api/Project/Customer/Edit-Item/:id", async (req, res) => {
     POID,
   } = req.body;
   const { id } = req.params;
-  // Insert data into SQLite database
+
+  // Validate input
+  if (!id) {
+    return res.status(400).json({ error: "ID không hợp lệ" });
+  }
+
   const query = `
     UPDATE ProductDetails 
     SET ProductDetail = ?, QuantityProduct = ?, QuantityDelivered = ?, QuantityAmount = ?, Note = ?, POID = ? 
-    WHERE id = ?`;
+    WHERE id = ?
+  `;
+
   db.run(
     query,
     [
@@ -3277,12 +3309,12 @@ app.put("/api/Project/Customer/Edit-Item/:id", async (req, res) => {
     ],
     function (err) {
       if (err) {
-        return res
-          .status(500)
-          .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
+        console.error("Error:", err.message);
+        return res.status(500).json({
+          error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu",
+        });
       }
       io.emit("updateDetailProjectPO");
-      // Broadcast the new message to all clients
       res.json({ message: "Đã cập nhật dữ liệu thành công" });
     }
   );
@@ -3321,7 +3353,7 @@ app.post("/api/Project/Customer/Add-Item", async (req, res) => {
       }
       io.emit("updateDetailProjectPO");
       // Broadcast the new message to all clients
-      res.json({ message: "Item inserted successfully" });
+      res.json({ message: "Item inserted successfully", id: this.lastID });
     }
   );
 });
@@ -3343,6 +3375,121 @@ app.delete("/api/Project/Customer/Delete-Item/:id", async (req, res) => {
     res.json({ message: "Đã cập nhật dữ liệu thành công" });
   });
 });
+
+// 2. THÊM LỊCH GIAO HÀNG MỚI
+app.post("/api/Project/Customer/Add-Schedule-Delivery", async (req, res) => {
+  const { ItemId, DeliveryDate, DeliveryQuantity } = req.body;
+
+  // Validate input
+  if (!ItemId || !DeliveryDate || !DeliveryQuantity) {
+    return res.status(400).json({
+      message: "Vui lòng điền đầy đủ thông tin",
+    });
+  }
+
+  const query = `
+    INSERT INTO ScheduleDelivery (ItemId, DeliveryDate, DeliveryQuantity, DeliveryStatus)
+    VALUES (?, ?, ?, ?)
+  `;
+
+  db.run(query, [ItemId, DeliveryDate, DeliveryQuantity, "Chưa giao"], function (err) {
+    if (err) {
+      console.error("Error:", err.message);
+      return res.status(500).json({
+        message: "Lỗi thêm lịch giao hàng",
+      });
+    }
+    io.emit("updateDetailProjectPO");
+    res.json({
+      message: "Lịch giao hàng thêm thành công",
+      id: this.lastID,
+    });
+  });
+});
+
+// 3. CẬP NHẬT LỊCH GIAO HÀNG CÓ SẴN
+app.put("/api/Project/Customer/Edit-Schedule-Delivery/:id", async (req, res) => {
+  const { DeliveryDate, DeliveryQuantity } = req.body;
+  const { id } = req.params;
+
+  // Validate input
+  if (!id || !DeliveryDate || !DeliveryQuantity) {
+    return res.status(400).json({
+      message: "Vui lòng điền đầy đủ thông tin",
+    });
+  }
+
+  const query = `
+    UPDATE ScheduleDelivery
+    SET DeliveryDate = ?, DeliveryQuantity = ?
+    WHERE id = ?
+  `;
+
+  db.run(query, [DeliveryDate, DeliveryQuantity, id], function (err) {
+    if (err) {
+      console.error("Error:", err.message);
+      return res.status(500).json({
+        message: "Lỗi cập nhật lịch giao hàng",
+      });
+    }
+    io.emit("updateDetailProjectPO");
+    res.json({
+      message: "Cập nhật lịch giao hàng thành công",
+    });
+  });
+});
+
+// 4. XÓA LỊCH GIAO HÀNG (THÊM CHO ĐẦY ĐỦ)
+app.delete("/api/Project/Customer/Delete-Schedule-Delivery/:id", async (req, res) => {
+  const { id } = req.params;
+
+  // Validate input
+  if (!id) {
+    return res.status(400).json({
+      message: "ID không hợp lệ",
+    });
+  }
+
+  const query = `
+    DELETE FROM ScheduleDelivery
+    WHERE id = ?
+  `;
+
+  db.run(query, [id], function (err) {
+    if (err) {
+      console.error("Error:", err.message);
+      return res.status(500).json({
+        message: "Lỗi xóa lịch giao hàng",
+      });
+    }
+    io.emit("updateDetailProjectPO");
+    res.json({
+      message: "Xóa lịch giao hàng thành công",
+    });
+  });
+});
+
+app.put("/api/Project/Customer/Confirm-Item/:id", async (req, res) => {
+  const { id } = req.params;
+  // Insert data into SQLite database
+  const query = `
+    UPDATE ScheduleDelivery
+    SET DeliveryStatus = 'Đã giao'
+    WHERE id = ?`;
+  db.run(query, [id], function (err) {
+    if (err) {
+      console.error("Error:", err.message);
+      return res.status(500).json({
+        message: "Lỗi xác nhận giao hàng",
+      });
+    }
+    io.emit("updateDetailProjectPO");
+    res.json({
+      message: "Xác nhận giao hàng thành công",
+    });
+  });
+});
+
 
 // Router update orders in PurchaseDetails table
 app.put("/api/Project/Customer/Edit-Orders/:id", async (req, res) => {
