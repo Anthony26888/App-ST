@@ -100,9 +100,18 @@ app.options("*", cors());
 const server = require("http").createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // hoặc http://192.168.100.76
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.has(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
   },
+  transports: ["websocket", "polling"],
 });
 
 // const sslOptions = {
@@ -531,16 +540,16 @@ io.on("connection", (socket) => {
         INSERT OR IGNORE INTO NotificationReadStatus (notification_id)
         VALUES (?)
       `;
-      
+
       db.run(query, [notificationId], (err) => {
         if (err) {
           console.error("❌ Error marking notification as read:", err.message);
           socket.emit("notification-read-error", { error: err.message });
           return;
         }
-        
+
         console.log(`✅ Notification #${notificationId} marked as read`);
-        
+
         // Broadcast to all clients to refresh notifications
         io.emit("notification-marked-read", { id: notificationId });
       });
@@ -557,37 +566,40 @@ io.on("connection", (socket) => {
       const getUnreadQuery = `
         SELECT id FROM vw_NotificationDelivery WHERE IsRead = 0
       `;
-      
+
       db.all(getUnreadQuery, [], (err, rows) => {
         if (err) {
           console.error("❌ Error getting unread notifications:", err.message);
           socket.emit("notification-read-error", { error: err.message });
           return;
         }
-        
+
         if (rows.length === 0) {
           console.log("ℹ️ No unread notifications to mark");
           io.emit("all-notifications-marked-read");
           return;
         }
-        
+
         // Insert all notification IDs into NotificationReadStatus
         const placeholders = rows.map(() => "(?)").join(",");
         const insertQuery = `
           INSERT OR IGNORE INTO NotificationReadStatus (notification_id)
           VALUES ${placeholders}
         `;
-        const ids = rows.map(row => row.id);
-        
+        const ids = rows.map((row) => row.id);
+
         db.run(insertQuery, ids, (err) => {
           if (err) {
-            console.error("❌ Error marking all notifications as read:", err.message);
+            console.error(
+              "❌ Error marking all notifications as read:",
+              err.message
+            );
             socket.emit("notification-read-error", { error: err.message });
             return;
           }
-          
+
           console.log(`✅ Marked ${rows.length} notifications as read`);
-          
+
           // Broadcast to all clients to refresh notifications
           io.emit("all-notifications-marked-read");
         });
@@ -597,7 +609,6 @@ io.on("connection", (socket) => {
       socket.emit("notification-read-error", { error: error.message });
     }
   });
-
 
   socket.on("getProjectFind", async () => {
     try {
