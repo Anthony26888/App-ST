@@ -2,15 +2,17 @@
   <div>
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <v-card-title class="text-h4 font-weight-light">
-        <ButtonBack v-if="LevelUser === 'Nhân viên'" :to="`/Danh-sach-cong-viec`" @click="removeGoBackListWork" />
+        <ButtonBack
+          v-if="LevelUser === 'Nhân viên'"
+          :to="`/Danh-sach-cong-viec`"
+          @click="removeGoBackListWork"
+        />
         <ButtonBack v-else :to="`/San-xuat/Chi-tiet/${back}`" />
         Theo dõi sản xuất RW</v-card-title
       >
       <v-card-title class="d-flex align-center pe-2">
         <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
-        <v-breadcrumbs
-          :items="[`${NameManufacture}`, `${Name_Order}`, `RW`]"
-        >
+        <v-breadcrumbs :items="[`${NameManufacture}`, `${Name_Order}`, `RW`]">
           <template v-slot:divider>
             <v-icon icon="mdi-chevron-right"></v-icon>
           </template>
@@ -90,23 +92,15 @@
           >
             <template #[`item.Status`]="{ item }">
               <v-chip
-                :color="
-                  item.Status === 'fail'
-                    ? 'warning'
-                    : 'info'
-                "
+                :color="item.Status === 'fail' ? 'warning' : 'info'"
                 size="small"
                 variant="tonal"
               >
-                {{
-                  item.Status === "fail"
-                    ? "Fail"
-                    : "Fixed"
-                }}
+                {{ item.Status === "fail" ? "Fail" : "Fixed" }}
               </v-chip>
             </template>
             <template #[`item.RWID`]="{ item }">
-              <v-chip color ="success" variant="tonal" v-if="item.RWID">
+              <v-chip color="success" variant="tonal" v-if="item.RWID">
                 <v-icon>mdi-check</v-icon>
               </v-chip>
               <v-chip v-else variant="tonal" color="error">
@@ -114,10 +108,14 @@
               </v-chip>
             </template>
             <template #[`item.Note`]="{ item }">
-              <p class="text-error" style="white-space: pre-line">{{ item.Note }}</p>
+              <p class="text-error" style="white-space: pre-line">
+                {{ item.Note }}
+              </p>
             </template>
             <template #[`item.Note_RW`]="{ item }">
-              <p class="text-primary" style="white-space: pre-line">{{ item.Note_RW }}</p>
+              <p class="text-primary" style="white-space: pre-line">
+                {{ item.Note_RW }}
+              </p>
             </template>
             <template #[`item.id`]="{ item }">
               <v-btn
@@ -149,29 +147,20 @@
         </v-card>
       </v-card-text>
     </v-card>
-    <v-dialog
-      :model-value="DialogFix"
-      @update:model-value="DialogFix = $event"
-      width="600"
-      class="rounded-xl"
+
+    <!-- Dialog xác nhận sửa sản phẩm -->
+    <BaseDialog
+      v-model="DialogFix"
+      icon="mdi-hammer-screwdriver"
+      title="Xác nhận đã sửa sản phẩm"
+      max-width="500"
     >
-      <v-card
-        max-width="600"
-        class="rounded-lg"
-      >
-        <v-card-title>
-          <v-icon icon="mdi-wrench-clock" size="24" color="primary" class="mr-2"></v-icon>
-          <span>Sản phẩm đã sửa chữa hoàn tất ?</span>
-        </v-card-title>
-        <v-card-text> 
-          <InputTextarea label="Ghi chú sửa" v-model="Note_RW_Edit"></InputTextarea>
-        </v-card-text>
-        <template #actions>
-          <ButtonCancel @cancel="DialogFix = false" />
-          <ButtonSave @save="FixedError()" />
-        </template>
-      </v-card>
-    </v-dialog>
+      <InputTextarea label="Ghi chú sửa" v-model="Note_RW_Edit"></InputTextarea>
+      <template v-slot:actions>
+        <ButtonCancel @cancel="DialogFix = false" />
+        <ButtonSave @save="FixedError()" />
+      </template>
+    </BaseDialog>
     <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
     <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />"
     <Loading v-model="DialogLoading" />
@@ -197,12 +186,13 @@ import InputSearch from "@/components/Input-Search.vue";
 import ButtonBack from "@/components/Button-Back.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputFiles from "@/components/Input-Files.vue";
-import InputTextarea from "@/components/Input-Textarea.vue"
+import InputTextarea from "@/components/Input-Textarea.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
+import BaseDialog from "@/components/BaseDialog.vue";
 
 // ===== Constants & Configuration =====
 const Url = import.meta.env.VITE_API_URL;
@@ -223,7 +213,7 @@ const Headers = [
   // { title: "Thời gian", key: "Timestamp" },
   { title: "Loại lỗi", key: "GroupFail" },
   { title: "RW đã sửa", key: "RWID" },
-  { title: "Ghi chú lỗi", key: "Note" }, 
+  { title: "Ghi chú lỗi", key: "Note" },
   { title: "Ghi chú sửa", key: "Note_RW" },
   { title: "Thời gian RW", key: "TimestampRW" },
   { title: "Thao tác", key: "id" },
@@ -269,10 +259,11 @@ const Name_Order = ref("");
 const Name_Category = ref("");
 const Note_RW_Edit = ref("");
 
-
-const PercentOutput = computed(() => 
-  Number.parseFloat((totalFixed.value / (totalErrors.value + totalFixed.value || 1)) * 100)    
-)
+const PercentOutput = computed(() =>
+  Number.parseFloat(
+    (totalFixed.value / (totalErrors.value + totalFixed.value || 1)) * 100
+  )
+);
 
 // ===== User Information =====
 const LevelUser = localStorage.getItem("LevelUser");
@@ -286,11 +277,8 @@ watch(
       totalErrors.value = newValue.filter(
         (item) => item.Status === "error"
       ).length;
-      totalFixed.value = newValue.filter(
-        (item) => item.RWID === "Done"
-      ).length;
-    };
-
+      totalFixed.value = newValue.filter((item) => item.RWID === "Done").length;
+    }
   },
   { deep: true }
 );
@@ -301,20 +289,22 @@ watch(
   (newData) => {
     if (!newData?.value) {
       DialogFailed.value = true;
-      MessageErrorDialog.value = "No history data available"
+      MessageErrorDialog.value = "No history data available";
       return;
     }
 
     if (!Array.isArray(newData.value)) {
       DialogFailed.value = true;
-      MessageErrorDialog.value = "History data is not an array"
+      MessageErrorDialog.value = "History data is not an array";
       return;
     }
 
-    const data = Array.isArray(newData.value) ? newData.value[0] : newData.value;
+    const data = Array.isArray(newData.value)
+      ? newData.value[0]
+      : newData.value;
     if (!data) {
       return;
-    }else{
+    } else {
       Name_Order.value = data.Name_Order ?? "";
       NameManufacture.value = data.PONumber ?? "";
       Name_Category.value = data.Category ?? "";
@@ -358,11 +348,12 @@ const GetItem = (item) => {
 const FixedError = async () => {
   DialogLoading.value = true;
   const formData = reactive({
-    Note_RW: Note_RW_Edit.value
+    Note_RW: Note_RW_Edit.value,
   });
   try {
     const response = await axios.put(
-      `${Url}/ManufactureCounting/Edit-status-rw/${GetID.value}`, formData 
+      `${Url}/ManufactureCounting/Edit-status-rw/${GetID.value}`,
+      formData
     );
     MessageDialog.value = "Sữa lỗi thành công";
     // Refresh data after successful update

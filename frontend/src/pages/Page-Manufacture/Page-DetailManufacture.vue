@@ -471,7 +471,13 @@
                   >
                     <template v-slot:center>
                       <div class="text-center">
-                        <div class="text-h4" v-if="currentDetailStats.top.quantity > 0 || currentDetailStats.bottom.quantity > 0">
+                        <div
+                          class="text-h4"
+                          v-if="
+                            currentDetailStats.top.quantity > 0 ||
+                            currentDetailStats.bottom.quantity > 0
+                          "
+                        >
                           {{ currentDetailStats.pass }}
                           <span style="font-size: 14px">pcs</span>
                         </div>
@@ -479,9 +485,7 @@
                           {{ currentDetailStats.pass }}
                           <span style="font-size: 14px">pcs</span>
                         </div>
-                        <div class="opacity-70 mt-1 mb-n1">
-                          Tổng Pass
-                        </div>
+                        <div class="opacity-70 mt-1 mb-n1">Tổng Pass</div>
                       </div>
                     </template>
                   </v-pie>
@@ -849,20 +853,6 @@
                           >
                         </v-progress-linear>
                       </template>
-                      <template #[`bottom`]>
-                        <div class="text-center pt-2">
-                          <v-pagination
-                            v-model="pageDetail"
-                            :length="
-                              Math.ceil(
-                                history.filter(
-                                  (item) => item.Type === selectedTitle
-                                ).length / itemsPerPageDetail
-                              )
-                            "
-                          ></v-pagination>
-                        </div>
-                      </template>
                     </v-data-table-virtual>
                   </v-card>
                 </v-col>
@@ -1084,272 +1074,207 @@
     </v-card>
 
     <!-- Dialog Add -->
-    <v-dialog v-model="DialogAdd" width="800" scrollable>
-      <v-card max-width="700" class="overflow-y-auto rounded-lg">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
-          Thêm dữ liệu kế hoạch
-        </v-card-title>
-
-        <v-card-text>
-          <v-form ref="formRef" v-model="isFormValid">
-            <v-row>
-              <v-col col="12" md="6">
-                <InputField disabled label="Số PO" v-model="PONumber_Add" />
-              </v-col>
-              <v-col col="12" md="6">
-                <InputField
-                  disabled
-                  label="Đơn hàng"
-                  v-model="Name_Order_Add"
-                />
-              </v-col>
-            </v-row>
-            <v-row>
-              <v-col cols="4">
-                <InputSelect
-                  label="Công đoạn"
-                  :items="LevelSelectAdd"
-                  hint="Lựa chọn công đoạn phù hợp"
-                  v-model="Type_Add"
-                  :rules="requiredRuleEmpty"
-                />
-              </v-col>
-              <v-col cols="4">
-                <InputSelect
-                  label="Bề mặt"
-                  :items="['TOP', 'BOTTOM', '1 Mặt']"
-                  hint="Lựa chọn bề mặt phù hợp"
-                  v-model="Surface_Add"
-                  :rules="requiredRuleEmpty"
-                />
-              </v-col>
-              <v-col cols="4">
-                <InputSelect
-                  label="Vị trí line"
-                  :items="['Line 1', 'Line 2']"
-                  hint="Lựa chọn công đoạn phù hợp"
-                  v-model="Line_Add"
-                  :disabled="Type_Add != 'SMT'"
-                  :rules="requiredRule"
-                />
-              </v-col>
-            </v-row>
-
-            <InputField
-              label="Hạng mục"
-              v-model="Category_Add"
+    <BaseDialog
+      v-model="DialogAdd"
+      title="Thêm dữ liệu kế hoạch"
+      icon="mdi-plus"
+      max-width="800"
+    >
+      <!-- FORM để nguyên -->
+      <v-form ref="formRef" v-model="isFormValid">
+        <v-row>
+          <v-col col="12" md="6">
+            <InputField disabled label="Số PO" v-model="PONumber_Add" />
+          </v-col>
+          <v-col col="12" md="6">
+            <InputField disabled label="Đơn hàng" v-model="Name_Order_Add" />
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col cols="4">
+            <InputSelect
+              label="Công đoạn"
+              :items="LevelSelectAdd"
+              hint="Lựa chọn công đoạn phù hợp"
+              v-model="Type_Add"
               :rules="requiredRuleEmpty"
             />
-
-            <v-row>
-              <v-col cols="12" sm="4">
-                <InputField
-                  label="Số lượng (pcs)"
-                  type="number"
-                  v-model="Quantity_Plan_Add"
-                  :rules="requiredRuleEmpty"
-                />
-              </v-col>
-              <v-col cols="12" sm="4">
-                <InputField
-                  label="Vòng lặp (giây)"
-                  type="number"
-                  v-model="CycleTime_Add"
-                  :rules="requiredRuleEmpty"
-                />
-              </v-col>
-              <v-col cols="12" sm="4">
-                <InputField
-                  label="Thời gian (giờ)"
-                  type="number"
-                  v-model="Time_Add"
-                />
-              </v-col>
-            </v-row>
-
-            <InputField
-              label="Ngày tạo"
-              type="date"
-              v-model="Date_DetailManufacture_Add"
+          </v-col>
+          <v-col cols="4">
+            <InputSelect
+              label="Bề mặt"
+              :items="['TOP', 'BOTTOM', '1 Mặt']"
+              hint="Lựa chọn bề mặt phù hợp"
+              v-model="Surface_Add"
               :rules="requiredRuleEmpty"
             />
-            <InputTextarea label="Ghi chú" v-model="Note_Add" />
-          </v-form>
-        </v-card-text>
-        <v-card-actions>
-          <ButtonCancel @cancel="DialogAdd = false" />
-          <ButtonSave
-            @save="SaveAdd()"
-            :disabled="
-              !PONumber_Add ||
-              !Name_Order_Add ||
-              !Type_Add ||
-              !Surface_Add ||
-              !Category_Add ||
-              !Quantity_Plan_Add ||
-              !CycleTime_Add ||
-              !Time_Add ||
-              !Date_DetailManufacture_Add
-            "
-          />
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+          </v-col>
+          <v-col cols="4">
+            <InputSelect
+              label="Vị trí line"
+              :items="['Line 1', 'Line 2']"
+              hint="Lựa chọn công đoạn phù hợp"
+              v-model="Line_Add"
+              :disabled="Type_Add != 'SMT'"
+              :rules="requiredRule"
+            />
+          </v-col>
+        </v-row>
+
+        <InputField
+          label="Hạng mục"
+          v-model="Category_Add"
+          :rules="requiredRuleEmpty"
+        />
+
+        <v-row>
+          <v-col cols="12" sm="4">
+            <InputField
+              label="Số lượng (pcs)"
+              type="number"
+              v-model="Quantity_Plan_Add"
+              :rules="requiredRuleEmpty"
+            />
+          </v-col>
+          <v-col cols="12" sm="4">
+            <InputField
+              label="Vòng lặp (giây)"
+              type="number"
+              v-model="CycleTime_Add"
+              :rules="requiredRuleEmpty"
+            />
+          </v-col>
+          <v-col cols="12" sm="4">
+            <InputField
+              label="Thời gian (giờ)"
+              type="number"
+              v-model="Time_Add"
+            />
+          </v-col>
+        </v-row>
+
+        <InputField
+          label="Ngày tạo"
+          type="date"
+          v-model="Date_DetailManufacture_Add"
+          :rules="requiredRuleEmpty"
+        />
+        <InputTextarea label="Ghi chú" v-model="Note_Add" />
+      </v-form>
+
+      <!-- ACTION -->
+      <template #actions>
+        <ButtonCancel @cancel="DialogAdd = false" />
+        <ButtonSave
+          @save="SaveAdd()"
+          :disabled="
+            !PONumber_Add ||
+            !Name_Order_Add ||
+            !Type_Add ||
+            !Surface_Add ||
+            !Category_Add ||
+            !Quantity_Plan_Add ||
+            !CycleTime_Add ||
+            !Time_Add ||
+            !Date_DetailManufacture_Add
+          "
+        />
+      </template>
+    </BaseDialog>
 
     <!-- Dialog Edit -->
-    <v-dialog v-model="DialogEdit" width="700" scrollable>
-      <v-card max-width="700" class="overflow-y-auto rounded-lg">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon icon="mdi-pencil" color="primary" class="me-2"></v-icon>
-          Sửa dữ liệu kế hoạch
-        </v-card-title>
-        <v-card-text>
-          <v-row>
-            <v-col col="12" md="6">
-              <InputField disabled label="Số PO" v-model="PONumber_Edit" />
-            </v-col>
-            <v-col col="12" md="6">
-              <InputField disabled label="Đơn hàng" v-model="Name_Order_Edit" />
-            </v-col>
-          </v-row>
-          <v-row>
-            <v-col cols="4">
-              <InputSelect
-                label="Quy trình"
-                :items="LevelSelectAdd"
-                hint="Lựa chọn quy trình phù hợp"
-                v-model="Type_Edit"
-                @update:model-value="(val) => (Type_Edit = val)"
-              />
-            </v-col>
-            <v-col cols="4">
-              <InputSelect
-                label="Bề mặt"
-                :items="['TOP', 'BOTTOM', '1 Mặt']"
-                hint="Lựa chọn bề mặt phù hợp"
-                v-model="Surface_Edit"
-                :rules="requiredRuleEmpty"
-              />
-            </v-col>
-            <v-col cols="4">
-              <InputSelect
-                label="Vị trí line"
-                :items="['Line 1', 'Line 2']"
-                hint="Lựa chọn công đoạn phù hợp"
-                v-model="Line_Edit"
-                :rules="requiredRule"
-                :disabled="Type_Edit != 'SMT'"
-              />
-            </v-col>
-          </v-row>
-          <InputField label="Hạng mục" v-model="Category_Edit" />
-
-          <v-row>
-            <v-col cols="12" sm="4">
-              <InputField
-                label="Số lượng (pcs)"
-                type="number"
-                v-model="Quantity_Plan_Edit"
-              />
-            </v-col>
-            <v-col cols="12" sm="4">
-              <InputField
-                label="Vòng lặp (giây)"
-                type="number"
-                v-model="CycleTime_Edit"
-              />
-            </v-col>
-            <v-col cols="12" sm="4">
-              <InputField
-                label="Thời gian (giờ)"
-                type="number"
-                v-model="Time_Edit"
-              />
-            </v-col>
-          </v-row>
-          <InputField
-            type="date"
-            label="Ngày tạo"
-            v-model="Date_DetailManufacture_Edit"
+    <BaseDialog
+      v-model="DialogEdit"
+      title="Sửa dữ liệu kế hoạch"
+      icon="mdi-pencil"
+      max-width="800"
+    >
+      <v-row>
+        <v-col col="12" md="6">
+          <InputField disabled label="Số PO" v-model="PONumber_Edit" />
+        </v-col>
+        <v-col col="12" md="6">
+          <InputField disabled label="Đơn hàng" v-model="Name_Order_Edit" />
+        </v-col>
+      </v-row>
+      <v-row>
+        <v-col cols="4">
+          <InputSelect
+            label="Quy trình"
+            :items="LevelSelectAdd"
+            hint="Lựa chọn quy trình phù hợp"
+            v-model="Type_Edit"
+            @update:model-value="(val) => (Type_Edit = val)"
           />
-          <InputTextarea label="Ghi chú" v-model="Note_Edit" />
-        </v-card-text>
-        <v-card-actions>
-          <ButtonDelete @delete="DialogRemove = true" />
-          <v-spacer></v-spacer>
-          <ButtonCancel @cancel="DialogEdit = false" />
-          <ButtonSave @save="SaveEdit()" />
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+        </v-col>
+        <v-col cols="4">
+          <InputSelect
+            label="Bề mặt"
+            :items="['TOP', 'BOTTOM', '1 Mặt']"
+            hint="Lựa chọn bề mặt phù hợp"
+            v-model="Surface_Edit"
+            :rules="requiredRuleEmpty"
+          />
+        </v-col>
+        <v-col cols="4">
+          <InputSelect
+            label="Vị trí line"
+            :items="['Line 1', 'Line 2']"
+            hint="Lựa chọn công đoạn phù hợp"
+            v-model="Line_Edit"
+            :rules="requiredRule"
+            :disabled="Type_Edit != 'SMT'"
+          />
+        </v-col>
+      </v-row>
+      <InputField label="Hạng mục" v-model="Category_Edit" />
+
+      <v-row>
+        <v-col cols="12" sm="4">
+          <InputField
+            label="Số lượng (pcs)"
+            type="number"
+            v-model="Quantity_Plan_Edit"
+          />
+        </v-col>
+        <v-col cols="12" sm="4">
+          <InputField
+            label="Vòng lặp (giây)"
+            type="number"
+            v-model="CycleTime_Edit"
+          />
+        </v-col>
+        <v-col cols="12" sm="4">
+          <InputField
+            label="Thời gian (giờ)"
+            type="number"
+            v-model="Time_Edit"
+          />
+        </v-col>
+      </v-row>
+      <InputField
+        type="date"
+        label="Ngày tạo"
+        v-model="Date_DetailManufacture_Edit"
+      />
+      <InputTextarea label="Ghi chú" v-model="Note_Edit" />
+      <template #actions>
+        <ButtonDelete @delete="DialogRemove = true" />
+        <v-spacer></v-spacer>
+        <ButtonCancel @cancel="DialogEdit = false" />
+        <ButtonSave @save="SaveEdit()" />
+      </template>
+    </BaseDialog>
 
     <!-- Dialog Remove -->
-    <v-dialog v-model="DialogRemove" max-width="500px">
-      <v-card class="overflow-y-auto rounded-lg">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon icon="mdi-trash-can" color="error" class="me-2"></v-icon>
-          Xoá dữ liệu kế hoạch
-        </v-card-title>
-        <v-card-text
-          >Bạn có chắc chắn muốn xóa dữ liệu kế hoạch này?</v-card-text
-        >
-        <v-card-actions>
-          <v-spacer />
-          <ButtonCancel @cancel="DialogRemove = false" />
-          <ButtonDelete @delete="RemoveItem()" />
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- Dialog Setting SMT -->
-    <v-dialog v-model="DialogSettingSMT" max-width="700px">
-      <v-card class="rounded-lg">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon icon="mdi-cog" color="primary" class="me-2"></v-icon>
-          Cài đặt dây chuyền
-        </v-card-title>
-        <v-card-text>
-          <v-row>
-            <v-col>
-              <InputField
-                v-model="DelaySMT_Edit"
-                label="Độ trễ SMT (ms)"
-                type="number"
-              />
-            </v-col>
-            <v-col>
-              <InputField
-                v-model="Quantity_Edit"
-                label="Số lượng board SMT"
-                type="number"
-              />
-            </v-col>
-          </v-row>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <ButtonCancel @cancel="DialogSettingSMT = false" />
-          <ButtonSave @save="SaveEditSettingSMT()" />
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- Dialog xác nhận xóa dữ liệu lịch sử sản xuất -->
-    <v-dialog v-model="DialogRemoveHistory" width="400">
-      <v-card
-        max-width="400"
-        prepend-icon="mdi-delete"
-        title="Xoá dữ liệu"
-        class="rounded-lg"
-      >
-        <v-card-text> Bạn có chắc chắn muốn xoá dữ liệu ? </v-card-text>
-        <template v-slot:actions>
-          <ButtonCancel @cancel="DialogRemoveHistory = false" />
-          <ButtonDelete @delete="RemoveItemHistory()" />
-        </template>
-      </v-card>
-    </v-dialog>
+    <BaseDialog v-model="DialogRemove" title="Xoá dữ liệu kế hoạch" icon="mdi-trash-can" max-width="500px">
+      Bạn có chắc chắn muốn xóa dữ liệu kế hoạch này?
+      <template #actions>
+        <v-spacer />
+        <ButtonCancel @cancel="DialogRemove = false" />
+        <ButtonDelete @delete="RemoveItem()" />
+      </template>
+    </BaseDialog>
 
     <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
     <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
@@ -1395,6 +1320,7 @@ import ProcessCard from "@/components/Card-Flow-Proccess.vue";
 import StackedBarChart from "@/components/Chart-StackedBar.vue";
 import StackedBarChartSummary from "@/components/Chart-StackedBar-Summary.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
+import BaseDialog from "@/components/BaseDialog.vue";
 
 // ... existing imports ...
 import { useManufactureDetails } from "@/composables/Manufacture/useManufactureDetails";
@@ -1543,10 +1469,12 @@ const planList = computed(() =>
     .map((item) => Number(item.Quantity_Plan || 0))
 );
 
-
 const currentDetailStats = computed(() => {
   const type = selectedTitle.value;
-  if (!type) return null;
+  if (!type) {
+    currentDetailStatsLoading.value = true;
+    return null;
+  }
 
   const summaryItems = manufactureSummary.value;
   const isSplitSurface = type === "AOI" || type === "SMT";
@@ -1652,6 +1580,8 @@ const currentDetailStats = computed(() => {
     ];
   }
 
+  // ✅ Đánh dấu loading = false khi đã render xong
+  currentDetailStatsLoading.value = false;
   return stats;
 });
 
@@ -1693,7 +1623,10 @@ const pieData = computed(() => {
     {
       key: 3,
       title: "Còn lại",
-      value: 100 - Number(((pass / divisor) * 100).toFixed(1)) - Number(((fail / divisor) * 100).toFixed(1)),
+      value:
+        100 -
+        Number(((pass / divisor) * 100).toFixed(1)) -
+        Number(((fail / divisor) * 100).toFixed(1)),
       color: "rgba(var(--v-theme-on-surface), .2)",
       pattern: "url(#pattern-0)",
     },
@@ -1772,24 +1705,43 @@ function formatDate(dateString) {
 }
 
 // Watch for manufactureDetails changes
+const isManufactureDetailsReady = ref(false);
+const isManufactureSummaryReady = ref(false);
+const currentDetailStatsLoading = ref(true); // ✅ Loading riêng cho currentDetailStats
+
+// ✅ Watch để cập nhật DialogLoading dựa trên cả hai trạng thái
+watch(
+  [isManufactureDetailsReady, isManufactureSummaryReady],
+  ([detailsReady, summaryReady]) => {
+    // Tắt loading khi cả hai dữ liệu đều sẵn sàng
+    DialogLoading.value = !(detailsReady && summaryReady);
+  }
+);
+
 watch(
   manufactureDetails,
   (newValue) => {
-    if (!newValue || typeof newValue !== "object"){
-      DialogLoading.value = true;
+    // ✅ Kiểm tra dữ liệu có hợp lệ không
+    if (!newValue || typeof newValue !== "object") {
+      isManufactureDetailsReady.value = false;
       return;
     }
+
     const data = Array.isArray(newValue) ? newValue[0] : newValue;
+    
     if (!data || typeof data.Level !== "string" || !data.Level.trim()) {
       levelArray.value = [];
-      DialogLoading.value = true;
+      isManufactureDetailsReady.value = false;
       return;
     }
-    DialogLoading.value = false;
-    
 
     // ✅ Tách chuỗi Level thành mảng công đoạn
     let levels = data.Level.split("-").map((s) => s.trim());
+    if (levels.length === 0) {
+      levelArray.value = [];
+      isManufactureDetailsReady.value = false;
+      return;
+    }
 
     // ✅ Sắp xếp thứ tự công đoạn
     levels = levels.sort((a, b) => {
@@ -1813,14 +1765,13 @@ watch(
     // ✅ Sinh mảng object công đoạn tương ứng
     levelArray.value = levels.map((step, index) => ({
       Type: step,
-      Quantity_Pass: data.Quantity_Pass || 0,
-      Quantity_Fail: data.Quantity_Fail || 0,
-      Quantity_RW: data.Quantity_RW || 0,
+      Quantity_Pass: 0,
+      Quantity_Fail: 0,
+      Quantity_RW: 0,
       Total_Summary_ID: index + 1,
     }));
-    
 
-    // ---- Gán các giá trị khác như cũ ----
+    // ---- Gán các giá trị khác ----
     DataManufacture.value = data.Level;
     Level_SMT.value = data.Level.includes("SMT");
     totalInput.value = data.Total || 0;
@@ -1833,6 +1784,9 @@ watch(
     NameOrder.value = data.Name_Order;
     Name_Order_Add.value = data.Name_Order;
     Name_Order_Edit.value = data.Name_Order;
+
+    // ✅ Đánh dấu dữ liệu đã sẵn sàng
+    isManufactureDetailsReady.value = true;
   },
   { immediate: true, deep: true }
 );
@@ -1840,14 +1794,14 @@ watch(
 watch(
   manufactureSummary,
   (newValue) => {
-    DialogLoading.value = true;
     let mergedValue = newValue;
-    if (!newValue || typeof newValue !== "object"){
-      DialogLoading.value = true;
+
+    if (!newValue || typeof newValue !== "object") {
+      isManufactureSummaryReady.value = false;
       return;
-    } 
+    }
+
     if (newValue && Array.isArray(newValue)) {
-      DialogLoading.value = false;
       // ========== XỬ LÝ SMT ==========
       const smtTop = newValue.find(
         (v) => v.Type === "SMT" && v.Surface === "TOP"
@@ -1935,7 +1889,7 @@ watch(
       Quantity_RW: 0,
     }));
 
-    // ✅ Sau đó cập nhật chỉ những card có trong mergedValue
+    // ✅ Cập nhật chỉ những card có trong mergedValue
     levelArray.value = levelArray.value.map((lvl) => {
       const match = mergedValue.find((item) => item.Type === lvl.Type);
       if (match) {
@@ -1947,11 +1901,8 @@ watch(
           Total_Summary_ID: match.Total_Summary_ID || lvl.Total_Summary_ID,
         };
       }
-      // Không match = giữ giá trị 0 từ bước reset trước
       return lvl;
     });
-
-    DialogLoading.value = false;
 
     // ✅ Xử lý chi tiết cho card đang chọn
     const currentType = Quantity_Detail_Title.value;
@@ -1961,64 +1912,71 @@ watch(
       Quantity_Detail_Pass.value = 0;
       Quantity_Detail_Fail.value = 0;
       Quantity_Detail_Remain.value = 0;
-      return;
-    }
-
-    Quantity_Detail_Pass.value = found.Quantity_Pass || 0;
-    Quantity_Detail_Fail.value = found.Quantity_Fail || 0;
-
-    if (found.Type === "SMT") {
-      SMT_Top_Pass.value = found.SMT_Top_Quantity || 0;
-      SMT_Bottom_Pass.value = found.SMT_Bottom_Quantity || 0;
-    } else if (found.Type === "AOI") {
-      AOI_Top_Pass.value = found.AOI_Top_Quantity || 0;
-      AOI_Bottom_Pass.value = found.AOI_Bottom_Quantity || 0;
-      AOI_Top_Fail.value = found.AOI_Top_Quantity_Fail || 0;
-      AOI_Bottom_Fail.value = found.AOI_Bottom_Quantity_Fail || 0;
-    }
-
-    const remain = Math.max(
-      0,
-      totalInput.value -
-        (Quantity_Detail_Pass.value + Quantity_Detail_Fail.value)
-    );
-    const round1 = (num) => Number(num.toFixed(1));
-    Quantity_Detail_Remain.value = remain;
-
-    let percentPass = 0;
-    if (found.Type === "SMT") {
-      const isSingleSide = found.Surface === "1 Mặt";
-      percentPass = isSingleSide
-        ? round1((found.Quantity_Pass / totalInput.value) * 100) || 0
-        : round1(
-            (Math.min(SMT_Top_Pass.value, SMT_Bottom_Pass.value) /
-              totalInput.value) *
-              100
-          ) || 0;
-    } else if (found.Type === "AOI") {
-      const isSingleSide = found.Surface === "1 Mặt";
-      percentPass = isSingleSide
-        ? round1((found.Quantity_Pass / totalInput.value) * 100) || 0
-        : round1(
-            (Math.min(AOI_Top_Pass.value, AOI_Bottom_Pass.value) /
-              totalInput.value) *
-              100
-          ) || 0;
     } else {
-      percentPass =
-        round1((Quantity_Detail_Pass.value / totalInput.value) * 100) || 0;
+      Quantity_Detail_Pass.value = found.Quantity_Pass || 0;
+      Quantity_Detail_Fail.value = found.Quantity_Fail || 0;
+
+      if (found.Type === "SMT") {
+        SMT_Top_Pass.value = found.SMT_Top_Quantity || 0;
+        SMT_Bottom_Pass.value = found.SMT_Bottom_Quantity || 0;
+      } else if (found.Type === "AOI") {
+        AOI_Top_Pass.value = found.AOI_Top_Quantity || 0;
+        AOI_Bottom_Pass.value = found.AOI_Bottom_Quantity || 0;
+        AOI_Top_Fail.value = found.AOI_Top_Quantity_Fail || 0;
+        AOI_Bottom_Fail.value = found.AOI_Bottom_Quantity_Fail || 0;
+      }
+
+      const remain = Math.max(
+        0,
+        totalInput.value -
+          (Quantity_Detail_Pass.value + Quantity_Detail_Fail.value)
+      );
+      Quantity_Detail_Remain.value = remain;
+
+      const round1 = (num) => Number(num.toFixed(1));
+
+      let percentPass = 0;
+      if (found.Type === "SMT") {
+        const isSingleSide = found.Surface === "1 Mặt";
+        percentPass = isSingleSide
+          ? round1((found.Quantity_Pass / totalInput.value) * 100) || 0
+          : round1(
+              (Math.min(SMT_Top_Pass.value, SMT_Bottom_Pass.value) /
+                totalInput.value) *
+                100
+            ) || 0;
+      } else if (found.Type === "AOI") {
+        const isSingleSide = found.Surface === "1 Mặt";
+        percentPass = isSingleSide
+          ? round1((found.Quantity_Pass / totalInput.value) * 100) || 0
+          : round1(
+              (Math.min(AOI_Top_Pass.value, AOI_Bottom_Pass.value) /
+                totalInput.value) *
+                100
+            ) || 0;
+      } else {
+        percentPass =
+          round1((Quantity_Detail_Pass.value / totalInput.value) * 100) || 0;
+      }
+
+      const percentFail =
+        round1((Quantity_Detail_Fail.value / totalInput.value) * 100) || 0;
+      const percentRemain = round1(100 - (percentPass + percentFail)) || 0;
     }
 
-    const percentFail =
-      round1((Quantity_Detail_Fail.value / totalInput.value) * 100) || 0;
-    const percentRemain = round1(100 - (percentPass + percentFail)) || 0;
+    // ✅ Đánh dấu dữ liệu summary đã sẵn sàng
+    isManufactureSummaryReady.value = true;
   },
   { immediate: true, deep: true }
 );
 
 const progress = computed(() => levelArray.value.map((item) => item.Type));
-const passListSummary = computed(() => levelArray.value.map((item) => item.Quantity_Pass));
-const failListSummary = computed(() => levelArray.value.map((item) => item.Quantity_Fail));
+const passListSummary = computed(() =>
+  levelArray.value.map((item) => item.Quantity_Pass)
+);
+const failListSummary = computed(() =>
+  levelArray.value.map((item) => item.Quantity_Fail)
+);
 
 watch(
   () => route.query.Type,

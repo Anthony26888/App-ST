@@ -144,7 +144,7 @@ db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS Customers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       CustomerName TEXT UNIQUE,
-      Years INTEGER
+      Note TEXT
       )
   `);
 
@@ -174,16 +174,88 @@ db.serialize(() => {
       )
   `);
 
-db.run(`
-  CREATE TABLE IF NOT EXISTS ScheduleDelivery (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    ItemId INTEGER NOT NULL,
-    DeliveryDate TEXT,
-    DeliveryQuantity INTEGER NOT NULL,
-    DeliveryStatus TEXT,
-    FOREIGN KEY(ItemId) REFERENCES ProductDetails(id) ON DELETE CASCADE
-  )
-`);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ScheduleDelivery (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ItemId INTEGER NOT NULL,
+      DeliveryDate TEXT,
+      DeliveryQuantity INTEGER NOT NULL,
+      DeliveryStatus TEXT,
+      FOREIGN KEY(ItemId) REFERENCES ProductDetails(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS NotificationReadStatus (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      notification_id INTEGER NOT NULL,
+      read_at INTEGER DEFAULT (strftime('%s', 'now')),
+      UNIQUE(notification_id)
+    )
+  `);
+// XÓA VIEW CŨ
+  db.run(`DROP VIEW IF EXISTS vw_NotificationDelivery`);
+
+    // TẠO VIEW - CHỈ THÔNG BÁO KHI SẮP ĐẾN HẠN (3-2-1-0 NGÀY)
+  db.run(`
+      CREATE VIEW vw_NotificationDelivery AS
+      SELECT 
+        sd.id,
+        sd.ItemId,
+        CASE 
+          WHEN CAST((sd.DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) < 0 
+            THEN 'ĐÃ QUÁ HẠN GỬI HÀNG'
+          WHEN CAST((sd.DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) = 0 
+            THEN 'ĐÃ ĐẾN HẠN GỬI HÔM NAY'
+          WHEN CAST((sd.DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) = 1 
+            THEN 'SẮP ĐẾN HẠN NGÀY MAI'
+          WHEN CAST((sd.DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) = 2 
+            THEN 'Nhắc nhở: Còn 2 ngày giao hàng'
+          WHEN CAST((sd.DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) = 3 
+            THEN 'Nhắc nhở: Còn 3 ngày giao hàng'
+          ELSE NULL
+        END AS Title,
+        pd.POID || ' - ' || pd.ProductDetail AS Message,
+        sd.DeliveryQuantity AS Quantity,
+        CASE 
+          WHEN CAST((sd.DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) < 0 
+            THEN 'mdi-alert-circle'
+          WHEN CAST((sd.DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) = 0 
+            THEN 'mdi-alert-circle'
+          WHEN CAST((sd.DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) = 1 
+            THEN 'mdi-clock-alert'
+          ELSE 'mdi-calendar-alert'
+        END AS Icon,
+        CASE 
+          WHEN CAST((sd.DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) < 0 
+            THEN 'error'
+          WHEN CAST((sd.DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) = 0 
+            THEN 'error'
+          WHEN CAST((sd.DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) = 1 
+            THEN 'warning'
+          ELSE 'orange'
+        END AS Color,
+        CASE 
+          WHEN CAST((sd.DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) < 0 
+            THEN 'Quá hạn'
+          WHEN CAST((sd.DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) = 0 
+            THEN 'Đã đến hạn'
+          WHEN CAST((sd.DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) = 1 
+            THEN 'Ngày mai'
+          ELSE 'Sắp tới'
+        END AS Status,
+        CAST((sd.DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) AS DaysRemaining,
+        sd.DeliveryDate,
+        sd.DeliveryQuantity,
+        sd.DeliveryStatus,
+        CASE WHEN nrs.notification_id IS NOT NULL THEN 1 ELSE 0 END AS IsRead
+      FROM ScheduleDelivery sd
+      LEFT JOIN NotificationReadStatus nrs ON sd.id = nrs.notification_id
+      LEFT JOIN ProductDetails pd ON sd.ItemId = pd.id
+      WHERE sd.DeliveryStatus = 'Chưa giao'
+        AND CAST((sd.DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) <= 3
+      ORDER BY CAST((sd.DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) ASC;
+  `);
   db.run(`
     CREATE TABLE IF NOT EXISTS Machine (
       MaThietBi INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -61,64 +61,46 @@
 
   <EmptyMobile v-else />
 
-  <v-dialog v-model="DialogAdd" width="500" scrollable>
-    <v-card class="overflow-y-auto">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
-        Thêm tên dự án
-      </v-card-title>
-      <v-card-text>
-        <InputField
-          label="Nhập tên dự án"
-          :rules="requiredRule"
-          v-model="FileName"
-        />
-        <InputField
-          label="Thời gian tạo"
-          :rules="requiredRule"
-          type="date"
-          v-model="Created_at"
-        />
-        <InputTextarea label="Ghi chú" v-model="Note" />
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogAdd = false" />
-        <ButtonSave :disabled="!FileName || !Created_at" @save="SaveAdd()" />
-      </template>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogEdit" width="500" scrollable>
-    <v-card class="overflow-y-auto">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
-        Chỉnh sửa dự án
-      </v-card-title>
-      <v-card-text>
-        <InputField label="Tên dự án" v-model="FileName_Edit" />
-        <InputField
-          label="Thời gian tạo"
-          type="date"
-          v-model="Created_at_Edit"
-        />
-        <InputTextarea label="Ghi chú" v-model="Note_Edit" />
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonDelete @delete="DialogRemove = true" />
-        <v-spacer></v-spacer>
-        <ButtonCancel @cancel="DialogEdit = false" />
-        <ButtonSave @save="SaveEdit()" />
-      </template>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogRemove" width="400">
-    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
-      <v-card-text> Bạn có chắc chắn muốn xoá dự án này ? </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogRemove = false" />
-        <ButtonDelete @delete="RemoveItem()" />
-      </template>
-    </v-card>
-  </v-dialog>
+  <BaseDialog v-model="DialogAdd" width="500" title="Thêm tên dự án" icon="mdi-plus">
+    <InputField
+      label="Nhập tên dự án"
+      :rules="requiredRule"
+      v-model="FileName"
+    />
+    <InputField
+      label="Thời gian tạo"
+      :rules="requiredRule"
+      type="date"
+      v-model="Created_at"
+    />
+    <InputTextarea label="Ghi chú" v-model="Note" />
+    <template #actions>
+      <ButtonCancel @cancel="DialogAdd = false" />
+      <ButtonSave :disabled="!FileName || !Created_at" @save="SaveAdd()" />
+    </template>
+  </BaseDialog>
+  <BaseDialog v-model="DialogEdit" width="500" title="Chỉnh sửa dự án" icon="mdi-update">
+    <InputField label="Tên dự án" v-model="FileName_Edit" />
+    <InputField
+      label="Thời gian tạo"
+      type="date"
+      v-model="Created_at_Edit"
+    />
+    <InputTextarea label="Ghi chú" v-model="Note_Edit" />
+    <template #actions>
+      <ButtonDelete @delete="DialogRemove = true" />
+      <v-spacer></v-spacer>
+      <ButtonCancel @cancel="DialogEdit = false" />
+      <ButtonSave @save="SaveEdit()" />
+    </template>
+  </BaseDialog>
+  <BaseDialog v-model="DialogRemove" width="400" title="Xoá dữ liệu" icon="mdi-delete">
+    Bạn có chắc chắn muốn xoá dự án này ?
+    <template #actions>
+      <ButtonCancel @cancel="DialogRemove = false" />
+      <ButtonDelete @delete="RemoveItem()" />
+    </template>
+  </BaseDialog>
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
@@ -143,6 +125,9 @@ import ButtonRemove from "@/components/Button-Remove.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import Loading from "@/components/Loading.vue";
 import EmptyMobile from "@/components/Empty-Mobile.vue";
+import ButtonSave from "@/components/Button-Save.vue";
+import ButtonCancel from "@/components/Button-Cancel.vue";
+import BaseDialog from "@/components/BaseDialog.vue";
 
 // Data from Composables
 // ===== STATE MANAGEMENT =====

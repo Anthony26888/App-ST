@@ -8,7 +8,9 @@
       <v-card variant="elevated" elevation="0" class="rounded-xl border">
         <v-card-title class="d-flex align-center pe-2">
           <ButtonAdd @add="DialogAdd = true" />
-          <p class="text-subtitle-1 font-weight-thin text-subtitle-1 ms-2">Có {{ users.length }} người dùng</p>
+          <p class="text-subtitle-1 font-weight-thin text-subtitle-1 ms-2">
+            Có {{ users.length }} người dùng
+          </p>
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
         </v-card-title>
@@ -52,81 +54,96 @@
       </v-card>
     </v-card-text>
   </v-card>
-  <v-dialog v-model="DialogRemove" width="400" class="rounded-xl">
-    <v-card class="rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
-        Xóa người dùng
-      </v-card-title>
 
-      <v-card-text class="pa-4">
-        <div class="text-body-1">Bạn có chắc chắn muốn xóa thành viên này?</div>
-      </v-card-text>
+  <BaseDialog
+    v-model="DialogRemove"
+    width="500"
+    title="Xóa người dùng"
+    icon="mdi-delete"
+  >
+    <p>Bạn có chắc chắn muốn xóa thành viên này?</p>
+    <template v-slot:actions>
+      <v-spacer></v-spacer>
+      <ButtonCancel @cancel="DialogRemove = false" />
+      <ButtonDelete @delete="RemoveUser()" class="ms-2" />
+    </template>
+  </BaseDialog>
 
-      <v-card-actions class="pa-4">
-        <v-spacer></v-spacer>
-        <ButtonCancel @cancel="DialogRemove = false" />
-        <ButtonDelete @delete="RemoveUser()" class="ms-2" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogEdit" width="500" class="rounded-xl">
-    <v-card class="rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-pencil" color="primary" class="me-2"></v-icon>
-        Chỉnh sửa người dùng
-      </v-card-title>
-
-      <v-card-text class="pa-4">
-        <v-row>
-          <v-col cols="12">
-            <InputField label="Tên đăng nhập" v-model="Username_Edit" />
-          </v-col>
-          <v-col cols="12">
-            <InputField label="Tên người dùng" v-model="FullName_Edit" />
-          </v-col>
-          <v-col cols="12">
-            <InputField label="Email" v-model="Email_Edit" />
-          </v-col>
-          <v-col cols="12">
-            <InputSelect
-              label="Phân quyền"
-              :items="['Admin', 'Kế hoạch', 'Thủ kho', 'Kinh doanh', 'Quản lý kinh doanh', 'Quản lý tổng', 'Nhân viên', 'Quản lý sản xuất', 'Quản lý bảo trì']"
-              variant="solo-filled"
-              v-model="Level_Edit"
-            />
-          </v-col>
-        </v-row>
-      </v-card-text>
-
-      <v-card-actions class="pa-4">
-        <ButtonDelete @delete="DialogRemove = true" />
-        <v-spacer></v-spacer>
-        <ButtonCancel @cancel="DialogEdit = false" />
-        <ButtonSave @save="SaveEdit()" class="ms-2" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogAdd" width="400" class="rounded-xl">
-    <v-card max-width="400" prepend-icon="mdi-plus" title="Thêm thành viên mới" class="rounded-xl">
-      <v-card-text>
-        <InputField label="Tên đăng nhập" v-model="Username_Add" />
-        <InputField label="Tên người dùng" v-model="FullName_Add" />
-        <InputField label="Email" v-model="Email_Add" />
-        <InputField label="Password" type="password" v-model="Password_Add" />
+  <BaseDialog
+    v-model="DialogEdit"
+    max-width="700"
+    title="Chỉnh sửa người dùng"
+    icon="mdi-pencil"
+  >
+    <v-row>
+      <v-col cols="12">
+        <InputField label="Tên đăng nhập" v-model="Username_Edit" />
+      </v-col>
+      <v-col cols="12">
+        <InputField label="Tên người dùng" v-model="FullName_Edit" />
+      </v-col>
+      <v-col cols="12">
+        <InputField label="Email" v-model="Email_Edit" />
+      </v-col>
+      <v-col cols="12">
         <InputSelect
           label="Phân quyền"
-          :items="['Admin', 'Kế hoạch', 'Thủ kho', 'Kinh doanh', 'Quản lý kinh doanh', 'Quản lý tổng', 'Nhân viên', 'Quản lý sản xuất', 'Quản lý bảo trì']"
+          :items="[
+            'Admin',
+            'Kế hoạch',
+            'Thủ kho',
+            'Kinh doanh',
+            'Quản lý kinh doanh',
+            'Quản lý tổng',
+            'Nhân viên',
+            'Quản lý sản xuất',
+            'Quản lý bảo trì',
+          ]"
           variant="solo-filled"
-          v-model="Level_Add"
+          v-model="Level_Edit"
         />
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogAdd = false" />
-        <ButtonSave @save="SaveAdd()" />
-      </template>
-    </v-card>
-  </v-dialog>
+      </v-col>
+    </v-row>
+    <template v-slot:actions>
+      <ButtonDelete @delete="DialogRemove = true" />
+      <v-spacer></v-spacer>
+      <ButtonCancel @cancel="DialogEdit = false" />
+      <ButtonSave @save="SaveEdit()" class="ms-2" />
+    </template>
+  </BaseDialog>
+
+  <BaseDialog
+    v-model="DialogAdd"
+    width="700"
+    title="Thêm thành viên mới"
+    icon="mdi-plus"
+  >
+    <InputField label="Tên đăng nhập" v-model="Username_Add" />
+    <InputField label="Tên người dùng" v-model="FullName_Add" />
+    <InputField label="Email" v-model="Email_Add" />
+    <InputField label="Password" type="password" v-model="Password_Add" />
+    <InputSelect
+      label="Phân quyền"
+      :items="[
+        'Admin',
+        'Kế hoạch',
+        'Thủ kho',
+        'Kinh doanh',
+        'Quản lý kinh doanh',
+        'Quản lý tổng',
+        'Nhân viên',
+        'Quản lý sản xuất',
+        'Quản lý bảo trì',
+      ]"
+      variant="solo-filled"
+      v-model="Level_Add"
+    />
+    <template v-slot:actions>
+      <ButtonCancel @cancel="DialogAdd = false" />
+      <ButtonSave @save="SaveAdd()" />
+    </template>
+  </BaseDialog>
+
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
@@ -153,6 +170,7 @@ import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonBack from "@/components/Button-Back.vue";
 import ButtonEdit from "@/components/Button-Edit.vue";
 import ButtonAdd from "@/components/Button-Add.vue";
+import BaseDialog from "@/components/BaseDialog.vue";
 
 // ===== STATE MANAGEMENT =====
 // API Configuration
@@ -163,12 +181,12 @@ const { users } = useUsers();
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
-const DialogRemove = ref(false);    // Remove confirmation dialog
-const DialogSuccess = ref(false);   // Success notification
-const DialogEdit = ref(false);      // Edit dialog
-const DialogAdd = ref(false);       // Add new item dialog
-const DialogFailed = ref(false);    // Error notification
-const DialogLoading = ref(false);   // Loading state
+const DialogRemove = ref(false); // Remove confirmation dialog
+const DialogSuccess = ref(false); // Success notification
+const DialogEdit = ref(false); // Edit dialog
+const DialogAdd = ref(false); // Add new item dialog
+const DialogFailed = ref(false); // Error notification
+const DialogLoading = ref(false); // Loading state
 
 // ===== MESSAGE DIALOG =====
 // Message for success and error notifications
@@ -180,17 +198,17 @@ const MessageErrorDialog = ref("");
 const GetID = ref("");
 
 // Edit form states
-const Username_Edit = ref("");      // Username for editing
-const FullName_Edit = ref("");      // Full name for editing
-const Email_Edit = ref("");         // Email for editing
-const Level_Edit = ref("");         // User level for editing
+const Username_Edit = ref(""); // Username for editing
+const FullName_Edit = ref(""); // Full name for editing
+const Email_Edit = ref(""); // Email for editing
+const Level_Edit = ref(""); // User level for editing
 
 // Add form states
-const Username_Add = ref("");       // Username for adding
-const FullName_Add = ref("");       // Full name for adding
-const Email_Add = ref("");          // Email for adding
-const Password_Add = ref("");       // Password for adding
-const Level_Add = ref("");          // User level for adding
+const Username_Add = ref(""); // Username for adding
+const FullName_Add = ref(""); // Full name for adding
+const Email_Add = ref(""); // Email for adding
+const Password_Add = ref(""); // Password for adding
+const Level_Add = ref(""); // User level for adding
 
 // ===== TABLE CONFIGURATION =====
 // Search and pagination states
@@ -237,7 +255,10 @@ const SaveEdit = async () => {
   });
 
   try {
-    const response = await axios.put(`${Url}/Users/Edit-User/${GetID.value}`, formData);
+    const response = await axios.put(
+      `${Url}/Users/Edit-User/${GetID.value}`,
+      formData
+    );
     console.log(response.data.message);
     MessageDialog.value = "Cập nhật người dùng thành công";
     Reset();
@@ -288,7 +309,9 @@ const SaveAdd = async () => {
 const RemoveUser = async () => {
   DialogLoading.value = true;
   try {
-    const response = await axios.delete(`${Url}/Users/delete-user/${GetID.value}`);
+    const response = await axios.delete(
+      `${Url}/Users/delete-user/${GetID.value}`
+    );
     console.log(response);
     MessageDialog.value = "Xoá người dùng thành công";
     Reset();

@@ -3,7 +3,7 @@
     <v-card-title class="text-h4 font-weight-light" v-if="lgAndUp"
       >Danh sách bảo trì</v-card-title
     >
-    <v-card-title class="mb-5">
+    <v-card-title class="mb-3">
       <v-row v-if="lgAndUp">
         <v-col cols="12" sm="4" md="4">
           <CardStatistic
@@ -16,7 +16,9 @@
         <v-col cols="12" sm="4" md="4">
           <CardStatistic
             title="Thiết bị đã bảo trì"
-            :value="machine?.filter((p) => p.Status === 'Chưa tới hạn').length || 0"
+            :value="
+              machine?.filter((p) => p.Status === 'Chưa tới hạn').length || 0
+            "
             icon="mdi-check-circle"
             color="success"
           />
@@ -24,7 +26,9 @@
         <v-col cols="12" sm="4" md="4">
           <CardStatistic
             title="Thiết bị chưa bảo trì"
-            :value="machine?.filter((p) => p.Status === 'Cần bảo trì').length || 0"
+            :value="
+              machine?.filter((p) => p.Status === 'Cần bảo trì').length || 0
+            "
             icon="mdi-alert-circle"
             color="warning"
           />
@@ -43,7 +47,9 @@
         <v-col cols="4">
           <CardStatistic
             title="Đã bảo trì"
-            :value="machine?.filter((p) => p.Status === 'Chưa tới hạn').length || 0"
+            :value="
+              machine?.filter((p) => p.Status === 'Chưa tới hạn').length || 0
+            "
             icon="mdi-check-circle"
             color="success"
           />
@@ -51,7 +57,9 @@
         <v-col cols="4">
           <CardStatistic
             title="Đến hạn"
-            :value="machine?.filter((p) => p.Status === 'Cần bảo trì').length || 0"
+            :value="
+              machine?.filter((p) => p.Status === 'Cần bảo trì').length || 0
+            "
             icon="mdi-alert-circle"
             color="warning"
           />
@@ -67,7 +75,6 @@
             color="primary"
             class="text-caption ms-2"
             @click="DialogAdd = true"
-            
             >Thêm</v-btn
           >
           <p class="ms-2 font-weight-thin text-subtitle-1">
@@ -76,14 +83,14 @@
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
         </v-card-title>
-        <v-card-title class="d-flex align-center " v-else>
+        <v-card-title class="d-flex align-center" v-else>
           <InputSearch v-model="search" />
         </v-card-title>
 
         <v-card-text class="overflow-auto">
           <v-data-table
             v-if="lgAndUp"
-            density="comfortable"
+            density="compact"
             :headers="Headers"
             :items="machine"
             :search="search"
@@ -106,8 +113,7 @@
             :hover="true"
             :dense="false"
             :fixed-header="true"
-            height="58vh"
-            
+            height="60vh"
           >
             <template v-slot:bottom>
               <div class="text-center pt-2">
@@ -144,6 +150,7 @@
             </template>
           </v-data-table>
           <v-data-table-virtual
+            density="compact"
             :headers="Headers"
             :items="machine"
             :search="search"
@@ -199,102 +206,71 @@
       </v-card>
     </v-card-text>
   </v-card>
-  <v-dialog v-model="DialogEdit" width="500" scrollable>
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-pencil" color="primary" class="me-2"></v-icon>
-        Cập nhật bảo trì
-      </v-card-title>
 
-      <v-card-text class="pa-4">
-        <v-row>
-          <v-col cols="12" md="6">
-            <InputField label="Tên thiết bị" v-model="TenThietBi_Edit" />
-          </v-col>
-          <v-col cols="12" md="6">
-            <InputField label="Loại thiết bị" v-model="LoaiThietBi_Edit" />
-          </v-col>
-          <v-col cols="12" md="6">
-            <InputField label="Nhà sản xuất" v-model="NhaSanXuat_Edit" />
-          </v-col>
-          <v-col cols="12" md="6">
-            <InputField label="Ngày mua" v-model="NgayMua_Edit" type="date" />
-          </v-col>
-          <v-col cols="12">
-            <InputField label="Vị trí" v-model="ViTri_Edit" />
-          </v-col>
-          <v-col cols="12">
-            <InputTextarea label="Mô tả" v-model="MoTa_Edit" />
-          </v-col>
-        </v-row>
-      </v-card-text>
+  <BaseDialog v-model="DialogEdit" icon="mdi-pencil" title="Cập nhật bảo trì" max-width="700">
+    <v-row>
+      <v-col cols="12" md="6">
+        <InputField label="Tên thiết bị" v-model="TenThietBi_Edit" />
+      </v-col>
+      <v-col cols="12" md="6">
+        <InputField label="Loại thiết bị" v-model="LoaiThietBi_Edit" />
+      </v-col>
+      <v-col cols="12" md="6">
+        <InputField label="Nhà sản xuất" v-model="NhaSanXuat_Edit" />
+      </v-col>
+      <v-col cols="12" md="6">
+        <InputField label="Ngày mua" v-model="NgayMua_Edit" type="date" />
+      </v-col>
+      <v-col cols="12">
+        <InputField label="Vị trí" v-model="ViTri_Edit" />
+      </v-col>
+      <v-col cols="12">
+        <InputTextarea label="Mô tả" v-model="MoTa_Edit" />
+      </v-col>
+    </v-row>
+    <template #actions>
+      <ButtonDelete @delete="DialogRemove = true" />
+      <v-spacer></v-spacer>
+      <ButtonCancel @cancel="DialogEdit = false" />
+      <ButtonSave @save="SaveEdit()" class="ms-2" />
+    </template>
+  </BaseDialog>
 
-      <v-card-actions class="pa-4">
-        <ButtonDelete @delete="DialogRemove = true" />
-        <v-spacer></v-spacer>
-        <ButtonCancel @cancel="DialogEdit = false" />
-        <ButtonSave @save="SaveEdit()" class="ms-2" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+  <BaseDialog v-model="DialogRemove" icon="mdi-delete" title="Xóa thiết bị" max-width="500">
+    <p>Bạn có chắc chắn muốn xóa bản ghi thiết bị này?</p>
+    <template #actions>
+      <ButtonCancel @cancel="DialogRemove = false" />
+      <ButtonDelete @delete="RemoveItem()" />
+    </template>
+  </BaseDialog>
 
-  <v-dialog v-model="DialogAdd" width="500" scrollable>
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
-        Thêm thiết bị mới
-      </v-card-title>
+  <BaseDialog v-model="DialogAdd" title="Thêm thiết bị" icon="mdi-plus" max-width="700">
+    <v-row>
+      <v-col cols="12" md="6">
+        <InputField label="Tên thiết bị" v-model="TenThietBi_Add" />
+      </v-col>
+      <v-col cols="12" md="6">
+        <InputField label="Loại thiết bị" v-model="LoaiThietBi_Add" />
+      </v-col>
+      <v-col cols="12" md="6">
+        <InputField label="Nhà sản xuất" v-model="NhaSanXuat_Add" />
+      </v-col>
+      <v-col cols="12" md="6">
+        <InputField label="Ngày mua" v-model="NgayMua_Add" type="date" />
+      </v-col>
+      <v-col cols="12">
+        <InputField label="Vị trí" v-model="ViTri_Add" />
+      </v-col>
+      <v-col cols="12">
+        <InputTextarea label="Mô tả" v-model="MoTa_Add" />
+      </v-col>
+    </v-row>
+    <template #actions>
+      <ButtonCancel @cancel="DialogAdd = false" />
+      <ButtonSave @save="SaveAdd()" />
+    </template>
+  </BaseDialog>
 
-      <v-card-text class="pa-4">
-        <v-row>
-          <v-col cols="12" md="6">
-            <InputField label="Tên thiết bị" v-model="TenThietBi_Add" />
-          </v-col>
-          <v-col cols="12" md="6">
-            <InputField label="Loại thiết bị" v-model="LoaiThietBi_Add" />
-          </v-col>
-          <v-col cols="12" md="6">
-            <InputField label="Nhà sản xuất" v-model="NhaSanXuat_Add" />
-          </v-col>
-          <v-col cols="12" md="6">
-            <InputField label="Ngày mua" v-model="NgayMua_Add" type="date" />
-          </v-col>
-          <v-col cols="12">
-            <InputField label="Vị trí" v-model="ViTri_Add" />
-          </v-col>
-          <v-col cols="12">
-            <Input-Textarea label="Mô tả" v-model="MoTa_Add" />
-          </v-col>
-        </v-row>
-      </v-card-text>
-
-      <v-card-actions class="pa-4">
-        <v-spacer></v-spacer>
-        <ButtonCancel @cancel="DialogAdd = false" />
-        <ButtonSave @save="SaveAdd()" class="ms-2" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogRemove" width="500">
-    <v-card class="rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
-        Xóa bảo trì
-      </v-card-title>
-
-      <v-card-text class="pa-4">
-        <div class="text-body-1">
-          Bạn có chắc chắn muốn xóa bản ghi bảo trì này?
-        </div>
-      </v-card-text>
-
-      <v-card-actions class="pa-4">
-        <v-spacer></v-spacer>
-        <ButtonCancel @cancel="DialogRemove = false" />
-        <ButtonDelete @delete="RemoveItem()" class="ms-2" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
@@ -320,6 +296,11 @@ import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
+import ButtonEdit from "@/components/Button-Edit.vue";
+import ButtonDelete from "@/components/Button-Delete.vue";
+import ButtonCancel from "@/components/Button-Cancel.vue";
+import ButtonSave from "@/components/Button-Save.vue";
+import BaseDialog from "@/components/BaseDialog.vue";
 
 // ===== STATE MANAGEMENT =====
 // API Configuration
@@ -382,7 +363,7 @@ const Headers = [
   { title: "Nhà sản xuất", key: "NhaSanXuat" },
   { title: "Ngày mua", key: "NgayMua" },
   { title: "Vị trí", key: "ViTri" },
-  { title: "Mô tả", key: "MoTa", width:"150" },
+  { title: "Mô tả", key: "MoTa", width: "150" },
   { title: "Trạng thái", key: "Status" },
   { title: "Thao tác", key: "MaThietBi", sortable: false },
 ];

@@ -2,9 +2,7 @@
   <v-card variant="text" class="overflow-y-auto" height="100vh">
     <v-card-title class="d-flex" v-if="lgAndUp">
       <ButtonBack to="/Bao-tri" />
-      <p class="text-h4 font-weight-light ms-3" >
-        Chi tiết bảo trì
-      </p>
+      <p class="text-h4 font-weight-light ms-3">Chi tiết bảo trì</p>
     </v-card-title>
     <v-card-title class="d-flex" v-else>
       <ButtonBack to="/Bao-tri" />
@@ -39,7 +37,8 @@
             prepend-icon="mdi-calendar-check"
             class="ms-2 text-caption align-center"
             @click="PushSchedule()"
-          >Lịch bảo trì</v-btn>
+            >Lịch bảo trì</v-btn
+          >
         </v-card-title>
         <v-data-table
           v-if="lgAndUp"
@@ -167,7 +166,7 @@
           </template>
           <template #item.MaBaoTri="{ item }">
             <div class="d-flex">
-              <ButtonEye  @detail="PushItem(item)" />
+              <ButtonEye @detail="PushItem(item)" />
               <ButtonEdit @edit="GetItem(item)" />
             </div>
           </template>
@@ -175,210 +174,209 @@
       </v-card>
     </v-card-text>
   </v-card>
-  <v-dialog v-model="DialogEdit" width="500" scrollable>
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-pencil" color="primary" class="me-2"></v-icon>
-        Cập nhật dữ liệu bảo trì
-      </v-card-title>
 
-      <v-card-text class="pa-4">
-        <v-row>
-          <v-col cols="12">
-            <InputSelect
-              label="Loại bảo trì"
-              v-model="LoaiBaoTri_Edit"
-              hint="Ví dụ: Bảo trì định kỳ, Sửa chữa, Thay thế"
-              :items="itemsType"
-              item-text="text"
-              item-value="value"
-            />
-          </v-col>
-          <v-col cols="6">
-            <InputSelect
-              label="Phương án"
-              v-model="PhuongAn_Edit"
-              hint="Mô tả phương án bảo trì"
-              :items="itemsPlan"
-              item-text="text"
-              item-value="value"
-            />
-          </v-col>
-          <v-col cols="6">
-            <InputSelect
-              label="Phụ tùng"
-              v-model="PhuTung_Edit"
-              hint="Liệt kê các phụ tùng sử dụng"
-              :items="itemsSparePart"
-              item-text="text"
-              item-value="value"
-            />
-          </v-col>
-          <v-col cols="6">
-            <InputSelect
-              label="Trạng thái"
-              v-model="TrangThai_Edit"
-              hint="Ví dụ: Đã hoàn thành, Đang thực hiện, Chờ phê duyệt"
-              :items="itemsStatus"
-              item-text="text"
-              item-value="value"
-            />
-          </v-col>
-          <v-col cols="6">
-            <InputField
-              label="Chi phí"
-              v-model="ChiPhi_Edit"
-              type="number"
-              hint="Đơn vị: VND"
-            />
-          </v-col>
-          <v-col cols="6">
-            <InputField
-              label="Ngày bảo trì"
-              v-model="NgayBaoTri_Edit"
-              type="date"
-            />
-          </v-col>
-          <v-col cols="6">
-            <InputField
-              label="Ngày hoàn thành"
-              v-model="NgayHoanThanh_Edit"
-              type="date"
-            />
-          </v-col>
-          <v-col cols="6">
-            <InputField label="Người tạo" v-model="NguoiTao_Edit" />
-          </v-col>
-          <v-col cols="6">
-            <InputField label="Người thực hiện" v-model="NguoiThucHien_Edit" />
-          </v-col>
-          <v-col cols="12">
-            <InputTextarea
-              label="Mô tả lỗi"
-              v-model="MoTaLoi_Edit"
-              hint="Mô tả chi tiết lỗi cần bảo trì"
-            />
-          </v-col>
-          <v-col cols="12">
-            <InputTextarea
-              label="Biện pháp khắc phục"
-              v-model="BienPhapKhacPhuc_Edit"
-              hint="Mô tả cách thức khắc phục lỗi"
-            />
-          </v-col>
-        </v-row>
-      </v-card-text>
+  <BaseDialog
+    v-model="DialogEdit"
+    icon="mdi-pencil"
+    title="Cập nhật dữ liệu bảo trì"
+    max-width="700"
+  >
+    <InputSelect
+      label="Loại bảo trì"
+      v-model="LoaiBaoTri_Edit"
+      hint="Ví dụ: Bảo trì định kỳ, Sửa chữa, Thay thế"
+      :items="itemsType"
+      item-text="text"
+      item-value="value"
+    />
+    <v-row>
+      <v-col cols="6">
+        <InputSelect
+          label="Phương án"
+          v-model="PhuongAn_Edit"
+          hint="Mô tả phương án bảo trì"
+          :items="itemsPlan"
+          item-text="text"
+          item-value="value"
+        />
+      </v-col>
+      <v-col cols="6">
+        <InputSelect
+          label="Phụ tùng"
+          v-model="PhuTung_Edit"
+          hint="Liệt kê các phụ tùng sử dụng"
+          :items="itemsSparePart"
+          item-text="text"
+          item-value="value"
+        />
+      </v-col>
+    </v-row>
+    <v-row>
+      <v-col cols="6">
+        <InputSelect
+          label="Trạng thái"
+          v-model="TrangThai_Edit"
+          hint="Ví dụ: Đã hoàn thành, Đang thực hiện, Chờ phê duyệt"
+          :items="itemsStatus"
+          item-text="text"
+          item-value="value"
+        />
+      </v-col>
+      <v-col cols="6">
+        <InputField
+          label="Chi phí"
+          v-model="ChiPhi_Edit"
+          type="number"
+          hint="Đơn vị: VND"
+        />
+      </v-col>
+    </v-row>
+    <v-row>
+      <v-col cols="6">
+        <InputField
+          label="Ngày bảo trì"
+          v-model="NgayBaoTri_Edit"
+          type="date"
+        />
+      </v-col>
+      <v-col cols="6">
+        <InputField
+          label="Ngày hoàn thành"
+          v-model="NgayHoanThanh_Edit"
+          type="date"
+        />
+      </v-col>
+    </v-row>
+    <v-row>
+      <v-col cols="6">
+        <InputField label="Người tạo" v-model="NguoiTao_Edit" />
+      </v-col>
+      <v-col cols="6">
+        <InputField label="Người thực hiện" v-model="NguoiThucHien_Edit" />
+      </v-col>
+    </v-row>
+    <InputTextarea
+      label="Mô tả lỗi"
+      v-model="MoTaLoi_Edit"
+      hint="Mô tả chi tiết lỗi cần bảo trì"
+    />
+    <InputTextarea
+      label="Biện pháp khắc phục"
+      v-model="BienPhapKhacPhuc_Edit"
+      hint="Mô tả cách thức khắc phục lỗi"
+    />
+    <template #actions>
+      <ButtonDelete @delete="DialogRemove = true" />
+      <v-spacer></v-spacer>
+      <ButtonCancel @cancel="DialogEdit = false" />
+      <ButtonSave @save="SaveEdit()" class="ms-2" />
+    </template>
+  </BaseDialog>
 
-      <v-card-actions class="pa-4">
-        <ButtonDelete @delete="DialogRemove = true" />
-        <v-spacer></v-spacer>
-        <ButtonCancel @cancel="DialogEdit = false" />
-        <ButtonSave @save="SaveEdit()" class="ms-2" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+  <BaseDialog
+    v-model="DialogAdd"
+    icon="mdi-plus"
+    title="Thêm dữ liệu bảo trì"
+    max-width="700"
+  >
+    <InputSelect
+      label="Loại bảo trì"
+      v-model="LoaiBaoTri_Add"
+      hint="Ví dụ: Bảo trì định kỳ, Sửa chữa, Thay thế"
+      :items="itemsType"
+      item-text="text"
+      item-value="value"
+    />
 
-  <v-dialog v-model="DialogAdd" width="500" scrollable>
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
-        Thêm dữ liệu bảo trì
-      </v-card-title>
+    <v-row>
+      <v-col cols="6">
+        <InputSelect
+          label="Phương án"
+          v-model="PhuongAn_Add"
+          hint="Tìm kiếm phương án"
+          :items="itemsPlan"
+          item-text="text"
+          item-value="value"
+        />
+      </v-col>
+      <v-col cols="6">
+        <InputSelect
+          label="Phụ tùng"
+          v-model="PhuTung_Add"
+          hint="Liệt kê các phụ tùng sử dụng"
+          :items="itemsSparePart"
+          item-text="text"
+          item-value="value"
+        />
+      </v-col>
+    </v-row>
+    <v-row>
+      <v-col cols="6">
+        <InputSelect
+          label="Trạng thái"
+          v-model="TrangThai_Add"
+          hint="Ví dụ: Đã hoàn thành, Đang thực hiện, Chờ phê duyệt"
+          :items="itemsStatus"
+          item-text="text"
+          item-value="value"
+        />
+      </v-col>
+      <v-col cols="6">
+        <InputField
+          label="Chi phí"
+          v-model="ChiPhi_Add"
+          type="number"
+          hint="Đơn vị: VND"
+        />
+      </v-col>
+    </v-row>
+    <v-row>
+      <v-col cols="6">
+        <InputField label="Ngày bảo trì" v-model="NgayBaoTri_Add" type="date" />
+      </v-col>
+      <v-col cols="6">
+        <InputField
+          label="Ngày hoàn thành"
+          v-model="NgayHoanThanh_Add"
+          type="date"
+        />
+      </v-col>
+    </v-row>
+    <v-row>
+      <v-col cols="6">
+        <InputField label="Người tạo" v-model="NguoiTao_Add" />
+      </v-col>
+      <v-col cols="6">
+        <InputField label="Người thực hiện" v-model="NguoiThucHien_Add" />
+      </v-col>
+    </v-row>
+    <InputTextarea
+      label="Mô tả lỗi"
+      v-model="MoTaLoi_Add"
+      hint="Mô tả chi tiết lỗi cần bảo trì"
+    />
+    <InputTextarea
+      label="Biện pháp khắc phục"
+      v-model="BienPhapKhacPhucs_Add"
+      hint="Mô tả cách thức khắc phục lỗi"
+    />
+    <template #actions>
+      <ButtonCancel @cancel="DialogAdd = false" />
+      <ButtonSave @save="SaveAdd()" class="ms-2" />
+    </template>
+  </BaseDialog>
 
-      <v-card-text class="pa-4">
-        <v-row>
-          <v-col cols="12">
-            <InputSelect
-              label="Loại bảo trì"
-              v-model="LoaiBaoTri_Add"
-              hint="Ví dụ: Bảo trì định kỳ, Sửa chữa, Thay thế"
-              :items="itemsType"
-              item-text="text"
-              item-value="value"
-            />
-          </v-col>
-          <v-col cols="6">
-            <InputSelect
-              label="Phương án"
-              v-model="PhuongAn_Add"
-              hint="Tìm kiếm phương án"
-              :items="itemsPlan"
-              item-text="text"
-              item-value="value"
-            />
-          </v-col>
-          <v-col cols="6">
-            <InputSelect
-              label="Phụ tùng"
-              v-model="PhuTung_Add"
-              hint="Liệt kê các phụ tùng sử dụng"
-              :items="itemsSparePart"
-              item-text="text"
-              item-value="value"
-            />
-          </v-col>
-          <v-col cols="6">
-            <InputSelect
-              label="Trạng thái"
-              v-model="TrangThai_Add"
-              hint="Ví dụ: Đã hoàn thành, Đang thực hiện, Chờ phê duyệt"
-              :items="itemsStatus"
-              item-text="text"
-              item-value="value"
-            />
-          </v-col>
-          <v-col cols="6">
-            <InputField
-              label="Chi phí"
-              v-model="ChiPhi_Add"
-              type="number"
-              hint="Đơn vị: VND"
-            />
-          </v-col>
-          <v-col cols="6">
-            <InputField
-              label="Ngày bảo trì"
-              v-model="NgayBaoTri_Add"
-              type="date"
-            />
-          </v-col>
-          <v-col cols="6">
-            <InputField
-              label="Ngày hoàn thành"
-              v-model="NgayHoanThanh_Add"
-              type="date"
-            />
-          </v-col>
-          <v-col cols="6">
-            <InputField label="Người tạo" v-model="NguoiTao_Add" />
-          </v-col>
-          <v-col cols="6">
-            <InputField label="Người thực hiện" v-model="NguoiThucHien_Add" />
-          </v-col>
-          <v-col cols="12">
-            <InputTextarea
-              label="Mô tả lỗi"
-              v-model="MoTaLoi_Add"
-              hint="Mô tả chi tiết lỗi cần bảo trì"
-            />
-          </v-col>
-          <v-col cols="12">
-            <InputTextarea
-              label="Biện pháp khắc phục"
-              v-model="BienPhapKhacPhuc_Add"
-              hint="Mô tả cách thức khắc phục lỗi"
-            />
-          </v-col>
-        </v-row>
-      </v-card-text>
-
-      <v-card-actions class="pa-4">
-        <v-spacer></v-spacer>
-        <ButtonCancel @cancel="DialogAdd = false" />
-        <ButtonSave @save="SaveAdd()" class="ms-2" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+  <BaseDialog
+    v-model="DialogRemove"
+    icon="mdi-delete"
+    title="Xóa bảo trì"
+    max-width="500"
+  >
+    <template #actions>
+      <ButtonCancel @cancel="DialogRemove = false" />
+      <ButtonDelete @delete="RemoveItem()" />
+    </template>
+  </BaseDialog>
 
   <v-dialog v-model="DialogRemove" width="400">
     <v-card class="rounded-xl">
@@ -426,6 +424,7 @@ import ButtonEye from "@/components/Button-Eye.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
+import BaseDialog from "@/components/BaseDialog.vue";
 import { useMaintenance } from "@/composables/Maintenance/useMaintenance";
 
 const { mdAndDown, lgAndUp } = useDisplay();
@@ -543,12 +542,16 @@ const SaveEdit = async () => {
   axios
     .put(`${Url}/Maintenance/Edit/${GetID.value}`, formData)
     .then(function (response) {
-      console.log(response.data.message);
-      Reset();
+      MessageDialog.value = response.data.message;
+      DialogEdit.value = false;
+      DialogSuccess.value = true;
     })
     .catch(function (error) {
-      console.log(error);
-      Error();
+      MessageErrorDialog.value = error.response.data.message;
+      DialogFailed.value = true;
+    })
+    .finally(function () {
+      DialogLoading.value = false;
     });
 };
 
@@ -571,12 +574,11 @@ const SaveAdd = async () => {
 
   try {
     const response = await axios.post(`${Url}/Maintenance/Add`, formData);
-    console.log(response.data);
+    MessageSuccess(response.data.message);
     Reset();
-    MessageDialog.value = "Thêm dữ liệu dự án thành công";
+    DialogAdd.value = false;
   } catch (error) {
-    console.error("Error adding maintenance record:", error);
-    Error();
+    MessageError(error.response.data.message);
   } finally {
     DialogLoading.value = false;
   }

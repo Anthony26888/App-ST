@@ -14,7 +14,12 @@
       <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
         <v-icon icon="mdi mdi-tools" color="primary"></v-icon> &nbsp;
         <v-breadcrumbs
-          :items="[`${NameManufacture}`, `${Name_Order}`, `${Type_Manufacture}`, `${Name_Category}`]"
+          :items="[
+            `${NameManufacture}`,
+            `${Name_Order}`,
+            `${Type_Manufacture}`,
+            `${Name_Category}`,
+          ]"
         >
           <template v-slot:divider>
             <v-icon icon="mdi-chevron-right"></v-icon>
@@ -112,7 +117,12 @@
         </v-row>
 
         <!-- Input Section -->
-        <v-card class="mb-4 rounded-xl border" variant="elevated" elevation="0" v-if="lgAndUp">
+        <v-card
+          class="mb-4 rounded-xl border"
+          variant="elevated"
+          elevation="0"
+          v-if="lgAndUp"
+        >
           <v-card-text>
             <v-row dense>
               <v-col cols="12" md="5">
@@ -125,7 +135,7 @@
                   hide-details
                   variant="outlined"
                   density="comfortable"
-                  />
+                />
               </v-col>
               <v-col cols="12" md="5">
                 <InputSelect
@@ -159,7 +169,6 @@
                   placeholder="VD: 5"
                 />
               </v-col>
-              
 
               <v-col cols="12" class="mt-4">
                 <InputTextarea
@@ -171,7 +180,11 @@
                 ></InputTextarea>
               </v-col>
             </v-row>
-            <ButtonSave @keydown.enter="submitBarcode" @click="submitBarcode"  autoforcus/>
+            <ButtonSave
+              @keydown.enter="submitBarcode"
+              @click="submitBarcode"
+              autoforcus
+            />
           </v-card-text>
         </v-card>
 
@@ -208,7 +221,11 @@
               </template>
             </v-select>
             <v-spacer v-if="lgAndUp"></v-spacer>
-            <InputSearch v-if="lgAndUp" v-model="searchText" placeholder="Tìm kiếm..." />
+            <InputSearch
+              v-if="lgAndUp"
+              v-model="searchText"
+              placeholder="Tìm kiếm..."
+            />
           </v-card-title>
           <v-data-table
             v-if="lgAndUp"
@@ -267,7 +284,6 @@
                 variant="tonal"
                 >Fixed</v-chip
               >
-              
             </template>
             <template #item.RWID="{ item }">
               <v-chip
@@ -276,7 +292,7 @@
                 v-if="item.RWID === 'Done'"
                 size="small"
                 variant="tonal"
-                >
+              >
                 <v-icon>mdi-check</v-icon>
               </v-chip>
             </template>
@@ -296,7 +312,7 @@
                 variant="tonal"
                 class="ml-2 text-caption"
                 @click="GetItem(item)"
-                prepend-icon = "mdi-check"
+                prepend-icon="mdi-check"
               >
                 Kiểm tra
               </v-btn>
@@ -379,7 +395,6 @@
                 variant="tonal"
                 >Fixed</v-chip
               >
-              
             </template>
             <template #item.RWID="{ item }">
               <v-chip
@@ -388,7 +403,7 @@
                 v-if="item.RWID === 'Done'"
                 size="small"
                 variant="tonal"
-                >
+              >
                 <v-icon>mdi-check</v-icon>
               </v-chip>
             </template>
@@ -408,7 +423,7 @@
                 variant="tonal"
                 class="ml-2 text-caption"
                 @click="GetItem(item)"
-                prepend-icon = "mdi-check"
+                prepend-icon="mdi-check"
               >
                 Kiểm tra
               </v-btn>
@@ -436,35 +451,33 @@
         </v-card>
       </v-card-text>
     </v-card>
-    <!-- Dialog xác nhận xóa -->
-    <v-dialog
-      :model-value="DialogFixed"
-      @update:model-value="DialogFixed = $event"
-      width="500"
+    <!-- Dialog xác nhận sửa sản phẩm -->
+    <BaseDialog
+      v-model="DialogFixed"
+      icon="mdi-hammer-screwdriver"
+      title="Xác nhận đã sửa sản phẩm"
+      max-width="500"
     >
-      <v-card
-        max-width="500"
-        prepend-icon="mdi-hammer-screwdriver"
-        title="Xác nhận đã sửa sản phẩm"
-      >
-        <v-card-text> Sản phẩm đã được sửa lỗi hoàn tất ? </v-card-text>
-        <template #actions>
-          <ButtonCancel @cancel="DialogFixed = false" />
-          <ButtonAgree @agree="markAsFixed()" />
-        </template>
-      </v-card>
-    </v-dialog>
+      <p>Sản phẩm đã được sửa lỗi hoàn tất ?</p>
+      <template v-slot:actions>
+        <ButtonCancel @cancel="DialogFixed = false" />
+        <ButtonAgree @agree="markAsFixed()" />
+      </template>
+    </BaseDialog>
 
     <!-- Dialog xác nhận xóa dữ liệu lịch sử sản xuất -->
-    <v-dialog v-model="DialogRemoveHistory" width="400">
-      <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
-        <v-card-text> Bạn có chắc chắn muốn xoá dữ liệu ? </v-card-text>
-        <template v-slot:actions>
-          <ButtonCancel @cancel="DialogRemoveHistory = false" />
-          <ButtonDelete @delete="RemoveItemHistory()" />
-        </template>
-      </v-card>
-    </v-dialog>
+    <BaseDialog
+      v-model="DialogRemoveHistory"
+      icon="mdi-delete"
+      title="Xoá dữ liệu"
+      max-width="500"
+    >
+      <p>Bạn có chắc chắn muốn xoá dữ liệu ?</p>
+      <template v-slot:actions>
+        <ButtonCancel @cancel="DialogRemoveHistory = false" />
+        <ButtonDelete @delete="RemoveItemHistory()" />
+      </template>
+    </BaseDialog>
 
     <SnackbarSuccess
       :model-value="DialogSuccess"
@@ -501,6 +514,7 @@ import ButtonDelete from "@/components/Button-Delete.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
+import BaseDialog from "@/components/BaseDialog.vue";
 
 // ===== Constants & Configuration =====
 const Url = import.meta.env.VITE_API_URL;
@@ -621,7 +635,7 @@ watch(
       NameManufacture.value = "";
       Name_Category.value = "";
       PlanID.value = "";
-      Type_Manufacture.value = ""
+      Type_Manufacture.value = "";
     }
   },
   { immediate: true, deep: true }
@@ -633,13 +647,13 @@ watch(
   (newData) => {
     if (!newData?.value) {
       DialogFailed.value = true;
-      MessageErrorDialog.value = "No manufactureAOI data available"
+      MessageErrorDialog.value = "No manufactureAOI data available";
       return;
     }
 
     if (!Array.isArray(newData.value)) {
       DialogFailed.value = true;
-      MessageErrorDialog.value = "Data is not an array"
+      MessageErrorDialog.value = "Data is not an array";
       return;
     }
 
@@ -662,7 +676,7 @@ watch(
  * Submits a barcode to the AOI manufacturing system
  * Handles form submission, API call, and error handling
  */
- const submitBarcode = async () => {
+const submitBarcode = async () => {
   // 1. Kiểm tra điều kiện đầu vào cơ bản
   // if (isSubmitting.value || !Input.value.trim()) {
   //   return;
@@ -679,31 +693,30 @@ watch(
     PartNumber: Input.value.trim(),
     Status: isFail ? "fail" : "pass",
     GroupFail: isFail ? Group_Fail.value.join(", ") : null,
-    Note: isFail ? ErrorLog.value : null, 
+    Note: isFail ? ErrorLog.value : null,
     PlanID: PlanID.value,
     Type: Type_Manufacture.value,
-    Quantity: Quantity_Add.value || 1, 
+    Quantity: Quantity_Add.value || 1,
   });
 
   try {
     const response = await axios.post(`${Url}/ManufactureCounting`, formData);
     DialogLoading.value = false;
-    
+
     // Reset các giá trị sau khi thành công
     Input.value = "";
     ErrorLog.value = "";
     Group_Fail.value = []; // Cần reset mảng phân loại lỗi
-    Quantity_Add.value = 1
+    Quantity_Add.value = 1;
     DialogSuccess.value = true;
     MessageDialog.value = "Sản phẩm đã được nhập thành công";
   } catch (error) {
     DialogLoading.value = false;
     Input.value = "";
     ErrorLog.value = "";
-    Quantity_Add.value = 1
+    Quantity_Add.value = 1;
     DialogFailed.value = true;
     MessageErrorDialog.value = "Lỗi khi nhập mã sản phẩm";
-    
   } finally {
     DialogLoading.value = false;
     isSubmitting.value = false;
@@ -728,7 +741,8 @@ const markAsFixed = async () => {
   });
   try {
     const response = await axios.put(
-      `${Url}/ManufactureCounting/Edit-status-fixed/${GetID.value}`, formData
+      `${Url}/ManufactureCounting/Edit-status-fixed/${GetID.value}`,
+      formData
     );
     // Refresh the data after successful update
     DialogFixed.value = false;

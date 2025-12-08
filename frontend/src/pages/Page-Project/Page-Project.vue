@@ -1,10 +1,15 @@
 <template lang="">
   <v-card variant="text" class="overflow-y-auto" height="100vh">
-    <v-card-title class="text-h4 font-weight-light" v-if="lgAndUp"
-      >Danh sách dự án
-    </v-card-title>
+    <template v-slot:title>
+      <v-card-title class="text-h4 font-weight-light"
+        >Danh sách dự án</v-card-title
+      >
+    </template>
+    <template v-slot:append>
+      <NotificationBell />
+    </template>
     <v-card-text>
-      <v-card-title class="mb-5">
+      <v-card-title class="mb-3">
         <v-row v-if="lgAndUp">
           <v-col cols="12" sm="6" md="3">
             <CardStatistic
@@ -314,207 +319,177 @@
                 ></Button-Download-Icon>
               </div>
             </template>
+            <template #[`item.Note`]>
+              <div style="white-space: pre-line">{{ item.Note }}</div>
+            </template>
           </v-data-table-virtual>
         </v-card-text>
       </v-card>
     </v-card-text>
   </v-card>
-  <v-dialog v-model="DialogEdit" width="400">
-    <v-card max-width="400" class="rounded-lg">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
-        Cập nhật dữ liệu
-      </v-card-title>
-      <v-card-text>
-        <InputField label="Khách hàng" v-model="Customer_Edit" />
-        <InputField label="Năm tạo" v-model="Years_Edit" />
-      </v-card-text>
-      <v-card-actions>
-        <ButtonDelete @delete="DialogRemove = true" />
-        <v-spacer></v-spacer>
-        <ButtonCancel @cancel="DialogEdit = false" />
-        <ButtonSave @save="SaveEdit()" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
 
-  <v-dialog v-model="DialogAdd" width="400">
-    <v-card max-width="400" class="rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
-        Thêm dữ liệu
-      </v-card-title>
-      <v-card-text>
-        <InputField label="Khách hàng" v-model="Customer_Add" />
-        <InputField type="date" v-model="Years_Add" />
-      </v-card-text>
-      <v-card-actions>
-        <ButtonCancel @cancel="DialogAdd = false" />
-        <ButtonSave @save="SaveAdd()" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogRemove" width="400">
-    <v-card
-      max-width="400"
-      class="rounded-xl"
-      prepend-icon="mdi-delete"
-      title="Xoá dữ liệu"
-    >
-      <v-card-text> Bạn có chắc chắn muốn xoá khách hàng này ? </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogRemove = false" />
-        <ButtonDelete @delete="RemoveItem()" />
-      </template>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="Dialog" width="400">
-    <v-card
-      max-width="400"
-      class="rounded-xl"
-      prepend-icon="mdi-update"
-      title="Thêm dữ liệu"
-    >
-      <v-card-text>
-        <InputFiles label="Thêm File Excel" v-model="File" />
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="Dialog = false" />
-        <ButtonSave @save="ImportFile()" />
-      </template>
-    </v-card>
-  </v-dialog>
+  <BaseDialog
+    title="Thêm dữ liệu"
+    icon="mdi-plus"
+    max-width="500"
+    v-model="DialogAdd"
+  >
+    <InputField label="Khách hàng" v-model="Customer_Add" />
+    <InputTextarea
+      style="white-space: pre-line"
+      label="Ghi chú"
+      v-model="Note_Add"
+    />
+    <template v-slot:actions>
+      <ButtonCancel @cancel="DialogAdd = false" />
+      <ButtonSave @save="SaveAdd()" />
+    </template>
+  </BaseDialog>
 
-  <v-dialog v-model="DialogFind" width="1200" scrollable>
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-filter" color="primary" class="me-2"></v-icon>
-        Tìm kiếm nâng cao
-        <v-spacer></v-spacer>
-        <v-btn
-          icon="mdi-close"
-          variant="text"
-          @click="DialogFind = false"
-        ></v-btn>
-      </v-card-title>
+  <BaseDialog
+    title="Cập nhật dữ liệu"
+    icon="mdi-pencil"
+    max-width="500"
+    v-model="DialogEdit"
+  >
+    <InputField label="Khách hàng" v-model="Customer_Edit" />
+    <InputTextarea
+      style="white-space: pre-line"
+      label="Ghi chú"
+      v-model="Note_Edit"
+    />
+    <template v-slot:actions>
+      <ButtonCancel @cancel="DialogEdit = false" />
+      <ButtonSave @save="SaveEdit()" />
+    </template>
+  </BaseDialog>
 
-      <v-card-title>
-        <v-row class="ms-2">
-          <!-- <v-col cols="2" md="2">
-            <v-text-field
-              variant="outlined"
-              v-model="startDate"
-              label="Từ ngày tạo PO"
-              type="date"
-            />
-          </v-col>
-          <v-col cols="2" md="2">
-            <v-text-field
-              variant="outlined"
-              v-model="endDate"
-              label="Đến ngày tạo PO"
-              type="date"
-            />
-          </v-col>
-          <v-col cols="2" md="2">
-            <v-text-field
-              variant="outlined"
-              v-model="startDateDelivery"
-              label="Từ ngày giao PO"
-              type="date"
-            />
-          </v-col>
-          <v-col cols="2" md="2">
-            <v-text-field
-              variant="outlined"
-              v-model="endDateDelivery"
-              label="Đến ngày giao PO"
-              type="date"
-            />
-          </v-col>
-          <v-col cols="1" md="1">
-            <v-btn
-              color="error"
-              class="text-caption mt-2"
-              variant="tonal"
-              @click="
-                (startDate = ''),
-                  (endDate = ''),
-                  (search = ''),
-                  (startDateDelivery = ''),
-                  (endDateDelivery = ''),
-                  (DialogFilterDate = false)
-              "
-              >Xoá lọc</v-btn
-            >
-          </v-col> -->
-          <v-col cols="12">
-            <InputSearch
-              variant="solo-filled"
-              density="comfortable"
-              v-model="searchFind"
-            />
-          </v-col>
-        </v-row>
-      </v-card-title>
-      <v-card-text class="overflow-auto">
-        <v-data-table-virtual
-          :headers="HeadersFind"
-          :items="filteredProjectFind"
-          :search="searchFind"
-          :items-per-page="itemsPerPageFind"
-          v-model:page="pageFind"
-          class="elevation-1"
-          :footer-props="{
-            'items-per-page-options': [10, 20, 50, 100],
-            'items-per-page-text': 'Số hàng mỗi trang',
-          }"
-          :header-props="{
-            sortByText: 'Sắp xếp theo',
-            sortDescText: 'Giảm dần',
-            sortAscText: 'Tăng dần',
-          }"
-          :loading="DialogLoading"
-          loading-text="Đang tải dữ liệu..."
-          no-data-text="Không có dữ liệu"
-          no-results-text="Không tìm thấy kết quả"
-          :hover="true"
-          :dense="false"
-          :fixed-header="true"
-          height="calc(100vh - 320px)"
-        >
-          <template v-slot:item.Status="{ value }">
-            <div>
-              <v-chip
-                :color="
-                  value === 'Hoàn thành'
-                    ? 'success'
-                    : value === 'Đang sản xuất'
-                    ? 'warning'
-                    : 'error'
+  <BaseDialog
+    title="Xoá dữ liệu"
+    icon="mdi-delete"
+    max-width="400"
+    v-model="DialogRemove"
+  >
+    <p>Bạn có chắc chắn muốn xoá khách hàng này ?</p>
+    <template v-slot:actions>
+      <ButtonCancel @cancel="DialogRemove = false" />
+      <ButtonDelete @delete="RemoveItem()" />
+    </template>
+  </BaseDialog>
+
+  <BaseDialog
+    title="Tìm kiếm nâng cao"
+    icon="mdi-filter"
+    max-width="1300"
+    v-model="DialogFind"
+  >
+    <v-card-title>
+      <v-row class="ms-2">
+        <v-col cols="3" md="3">
+          <v-text-field
+            variant="outlined"
+            v-model="startDateDelivery"
+            label="Từ ngày giao hàng"
+            type="date"
+          />
+        </v-col>
+        <v-col cols="3" md="3">
+          <v-text-field
+            variant="outlined"
+            v-model="endDateDelivery"
+            label="Đến ngày giao hàng"
+            type="date"
+          />
+        </v-col>
+        <v-col cols="1" md="1">
+          <v-tooltip text="Xoá lọc" location="bottom">
+            <template v-slot:activator="{ props }">
+              <v-btn
+                v-bind="props"
+                color="error"
+                class="text-caption mt-2"
+                variant="text"
+                icon="mdi-filter-remove"
+                @click="
+                  (startDate = ''),
+                    (endDate = ''),
+                    (search = ''),
+                    (startDateDelivery = ''),
+                    (endDateDelivery = ''),
+                    (DialogFilterDate = false)
                 "
-                variant="tonal"
-                class="text-caption"
-              >
-                {{ value }}
-              </v-chip>
-            </div>
-          </template>
-          <template v-slot:item.id="{ item }">
-            <div class="d-flex align-center">
-              <ButtonEye @detail="PushItemFind(item)" />
-            </div>
-          </template>
-          <template v-slot:item.Date_Created_PO="{ item }">
-            {{ item.Date_Created_PO.split("-").reverse().join("/") }}
-          </template>
-          <template v-slot:item.Date_Delivery_PO="{ item }">
-            {{ item.Date_Delivery_PO.split("-").reverse().join("/") }}
-          </template>
-        </v-data-table-virtual>
-      </v-card-text>
-    </v-card>
-  </v-dialog>
+              ></v-btn>
+            </template>
+          </v-tooltip>
+        </v-col>
+        <v-col cols="5">
+          <InputSearch
+            variant="solo-filled"
+            density="comfortable"
+            v-model="searchFind"
+          />
+        </v-col>
+      </v-row>
+    </v-card-title>
+    <v-data-table-virtual
+      fixed-header
+      density="compact"
+      :headers="HeadersFind"
+      :items="filteredProjectFind"
+      :search="searchFind"
+      :items-per-page="itemsPerPageFind"
+      v-model:page="pageFind"
+      class="elevation-1"
+      :footer-props="{
+        'items-per-page-options': [10, 20, 50, 100],
+        'items-per-page-text': 'Số hàng mỗi trang',
+      }"
+      :header-props="{
+        sortByText: 'Sắp xếp theo',
+        sortDescText: 'Giảm dần',
+        sortAscText: 'Tăng dần',
+      }"
+      :loading="DialogLoading"
+      loading-text="Đang tải dữ liệu..."
+      no-data-text="Không có dữ liệu"
+      no-results-text="Không tìm thấy kết quả"
+      :hover="true"
+      :dense="false"
+      :fixed-header="true"
+      height="calc(100vh - 320px)"
+    >
+      <template v-slot:item.Status="{ value }">
+        <div>
+          <v-chip
+            :color="
+              value === 'Hoàn thành'
+                ? 'success'
+                : value === 'Đang sản xuất'
+                ? 'warning'
+                : 'error'
+            "
+            variant="tonal"
+            size="small"
+            class="text-caption"
+          >
+            {{ value }}
+          </v-chip>
+        </div>
+      </template>
+      <template v-slot:item.id="{ item }">
+        <div class="d-flex align-center">
+          <ButtonEye @detail="PushItemFind(item)" />
+        </div>
+      </template>
+      <template v-slot:item.Date_Created_PO="{ item }">
+        {{ item.Date_Created_PO.split("-").reverse().join("/") }}
+      </template>
+      <template v-slot:item.Date_Delivery_PO="{ item }">
+        {{ item.Date_Delivery_PO.split("-").reverse().join("/") }}
+      </template>
+    </v-data-table-virtual>
+  </BaseDialog>
+
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
@@ -540,6 +515,8 @@ import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
+import NotificationBell from "@/components/NotificationBell.vue";
+import InputTextarea from "@/components/Input-Textarea.vue";
 
 // Composables
 import { useProject } from "@/composables/Project/useProject";
@@ -581,25 +558,44 @@ const File = ref(null);
 // Customer form states
 const Customer_Edit = ref(""); // Customer name for editing
 const Customer_Add = ref("");
-const Years_Edit = ref("");
-const Years_Add = ref("");
+const Note_Edit = ref("");
+const Note_Add = ref("");
 const GetID = ref(""); // Current item ID being processed
 
 // ===== Table States =====
 const Headers = ref([
-  { key: "Customer", title: "Khách hàng" },
-  { key: "Status", title: "Trạng thái" },
-  { key: "Quantity_PO", title: "Tổng PO" },
-  { key: "Quantity_Orders", title: "Tổng đơn hàng" },
+  { key: "Customer", title: "Khách hàng", width: "200" },
+  { key: "Status", title: "Trạng thái", width: "200" },
+  { key: "Quantity_PO", title: "Tổng PO", width: "200" },
+  { key: "Quantity_Orders", title: "Tổng đơn hàng", width: "200" },
   { key: "Percent_Completed", title: "Tỉ lệ hoàn thành", width: "200" },
+  { key: "Note", title: "Ghi chú", width: "400" },
   { key: "id", sortable: false, title: "Thao tác" },
 ]);
 
 const HeadersFind = ref([
-  { key: "CustomerName", title: "Khách hàng", width: "100" },
+  { key: "CustomerName", title: "KH", width: "70" },
   { key: "POID", title: "Tên dự án", width: "150" },
-  { key: "ProductDetail", title: "Tên đơn hàng", sortable: false },
-  { key: "Status", title: "Trạng thái đơn hàng", sortable: true },
+  {
+    key: "ProductDetail",
+    title: "Tên đơn hàng",
+    sortable: false,
+    width: "400",
+  },
+  { key: "Status", title: "Trạng thái đơn hàng", sortable: true, width: "150" },
+  {
+    key: "DeliveryDate",
+    title: "Ngày giao hàng",
+    sortable: true,
+    width: "150",
+  },
+  {
+    key: "DeliveryQuantity",
+    title: "Số lượng giao hàng",
+    sortable: true,
+    width: "150",
+  },
+  { key: "DeliveryStatus", title: "Trạng thái giao hàng", sortable: true, width: "150" },
   { key: "id", sortable: false, title: "Thao tác" },
 ]);
 
@@ -634,7 +630,7 @@ const LevelUser = localStorage.getItem("LevelUser");
 const filteredProjectFind = computed(() => {
   return projectFind.value.filter((item) => {
     const projectDate = new Date(item.Date_Created_PO);
-    const deliveryDate = new Date(item.Date_Delivery_PO);
+    const deliveryDate = new Date(item.DeliveryDateUnixpoch);
     const start = startDate.value ? new Date(startDate.value) : null;
     const end = endDate.value ? new Date(endDate.value) : null;
     const startDelivery = startDateDelivery.value
@@ -649,16 +645,6 @@ const filteredProjectFind = computed(() => {
     if (startDelivery && deliveryDate < startDelivery) return false;
     if (endDelivery && deliveryDate > endDelivery) return false;
     return true;
-  });
-});
-
-const formattedSelectedDate = computed(() => {
-  const date = new Date(Years_Add.value);
-  return date.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    timeZone: "Asia/Bangkok",
   });
 });
 
@@ -692,7 +678,7 @@ function GetItem(value) {
   GetID.value = value;
   const found = project.value.find((v) => v.id === value);
   Customer_Edit.value = found.Customer;
-  Years_Edit.value = found.Years;
+  Note_Edit.value = found.Note;
 }
 
 /**
@@ -703,7 +689,7 @@ const SaveEdit = async () => {
   DialogLoading.value = true;
   const formData = reactive({
     CustomerName: Customer_Edit.value,
-    Years: Years_Edit.value,
+    Note: Note_Edit.value,
   });
 
   try {
@@ -711,13 +697,15 @@ const SaveEdit = async () => {
       `${Url}/Project/Customer/Edit-Customer/${GetID.value}`,
       formData
     );
-    console.log(response.data.message);
+    DialogLoading.value = false;
+    DialogEdit.value = false;
+    DialogSuccess.value = true;
     MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
-    Reset();
   } catch (error) {
-    console.log(error);
+    DialogLoading.value = false;
+    DialogEdit.value = false;
+    DialogFailed.value = true;
     MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
-    Error();
   }
 };
 
@@ -729,7 +717,7 @@ const SaveAdd = async () => {
   DialogLoading.value = true;
   const formData = reactive({
     CustomerName: Customer_Add.value,
-    Years: formattedSelectedDate.value,
+    Note: Note_Add.value,
   });
 
   try {
@@ -737,13 +725,15 @@ const SaveAdd = async () => {
       `${Url}/Project/Customer/Add-Customer`,
       formData
     );
-    console.log(response.data);
+    DialogLoading.value = false;
+    DialogAdd.value = false;
+    DialogSuccess.value = true;
     MessageDialog.value = "Thêm dữ liệu thành công";
-    Reset();
   } catch (error) {
-    console.log(error);
+    DialogLoading.value = false;
+    DialogAdd.value = false;
+    DialogFailed.value = true;
     MessageErrorDialog.value = "Thêm dữ liệu thất bại";
-    Error();
   }
 };
 
@@ -757,11 +747,9 @@ const RemoveItem = async (id) => {
     const response = await axios.delete(
       `${Url}/Project/Customer/Delete-Customer/${GetID.value}`
     );
-    console.log(response.data.message);
     MessageDialog.value = "Xoá dữ liệu thành công";
     Reset();
   } catch (error) {
-    console.log(error);
     MessageErrorDialog.value = "Xoá dữ liệu thất bại";
     Error();
   }
@@ -779,11 +767,9 @@ const ImportFile = async () => {
 
   try {
     const response = await axios.post(`${Url}/Project/upload`, formData);
-    console.log(response);
     MessageDialog.value = "Tải file thành công";
     Reset();
   } catch (error) {
-    console.log(error);
     MessageErrorDialog.value = "Tải file thất bại";
     Error();
   }

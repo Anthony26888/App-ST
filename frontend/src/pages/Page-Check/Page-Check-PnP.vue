@@ -259,805 +259,276 @@
     </v-card-text>
   </v-card>
 
-  <v-dialog v-model="DialogAddBom" width="600" scrollable>
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
-        Thêm dữ liệu BOM
-      </v-card-title>
-      <v-card-text>
-        <InputFiles
-          label="Nhập file Bom (.xlsx)"
-          class="mt-2"
-          v-model="FileBom"
-          name="bom"
-        />
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogAddBom = false" />
-        <ButtonSave @save="uploadBOM()" />
-      </template>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogAddPnP" width="700" scrollable>
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
-        Thêm dữ liệu Pick & Place
-      </v-card-title>
-      <v-card-text>
-        <InputFiles
-          label="Nhập file Pick & Place (.xlsx)"
-          class="mt-2"
-          v-model="FilePnP"
-          name="pnp"
-        />
-        <div class="">
-          <p class="text-bold text-warning">Lưu ý:</p>
-          <p class="font-weight-light ms-2">
-            Giá trị PosX, PosY cần chuyển về giá trị mm.
-          </p>
-          <p class="font-weight-light ms-2">
-            Giá trị Layer thay thế là Top và Bottom.
-          </p>
-        </div>
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogAddPnP = false" />
-        <ButtonSave @save="uploadPNP" />
-      </template>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogAddGerber" width="700" scrollable>
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
-        Thêm dữ liệu Gerber
-      </v-card-title>
-      <v-card-text>
-        <InputFiles
-          label="Nhập file Gerber (.gtp, .gbp)"
-          class="mt-2"
-          v-model="FileGerber"
-          accept="*"
-          name="gerber"
-        />
-        <div class="d-flex">
-          <p class="text-bold text-warning">Lưu ý:</p>
-          <p class="font-weight-light ms-2">
-            Cần chuyển đổi đơn vị file Gerber .gtp, .gbp là inch
-          </p>
-        </div>
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogAddGerber = false" />
-        <ButtonSave @save="uploadGerber" />
-      </template>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogAddSize" width="600" scrollable>
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
-        Cập nhật kích thước linh kiện
-        <v-spacer></v-spacer>
-        <v-btn
-          icon="mdi-close"
-          variant="text"
-          @click="DialogAddSize = false"
-        ></v-btn>
-      </v-card-title>
-      <v-card-text>
+  <BaseDialog v-model="DialogAddBom" width="600" title="Thêm dữ liệu BOM" icon="mdi-plus">
+    <InputFiles
+      label="Nhập file Bom (.xlsx)"
+      class="mt-2"
+      v-model="FileBom"
+      name="bom"
+    />
+    <template #actions>
+      <ButtonCancel @cancel="DialogAddBom = false" />
+      <ButtonSave @save="uploadBOM()" />
+    </template>
+  </BaseDialog>
+  <BaseDialog v-model="DialogAddPnP" width="700" title="Thêm dữ liệu Pick & Place" icon="mdi-plus">
+    <InputFiles
+      label="Nhập file Pick & Place (.xlsx)"
+      class="mt-2"
+      v-model="FilePnP"
+      name="pnp"
+    />
+    <div class="">
+      <p class="text-bold text-warning">Lưu ý:</p>
+      <p class="font-weight-light ms-2">
+        Giá trị PosX, PosY cần chuyển về giá trị mm.
+      </p>
+      <p class="font-weight-light ms-2">
+        Giá trị Layer thay thế là Top và Bottom.
+      </p>
+    </div>
+    <template #actions>
+      <ButtonCancel @cancel="DialogAddPnP = false" />
+      <ButtonSave @save="uploadPNP" />
+    </template>
+  </BaseDialog>
+  <BaseDialog v-model="DialogAddGerber" width="700" title="Thêm dữ liệu Gerber" icon="mdi-plus">
+    <InputFiles
+      label="Nhập file Gerber (.gtp, .gbp)"
+      class="mt-2"
+      v-model="FileGerber"
+      accept="*"
+      name="gerber"
+    />
+    <div class="d-flex">
+      <p class="text-bold text-warning">Lưu ý:</p>
+      <p class="font-weight-light ms-2">
+        Cần chuyển đổi đơn vị file Gerber .gtp, .gbp là inch
+      </p>
+    </div>
+    <template #actions>
+      <ButtonCancel @cancel="DialogAddGerber = false" />
+      <ButtonSave @save="uploadGerber" />
+    </template>
+  </BaseDialog>
+  <BaseDialog v-model="DialogAddSize" width="600" title="Cập nhật kích thước linh kiện" icon="mdi-update">
+    <InputField
+      label="Mã linh kiện | Manufacture Part Number"
+      v-model="MPN_Add_Size"
+      disabled
+    />
+    <InputField label="Loại | Package" v-model="Package_Add_Size" />
+    <InputField label="Chiều dài | Length (mm)" v-model="Length_Add_Size" />
+    <InputField label="Chiều rộng | Width (mm)" v-model="Width_Add_Size" />
+    <template #actions>
+      <ButtonCancel @cancel="DialogAddSize = false" />
+      <ButtonSave @save="SaveAddSize()" />
+    </template>
+  </BaseDialog>
+  <BaseDialog v-model="DialogRemove" width="400" title="Xoá dữ liệu" icon="mdi-delete">
+    Bạn có chắc chắn muốn xoá Bom này ?
+    <template #actions>
+      <ButtonCancel @cancel="DialogRemove = false" />
+      <ButtonDelete @delete="RemoveItem()" />
+    </template>
+  </BaseDialog>
+  <BaseDialog v-model="DialogEdit" width="600" title="Chỉnh sửa Pick & Place" icon="mdi-update">
+    <v-row>
+      <v-col cols="4">
         <InputField
-          label="Mã linh kiện | Manufacture Part Number"
-          v-model="MPN_Add_Size"
-          disabled
+          label="Toạ độ X (mm)"
+          v-model="PnP_X_Edit"
+          hint="Toa độ X linh kiện"
         />
-        <InputField label="Loại | Package" v-model="Package_Add_Size" />
-        <InputField label="Chiều dài | Length (mm)" v-model="Length_Add_Size" />
-        <InputField label="Chiều rộng | Width (mm)" v-model="Width_Add_Size" />
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogAddSize = false" />
-        <ButtonSave @save="SaveAddSize()" />
-      </template>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogRemove" width="400">
-    <v-card
-      max-width="400"
-      prepend-icon="mdi-delete"
-      title="Xoá dữ liệu"
-      class="rounded-xl"
-    >
-      <v-card-text> Bạn có chắc chắn muốn xoá Bom này ? </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogRemove = false" />
-        <ButtonDelete @delete="RemoveItem()" />
-      </template>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogEdit" width="600">
-    <v-card max-width="600" class="rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
-        Chỉnh sửa Pick & Place
-      </v-card-title>
-      <v-card-text>
-        <v-row>
-          <v-col cols="4">
-            <InputField
-              label="Toạ độ X (mm)"
-              v-model="PnP_X_Edit"
-              hint="Toa độ X linh kiện"
-            />
-          </v-col>
-          <v-col cols="4">
-            <InputField
-              label="Toạ độ Y (mm)"
-              v-model="PnP_Y_Edit"
-              hint="Toa độ Y linh kiện"
-            />
-          </v-col>
-          <v-col cols="4">
-            <InputField
-              label="Góc"
-              v-model="PnP_Angle_Edit"
-              hint="Góc linh kiện"
-            />
-          </v-col>
-        </v-row>
-
-        <InputSelect
-          label="Bề mặt"
-          v-model="PnP_Layer_Edit"
-          hint="Bề mặt PCB"
-          :items="['Top', 'Bottom']"
-          item-text="text"
-          item-value="value"
+      </v-col>
+      <v-col cols="4">
+        <InputField
+          label="Toạ độ Y (mm)"
+          v-model="PnP_Y_Edit"
+          hint="Toa độ Y linh kiện"
         />
-
-        <InputSelect
-          label="Định dạng"
-          v-model="PnP_Type_Edit"
-          hint="Định dạng hàn tay hoặc SMT"
-          :items="['SMT', 'Hàn tay']"
-          item-text="text"
-          item-value="value"
+      </v-col>
+      <v-col cols="4">
+        <InputField
+          label="Góc"
+          v-model="PnP_Angle_Edit"
+          hint="Góc linh kiện"
         />
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogEdit = false" />
-        <ButtonSave @save="SaveEditPnP()" />
-      </template>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogInfo" width="800" scrollable>
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon
-          icon="mdi-information-variant-circle"
-          color="primary"
-          class="me-2"
-        ></v-icon>
-        Thông số kỹ thuật
+      </v-col>
+    </v-row>
 
-        <v-spacer></v-spacer>
-        <v-btn
-          variant="text"
-          icon="mdi-close"
-          @click="DialogInfo = false"
-        ></v-btn>
-      </v-card-title>
+    <InputSelect
+      label="Bề mặt"
+      v-model="PnP_Layer_Edit"
+      hint="Bề mặt PCB"
+      :items="['Top', 'Bottom']"
+      item-text="text"
+      item-value="value"
+    />
 
-      <v-card-text class="pa-4">
-        <v-row>
-          <v-col>
-            <v-img :src="ResultSearch.Product.PhotoUrl"></v-img>
-          </v-col>
-          <v-col>
-            <v-list-item density="comfortable" lines="two">
-              <template v-slot:title>
-                <strong class="text-h6">
-                  {{ ResultSearch.Product.ManufacturerProductNumber }}
-                </strong>
-              </template>
-            </v-list-item>
+    <InputSelect
+      label="Định dạng"
+      v-model="PnP_Type_Edit"
+      hint="Định dạng hàn tay hoặc SMT"
+      :items="['SMT', 'Hàn tay']"
+      item-text="text"
+      item-value="value"
+    />
+    <template #actions>
+      <ButtonCancel @cancel="DialogEdit = false" />
+      <ButtonSave @save="SaveEditPnP()" />
+    </template>
+  </BaseDialog>
+  <BaseDialog v-model="DialogInfo" width="800" title="Thông số kỹ thuật" icon="mdi-information-variant-circle">
+    <v-row>
+      <v-col>
+        <v-img :src="ResultSearch.Product.PhotoUrl"></v-img>
+      </v-col>
+      <v-col>
+        <v-list-item density="comfortable" lines="two">
+          <template v-slot:title>
+            <strong class="text-h6">
+              {{ ResultSearch.Product.ManufacturerProductNumber }}
+            </strong>
+          </template>
+        </v-list-item>
 
-            <v-table class="text-caption" density="compact">
-              <tbody>
-                <tr>
-                  <td><strong>Datasheet</strong></td>
-                  <td>
-                    <v-btn
-                      size="small"
-                      prepend-icon="mdi-database-arrow-right"
-                      :href="ResultSearch.Product.DatasheetUrl"
-                      target="_blank"
-                      color="primary"
-                      variant="tonal"
-                      class="text-caption"
-                    >
-                      Datasheet
-                    </v-btn>
-                  </td>
-                </tr>
-                <tr
-                  v-for="item in ResultSearch.Product.Parameters"
-                  :key="item.name"
+        <v-table class="text-caption" density="compact">
+          <tbody>
+            <tr>
+              <td><strong>Datasheet</strong></td>
+              <td>
+                <v-btn
+                  size="small"
+                  prepend-icon="mdi-database-arrow-right"
+                  :href="ResultSearch.Product.DatasheetUrl"
+                  target="_blank"
+                  color="primary"
+                  variant="tonal"
+                  class="text-caption"
                 >
-                  <td>
-                    <strong>{{ item.ParameterText }}</strong>
-                  </td>
-                  <td>{{ item.ValueText }}</td>
-                </tr>
-              </tbody>
-            </v-table>
-          </v-col>
-        </v-row>
-      </v-card-text>
-    </v-card>
-  </v-dialog>
+                  Datasheet
+                </v-btn>
+              </td>
+            </tr>
+            <tr
+              v-for="item in ResultSearch.Product.Parameters"
+              :key="item.name"
+            >
+              <td>
+                <strong>{{ item.ParameterText }}</strong>
+              </td>
+              <td>{{ item.ValueText }}</td>
+            </tr>
+          </tbody>
+        </v-table>
+      </v-col>
+    </v-row>
+  </BaseDialog>
 
-  <v-dialog v-model="DialogCoordinateSettings" width="700" scrollable>
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-tune" color="primary" class="me-2"></v-icon>
-        Cài đặt tọa độ
-        <v-spacer></v-spacer>
-        <v-btn
-          variant="text"
-          icon="mdi-close"
-          @click="DialogCoordinateSettings = false"
-        ></v-btn>
-      </v-card-title>
-      <v-card-text class="pa-4">
-        <!-- Preset transformations -->
-        <!-- <p class="text-caption text-grey mb-2">Preset transformations:</p>
-        <div class="d-flex flex-wrap gap-2">
-          <v-btn
-            @click="applyPreset('mm_to_inch')"
-            size="small"
-            variant="outlined"
-            color="primary"
-          >
-            mm → inch (/0.0254)
-          </v-btn>
-          <v-btn
-            @click="applyPreset('inch_to_mm')"
-            size="small"
-            variant="outlined"
-            color="primary"
-          >
-            inch → mm (×25.4)
-          </v-btn>
-          <v-btn
-            @click="applyPreset('mil_to_mm')"
-            size="small"
-            variant="outlined"
-            color="primary"
-          >
-            mil → mm (×0.0254)
-          </v-btn>
-          <v-btn
-            @click="applyPreset('mm_to_um')"
-            size="small"
-            variant="outlined"
-            color="primary"
-          >
-            mm → µm (×1000)
-          </v-btn>
-        </div> -->
+  <BaseDialog v-model="DialogCoordinateSettings" width="700" title="Cài đặt tọa độ" icon="mdi-tune">
+    <p class="text-caption text-grey mb-2">Điều chỉnh tọa độ thủ công:</p>
 
-        <!-- <v-divider class="my-3"></v-divider> -->
-
-        <!-- Board rotation and flip controls -->
-        <!-- <p class="text-caption text-grey mb-2">Xoay & Lật Pick&Place:</p> -->
-
-        <!-- Nút lật mặt -->
-        <!-- <div class="d-flex flex-wrap ga-2 mt-2">
-          <v-btn
-            @click="flipX = !flipX"
-            :color="flipX ? 'error' : 'default'"
-            prepend-icon="mdi-flip-horizontal"
-            size="small"
-            variant="outlined"
-          >
-            {{ flipX ? "✓" : "✗" }} Lật X
-          </v-btn>
-          <v-btn
-            @click="flipY = !flipY"
-            :color="flipY ? 'error' : 'default'"
-            prepend-icon="mdi-flip-vertical"
-            size="small"
-            variant="outlined"
-          >
-            {{ flipY ? "✓" : "✗" }} Lật Y
-          </v-btn>
-          <v-btn
-            @click="swapXY = !swapXY"
-            :color="swapXY ? 'warning' : 'default'"
-            prepend-icon="mdi-swap-horizontal"
-            size="small"
-            variant="outlined"
-          >
-            {{ swapXY ? "✓" : "✗" }} Đổi X↔Y
-          </v-btn>
-        </div> -->
-
-        <!-- Custom angle rotation -->
-        <!-- Chọn tâm xoay -->
-        <!-- <div class="d-flex flex-wrap ga-2 mt-3">
+    <div class="ga-2">
+      <v-row>
+        <v-col>
           <InputField
-            v-model.number="cx"
-            label="cx (tâm X)"
-            type="number"
-            density="comfortable"
-            variant="outlined"
-          />
-          <InputField
-            v-model.number="cy"
-            label="cy (tâm Y)"
-            type="number"
-            density="comfortable"
-            variant="outlined"
-          />
-        </div> -->
-
-        <!-- Nút xoay nhanh -->
-        <!-- <div class="d-flex flex-wrap ga-2">
-          <v-btn
-            @click="quickRotate(90)"
-            color="primary"
-            prepend-icon="mdi-rotate-orbit"
-            size="small"
-          >
-            90°
-          </v-btn>
-          <v-btn @click="quickRotate(180)" variant="tonal" size="small">
-            180°
-          </v-btn>
-          <v-btn @click="quickRotate(270)" variant="tonal" size="small">
-            270°
-          </v-btn>
-          <v-btn @click="quickRotate(-90)" variant="tonal" size="small">
-            -90° (CW)
-          </v-btn>
-        </div>
-        <div class="d-flex flex-wrap ga-2 mt-2">
-          <InputField
-            v-model.number="rotationAngle"
-            label="Góc xoay tùy chỉnh (độ)"
-            type="number"
-            density="comfortable"
-            variant="outlined"
-            class="flex-grow-1"
-          />
-          <v-btn
-            @click="rotatePnPAroundCenter"
-            color="primary"
-            variant="tonal"
-            size="small"
-            prepend-icon="mdi-rotate-3d-variant"
-            class="mt-2 text-caption"
-          >
-            Xoay
-          </v-btn>
-        </div> -->
-
-        <!-- Điều chỉnh tọa độ thủ công -->
-        <!-- <v-divider class="my-3"></v-divider> -->
-        <p class="text-caption text-grey mb-2">Điều chỉnh tọa độ thủ công:</p>
-
-        <div class="ga-2">
-          <v-row>
-            <v-col>
-              <InputField
-                v-model.number="manualOffsetX"
-                label="Điều chỉnh X (mm)"
-                type="number"
-                density="comfortable"
-                variant="outlined"
-                step="0.01"
-              />
-              <p class="font-weight-thin">Đã Offset X: {{ hintOffsetX }} mm</p>
-              <br />
-              <p class="font-weight-thin">
-                Tổng Offset X: {{ totalAddedX.toFixed(2) }} mm
-              </p>
-            </v-col>
-            <v-col>
-              <InputField
-                v-model.number="manualOffsetY"
-                label="Điều chỉnh Y (mm)"
-                type="number"
-                density="comfortable"
-                variant="outlined"
-                step="0.01"
-              />
-              <p class="font-weight-thin">Đã Offset Y: {{ hintOffsetY }} mm</p>
-              <br />
-              <p class="font-weight-thin">
-                Tổng Offset Y: {{ totalAddedY.toFixed(2) }} mm
-              </p>
-            </v-col>
-          </v-row>
-        </div>
-
-        <!-- Nút điều chỉnh nhanh
-        <div class="d-flex flex-wrap ga-2 mt-2">
-          <v-btn
-            @click="quickAdjustX(1)"
-            color="primary"
-            prepend-icon="mdi-arrow-right"
-            size="small"
-            variant="outlined"
-          >
-            +1mm X
-          </v-btn>
-          <v-btn
-            @click="quickAdjustX(-1)"
-            color="primary"
-            prepend-icon="mdi-arrow-left"
-            size="small"
-            variant="outlined"
-          >
-            -1mm X
-          </v-btn>
-          <v-btn
-            @click="quickAdjustY(1)"
-            color="primary"
-            prepend-icon="mdi-arrow-down"
-            size="small"
-            variant="outlined"
-          >
-            +1mm Y
-          </v-btn>
-          <v-btn
-            @click="quickAdjustY(-1)"
-            color="primary"
-            prepend-icon="mdi-arrow-up"
-            size="small"
-            variant="outlined"
-          >
-            -1mm Y
-          </v-btn>
-        </div>
-
-        <div class="d-flex flex-wrap ga-2 mt-2">
-          <v-btn
-            @click="quickAdjustX(0.1)"
-            color="secondary"
-            prepend-icon="mdi-arrow-right"
-            size="small"
-            variant="outlined"
-          >
-            +0.1mm X
-          </v-btn>
-          <v-btn
-            @click="quickAdjustX(-0.1)"
-            color="secondary"
-            prepend-icon="mdi-arrow-left"
-            size="small"
-            variant="outlined"
-          >
-            -0.1mm X
-          </v-btn>
-          <v-btn
-            @click="quickAdjustY(0.1)"
-            color="secondary"
-            prepend-icon="mdi-arrow-down"
-            size="small"
-            variant="outlined"
-          >
-            +0.1mm Y
-          </v-btn>
-          <v-btn
-            @click="quickAdjustY(-0.1)"
-            color="secondary"
-            prepend-icon="mdi-arrow-up"
-            size="small"
-            variant="outlined"
-          >
-            -0.1mm Y
-          </v-btn>
-        </div> -->
-
-        <!-- Áp dụng điều chỉnh thủ công -->
-        <div class="d-flex flex-wrap ga-2 mt-2">
-          <v-btn
-            @click="applyManualAdjustmentX"
-            color="success"
-            variant="tonal"
-            size="small"
-            prepend-icon="mdi-cursor-pointer"
-            :disabled="manualOffsetX === 0"
-            class="text-caption"
-          >
-            Áp dụng X
-          </v-btn>
-          <v-btn
-            @click="applyManualAdjustmentY"
-            color="success"
-            variant="tonal"
-            size="small"
-            prepend-icon="mdi-cursor-pointer"
-            :disabled="manualOffsetY === 0"
-            class="text-caption"
-          >
-            Áp dụng Y
-          </v-btn>
-          <v-btn
-            @click="applyManualAdjustment"
-            color="success"
-            variant="tonal"
-            size="small"
-            prepend-icon="mdi-cursor-pointer"
-            :disabled="manualOffsetX === 0 && manualOffsetY === 0"
-            class="text-caption"
-          >
-            Áp dụng cả X&Y
-          </v-btn>
-          <v-btn
-            @click="resetManualAdjustment"
-            color="warning"
-            variant="tonal"
-            size="small"
-            prepend-icon="mdi-refresh"
-            class="text-caption"
-          >
-            Reset điều chỉnh
-          </v-btn>
-        </div>
-
-        <v-divider class="my-3"></v-divider>
-        <!-- <v-row> -->
-        <!-- Điều khiển góc designator label -->
-        <!-- <v-col cols="6">
-            <p class="text-caption text-grey mb-2">
-              Điều khiển góc designator label:
-            </p>
-
-            <div class="d-flex flex-wrap ga-2">
-              <InputField
-                v-model.number="designatorLabelAngle"
-                label="Góc designator label (°)"
-                type="number"
-                density="comfortable"
-                variant="outlined"
-                step="1"
-                min="-360"
-                max="360"
-              />
-            </div> -->
-
-        <!-- Nút xoay nhanh designator label -->
-        <!-- <div class="d-flex flex-wrap ga-2 mt-2">
-              <v-btn
-                @click="rotateDesignatorLabel(90)"
-                color="info"
-                prepend-icon="mdi-rotate-right"
-                size="small"
-                variant="outlined"
-              >
-                +90°
-              </v-btn>
-              <v-btn
-                @click="rotateDesignatorLabel(-90)"
-                color="info"
-                prepend-icon="mdi-rotate-left"
-                size="small"
-                variant="outlined"
-              >
-                -90°
-              </v-btn>
-              <v-btn
-                @click="rotateDesignatorLabel(180)"
-                color="info"
-                prepend-icon="mdi-rotate-3d-variant"
-                size="small"
-                variant="outlined"
-              >
-                +180°
-              </v-btn>
-              <v-btn
-                @click="resetDesignatorLabelAngle"
-                color="warning"
-                prepend-icon="mdi-refresh"
-                size="small"
-                variant="tonal"
-                :disabled="designatorLabelAngle === 0"
-                class="text-caption"
-              >
-                Reset góc label
-              </v-btn>
-            </div>
-          </v-col>
-          <v-col cols="6"> -->
-        <!-- Điều khiển góc xoay component body rectangle -->
-        <!-- <p class="text-caption text-grey mb-2">
-              Điều khiển góc xoay component body rectangle:
-            </p>
-
-            <div class="d-flex flex-wrap ga-2">
-              <InputField
-                v-model.number="componentBodyAngle"
-                label="Góc xoay component body (°)"
-                type="number"
-                density="comfortable"
-                variant="outlined"
-                step="1"
-                min="-360"
-                max="360"
-              />
-            </div> -->
-
-        <!-- Nút xoay nhanh component body -->
-        <!-- <div class="d-flex flex-wrap ga-2 mt-2">
-              <v-btn
-                @click="rotateComponentBody(90)"
-                color="success"
-                prepend-icon="mdi-rotate-right"
-                size="small"
-                variant="outlined"
-              >
-                +90°
-              </v-btn>
-              <v-btn
-                @click="rotateComponentBody(-90)"
-                color="success"
-                prepend-icon="mdi-rotate-left"
-                size="small"
-                variant="outlined"
-              >
-                -90°
-              </v-btn>
-              <v-btn
-                @click="rotateComponentBody(180)"
-                color="success"
-                prepend-icon="mdi-rotate-3d-variant"
-                size="small"
-                variant="outlined"
-              >
-                +180°
-              </v-btn>
-              <v-btn
-                @click="resetComponentBodyAngle"
-                color="warning"
-                prepend-icon="mdi-refresh"
-                size="small"
-                variant="tonal"
-                :disabled="componentBodyAngle === 0"
-                class="text-caption"
-              >
-                Reset góc body
-              </v-btn>
-            </div>
-          </v-col>
-        </v-row> -->
-
-        <!-- Điều khiển xoay SVG -->
-        <!-- <v-divider class="my-3"></v-divider>
-        <p class="text-caption text-grey mb-2">Điều khiển board:</p> -->
-        <!-- <div class="d-flex flex-wrap ga-2">
-          <InputField
-            v-model.number="panelFrameX"
-            label="Rìa panel trục X (mm)"
+            v-model.number="manualOffsetX"
+            label="Điều chỉnh X (mm)"
             type="number"
             density="comfortable"
             variant="outlined"
             step="0.01"
           />
+          <p class="font-weight-thin">Đã Offset X: {{ hintOffsetX }} mm</p>
+          <br />
+          <p class="font-weight-thin">
+            Tổng Offset X: {{ totalAddedX.toFixed(2) }} mm
+          </p>
+        </v-col>
+        <v-col>
           <InputField
-            v-model.number="panelFrameY"
-            label="Rìa panel trục Y (mm)"
+            v-model.number="manualOffsetY"
+            label="Điều chỉnh Y (mm)"
             type="number"
             density="comfortable"
             variant="outlined"
             step="0.01"
           />
-        </div>
-        <div class="d-flex">
-          <p class="text-bold text-warning">Lưu ý:</p>
-          <p class="font-weight-light ms-2">Trục Y tính từ dưới panel đến vị trị board có linh kiện, Trục X tính từ bên trái qua.</p>
-        </div> -->
-        <!-- <div class="d-flex flex-wrap ga-2 mt-5">
-          <InputField
-            v-model.number="svgRotation"
-            label="Góc xoay board (°)"
-            type="number"
-            density="comfortable"
-            variant="outlined"
-            step="1"
-            min="-360"
-            max="360"
-          />
-        </div>
-        <div class="d-flex flex-wrap ga-2 mt-2">
-          <v-btn
-            @click="rotateSvg(90)"
-            color="info"
-            prepend-icon="mdi-rotate-right"
-            size="small"
-            variant="outlined"
-          >
-            +90°
-          </v-btn>
-          <v-btn
-            @click="rotateSvg(-90)"
-            color="info"
-            prepend-icon="mdi-rotate-left"
-            size="small"
-            variant="outlined"
-          >
-            -90°
-          </v-btn>
-          <v-btn
-            @click="rotateSvg(180)"
-            color="info"
-            prepend-icon="mdi-rotate-3d-variant"
-            size="small"
-            variant="outlined"
-          >
-            +180°
-          </v-btn> -->
-        <!-- <v-btn
-            @click="autoRotateSvgToFitPnP"
-            color="success"
-            prepend-icon="mdi-auto-fix"
-            size="small"
-            variant="tonal"
-            :disabled="!detailPnP || detailPnP.length === 0"
-          >
-            Tự động xoay
-          </v-btn> -->
-        <!-- <v-btn
-            @click="resetSvgRotation"
-            color="warning"
-            prepend-icon="mdi-refresh"
-            size="small"
-            variant="tonal"
-            :disabled="svgRotation === 0"
-            class="text-caption"
-          >
-            Reset xoay
-          </v-btn> -->
-        <!-- <v-btn
-            @click="testSvgRotation"
-            color="info"
-            prepend-icon="mdi-bug"
-            size="small"
-            variant="outlined"
-          >
-            Test xoay
-          </v-btn> -->
-        <!-- </div> -->
+          <p class="font-weight-thin">Đã Offset Y: {{ hintOffsetY }} mm</p>
+          <br />
+          <p class="font-weight-thin">
+            Tổng Offset Y: {{ totalAddedY.toFixed(2) }} mm
+          </p>
+        </v-col>
+      </v-row>
+    </div>
+    <div class="d-flex flex-wrap ga-2 mt-2">
+      <v-btn
+        @click="applyManualAdjustmentX"
+        color="success"
+        variant="tonal"
+        size="small"
+        prepend-icon="mdi-cursor-pointer"
+        :disabled="manualOffsetX === 0"
+        class="text-caption"
+      >
+        Áp dụng X
+      </v-btn>
+      <v-btn
+        @click="applyManualAdjustmentY"
+        color="success"
+        variant="tonal"
+        size="small"
+        prepend-icon="mdi-cursor-pointer"
+        :disabled="manualOffsetY === 0"
+        class="text-caption"
+      >
+        Áp dụng Y
+      </v-btn>
+      <v-btn
+        @click="applyManualAdjustment"
+        color="success"
+        variant="tonal"
+        size="small"
+        prepend-icon="mdi-cursor-pointer"
+        :disabled="manualOffsetX === 0 && manualOffsetY === 0"
+        class="text-caption"
+      >
+        Áp dụng cả X&Y
+      </v-btn>
+      <v-btn
+        @click="resetManualAdjustment"
+        color="warning"
+        variant="tonal"
+        size="small"
+        prepend-icon="mdi-refresh"
+        class="text-caption"
+      >
+        Reset điều chỉnh
+      </v-btn>
+    </div>
 
-        <!-- Áp dụng tất cả biến đổi -->
-        <!-- <v-divider class="my-3"></v-divider> -->
-
-        <!-- <v-divider class="my-3"></v-divider> -->
-        <div class="d-flex gap-2">
-          <v-btn
-            @click="resetCoordinates"
-            color="secondary"
-            variant="tonal"
-            size="small"
-            class="text-caption"
-          >
-            Reset
-          </v-btn>
-          <v-spacer></v-spacer>
-          <ButtonSave
-            @save="
-              SaveSettingSVG();
-              SaveTransformPnP();
-            "
-          />
-        </div>
-      </v-card-text>
-    </v-card>
-  </v-dialog>
+    <v-divider class="my-3"></v-divider>
+    <div class="d-flex gap-2">
+      <v-btn
+        @click="resetCoordinates"
+        color="secondary"
+        variant="tonal"
+        size="small"
+        class="text-caption"
+      >
+        Reset
+      </v-btn>
+      <v-spacer></v-spacer>
+      <ButtonSave
+        @save="
+          SaveSettingSVG();
+          SaveTransformPnP();
+        "
+      />
+    </div>
+  </BaseDialog>
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarCaution v-model="DialogCaution" :message="MessageCautionDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
@@ -1091,6 +562,7 @@ import ButtonCancel from "@/components/Button-Cancel.vue";
 import Loading from "@/components/Loading.vue";
 import EmptyMobile from "@/components/Empty-Mobile.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
+import BaseDialog from "@/components/BaseDialog.vue";
 
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";

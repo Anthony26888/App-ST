@@ -122,450 +122,368 @@
     </v-card-text>
   </v-card>
 
-  <v-dialog v-model="Dialog" width="400" class="rounded-xl">
-    <v-card
-      max-width="400"
-      prepend-icon="mdi-update"
-      title="Thêm dữ liệu"
-      class="rounded-xl"
+  <BaseDialog
+    v-model="Dialog"
+    width="400"
+    title="Thêm dữ liệu"
+    icon="mdi-folder-arrow-up-outline"
+  >
+    <InputFiles abel="Thêm File Excel" v-model="File" />
+    <template v-slot:actions>
+      <ButtonCancel @cancel="Dialog = false" />
+      <ButtonSave @save="ImportFile()" />
+    </template>
+  </BaseDialog>
+
+  <BaseDialog
+    v-model="DialogOutput"
+    width="700"
+    title="Thêm dữ liệu trừ linh kiện"
+    icon="mdi-magnify"
+  >
+    <div class="d-flex">
+      <InputFiles
+        label="Thêm File Excel trừ linh kiện"
+        v-model="FileOutput"
+        :disabled="temporaryWarehouse != ''"
+      />
+      <v-btn
+        class="text-caption ms-2 mt-3"
+        variant="tonal"
+        color="primary"
+        prepend-icon="mdi-send"
+        @click="ImportFile_Output()"
+        :disabled="temporaryWarehouse != ''"
+      >
+        Gửi File
+      </v-btn>
+    </div>
+    <template v-slot:actions>
+      <p class="text-error ms-2" v-if="temporaryWarehouse != ''">
+        Đang có dữ liệu cần xem trước
+      </p>
+      <v-spacer></v-spacer>
+      <v-btn
+        class="text-caption"
+        variant="tonal"
+        color="success"
+        prepend-icon="mdi-map-search-outline"
+        @click="DialogPreview = true"
+        >Xem trước</v-btn
+      >
+    </template>
+  </BaseDialog>
+
+  <BaseDialog
+    v-model="DialogPreview"
+    width="1200"
+    title="Xem trước dữ liệu"
+    icon="mdi-magnify"
+  >
+    <v-data-table
+      :headers="HeadersFile"
+      :items="temporaryWarehouse"
+      :search="searchFile"
+      :items-per-page="itemsPerPage"
+      v-model:page="page"
+      class="elevation-1"
+      :footer-props="{
+        'items-per-page-options': [10, 20, 50, 100],
+        'items-per-page-text': 'Số hàng mỗi trang',
+      }"
+      :header-props="{
+        sortByText: 'Sắp xếp theo',
+        sortDescText: 'Giảm dần',
+        sortAscText: 'Tăng dần',
+      }"
+      :loading="DialogLoading"
+      loading-text="Đang tải dữ liệu..."
+      no-data-text="Không có dữ liệu"
+      no-results-text="Không tìm thấy kết quả"
+      :hover="true"
+      :dense="false"
+      :fixed-header="true"
+      height="calc(100vh - 320px)"
     >
-      <v-card-text>
-        <InputFiles abel="Thêm File Excel" v-model="File" />
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="Dialog = false" />
-        <ButtonSave @save="ImportFile()" />
-      </template>
-    </v-card>
-  </v-dialog>
-
-  <v-dialog v-model="DialogOutput" width="600" class="rounded-xl">
-    <v-card max-width="600" color="#F5F5F5" class="rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-magnify" color="primary" class="me-2"></v-icon>
-        Thêm dữ liệu trừ linh kiện
-        <v-spacer></v-spacer>
-        <v-btn
-          icon="mdi-close"
-          variant="text"
-          @click="DialogOutput = false"
-        ></v-btn>
-      </v-card-title>
-      <v-card-text>
-        <div class="d-flex">
-          <InputFiles
-            label="Thêm File Excel trừ linh kiện"
-            v-model="FileOutput"
-            :disabled="temporaryWarehouse != ''"
-          />
-          <v-btn
-            class="text-caption ms-2 mt-3"
-            variant="tonal"
-            color="primary"
-            prepend-icon="mdi-send"
-            @click="ImportFile_Output()"
-            :disabled="temporaryWarehouse != ''"
-          >
-            Gửi File
-          </v-btn>
+      <template v-slot:bottom>
+        <div class="text-center pt-2">
+          <v-pagination
+            v-model="page"
+            :length="Math.ceil(temporaryWarehouse.length / itemsPerPage)"
+          ></v-pagination>
         </div>
-      </v-card-text>
-      <template v-slot:actions>
-        <p class="text-error ms-2" v-if="temporaryWarehouse != ''">
-          Đang có dữ liệu cần xem trước
-        </p>
-        <v-spacer></v-spacer>
-        <v-btn
-          class="text-caption"
-          variant="tonal"
-          color="success"
-          prepend-icon="mdi-map-search-outline"
-          @click="DialogPreview = true"
-          >Xem trước</v-btn
-        >
       </template>
-    </v-card>
-  </v-dialog>
+      <template v-slot:item.Status="{ value }">
+        <div>
+          <v-chip
+            :color="value === 'Đã xác minh' ? 'green' : 'warning'"
+            variant="tonal"
+            class="text-caption"
+          >
+            {{ value }}
+          </v-chip>
+        </div>
+      </template>
+      <template v-slot:item.id="{ item }">
+        <div class="d-flex align-center">
+          <ButtonRemove @remove="GetRemove(item)" />
+        </div>
+      </template>
+    </v-data-table>
+  </BaseDialog>
 
-  <v-dialog v-model="DialogPreview" width="1200" class="rounded-xl">
-    <v-card max-width="1200" color="#F5F5F5" class="rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-magnify" color="primary" class="me-2"></v-icon>
-        Kiểm tra dữ liệu sẽ trừ
-        <v-spacer></v-spacer>
-        <v-btn
-          prepend-icon="mdi-check"
-          color="success"
-          class="text-caption me-2"
-          @click="DialogAgree = true"
-        >
-          Xác nhận
-        </v-btn>
-        <v-btn
-          icon="mdi-close"
-          variant="text"
-          @click="DialogPreview = false"
-        ></v-btn>
-      </v-card-title>
-      <v-card-text class="overflow-auto">
-        <v-data-table
-          :headers="HeadersFile"
-          :items="temporaryWarehouse"
-          :search="searchFile"
-          :items-per-page="itemsPerPage"
-          v-model:page="page"
-          class="elevation-1"
-          :footer-props="{
-            'items-per-page-options': [10, 20, 50, 100],
-            'items-per-page-text': 'Số hàng mỗi trang',
-          }"
-          :header-props="{
-            sortByText: 'Sắp xếp theo',
-            sortDescText: 'Giảm dần',
-            sortAscText: 'Tăng dần',
-          }"
-          :loading="DialogLoading"
-          loading-text="Đang tải dữ liệu..."
-          no-data-text="Không có dữ liệu"
-          no-results-text="Không tìm thấy kết quả"
-          :hover="true"
-          :dense="false"
-          :fixed-header="true"
-          height="calc(100vh - 320px)"
-        >
-          <template v-slot:bottom>
-            <div class="text-center pt-2">
-              <v-pagination
-                v-model="page"
-                :length="Math.ceil(temporaryWarehouse.length / itemsPerPage)"
-              ></v-pagination>
-            </div>
-          </template>
-          <template v-slot:item.Status="{ value }">
-            <div>
-              <v-chip
-                :color="value === 'Đã xác minh' ? 'green' : 'warning'"
-                variant="tonal"
-                class="text-caption"
-              >
-                {{ value }}
-              </v-chip>
-            </div>
-          </template>
-          <template v-slot:item.id="{ item }">
-            <div class="d-flex align-center">
-              <ButtonRemove @remove="GetRemove(item)" />
-            </div>
-          </template>
-        </v-data-table>
-      </v-card-text>
-    </v-card>
-  </v-dialog>
-
-  <v-dialog v-model="DialogAdd" scrollable class="rounded-xl">
-    <v-card width="600" class="mx-auto overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
-        Thêm linh kiện
-      </v-card-title>
-      <v-card-text>
-        <InputField label="Part Number 1" v-model="PartNumber1_Add" />
-        <InputField label="Part Number 2" v-model="PartNumber2_Add" />
-        <InputTextarea label="Mô tả" v-model="Description_Add" />
-        <v-row>
-          <v-col>
-            <InputField label="Nhập kho" type="number" v-model="Input_Add" />
-          </v-col>
-          <v-col>
-            <InputField label="Xuất kho" type="number" v-model="Output_Add" />
-          </v-col>
-          <v-col>
-            <InputField
-              label="Tồn kho"
-              type="number"
-              disabled
-              v-model="inventory_Add"
-            />
-          </v-col>
-        </v-row>
-        <v-row>
-          <v-col>
-            <InputField label="Vị trí" v-model="Location_Add" />
-          </v-col>
-          <v-col>
-            <InputField label="Khách hàng" v-model="Customer_Add" />
-          </v-col>
-        </v-row>
-        <InputField label="Ghi chú" v-model="Note_Add" />
-        <InputField label="Ghi chú xuất" v-model="Note_Output_Add" />
-      </v-card-text>
-      <v-card-actions>
-        <ButtonCancel @cancel="DialogAdd = false" />
-        <ButtonSave @save="SaveAdd()" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
-
-  <v-dialog v-model="DialogEdit" width="600" scrollable class="rounded-xl">
-    <v-card width="600" class="mx-auto overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
-        Cập nhật dữ liệu
-      </v-card-title>
-      <v-card-text>
-        <InputField label="Part Number 1" v-model="PartNumber1_Edit" />
-        <InputField label="Part Number 2" v-model="PartNumber2_Edit" />
-        <InputTextarea label="Mô tả" v-model="Description_Edit" />
-        <v-row>
-          <v-col>
-            <InputField
-              label="Nhập kho"
-              type="number"
-              v-model="Input_Edit"
-              @input="updateInventoryOnOutput"
-            />
-          </v-col>
-          <v-col>
-            <InputField
-              label="Xuất kho"
-              type="number"
-              v-model="Output_Edit"
-              @input="updateInventoryOnOutput"
-            />
-          </v-col>
-          <v-col>
-            <InputField
-              disabled
-              label="Tồn kho"
-              type="number"
-              v-model="inventory_Edit"
-              :readonly="true"
-            />
-          </v-col>
-        </v-row>
-        <v-row>
-          <v-col>
-            <InputField label="Vị trí" v-model="Location_Edit" />
-          </v-col>
-          <v-col>
-            <InputField label="Khách hàng" v-model="Customer_Edit" />
-          </v-col>
-        </v-row>
-        <InputField label="Ghi chú" v-model="Note_Edit" />
-        <InputField label="Ghi chú xuất" v-model="Note_Output_Edit" />
-        <InputSelect
-          ref="transactionTypeSelect"
-          label="Loại giao dịch"
-          :items="['Nhập', 'Xuất', 'Thay đổi thông tin']"
-          v-model="TransactionType_Edit"
-          :rules="[(v) => !!v || 'Vui lòng chọn loại giao dịch']"
-          required
+  <BaseDialog
+    v-model="DialogAdd"
+    width="700"
+    title="Thêm linh kiện"
+    icon="mdi-plus"
+  >
+    <InputField label="Part Number 1" v-model="PartNumber1_Add" />
+    <InputField label="Part Number 2" v-model="PartNumber2_Add" />
+    <InputTextarea label="Mô tả" v-model="Description_Add" />
+    <v-row>
+      <v-col>
+        <InputField label="Nhập kho" type="number" v-model="Input_Add" />
+      </v-col>
+      <v-col>
+        <InputField label="Xuất kho" type="number" v-model="Output_Add" />
+      </v-col>
+      <v-col>
+        <InputField
+          label="Tồn kho"
+          type="number"
+          disabled
+          v-model="inventory_Add"
         />
-      </v-card-text>
-      <v-card-actions>
-        <ButtonDelete @delete="DialogRemove = true" />
-        <v-spacer></v-spacer>
-        <ButtonCancel @cancel="DialogEdit = false" />
-        <ButtonSave @save="SaveEdit()" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogRemove" width="400" scrollable class="rounded-xl">
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
-        Xóa linh kiện
-      </v-card-title>
+      </v-col>
+    </v-row>
+    <v-row>
+      <v-col>
+        <InputField label="Vị trí" v-model="Location_Add" />
+      </v-col>
+      <v-col>
+        <InputField label="Khách hàng" v-model="Customer_Add" />
+      </v-col>
+    </v-row>
+    <InputField label="Ghi chú" v-model="Note_Add" />
+    <InputField label="Ghi chú xuất" v-model="Note_Output_Add" />
+    <template v-slot:actions>
+      <ButtonCancel @cancel="DialogAdd = false" />
+      <ButtonSave @save="SaveAdd()" />
+    </template>
+  </BaseDialog>
 
-      <v-card-text class="pa-4">
-        <div class="text-body-1">Bạn có chắc chắn muốn xóa linh kiện này?</div>
-      </v-card-text>
+  <BaseDialog
+    v-model="DialogEdit"
+    width="700"
+    title="Cập nhật dữ liệu"
+    icon="mdi-update"
+  >
+    <InputField label="Part Number 1" v-model="PartNumber1_Edit" />
+    <InputField label="Part Number 2" v-model="PartNumber2_Edit" />
+    <InputTextarea label="Mô tả" v-model="Description_Edit" />
+    <v-row>
+      <v-col>
+        <InputField
+          label="Nhập kho"
+          type="number"
+          v-model="Input_Edit"
+          @input="updateInventoryOnOutput"
+        />
+      </v-col>
+      <v-col>
+        <InputField
+          label="Xuất kho"
+          type="number"
+          v-model="Output_Edit"
+          @input="updateInventoryOnOutput"
+        />
+      </v-col>
+      <v-col>
+        <InputField
+          disabled
+          label="Tồn kho"
+          type="number"
+          v-model="inventory_Edit"
+          :readonly="true"
+        />
+      </v-col>
+    </v-row>
+    <v-row>
+      <v-col>
+        <InputField label="Vị trí" v-model="Location_Edit" />
+      </v-col>
+      <v-col>
+        <InputField label="Khách hàng" v-model="Customer_Edit" />
+      </v-col>
+    </v-row>
+    <InputField label="Ghi chú" v-model="Note_Edit" />
+    <InputField label="Ghi chú xuất" v-model="Note_Output_Edit" />
+    <InputSelect
+      ref="transactionTypeSelect"
+      label="Loại giao dịch"
+      :items="['Nhập', 'Xuất', 'Thay đổi thông tin']"
+      v-model="TransactionType_Edit"
+      :rules="[(v) => !!v || 'Vui lòng chọn loại giao dịch']"
+      required
+    />
+    <template v-slot:actions>
+      <v-spacer></v-spacer>
+      <ButtonCancel @cancel="DialogEdit = false" />
+      <ButtonSave @save="SaveEdit()" class="ms-2" />
+    </template>
+  </BaseDialog>
 
-      <v-card-actions class="pa-4">
-        <v-spacer></v-spacer>
-        <ButtonCancel @cancel="DialogRemove = false" />
-        <ButtonDelete @delete="RemoveItem()" class="ms-2" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
-  <v-dialog
+  <BaseDialog
+    v-model="DialogRemove"
+    width="500"
+    title="Xóa linh kiện"
+    icon="mdi-delete"
+  >
+    <p>Bạn có chắc chắn muốn xóa linh kiện này?</p>
+    <template v-slot:actions>
+      <v-spacer></v-spacer>
+      <ButtonCancel @cancel="DialogRemove = false" />
+      <ButtonDelete @delete="RemoveItem()" class="ms-2" />
+    </template>
+  </BaseDialog>
+
+  <BaseDialog
     v-model="DialogRemoveFile"
     width="400"
-    scrollable
-    class="rounded-xl"
+    title="Xóa linh kiện cần trừ"
+    icon="mdi-delete"
   >
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
-        Xóa linh kiện cần trừ
-      </v-card-title>
+    <p>Bạn có chắc chắn muốn xóa linh kiện này?</p>
+    <template v-slot:actions>
+      <v-spacer></v-spacer>
+      <ButtonCancel @cancel="DialogRemoveFile = false" />
+      <ButtonDelete @delete="RemoveItemFile()" class="ms-2" />
+    </template>
+  </BaseDialog>
 
-      <v-card-text class="pa-4">
-        <div class="text-body-1">Bạn có chắc chắn muốn xóa linh kiện này?</div>
-      </v-card-text>
+  <BaseDialog
+    v-model="DialogAgree"
+    width="500"
+    title="Xác nhận trừ linh kiện"
+    icon="mdi-check"
+  >
+    <p>Bạn có chắc chắn muốn trừ tồn kho những linh kiện này?</p>
+    <template v-slot:actions>
+      <ButtonCancel @cancel="DialogAgree = false" />
+      <ButtonAgree @agree="UpdateFile_Output()" class="ms-2" />
+    </template>
+  </BaseDialog>
 
-      <v-card-actions class="pa-4">
-        <v-spacer></v-spacer>
-        <ButtonCancel @cancel="DialogRemoveFile = false" />
-        <ButtonDelete @delete="RemoveItemFile()" class="ms-2" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogAgree" width="400" scrollable class="rounded-xl">
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-check" color="success" class="me-2"></v-icon>
-        Xác nhận trừ linh kiện
-      </v-card-title>
+  <BaseDialog
+    v-model="DialogInfo"
+    width="1000"
+    title="Thông số kỹ thuật"
+    icon="mdi-information-variant-circle"
+  >
+    <v-row>
+      <v-col>
+        <v-img :src="ResultSearch.Product.PhotoUrl"></v-img>
+      </v-col>
+      <v-col>
+        <v-list-item density="comfortable" lines="two">
+          <template v-slot:title>
+            <strong class="text-h6">
+              {{ ResultSearch.Product.ManufacturerProductNumber }}
+            </strong>
+          </template>
+        </v-list-item>
 
-      <v-card-text class="pa-4">
-        <div class="text-body-1">
-          Bạn có chắc chắn muốn trừ tồn kho những linh kiện này?
-        </div>
-      </v-card-text>
-
-      <v-card-actions class="pa-4">
-        <v-spacer></v-spacer>
-        <ButtonCancel @cancel="DialogAgree = false" />
-        <ButtonAgree @agree="UpdateFile_Output()" class="ms-2" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogInfo" width="800" scrollable class="rounded-xl">
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon
-          icon="mdi-information-variant-circle"
-          color="primary"
-          class="me-2"
-        ></v-icon>
-        Thông số kỹ thuật
-        <v-spacer></v-spacer>
-        <v-btn
-          variant="text"
-          icon="mdi-close"
-          @click="DialogInfo = false"
-        ></v-btn>
-      </v-card-title>
-
-      <v-card-text class="pa-4">
-        <v-row>
-          <v-col>
-            <v-img :src="ResultSearch.Product.PhotoUrl"></v-img>
-          </v-col>
-          <v-col>
-            <v-list-item density="comfortable" lines="two">
-              <template v-slot:title>
-                <strong class="text-h6">
-                  {{ ResultSearch.Product.ManufacturerProductNumber }}
-                </strong>
-              </template>
-            </v-list-item>
-
-            <v-table class="text-caption" density="compact">
-              <tbody>
-                <tr>
-                  <td><strong>Datasheet</strong></td>
-                  <td>
-                    <v-btn
-                      size="small"
-                      prepend-icon="mdi-database-arrow-right"
-                      :href="ResultSearch.Product.DatasheetUrl"
-                      target="_blank"
-                      color="primary"
-                      variant="tonal"
-                      class="text-caption"
-                    >
-                      Datasheet
-                    </v-btn>
-                  </td>
-                </tr>
-                <tr
-                  v-for="item in ResultSearch.Product.Parameters"
-                  :key="item.name"
+        <v-table class="text-caption" density="compact">
+          <tbody>
+            <tr>
+              <td><strong>Datasheet</strong></td>
+              <td>
+                <v-btn
+                  size="small"
+                  prepend-icon="mdi-database-arrow-right"
+                  :href="ResultSearch.Product.DatasheetUrl"
+                  target="_blank"
+                  color="primary"
+                  variant="tonal"
+                  class="text-caption"
                 >
-                  <td>
-                    <strong>{{ item.ParameterText }}</strong>
-                  </td>
-                  <td>{{ item.ValueText }}</td>
-                </tr>
-              </tbody>
-            </v-table>
-          </v-col>
-        </v-row>
-      </v-card-text>
-    </v-card>
-  </v-dialog>
+                  Datasheet
+                </v-btn>
+              </td>
+            </tr>
+            <tr
+              v-for="item in ResultSearch.Product.Parameters"
+              :key="item.name"
+            >
+              <td>
+                <strong>{{ item.ParameterText }}</strong>
+              </td>
+              <td>{{ item.ValueText }}</td>
+            </tr>
+          </tbody>
+        </v-table>
+      </v-col>
+    </v-row>
+  </BaseDialog>
 
-  <v-dialog v-model="DialogHistory" width="1200" scrollable class="rounded-xl">
-    <v-card class="overflow-y-auto rounded-xl" color="#F5F5F5">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-history" color="primary" class="me-2"></v-icon>
-        Lịch sử xuất nhập linh kiện
-        <v-spacer></v-spacer>
-        <InputSearch v-model="searchLog" />
-        <v-btn
-          icon="mdi-close"
-          variant="text"
-          class="ms-2"
-          @click="DialogHistory = false"
-        ></v-btn>
-      </v-card-title>
-
-      <v-card-text class="overflow-auto">
-        <v-data-table
-          :headers="HeadersHistoryLog"
-          :items="warehouseLog"
-          :search="searchLog"
-          :items-per-page="itemsPerPage"
-          v-model:page="page"
-          class="elevation-1"
-          :footer-props="{
-            'items-per-page-options': [10, 20, 50, 100],
-            'items-per-page-text': 'Số hàng mỗi trang',
-          }"
-          :header-props="{
-            sortByText: 'Sắp xếp theo',
-            sortDescText: 'Giảm dần',
-            sortAscText: 'Tăng dần',
-          }"
-          :loading="DialogLoading"
-          loading-text="Đang tải dữ liệu..."
-          no-data-text="Không có dữ liệu"
-          no-results-text="Không tìm thấy kết quả"
-          :hover="true"
-          :dense="false"
-          :fixed-header="true"
-          height="calc(100vh - 320px)"
-        >
-          <template v-slot:bottom>
-            <div class="text-center pt-2">
-              <v-pagination
-                v-model="page"
-                :length="Math.ceil(warehouseLog.length / itemsPerPage)"
-              ></v-pagination>
-            </div>
-          </template>
-          <template v-slot:item.ActionType="{ value }">
-            <div>
-              <v-chip
-                :color="value === 'Xuất' ? 'warning' : 'success'"
-                variant="tonal"
-                class="text-caption"
-              >
-                {{ value }}
-              </v-chip>
-            </div>
-          </template>
-          <template v-slot:item.id="{ item }">
-            <div class="d-flex align-center">
-              <ButtonRemove @remove="GetRemove(item)" />
-            </div>
-          </template>
-        </v-data-table>
-      </v-card-text>
-    </v-card>
-  </v-dialog>
+  <BaseDialog
+    v-model="DialogHistory"
+    width="1200"
+    title="Lịch sử xuất nhập linh kiện"
+    icon="mdi-history"
+  >
+    <v-data-table
+      :headers="HeadersHistoryLog"
+      :items="warehouseLog"
+      :search="searchLog"
+      :items-per-page="itemsPerPage"
+      v-model:page="page"
+      class="elevation-1"
+      :footer-props="{
+        'items-per-page-options': [10, 20, 50, 100],
+        'items-per-page-text': 'Số hàng mỗi trang',
+      }"
+      :header-props="{
+        sortByText: 'Sắp xếp theo',
+        sortDescText: 'Giảm dần',
+        sortAscText: 'Tăng dần',
+      }"
+      :loading="DialogLoading"
+      loading-text="Đang tải dữ liệu..."
+      no-data-text="Không có dữ liệu"
+      no-results-text="Không tìm thấy kết quả"
+      :hover="true"
+      :dense="false"
+      :fixed-header="true"
+      height="calc(100vh - 320px)"
+    >
+      <template v-slot:bottom>
+        <div class="text-center pt-2">
+          <v-pagination
+            v-model="page"
+            :length="Math.ceil(warehouseLog.length / itemsPerPage)"
+          ></v-pagination>
+        </div>
+      </template>
+      <template v-slot:item.ActionType="{ value }">
+        <div>
+          <v-chip
+            :color="value === 'Xuất' ? 'warning' : 'success'"
+            variant="tonal"
+            class="text-caption"
+          >
+            {{ value }}
+          </v-chip>
+        </div>
+      </template>
+      <template v-slot:item.id="{ item }">
+        <div class="d-flex align-center">
+          <ButtonRemove @remove="GetRemove(item)" />
+        </div>
+      </template>
+    </v-data-table>
+  </BaseDialog>
 
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarCaution v-model="DialogCaution" :message="MessageCautionDialog" />
@@ -605,6 +523,7 @@ import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import SnackbarCaution from "@/components/Snackbar-Caution.vue";
 import Loading from "@/components/Loading.vue";
+import BaseDialog from "@/components/BaseDialog.vue";
 
 // ===== STATE MANAGEMENT =====
 // Initialize composables and router

@@ -103,19 +103,14 @@
 
   <EmptyMobile v-else />
 
-  <v-dialog v-model="DialogRemove" width="400" scrollable class="rounded-xl">
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
-        Xoá dữ liệu
-      </v-card-title>
-      <v-card-text> Bạn có chắc chắn muốn xoá dự án này ? </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogRemove = false" />
-        <ButtonDelete @delete="RemoveItem()" />
-      </template>
-    </v-card>
-  </v-dialog>
+  <BaseDialog v-model="DialogRemove" title="Xoá dữ liệu" icon="mdi-delete" max-width="500">
+    <p> Bạn có chắc chắn muốn xoá dự án này ? </p>
+    <template v-slot:actions>
+      <ButtonCancel @cancel="DialogRemove = false" />
+      <ButtonDelete @delete="RemoveItem()" />
+    </template>
+  </BaseDialog>
+
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
 </template>
@@ -139,6 +134,7 @@ import ButtonEye from "@/components/Button-Eye.vue";
 import ButtonRemove from "@/components/Button-Remove.vue";
 import EmptyMobile from "@/components/Empty-Mobile.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
+import BaseDialog from "@/components/BaseDialog.vue";
 
 // ===== STATE MANAGEMENT =====
 // API Configuration

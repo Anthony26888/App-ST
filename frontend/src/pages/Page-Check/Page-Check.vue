@@ -119,83 +119,53 @@
   <EmptyMobile v-else />
 
   <!-- Import File Dialog -->
-  <v-dialog v-model="Dialog" width="400" scrollable class="rounded-xl">
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
-        Thêm dữ liệu
-      </v-card-title>
-      <v-card-text>
-        <InputField label="Tên dự án" v-model="InputPO" :rules="[required]" />
-        <InputField label="Tên Bom" v-model="InputBOM" :rules="[required]" />
-        <InputField
-          label="Số lượng Board"
-          v-model="InputQuantity"
-          :rules="[required]"
-        />
-        <InputFiles v-model="File" :rules="[required]" />
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="Dialog = false" />
-        <ButtonSave @save="ImportFile()" />
-      </template>
-    </v-card>
-  </v-dialog>
+  <BaseDialog v-model="Dialog" width="400" title="Thêm dữ liệu" icon="mdi-plus">
+    <InputField label="Tên dự án" v-model="InputPO" :rules="[required]" />
+    <InputField label="Tên Bom" v-model="InputBOM" :rules="[required]" />
+    <InputField
+      label="Số lượng Board"
+      v-model="InputQuantity"
+      :rules="[required]"
+    />
+    <InputFiles v-model="File" :rules="[required]" />
+    <template #actions>
+      <ButtonCancel @cancel="Dialog = false" />
+      <ButtonSave @save="ImportFile()" />
+    </template>
+  </BaseDialog>
 
   <!-- Edit Item Dialog -->
-  <v-dialog v-model="DialogEdit" width="400" scrollable class="rounded-xl">
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
-        Cập nhật dữ liệu
-      </v-card-title>
-      <v-card-text>
-        <InputField label="Dự toán hao phí" v-model="CostEstimate" />
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogEdit = false" />
-        <ButtonSave @save="SaveEdit()" />
-      </template>
-    </v-card>
-  </v-dialog>
+  <BaseDialog v-model="DialogEdit" width="400" title="Cập nhật dữ liệu" icon="mdi-update">
+    <InputField label="Dự toán hao phí" v-model="CostEstimate" />
+    <template #actions>
+      <ButtonCancel @cancel="DialogEdit = false" />
+      <ButtonSave @save="SaveEdit()" />
+    </template>
+  </BaseDialog>
 
   <!-- Accept Order Dialog -->
-  <v-dialog v-model="DialogAccept" width="400" class="rounded-xl">
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-check" color="success" class="me-2"></v-icon>
-        Xác nhận đơn hàng
-      </v-card-title>
-      <v-card-text>
-        <InputSelect
-          label="Chọn người nhận"
-          v-model="Accept"
-          :items="users"
-          item-title="FullName"
-          item-value="Username"
-        />
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogAccept = false" />
-        <ButtonAgree :disabled="isProcessingOrder" @agree="SaveTable()" />
-      </template>
-    </v-card>
-  </v-dialog>
+  <BaseDialog v-model="DialogAccept" width="400" title="Xác nhận đơn hàng" icon="mdi-check">
+    <InputSelect
+      label="Chọn người nhận"
+      v-model="Accept"
+      :items="users"
+      item-title="FullName"
+      item-value="Username"
+    />
+    <template #actions>
+      <ButtonCancel @cancel="DialogAccept = false" />
+      <ButtonAgree :disabled="isProcessingOrder" @agree="SaveTable()" />
+    </template>
+  </BaseDialog>
 
   <!-- Remove Item Dialog -->
-  <v-dialog v-model="DialogRemove" width="400" class="rounded-xl">
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
-        Xoá dữ liệu
-      </v-card-title>
-      <v-card-text> Bạn có chắc chắn muốn xoá dự án này ? </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogRemove = false" />
-        <ButtonDelete @delete="RemoveItem()" />
-      </template>
-    </v-card>
-  </v-dialog>
+  <BaseDialog v-model="DialogRemove" width="400" title="Xoá dữ liệu" icon="mdi-delete">
+    Bạn có chắc chắn muốn xoá dự án này ?
+    <template #actions>
+      <ButtonCancel @cancel="DialogRemove = false" />
+      <ButtonDelete @delete="RemoveItem()" />
+    </template>
+  </BaseDialog>
 
   <!-- Notification Components -->
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
@@ -232,6 +202,7 @@ import EmptyMobile from "@/components/Empty-Mobile.vue";
 import ButtonEdit from "@/components/Button-Edit.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import InputSelect from "@/components/Input-Select.vue";
+import BaseDialog from "@/components/BaseDialog.vue";
 // ===== STATE MANAGEMENT =====
 // Initialize composables
 const { checkBOM, fetchData } = useCheckBOM();

@@ -14,11 +14,8 @@
 
       <!-- Thanh điều khiển -->
       <v-card-title class="d-flex align-center pe-2">
-        <v-icon
-          icon="mdi mdi-tools"
-          color="primary"
-          v-if="lgAndUp"
-        ></v-icon> &nbsp;
+        <v-icon icon="mdi mdi-tools" color="primary" v-if="lgAndUp"></v-icon>
+        &nbsp;
         <v-breadcrumbs
           :items="[
             `${NameManufacture}`,
@@ -474,76 +471,70 @@
     </v-card>
 
     <!-- Dialog xác nhận xóa dữ liệu lịch sử sản xuất -->
-    <v-dialog v-model="DialogRemoveHistory" width="400">
-      <v-card max-width="400">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
-          Xoá dữ liệu
-        </v-card-title>
-        <v-card-text> Bạn có chắc chắn muốn xoá dữ liệu ? </v-card-text>
-        <template v-slot:actions>
-          <ButtonCancel @cancel="DialogRemoveHistory = false" />
-          <ButtonDelete @delete="RemoveItemHistory()" />
-        </template>
-      </v-card>
-    </v-dialog>
+    <BaseDialog
+      v-model="DialogRemoveHistory"
+      icon="mdi-delete"
+      title="Xoá dữ liệu"
+      max-width="500"
+    >
+      <p>Bạn có chắc chắn muốn xoá dữ liệu ?</p>
+      <template v-slot:actions>
+        <ButtonCancel @cancel="DialogRemoveHistory = false" />
+        <ButtonDelete @delete="RemoveItemHistory()" />
+      </template>
+    </BaseDialog>
 
-    <v-dialog v-model="DialogSetting" width="400">
-      <v-card max-width="500">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon icon="mdi-pencil" color="primary" class="me-2"></v-icon>
-          Nhập só lượng đã sản xuất
-        </v-card-title>
-        <v-card-text>
-          <InputField
-            label="Số lượng sản phẩm"
-            type="number"
-            v-model="Quantity_Add"
-            hide-details
-            variant="outlined"
-            density="comfortable"
-            placeholder="VD: 5"
-          />
-        </v-card-text>
-        <template v-slot:actions>
-          <ButtonCancel @cancel="DialogSetting = false" />
-          <ButtonSave @save="InputQuantity()" />
-        </template>
-      </v-card>
-    </v-dialog>
+    <!-- Dialog nhập số lượng sản phẩm -->
+    <BaseDialog
+      v-model="DialogSetting"
+      icon="mdi-pencil"
+      title="Nhập số lượng sản phẩm"
+      max-width="500"
+    >
+      <InputField
+        label="Số lượng sản phẩm"
+        type="number"
+        v-model="Quantity_Add"
+        hide-details
+        variant="outlined"
+        density="comfortable"
+        placeholder="VD: 5"
+      />
+      <template v-slot:actions>
+        <ButtonCancel @cancel="DialogSetting = false" />
+        <ButtonSave @save="InputQuantity()" />
+      </template>
+    </BaseDialog>
 
     <!-- Dialog Setting SMT -->
-    <v-dialog v-model="DialogSettingSMT" max-width="700px">
-      <v-card class="rounded-lg">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon icon="mdi-cog" color="primary" class="me-2"></v-icon>
-          Cài đặt dây chuyền
-        </v-card-title>
-        <v-card-text>
-          <v-row>
-            <v-col>
-              <InputField
-                v-model="DelaySMT_Edit"
-                label="Độ trễ SMT (ms)"
-                type="number"
-              />
-            </v-col>
-            <v-col>
-              <InputField
-                v-model="Quantity_Edit"
-                label="Số lượng board SMT"
-                type="number"
-              />
-            </v-col>
-          </v-row>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <ButtonCancel @cancel="DialogSettingSMT = false" />
-          <ButtonSave @save="SaveEditSettingSMT()" />
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <BaseDialog
+      v-model="DialogSettingSMT"
+      icon="mdi-cog"
+      title="Cài đặt dây chuyền"
+      max-width="700"
+    >
+      <v-row>
+        <v-col>
+          <InputField
+            v-model="DelaySMT_Edit"
+            label="Độ trễ SMT (ms)"
+            type="number"
+          />
+        </v-col>
+        <v-col>
+          <InputField
+            v-model="Quantity_Edit"
+            label="Số lượng board SMT"
+            type="number"
+          />
+        </v-col>
+      </v-row>
+      <template v-slot:actions>
+        <v-spacer />
+        <ButtonCancel @cancel="DialogSettingSMT = false" />
+        <ButtonSave @save="SaveEditSettingSMT()" />
+      </template>
+    </BaseDialog>
 
     <!-- Thông báo -->
     <Loading v-model="DialogLoading" />
@@ -567,6 +558,7 @@ import ButtonBack from "@/components/Button-Back.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
+import BaseDialog from "@/components/BaseDialog.vue";
 
 const Url = import.meta.env.VITE_API_URL;
 const route = useRoute();

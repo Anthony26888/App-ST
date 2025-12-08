@@ -2,7 +2,9 @@
   <v-card variant="text" class="overflow-y-auto" height="100vh">
     <v-card-title class="d-flex" v-if="lgAndUp">
       <ButtonBack :to="`/Bao-tri/Chi-tiet/${route.params.id}`" />
-      <p class="text-h4 font-weight-light ms-3" v-if="lgAndUp">Chi tiết sử dụng phụ tùng</p>
+      <p class="text-h4 font-weight-light ms-3" v-if="lgAndUp">
+        Chi tiết sử dụng phụ tùng
+      </p>
     </v-card-title>
     <v-card-title class="d-flex" v-else>
       <ButtonBack :to="`/Bao-tri/Chi-tiet/${route.params.id}`" />
@@ -139,125 +141,98 @@
     </v-card-text>
   </v-card>
 
-  <v-dialog v-model="DialogEdit" width="500" scrollable>
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-pencil" color="primary" class="me-2"></v-icon>
-        Cập nhật dữ liệu sử dụng phụ tùng
-      </v-card-title>
+  <BaseDialog v-model="DialogAdd" title="Thêm dữ liệu sử dụng phụ tùng" max-width="500" icon="mdi-plus">
+    <v-row>
+      <v-col cols="12">
+        <InputField
+          label="Tên phụ tùng"
+          v-model="TenPhuTung_Add"
+          hint="Nhập tên phụ tùng"
+        />
+      </v-col>
+      <v-col cols="6">
+        <InputField
+          label="Số lượng sử dụng"
+          v-model="SoLuongSuDung_Add"
+          type="number"
+          hint="Nhập số lượng sử dụng"
+        />
+      </v-col>
+      <v-col cols="6">
+        <InputField
+          label="Đơn vị"
+          v-model="DonVi_Add"
+          hint="Nhập đơn vị tính"
+        />
+      </v-col>
+      <v-col cols="12">
+        <InputTextarea
+          label="Ghi chú"
+          v-model="GhiChu_Add"
+          hint="Nhập ghi chú"
+        />
+      </v-col>
+    </v-row>
+    <template v-slot:actions>
+      <ButtonCancel @cancel="DialogAdd = false" />
+      <ButtonSave @save="SaveAdd()" class="ms-2" />
+    </template>
+  </BaseDialog>
 
-      <v-card-text class="pa-4">
-        <v-row>
-          <v-col cols="12">
-            <InputField
-              label="Tên phụ tùng"
-              v-model="TenPhuTung_Edit"
-              hint="Nhập tên phụ tùng"
-            />
-          </v-col>
-          <v-col cols="6">
-            <InputField
-              label="Số lượng sử dụng"
-              v-model="SoLuong_Edit"
-              type="number"
-              hint="Nhập số lượng sử dụng"
-            />
-          </v-col>
-          <v-col cols="6">
-            <InputField
-              label="Đơn vị"
-              v-model="DonVi_Edit"
-              hint="Nhập đơn vị tính"
-            />
-          </v-col>
-          <v-col cols="12">
-            <InputTextarea
-              label="Ghi chú"
-              v-model="GhiChu_Edit"
-              hint="Nhập ghi chú"
-            />
-          </v-col>
-        </v-row>
-      </v-card-text>
 
-      <v-card-actions class="pa-4">
-        <ButtonDelete @delete="DialogRemove = true" />
-        <v-spacer></v-spacer>
-        <ButtonCancel @cancel="DialogEdit = false" />
-        <ButtonSave @save="SaveEdit()" class="ms-2" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+  <BaseDialog
+    v-model="DialogEdit"
+    icon="mdi-pencil"
+    title="Cập nhật dữ liệu sử dụng phụ tùng"
+    max-width="500"
+  >
+    <v-row>
+      <v-col cols="12">
+        <InputField
+          label="Tên phụ tùng"
+          v-model="TenPhuTung_Edit"
+          hint="Nhập tên phụ tùng"
+        />
+      </v-col>
+      <v-col cols="6">
+        <InputField
+          label="Số lượng sử dụng"
+          v-model="SoLuong_Edit"
+          type="number"
+          hint="Nhập số lượng sử dụng"
+        />
+      </v-col>
+      <v-col cols="6">
+        <InputField
+          label="Đơn vị"
+          v-model="DonVi_Edit"
+          hint="Nhập đơn vị tính"
+        />
+      </v-col>
+      <v-col cols="12">
+        <InputTextarea
+          label="Ghi chú"
+          v-model="GhiChu_Edit"
+          hint="Nhập ghi chú"
+        />
+      </v-col>
+    </v-row>
+    <template v-slot:actions>
+      <ButtonDelete @delete="DialogRemove = true" />
+      <v-spacer></v-spacer>
+      <ButtonCancel @cancel="DialogEdit = false" />
+      <ButtonSave @save="SaveEdit()" class="ms-2" />
+    </template>
+  </BaseDialog>
 
-  <v-dialog v-model="DialogAdd" width="500" scrollable>
-    <v-card class="overflow-y-auto rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
-        Thêm dữ liệu sử dụng phụ tùng
-      </v-card-title>
 
-      <v-card-text class="pa-4">
-        <v-row>
-          <v-col cols="12">
-            <InputField
-              label="Tên phụ tùng"
-              v-model="TenPhuTung_Add"
-              hint="Nhập tên phụ tùng"
-            />
-          </v-col>
-          <v-col cols="6">
-            <InputField
-              label="Số lượng sử dụng"
-              v-model="SoLuongSuDung_Add"
-              type="number"
-              hint="Nhập số lượng sử dụng"
-            />
-          </v-col>
-          <v-col cols="6">
-            <InputField
-              label="Đơn vị"
-              v-model="DonVi_Add"
-              hint="Nhập đơn vị tính"
-            />
-          </v-col>
-          <v-col cols="12">
-            <InputTextarea
-              label="Ghi chú"
-              v-model="GhiChu_Add"
-              hint="Nhập ghi chú"
-            />
-          </v-col>
-        </v-row>
-      </v-card-text>
-
-      <v-card-actions class="pa-4">
-        <v-spacer></v-spacer>
-        <ButtonCancel @cancel="DialogAdd = false" />
-        <ButtonSave @save="SaveAdd()" class="ms-2" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
-
-  <v-dialog v-model="DialogRemove" width="400">
-    <v-card class="rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
-        Xóa dữ liệu sử dụng phụ tùng
-      </v-card-title>
-
-      <v-card-text class="pa-4">
-        <div class="text-body-1">
-          Bạn có chắc chắn muốn xóa bản ghi sử dụng phụ tùng này?
-        </div>
-      </v-card-text>
-
-      <v-card-actions class="pa-4">
-        <v-spacer></v-spacer>
-        <ButtonCancel @cancel="DialogRemove = false" />
-        <ButtonDelete @delete="RemoveItem()" class="ms-2" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+  <BaseDialog v-model="DialogRemove" icon="mdi-delete" title="Xóa dữ liệu sử dụng phụ tùng" max-width="500">
+    <p> Bạn có chắc chắn muốn xóa bản ghi sử dụng phụ tùng này?</p>
+    <template v-slot:actions>
+      <ButtonCancel @cancel="DialogRemove = false" />
+      <ButtonDelete @delete="RemoveItem()" class="ms-2" />
+    </template>
+  </BaseDialog>
 
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
@@ -286,6 +261,7 @@ import ButtonEdit from "@/components/Button-Edit.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
+import BaseDialog from "@/components/BaseDialog.vue";
 
 // Composables
 import { useSparePartUsage } from "@/composables/Maintenance/useSparePartUsage";
@@ -306,12 +282,12 @@ const { sparePartUsage } = useSparePartUsage(id);
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
-const DialogEdit = ref(false);      // Edit dialog
-const DialogSuccess = ref(false);   // Success notification
-const DialogFailed = ref(false);    // Error notification
-const DialogRemove = ref(false);    // Remove confirmation dialog
-const DialogAdd = ref(false);       // Add new item dialog
-const DialogLoading = ref(false);   // Loading state
+const DialogEdit = ref(false); // Edit dialog
+const DialogSuccess = ref(false); // Success notification
+const DialogFailed = ref(false); // Error notification
+const DialogRemove = ref(false); // Remove confirmation dialog
+const DialogAdd = ref(false); // Add new item dialog
+const DialogLoading = ref(false); // Loading state
 
 // ===== MESSAGE DIALOG =====
 // Message for success and error notifications
@@ -323,16 +299,16 @@ const MessageErrorDialog = ref("");
 const GetID = ref("");
 
 // Edit form states
-const TenPhuTung_Edit = ref("");    // Spare part name for editing
-const SoLuong_Edit = ref("");       // Quantity for editing
-const DonVi_Edit = ref("");         // Unit for editing
-const GhiChu_Edit = ref("");        // Notes for editing
+const TenPhuTung_Edit = ref(""); // Spare part name for editing
+const SoLuong_Edit = ref(""); // Quantity for editing
+const DonVi_Edit = ref(""); // Unit for editing
+const GhiChu_Edit = ref(""); // Notes for editing
 
 // Add form states
-const TenPhuTung_Add = ref("");     // Spare part name for adding
-const SoLuongSuDung_Add = ref("");  // Quantity for adding
-const DonVi_Add = ref("");          // Unit for adding
-const GhiChu_Add = ref("");         // Notes for adding
+const TenPhuTung_Add = ref(""); // Spare part name for adding
+const SoLuongSuDung_Add = ref(""); // Quantity for adding
+const DonVi_Add = ref(""); // Unit for adding
+const GhiChu_Add = ref(""); // Notes for adding
 
 // ===== TABLE CONFIGURATION =====
 // Search and pagination states
@@ -375,11 +351,14 @@ const SaveEdit = async () => {
     TenPhuTung: TenPhuTung_Edit.value,
     SoLuongSuDung: parseInt(SoLuong_Edit.value) || 0,
     DonVi: DonVi_Edit.value,
-    GhiChu: GhiChu_Edit.value
+    GhiChu: GhiChu_Edit.value,
   });
 
   try {
-    const response = await axios.put(`${Url}/SparePartUsage/Edit/${GetID.value}`, formData);
+    const response = await axios.put(
+      `${Url}/SparePartUsage/Edit/${GetID.value}`,
+      formData
+    );
     console.log(response.data.message);
     MessageDialog.value = "Cập nhật phụ tùng thành công";
     Reset();
@@ -402,7 +381,7 @@ const SaveAdd = async () => {
     TenPhuTung: TenPhuTung_Add.value,
     SoLuongSuDung: parseInt(SoLuongSuDung_Add.value) || 0,
     DonVi: DonVi_Add.value,
-    GhiChu: GhiChu_Add.value
+    GhiChu: GhiChu_Add.value,
   });
 
   try {
@@ -424,7 +403,9 @@ const SaveAdd = async () => {
 const RemoveItem = async () => {
   DialogLoading.value = true;
   try {
-    const response = await axios.delete(`${Url}/SparePartUsage/Delete/${GetID.value}`);
+    const response = await axios.delete(
+      `${Url}/SparePartUsage/Delete/${GetID.value}`
+    );
     console.log(response.data.message);
     MessageDialog.value = "Xoá phụ tùng thành công";
     Reset();

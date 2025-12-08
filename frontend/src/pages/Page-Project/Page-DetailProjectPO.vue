@@ -10,7 +10,7 @@
       {{ NameCustomer }}
     </v-card-title>
     <v-card-text>
-      <v-card-title class="mb-5">
+      <v-card-title class="mb-3">
         <v-row v-if="lgAndUp">
           <v-col cols="12" sm="6" md="3">
             <CardStatistic
@@ -83,7 +83,7 @@
           :hover="true"
           :dense="false"
           :fixed-header="true"
-          height="69vh"
+          height="calc(100vh - 300px)"
           show-expand
         >
           <template
@@ -277,379 +277,329 @@
       </v-card>
     </v-card-text>
   </v-card>
-  <v-dialog v-model="DialogEdit" width="1200">
-    <v-card  class="rounded-lg">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
-        Cập nhật dữ liệu
-      </v-card-title>
-      <v-card-text>
+
+  <!-- Dialog cập nhật dữ liệu -->
+  <BaseDialog
+    title="Cập nhật dữ liệu"
+    icon="mdi-pencil"
+    max-width="1200"
+    v-model="DialogEdit"
+  >
+    <v-row>
+      <v-col cols="7">
+        <InputField label="Tên PO" v-model="PO_Edit" />
+        <InputField label="Chi tiết đơn hàng" v-model="Product_Detail_Edit" />
         <v-row>
-          <v-col cols="7">
-            <InputField label="Tên PO" v-model="PO_Edit" />
+          <v-col cols="4">
             <InputField
-              label="Chi tiết đơn hàng"
-              v-model="Product_Detail_Edit"
+              label="SL đơn hàng"
+              type="number"
+              v-model="Quantity_Product_Edit"
             />
-            <v-row>
-              <v-col cols="4">
-                <InputField
-                  label="SL đơn hàng"
-                  type="number"
-                  v-model="Quantity_Product_Edit"
-                />
-              </v-col>
-              <v-col cols="4">
-                <InputField
-                  label="SL đã giao"
-                  type="number"
-                  v-model="Quantity_Delivered_Edit"
-                />
-              </v-col>
-              <v-col cols="4">
-                <InputField
-                  label="SL còn nợ"
-                  type="number"
-                  v-model="Quantity_Amount_Edit"
-                />
-              </v-col>
-            </v-row>
-            <InputTextarea label="Ghi chú" v-model="Note_Edit" />
           </v-col>
-          <v-col cols="5">
-            <div class="d-flex justify-space-between align-center mb-3">
-              <h4 class="text-h6">Lịch giao hàng</h4>
-              <v-btn
-                color="primary"
-                size="small"
-                prepend-icon="mdi-plus"
-                @click="AddDeliveryRowEdit()"
-              >
-                Thêm lịch
-              </v-btn>
-            </div>
-
-            <div class="delivery-header mb-2">
-              <v-row no-gutters class="pa-2 bg-grey-lighten-4 rounded">
-                <v-col cols="6">
-                  <small class="text-secondary font-weight-bold"
-                    >Ngày giao</small
-                  >
-                </v-col>
-                <v-col cols="5">
-                  <small class="text-secondary font-weight-bold"
-                    >Số lượng</small
-                  >
-                </v-col>
-              </v-row>
-            </div>
-
-            <div class="delivery-rows">
-              <v-row
-                v-for="(item, index) in DeliverySchedules_Edit"
-                :key="index"
-                no-gutters
-                class="mb-2 align-center"
-              >
-                <v-col cols="6" class="pe-2">
-                  <InputField
-                    label="Ngày tạo"
-                    type="date"
-                    v-model="item.DeliveryDate"
-                    @update:model-value="item.DeliveryDate = $event"
-                  />
-
-                </v-col>
-                <v-col cols="5" class="pe-2">
-                  <InputField
-                    label="Ngày tạo"
-                    type="number"
-                    v-model="item.DeliveryQuantity"
-                    @update:model-value="item.DeliveryQuantity = $event"
-                  />
-                </v-col>
-                <v-col cols="1" class="text-center">
-                  <v-btn
-                    icon="mdi-delete"
-                    size="x-small"
-                    color="error"
-                    variant="text"
-                    @click="RemoveDeliveryRowEdit(index, item.id)"
-                  ></v-btn>
-                </v-col>
-              </v-row>
-            </div>
+          <v-col cols="4">
+            <InputField
+              label="SL đã giao"
+              type="number"
+              v-model="Quantity_Delivered_Edit"
+            />
+          </v-col>
+          <v-col cols="4">
+            <InputField
+              label="SL còn nợ"
+              type="number"
+              v-model="Quantity_Amount_Edit"
+            />
           </v-col>
         </v-row>
-      </v-card-text>
-      <v-card-actions>
-        <ButtonDelete @delete="DialogRemove = true" />
-        <v-spacer></v-spacer>
-        <ButtonCancel @cancel="DialogEdit = false" />
-        <ButtonSave @save="SaveEdit()" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+        <InputTextarea
+          style="white-space: pre-line"
+          label="Ghi chú"
+          v-model="Note_Edit"
+        />
+      </v-col>
+      <v-col cols="5">
+        <div class="d-flex justify-space-between align-center mb-3">
+          <h4 class="text-h6">Lịch giao hàng</h4>
+          <v-btn
+            color="primary"
+            variant="tonal"
+            size="small"
+            prepend-icon="mdi-plus"
+            @click="AddDeliveryRowEdit()"
+          >
+            Thêm lịch
+          </v-btn>
+        </div>
 
-  <v-dialog v-model="DialogAdd" width="1200">
-    <v-card class="rounded-lg">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
-        Thêm dữ liệu
-      </v-card-title>
-
-      <v-card-text>
-        <!-- Thông tin cơ bản -->
-        <div class="mb-4">
-          <v-row>
-            <v-col cols="7">
-              <h4 class="text-h6 mb-3">Thông tin chung</h4>
-              <InputField label="Tên PO" v-model="PO_Add" />
-              <InputField label="Đơn hàng" v-model="Product_Detail_Add" />
-              <v-row>
-                <v-col cols="4">
-                  <InputField
-                    label="SL đơn hàng"
-                    type="number"
-                    v-model="Quantity_Product_Add"
-                  />
-                </v-col>
-                <v-col cols="4">
-                  <InputField
-                    label="SL đã giao"
-                    type="number"
-                    v-model="Quantity_Delivered_Add"
-                  />
-                </v-col>
-                <v-col cols="4">
-                  <InputField
-                    label="SL còn nợ"
-                    type="number"
-                    v-model="Quantity_Amount_Add"
-                    disabled
-                  />
-                </v-col>
-              </v-row>
-              <InputTextarea label="Ghi chú chung" v-model="Note_Add" />
+        <div class="delivery-header mb-2">
+          <v-row no-gutters class="pa-2 bg-grey-lighten-4 rounded">
+            <v-col cols="6">
+              <small class="text-secondary font-weight-bold">Ngày giao</small>
             </v-col>
-            <!-- Lịch giao hàng -->
             <v-col cols="5">
-              <div class="d-flex justify-space-between align-center mb-3">
-                <h4 class="text-h6">Lịch giao hàng</h4>
-                <v-btn
-                  color="primary"
-                  size="small"
-                  prepend-icon="mdi-plus"
-                  @click="AddDeliveryRow()"
-                >
-                  Thêm lịch
-                </v-btn>
-              </div>
-
-              <div class="delivery-header mb-2">
-                <v-row no-gutters class="pa-2 bg-grey-lighten-4 rounded">
-                  <v-col cols="6">
-                    <small class="text-secondary font-weight-bold"
-                      >Ngày giao</small
-                    >
-                  </v-col>
-                  <v-col cols="5">
-                    <small class="text-secondary font-weight-bold"
-                      >Số lượng</small
-                    >
-                  </v-col>
-                </v-row>
-              </div>
-
-              <div class="delivery-rows">
-                <v-row
-                  v-for="(item, index) in DeliverySchedules"
-                  :key="index"
-                  no-gutters
-                  class="mb-2 align-center"
-                >
-                  <v-col cols="6" class="pe-2">
-                    <v-text-field
-                      v-model="item.delivery_date"
-                      type="date"
-                      density="compact"
-                      hide-details
-                      variant="outlined"
-                    ></v-text-field>
-                  </v-col>
-                  <v-col cols="5" class="pe-2">
-                    <v-text-field
-                      v-model.number="item.delivery_quantity"
-                      type="number"
-                      density="compact"
-                      hide-details
-                      variant="outlined"
-                    ></v-text-field>
-                  </v-col>
-                  <v-col cols="1" class="text-center">
-                    <v-btn
-                      icon="mdi-delete"
-                      size="x-small"
-                      color="error"
-                      variant="text"
-                      @click="RemoveDeliveryRow(index)"
-                    ></v-btn>
-                  </v-col>
-                </v-row>
-              </div>
+              <small class="text-secondary font-weight-bold">Số lượng</small>
             </v-col>
           </v-row>
         </div>
-      </v-card-text>
 
-      <v-card-actions>
-        <ButtonCancel @cancel="DialogAdd = false" />
-        <ButtonSave @save="SaveAdd()" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+        <div class="delivery-rows">
+          <v-row
+            v-for="(item, index) in DeliverySchedules_Edit"
+            :key="index"
+            no-gutters
+            class="mb-2 align-center"
+          >
+            <v-col cols="6" class="pe-2">
+              <InputField
+                label="Ngày tạo"
+                type="date"
+                v-model="item.DeliveryDate"
+                @update:model-value="item.DeliveryDate = $event"
+              />
+            </v-col>
+            <v-col cols="5" class="pe-2">
+              <InputField
+                label="Ngày tạo"
+                type="number"
+                v-model="item.DeliveryQuantity"
+                @update:model-value="item.DeliveryQuantity = $event"
+              />
+            </v-col>
+            <v-col cols="1" class="text-center">
+              <v-btn
+                icon="mdi-delete"
+                size="x-small"
+                color="error"
+                variant="text"
+                @click="RemoveDeliveryRowEdit(index, item.id)"
+              ></v-btn>
+            </v-col>
+          </v-row>
+        </div>
+      </v-col>
+    </v-row>
+    <template #actions>
+      <ButtonDelete @delete="DialogRemove = true" />
+      <v-spacer></v-spacer>
+      <ButtonCancel @cancel="DialogEdit = false" />
+      <ButtonSave @save="SaveEdit()" />
+    </template>
+  </BaseDialog>
 
   <!-- Dialog thêm mới dữ liệu -->
-  <v-dialog
-    :model-value="DialogAddManufacture"
-    @update:model-value="DialogAddManufacture = $event"
-    width="500"
-    scrollable
+  <BaseDialog
+    v-model="DialogAdd"
+    title="Thêm dữ liệu"
+    icon="mdi-plus"
+    max-width="1200"
   >
-    <v-card max-width="500" class="overflow-y-auto rounded-lg">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
-        Chuyển dữ liệu xuống sản xuất
-      </v-card-title>
-      <v-card-text>
-        <InputField label="Tên dự án" v-model="NamePO" />
-        <InputField
-          label="Tên đơn hàng"
-          v-model="Name_Order_Manufacture"
-          @update:model-value="Name_Order_Manufacture = $event"
-        />
-        <InputField
-          label="Tổng sản phẩm"
-          type="number"
-          :model-value="Total_Manufacture_Add"
-          @update:model-value="Total_Manufacture_Add = $event"
-        />
-        <!-- <InputSelect
-          label="Quy trình"
-          :items="[
-            'SMT',
-            'AOI',
-            'IPQC (SMT)',
-            'Assembly',
-            'IPQC',
-            'Test 1',
-            'Test 2',
-            'Box Build',
-            'Tẩm phủ',
-            'OQC',
-            'RW',
-            'Thành phẩm',
-          ]"
-          multiple
-          chips
-          hint="Lựa chọn quy trình phù hợp"
-          v-model="Level_Manufacture_Add"
-          @update:model-value="(val) => (Level_Manufacture_Add = val)"
-        /> -->
-
-        <!-- Thêm input cho quy trình khác (giống DialogAdd ở Page-Manufacture.vue) -->
-        <div class="mt-3">
-          <!-- Hiển thị danh sách quy trình tùy chỉnh đã thêm -->
-          <div v-if="customProcessList.length > 0">
-            <div class="text-caption text-grey mb-1">Quy trình đã thêm:</div>
-            <div class="d-flex flex-wrap ga-2 mb-5">
-              <v-chip
-                v-for="(process, index) in customProcessList"
-                :key="index"
-                closable
-                color="secondary"
-                size="small"
-                @click:close="removeCustomProcess(index)"
-              >
-                {{ process }}
-              </v-chip>
-            </div>
+    <div class="mb-4">
+      <v-row>
+        <v-col cols="7">
+          <h4 class="text-h6 mb-3">Thông tin chung</h4>
+          <InputField label="Tên PO" v-model="PO_Add" />
+          <InputField label="Đơn hàng" v-model="Product_Detail_Add" />
+          <v-row>
+            <v-col cols="4">
+              <InputField
+                label="SL đơn hàng"
+                type="number"
+                v-model="Quantity_Product_Add"
+              />
+            </v-col>
+            <v-col cols="4">
+              <InputField
+                label="SL đã giao"
+                type="number"
+                v-model="Quantity_Delivered_Add"
+              />
+            </v-col>
+            <v-col cols="4">
+              <InputField
+                label="SL còn nợ"
+                type="number"
+                v-model="Quantity_Amount_Add"
+                disabled
+              />
+            </v-col>
+          </v-row>
+          <InputTextarea label="Ghi chú chung" v-model="Note_Add" />
+        </v-col>
+        <!-- Lịch giao hàng -->
+        <v-col cols="5">
+          <div class="d-flex justify-space-between align-center mb-3">
+            <h4 class="text-h6">Lịch giao hàng</h4>
+            <v-btn
+              color="primary"
+              size="small"
+              variant="tonal"
+              prepend-icon="mdi-plus"
+              @click="AddDeliveryRow()"
+            >
+              Thêm lịch
+            </v-btn>
           </div>
-          <InputField
-            label="Thêm quy trình khác"
-            v-model="customProcess"
-            placeholder="Nhập tên quy trình và nhấn Enter"
-            @keyup.enter="addCustomProcess"
-            hint="Nhập và nhấn Enter để thêm nhiều quy trình"
+
+          <div class="delivery-header mb-2">
+            <v-row no-gutters class="pa-2 bg-grey-lighten-4 rounded">
+              <v-col cols="6">
+                <small class="text-secondary font-weight-bold">Ngày giao</small>
+              </v-col>
+              <v-col cols="5">
+                <small class="text-secondary font-weight-bold">Số lượng</small>
+              </v-col>
+            </v-row>
+          </div>
+
+          <div class="delivery-rows">
+            <v-row
+              v-for="(item, index) in DeliverySchedules"
+              :key="index"
+              no-gutters
+              class="mb-2 align-center"
+            >
+              <v-col cols="6" class="pe-2">
+                <v-text-field
+                  v-model="item.delivery_date"
+                  type="date"
+                  density="compact"
+                  hide-details
+                  variant="outlined"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="5" class="pe-2">
+                <v-text-field
+                  v-model.number="item.delivery_quantity"
+                  type="number"
+                  density="compact"
+                  hide-details
+                  variant="outlined"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="1" class="text-center">
+                <v-btn
+                  icon="mdi-delete"
+                  size="x-small"
+                  color="error"
+                  variant="text"
+                  @click="RemoveDeliveryRow(index)"
+                ></v-btn>
+              </v-col>
+            </v-row>
+          </div>
+        </v-col>
+      </v-row>
+    </div>
+    <template #actions>
+      <ButtonCancel @cancel="DialogAdd = false" />
+      <ButtonSave @save="SaveAdd()" />
+    </template>
+  </BaseDialog>
+
+  <!-- Dialog thêm mới dữ liệu -->
+  <BaseDialog
+    v-model="DialogAddManufacture"
+    title="Chuyển dữ liệu xuống sản xuất"
+    icon="mdi-plus"
+    max-width="700"
+  >
+    <InputField label="Tên dự án" v-model="NamePO" />
+    <InputField
+      label="Tên đơn hàng"
+      v-model="Name_Order_Manufacture"
+      @update:model-value="Name_Order_Manufacture = $event"
+    />
+    <InputField
+      label="Tổng sản phẩm"
+      type="number"
+      :model-value="Total_Manufacture_Add"
+      @update:model-value="Total_Manufacture_Add = $event"
+    />
+
+    <!-- Thêm input cho quy trình khác (giống DialogAdd ở Page-Manufacture.vue) -->
+    <div class="mt-3">
+      <!-- Hiển thị danh sách quy trình tùy chỉnh đã thêm -->
+      <div v-if="customProcessList.length > 0">
+        <div class="text-caption text-grey mb-1">Quy trình đã thêm:</div>
+        <div class="d-flex flex-wrap ga-2 mb-5">
+          <v-chip
+            v-for="(process, index) in customProcessList"
+            :key="index"
+            closable
+            color="secondary"
+            size="small"
+            @click:close="removeCustomProcess(index)"
           >
-            <template #append>
-              <v-btn
-                icon="mdi-plus-circle"
-                size="small"
-                color="primary"
-                variant="text"
-                @click="addCustomProcess"
-                :disabled="!customProcess || !customProcess.trim()"
-              ></v-btn>
-            </template>
-          </InputField>
+            {{ process }}
+          </v-chip>
         </div>
-        <InputField
-          label="Ngày tạo"
-          type="date"
-          v-model="Date_Manufacture_Add"
-          :rules="[requiredRule]"
-          @update:model-value="Date_Manufacture_Add = $event"
-        />
-        <InputTextarea
-          label="Ghi chú"
-          :model-value="Note_Add_Manufacture"
-          @update:model-value="Note_Add_Manufacture = $event"
-        />
-      </v-card-text>
-      <v-card-actions>
-        <ButtonCancel @cancel="DialogAddManufacture = false" />
-        <ButtonSave
-          @save="SaveAddManufacture()"
-          :disabled="
-            !NamePO ||
-            !Name_Order_Manufacture ||
-            !Total_Manufacture_Add ||
-            !Date_Manufacture_Add
-          "
-        />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+      </div>
+      <InputField
+        label="Thêm quy trình khác"
+        v-model="customProcess"
+        placeholder="Nhập tên quy trình và nhấn Enter"
+        @keyup.enter="addCustomProcess"
+        hint="Nhập và nhấn Enter để thêm nhiều quy trình"
+      >
+        <template #append>
+          <v-btn
+            icon="mdi-plus-circle"
+            size="small"
+            color="primary"
+            variant="text"
+            @click="addCustomProcess"
+            :disabled="!customProcess || !customProcess.trim()"
+          ></v-btn>
+        </template>
+      </InputField>
+    </div>
+    <InputField
+      label="Ngày tạo"
+      type="date"
+      v-model="Date_Manufacture_Add"
+      :rules="[requiredRule]"
+      @update:model-value="Date_Manufacture_Add = $event"
+    />
+    <InputTextarea
+      label="Ghi chú"
+      :model-value="Note_Add_Manufacture"
+      @update:model-value="Note_Add_Manufacture = $event"
+    />
+    <template #actions>
+      <ButtonCancel @cancel="DialogAddManufacture = false" />
+      <ButtonSave @save="SaveAddManufacture()" />
+    </template>
+  </BaseDialog>
+
   <!-- Dialog xoá dữ liệu -->
-  <v-dialog v-model="DialogRemove" width="400">
-    <v-card max-width="400" class="rounded-lg">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
-        Xoá dữ liệu
-      </v-card-title>
-      <v-card-text> Bạn có chắc chắn muốn xoá đơn hàng này ? </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogRemove = false" />
-        <ButtonDelete @delete="RemoveItem()" />
-      </template>
-    </v-card>
-  </v-dialog>
+  <BaseDialog
+    v-model="DialogRemove"
+    title="Xoá dữ liệu"
+    icon="mdi-delete"
+    max-width="400"
+  >
+    <p>Bạn có chắc chắn muốn xoá đơn hàng này ?</p>
+    <template #actions>
+      <ButtonCancel @cancel="DialogRemove = false" />
+      <ButtonDelete @delete="RemoveItem()" />
+    </template>
+  </BaseDialog>
 
   <!-- Dialog chỉnh sửa trạng thái giao hàng -->
-  <v-dialog v-model="DialogConfirm" width="400">
-    <v-card max-width="400" class="rounded-lg">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-truck-delivery" color="primary" class="me-2"></v-icon>
-        Xác nhận giao hàng
-      </v-card-title>
-      <v-card-text> Bạn có xác nhận đơn hàng đã giao ? </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogConfirm = false" />
-        <ButtonSave @save="ConfirmItem()" />
-      </template>
-    </v-card>
-  </v-dialog>
+  <BaseDialog
+    v-model="DialogConfirm"
+    title="Xác nhận giao hàng"
+    icon="mdi-truck-delivery"
+    max-width="500px"
+  >
+    <p>Bạn có xác nhận đơn hàng đã giao ?</p>
+    <template #actions>
+      <ButtonCancel @cancel="DialogConfirm = false" />
+      <ButtonSave @save="ConfirmItem()" />
+    </template>
+  </BaseDialog>
+
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
@@ -679,6 +629,7 @@ import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
+import BaseDialog from "@/components/BaseDialog.vue";
 
 // Composables
 import { useDetailProjectPO } from "@/composables/Project/useDetailProjectPO";
@@ -836,12 +787,10 @@ const unixToDateString = (unixTimestamp) => {
   if (!unixTimestamp) return "";
   const date = new Date(unixTimestamp * 1000); // Convert to milliseconds
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
-
-
 
 // Helper: Convert YYYY-MM-DD to Unix epoch (10 digits)
 const dateStringToUnix = (dateString) => {
@@ -864,7 +813,6 @@ const getScheduleDeliveries = (item) => {
     return [];
   }
 };
-
 
 // ===== CRUD OPERATIONS =====
 /**

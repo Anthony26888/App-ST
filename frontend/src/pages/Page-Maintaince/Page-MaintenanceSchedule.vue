@@ -3,17 +3,21 @@
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <v-card-title class="d-flex" v-if="lgAndUp">
         <ButtonBack :to="`/Bao-tri/Chi-tiet/${route.params.id}`" />
-        <p class="text-h4 font-weight-light ms-3" v-if="lgAndUp">Lịch bảo trì định kì</p>
+        <p class="text-h4 font-weight-light ms-3" v-if="lgAndUp">
+          Lịch bảo trì định kì
+        </p>
       </v-card-title>
 
       <v-card-title class="d-flex" v-else>
         <ButtonBack :to="`/Bao-tri/Chi-tiet/${route.params.id}`" />
-        <v-icon icon="mdi mdi-calendar-clock"></v-icon> &nbsp; {{ route.params.id }}
+        <v-icon icon="mdi mdi-calendar-clock"></v-icon> &nbsp;
+        {{ route.params.id }}
       </v-card-title>
       <v-card-text>
         <v-card variant="elevated" elevation="0" class="rounded-xl border">
           <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
-            <v-icon icon="mdi mdi-calendar-clock"></v-icon> &nbsp; {{ route.params.id }}
+            <v-icon icon="mdi mdi-calendar-clock"></v-icon> &nbsp;
+            {{ route.params.id }}
 
             <ButtonAdd @add="DialogAdd = true" />
             <p class="ms-2 font-weight-thin text-subtitle-1">
@@ -23,7 +27,7 @@
             <InputSearch v-model="search" />
           </v-card-title>
           <v-card-title class="d-flex align-center pe-2" v-else>
-            <InputSearch v-model="search" /> 
+            <InputSearch v-model="search" />
           </v-card-title>
 
           <v-data-table
@@ -176,163 +180,146 @@
       </v-card-text>
     </v-card>
 
-    <v-dialog v-model="DialogEdit" width="500" scrollable>
-      <v-card class="overflow-y-auto rounded-xl">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon icon="mdi-pencil" color="primary" class="me-2"></v-icon>
-          Cập nhật lịch bảo trì
-        </v-card-title>
+    <BaseDialog
+      v-model="DialogEdit"
+      icon="mdi-pencil"
+      title="Cập nhật lịch bảo trì"
+      max-width="700"
+    >
+      <v-row>
+        <v-col cols="12">
+          <InputField
+            label="Loại bảo trì"
+            v-model="LoaiBaoTri_Edit"
+            hint="Ví dụ: Bảo trì định kỳ, Bảo trì phòng ngừa"
+          />
+        </v-col>
+        <v-col cols="6">
+          <InputField
+            label="Chu kỳ bảo trì"
+            v-model="ChuKyBaoTri_Edit"
+            type="number"
+            hint="Số lượng chu kỳ"
+          />
+        </v-col>
+        <v-col cols="6">
+          <InputSelect
+            label="Đơn vị chu kỳ"
+            v-model="DonViChuKy_Edit"
+            hint="Ví dụ: Tháng, Quý, Năm"
+            :items="itemsDonViChuKy"
+            item-text="text"
+            item-value="value"
+          />
+        </v-col>
+        <v-col cols="6">
+          <InputField
+            label="Ngày bắt đầu"
+            v-model="NgayBatDau_Edit"
+            type="date"
+          />
+        </v-col>
+        <v-col cols="6">
+          <InputField
+            label="Ngày bảo trì tiếp theo"
+            v-model="NgayBaoTriTiepTheo_Edit"
+            type="date"
+            readonly
+            :hint="calculateNextDateEdit"
+          />
+        </v-col>
+        <v-col cols="12">
+          <InputTextarea
+            label="Ghi chú"
+            v-model="GhiChu_Edit"
+            hint="Ghi chú về lịch bảo trì"
+          />
+        </v-col>
+      </v-row>
+      <template v-slot:actions>
+        <ButtonDelete @delete="DialogRemove = true" />
+        <v-spacer></v-spacer>
+        <ButtonCancel @cancel="DialogEdit = false" />
+        <ButtonSave @save="SaveEdit()" class="ms-2" />
+      </template>
+    </BaseDialog>
 
-        <v-card-text class="pa-4">
-          <v-row>
-            <v-col cols="12">
-              <InputField
-                label="Loại bảo trì"
-                v-model="LoaiBaoTri_Edit"
-                hint="Ví dụ: Bảo trì định kỳ, Bảo trì phòng ngừa"
-              />
-            </v-col>
-            <v-col cols="6">
-              <InputField
-                label="Chu kỳ bảo trì"
-                v-model="ChuKyBaoTri_Edit"
-                type="number"
-                hint="Số lượng chu kỳ"
-              />
-            </v-col>
-            <v-col cols="6">
-              <InputSelect
-                label="Đơn vị chu kỳ"
-                v-model="DonViChuKy_Edit"
-                hint="Ví dụ: Tháng, Quý, Năm"
-                :items="itemsDonViChuKy"
-                item-text="text"
-                item-value="value"
-              />
-            </v-col>
-            <v-col cols="6">
-              <InputField
-                label="Ngày bắt đầu"
-                v-model="NgayBatDau_Edit"
-                type="date"
-              />
-            </v-col>
-            <v-col cols="6">
-              <InputField
-                label="Ngày bảo trì tiếp theo"
-                v-model="NgayBaoTriTiepTheo_Edit"
-                type="date"
-                readonly
-                :hint="calculateNextDateEdit"
-              />
-            </v-col>
-            <v-col cols="12">
-              <InputTextarea
-                label="Ghi chú"
-                v-model="GhiChu_Edit"
-                hint="Ghi chú về lịch bảo trì"
-              />
-            </v-col>
-          </v-row>
-        </v-card-text>
+    <BaseDialog
+      v-model="DialogAdd"
+      icon="mdi-plus"
+      title="Thêm lịch bảo trì"
+      max-width="700"
+    >
+      <v-row>
+        <v-col cols="12">
+          <InputField
+            label="Loại bảo trì"
+            v-model="LoaiBaoTri_Add"
+            hint="Ví dụ: Bảo trì định kỳ, Bảo trì phòng ngừa"
+          />
+        </v-col>
+        <v-col cols="6">
+          <InputField
+            label="Chu kỳ bảo trì"
+            v-model="ChuKyBaoTri_Add"
+            type="number"
+            hint="Số lượng chu kỳ"
+          />
+        </v-col>
+        <v-col cols="6">
+          <InputSelect
+            label="Đơn vị chu kỳ"
+            v-model="DonViChuKy_Add"
+            hint="Ví dụ: Tháng, Năm"
+            :items="itemsDonViChuKy"
+            item-text="text"
+            item-value="value"
+          />
+        </v-col>
+        <v-col cols="6">
+          <InputField
+            label="Ngày bắt đầu"
+            v-model="NgayBatDau_Add"
+            type="date"
+          />
+        </v-col>
+        <v-col cols="6">
+          <InputField
+            label="Ngày bảo trì tiếp theo"
+            v-model="NgayBaoTriTiepTheo_Add"
+            type="date"
+            readonly
+            :hint="calculateNextDate"
+          />
+        </v-col>
+        <v-col cols="12">
+          <InputTextarea
+            label="Ghi chú"
+            v-model="GhiChu_Add"
+            hint="Ghi chú về lịch bảo trì"
+          />
+        </v-col>
+      </v-row>
+      <template v-slot:actions>
+        <v-spacer></v-spacer>
+        <ButtonCancel @cancel="DialogAdd = false" />
+        <ButtonSave @save="SaveAdd()" class="ms-2" />
+      </template>
+    </BaseDialog>
 
-        <v-card-actions class="pa-4">
-          <ButtonDelete @delete="DialogRemove = true" />
-          <v-spacer></v-spacer>
-          <ButtonCancel @cancel="DialogEdit = false" />
-          <ButtonSave @save="SaveEdit()" class="ms-2" />
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <v-dialog v-model="DialogAdd" width="500" scrollable>
-      <v-card class="overflow-y-auto rounded-xl">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
-          Thêm lịch bảo trì
-        </v-card-title>
-
-        <v-card-text class="pa-4">
-          <v-row>
-            <v-col cols="12">
-              <InputField
-                label="Loại bảo trì"
-                v-model="LoaiBaoTri_Add"
-                hint="Ví dụ: Bảo trì định kỳ, Bảo trì phòng ngừa"
-              />
-            </v-col>
-            <v-col cols="6">
-              <InputField
-                label="Chu kỳ bảo trì"
-                v-model="ChuKyBaoTri_Add"
-                type="number"
-                hint="Số lượng chu kỳ"
-              />
-            </v-col>
-            <v-col cols="6">
-              <InputSelect
-                label="Đơn vị chu kỳ"
-                v-model="DonViChuKy_Add"
-                hint="Ví dụ: Tháng, Năm"
-                :items="itemsDonViChuKy"
-                item-text="text"
-                item-value="value"
-              />
-            </v-col>
-            <v-col cols="6">
-              <InputField
-                label="Ngày bắt đầu"
-                v-model="NgayBatDau_Add"
-                type="date"
-              />
-            </v-col>
-            <v-col cols="6">
-              <InputField
-                label="Ngày bảo trì tiếp theo"
-                v-model="NgayBaoTriTiepTheo_Add"
-                type="date"
-                readonly
-                :hint="calculateNextDate"
-              />
-            </v-col>
-            <v-col cols="12">
-              <InputTextarea
-                label="Ghi chú"
-                v-model="GhiChu_Add"
-                hint="Ghi chú về lịch bảo trì"
-              />
-            </v-col>
-          </v-row>
-        </v-card-text>
-
-        <v-card-actions class="pa-4">
-          <v-spacer></v-spacer>
-          <ButtonCancel @cancel="DialogAdd = false" />
-          <ButtonSave @save="SaveAdd()" class="ms-2" />
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <v-dialog v-model="DialogRemove" width="400">
-      <v-card class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
-          Xóa lịch bảo trì
-        </v-card-title>
-
-        <v-card-text class="pa-4">
-          <div class="text-body-1">
-            Bạn có chắc chắn muốn xóa lịch bảo trì này?
-          </div>
-        </v-card-text>
-
-        <v-card-actions class="pa-4">
-          <v-spacer></v-spacer>
-          <ButtonCancel @cancel="DialogRemove = false" />
-          <ButtonDelete @delete="DeleteItem()" class="ms-2" />
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <BaseDialog
+      v-model="DialogRemove"
+      icon="mdi-delete"
+      title="Xóa lịch bảo trì"
+      max-width="500"
+    >
+      <p>Bạn có chắc chắn muốn xóa bản ghi lịch bảo trì này?</p>
+      <template v-slot:actions>
+        <v-spacer></v-spacer>
+        <ButtonCancel @cancel="DialogRemove = false" />
+        <ButtonDelete @delete="DeleteItem()" class="ms-2" />
+      </template>
+    </BaseDialog>
     <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
     <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
     <Loading v-model="DialogLoading" />
@@ -363,6 +350,7 @@ import ButtonEye from "@/components/Button-Eye.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
+import BaseDialog from "@/components/BaseDialog.vue";
 
 // Composables
 import { useMaintenanceSchedule } from "@/composables/Maintenance/useMaintenanceSchedule";
@@ -383,12 +371,12 @@ const { maintenanceSchedule } = useMaintenanceSchedule(id);
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
-const DialogLoading = ref(false);   // Loading state
-const DialogAdd = ref(false);       // Add new item dialog
-const DialogEdit = ref(false);      // Edit dialog
-const DialogRemove = ref(false);    // Remove confirmation dialog
-const DialogSuccess = ref(false);   // Success notification
-const DialogFailed = ref(false);    // Error notification
+const DialogLoading = ref(false); // Loading state
+const DialogAdd = ref(false); // Add new item dialog
+const DialogEdit = ref(false); // Edit dialog
+const DialogRemove = ref(false); // Remove confirmation dialog
+const DialogSuccess = ref(false); // Success notification
+const DialogFailed = ref(false); // Error notification
 
 // ===== MESSAGE DIALOG =====
 // Message for success and error notifications
@@ -400,20 +388,20 @@ const MessageErrorDialog = ref("");
 const GetID = ref("");
 
 // Add form states
-const LoaiBaoTri_Add = ref("");           // Maintenance type for adding
-const ChuKyBaoTri_Add = ref("");          // Maintenance cycle for adding
-const DonViChuKy_Add = ref("");           // Cycle unit for adding
-const NgayBatDau_Add = ref("");           // Start date for adding
-const NgayBaoTriTiepTheo_Add = ref("");   // Next maintenance date for adding
-const GhiChu_Add = ref("");               // Notes for adding
+const LoaiBaoTri_Add = ref(""); // Maintenance type for adding
+const ChuKyBaoTri_Add = ref(""); // Maintenance cycle for adding
+const DonViChuKy_Add = ref(""); // Cycle unit for adding
+const NgayBatDau_Add = ref(""); // Start date for adding
+const NgayBaoTriTiepTheo_Add = ref(""); // Next maintenance date for adding
+const GhiChu_Add = ref(""); // Notes for adding
 
 // Edit form states
-const LoaiBaoTri_Edit = ref("");          // Maintenance type for editing
-const ChuKyBaoTri_Edit = ref("");         // Maintenance cycle for editing
-const DonViChuKy_Edit = ref("");          // Cycle unit for editing
-const NgayBatDau_Edit = ref("");          // Start date for editing
-const NgayBaoTriTiepTheo_Edit = ref("");  // Next maintenance date for editing
-const GhiChu_Edit = ref("");              // Notes for editing
+const LoaiBaoTri_Edit = ref(""); // Maintenance type for editing
+const ChuKyBaoTri_Edit = ref(""); // Maintenance cycle for editing
+const DonViChuKy_Edit = ref(""); // Cycle unit for editing
+const NgayBatDau_Edit = ref(""); // Start date for editing
+const NgayBaoTriTiepTheo_Edit = ref(""); // Next maintenance date for editing
+const GhiChu_Edit = ref(""); // Notes for editing
 
 // ===== TABLE CONFIGURATION =====
 // Search and pagination states
@@ -427,7 +415,11 @@ const Headers = [
   { title: "Chu kỳ bảo trì", key: "ChuKyBaoTri", sortable: true },
   { title: "Đơn vị chu kỳ", key: "DonViChuKy", sortable: true },
   { title: "Ngày bắt đầu", key: "NgayBatDau", sortable: true },
-  { title: "Ngày bảo trì tiếp theo", key: "NgayBaoTriTiepTheo", sortable: true },
+  {
+    title: "Ngày bảo trì tiếp theo",
+    key: "NgayBaoTriTiepTheo",
+    sortable: true,
+  },
   { title: "Hạn bảo trì", key: "SoNgayConLai", sortable: true },
   { title: "Ghi chú", key: "GhiChu", sortable: true },
   { title: "Thao tác", key: "MaLich", sortable: false },
@@ -444,7 +436,11 @@ const itemsDonViChuKy = ["Tháng", "Quý", "Năm"];
  * @returns {string} Message indicating the next maintenance date
  */
 const calculateNextDate = computed(() => {
-  if (!NgayBatDau_Add.value || !ChuKyBaoTri_Add.value || !DonViChuKy_Add.value) {
+  if (
+    !NgayBatDau_Add.value ||
+    !ChuKyBaoTri_Add.value ||
+    !DonViChuKy_Add.value
+  ) {
     return "Vui lòng nhập đầy đủ thông tin ngày bắt đầu, chu kỳ và đơn vị";
   }
 
@@ -474,7 +470,11 @@ const calculateNextDate = computed(() => {
  * @returns {string} Message indicating the next maintenance date
  */
 const calculateNextDateEdit = computed(() => {
-  if (!NgayBatDau_Edit.value || !ChuKyBaoTri_Edit.value || !DonViChuKy_Edit.value) {
+  if (
+    !NgayBatDau_Edit.value ||
+    !ChuKyBaoTri_Edit.value ||
+    !DonViChuKy_Edit.value
+  ) {
     return "Vui lòng nhập đầy đủ thông tin ngày bắt đầu, chu kỳ và đơn vị";
   }
 
@@ -532,7 +532,10 @@ const SaveAdd = async () => {
   };
 
   try {
-    const response = await axios.post(`${Url}/MaintenanceSchedule/Add`, formData);
+    const response = await axios.post(
+      `${Url}/MaintenanceSchedule/Add`,
+      formData
+    );
     console.log(response.data);
     MessageDialog.value = "Thêm lịch bảo trì thành công";
     Reset();
@@ -584,7 +587,9 @@ const SaveEdit = async () => {
 const DeleteItem = async () => {
   DialogLoading.value = true;
   try {
-    const response = await axios.delete(`${Url}/MaintenanceSchedule/Delete/${GetID.value}`);
+    const response = await axios.delete(
+      `${Url}/MaintenanceSchedule/Delete/${GetID.value}`
+    );
     console.log(response.data.message);
     MessageDialog.value = "Xoá lịch bảo trì thành công";
     Reset();

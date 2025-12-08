@@ -55,33 +55,23 @@
       </v-card>
     </v-card-text>
   </v-card>
-  <v-dialog v-model="DialogEdit" width="400" scrollable>
-    <v-card class="overflow-y-auto">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
-        Cập nhật dữ liệu
-      </v-card-title>
-      <v-card-text>
-        <InputField label="Tên dự án" v-model="PO_Edit" />
-        <InputField label="Số lượng board" v-model="Quantity_Edit" />
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonDelete @delete="DialogRemove = true" />
-        <v-spacer></v-spacer>
-        <ButtonCancel @cancel="DialogEdit = false" />
-        <ButtonSave @save="SaveEdit()" />
-      </template>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogRemove" width="400">
-    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
-      <v-card-text> Bạn có chắc chắn muốn xoá Bom này ? </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogRemove = false" />
-        <ButtonDelete @delete="RemoveItem()" />
-      </template>
-    </v-card>
-  </v-dialog>
+  <BaseDialog v-model="DialogEdit" width="400" title="Cập nhật dữ liệu" icon="mdi-update">
+    <InputField label="Tên dự án" v-model="PO_Edit" />
+    <InputField label="Số lượng board" v-model="Quantity_Edit" />
+    <template #actions>
+      <ButtonDelete @delete="DialogRemove = true" />
+      <v-spacer></v-spacer>
+      <ButtonCancel @cancel="DialogEdit = false" />
+      <ButtonSave @save="SaveEdit()" />
+    </template>
+  </BaseDialog>
+  <BaseDialog v-model="DialogRemove" width="400" title="Xoá dữ liệu" icon="mdi-delete">
+    Bạn có chắc chắn muốn xoá Bom này ?
+    <template #actions>
+      <ButtonCancel @cancel="DialogRemove = false" />
+      <ButtonDelete @delete="RemoveItem()" />
+    </template>
+  </BaseDialog>
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
@@ -98,6 +88,10 @@ import ButtonEdit from "@/components/Button-Edit.vue";
 import ButtonRemove from "@/components/Button-Remove.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import Loading from "@/components/Loading.vue";
+import ButtonSave from "@/components/Button-Save.vue";
+import ButtonCancel from "@/components/Button-Cancel.vue";
+import InputField from "@/components/Input-Field.vue";
+import BaseDialog from "@/components/BaseDialog.vue";
 const { detailBom } = useDetailBom();
 const Url = import.meta.env.VITE_API_URL;
 const GetID = ref("");

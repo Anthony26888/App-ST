@@ -31,7 +31,11 @@
           <v-col cols="12" md="3">
             <CardStatistic
               title="Đơn hàng hoàn thành"
-              :value="manufacture.filter((item) => item.Status_Output === 'Hoàn thành').length"
+              :value="
+                manufacture.filter(
+                  (item) => item.Status_Output === 'Hoàn thành'
+                ).length
+              "
               icon="mdi-check-circle"
               color="success"
             >
@@ -56,7 +60,11 @@
           <v-col cols="12" md="3">
             <CardStatistic
               title="Đơn hàng đang sản xuất"
-              :value="manufacture.filter((item) => item.Status_Output === 'Đang sản xuất').length"
+              :value="
+                manufacture.filter(
+                  (item) => item.Status_Output === 'Đang sản xuất'
+                ).length
+              "
               icon="mdi-progress-wrench"
               color="warning"
             >
@@ -207,36 +215,30 @@
     </v-card>
 
     <!-- Dialog chỉnh sửa dữ liệu -->
-    <v-dialog
-      :model-value="DialogEdit"
-      @update:model-value="DialogEdit = $event"
-      width="500"
-      scrollable
+    <BaseDialog
+      v-model="DialogEdit"
+      title="Cập nhật dữ liệu kế hoạch"
+      icon="mdi-update"
+      max-width="700px"
     >
-      <v-card max-width="500" class="overflow-y-auto rounded-lg">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
-          Cập nhật dữ liệu
-        </v-card-title>
-        <v-card-text>
-          <InputField
-            label="Tên dự án"
-            :model-value="Name_Edit"
-            @update:model-value="Name_Edit = $event"
-          />
-          <InputField
-            label="Tên đơn hàng"
-            v-model="Name_Order_Edit"
-            @update:model-value="Name_Order_Edit = $event"
-          />
-          <InputField
-            label="Tổng sản phẩm"
-            type="number"
-            suffix="pcs"
-            :model-value="Total_Edit"
-            @update:model-value="Total_Edit = $event"
-          />
-          <!-- <InputSelect
+      <InputField
+        label="Tên dự án"
+        :model-value="Name_Edit"
+        @update:model-value="Name_Edit = $event"
+      />
+      <InputField
+        label="Tên đơn hàng"
+        v-model="Name_Order_Edit"
+        @update:model-value="Name_Order_Edit = $event"
+      />
+      <InputField
+        label="Tổng sản phẩm"
+        type="number"
+        suffix="pcs"
+        :model-value="Total_Edit"
+        @update:model-value="Total_Edit = $event"
+      />
+      <!-- <InputSelect
             label="Quy trình"
             :items="[
               'SMT',
@@ -259,94 +261,86 @@
             @update:model-value="(val) => (Level_Edit = val)"
           /> -->
 
-          <!-- Thêm input cho quy trình khác trong dialog chỉnh sửa -->
-          <div>
-            <!-- Hiển thị danh sách quy trình tùy chỉnh đã thêm -->
-            <div v-if="customProcessListEdit.length > 0">
-              <div class="text-caption text-grey mb-1">Quy trình đã thêm:</div>
-              <div class="d-flex flex-wrap ga-2 mb-5">
-                <v-chip
-                  v-for="(process, index) in customProcessListEdit"
-                  :key="process"
-                  closable
-                  color="secondary"
-                  size="small"
-                  @click:close="removeCustomProcessEdit(index)"
-                >
-                  {{ process }}
-                </v-chip>
-              </div>
-            </div>
-            <InputField
-              label="Thêm quy trình khác"
-              v-model="customProcessEdit"
-              placeholder="Nhập tên quy trình và nhấn Enter"
-              @keyup.enter="addCustomProcessEdit"
-              hint="Nhập và nhấn Enter để thêm nhiều quy trình"
+      <!-- Thêm input cho quy trình khác trong dialog chỉnh sửa -->
+      <div>
+        <!-- Hiển thị danh sách quy trình tùy chỉnh đã thêm -->
+        <div v-if="customProcessListEdit.length > 0">
+          <div class="text-caption text-grey mb-1">Quy trình đã thêm:</div>
+          <div class="d-flex flex-wrap ga-2 mb-5">
+            <v-chip
+              v-for="(process, index) in customProcessListEdit"
+              :key="process"
+              closable
+              color="secondary"
+              size="small"
+              @click:close="removeCustomProcessEdit(index)"
             >
-              <template #append>
-                <v-btn
-                  icon="mdi-plus-circle"
-                  size="small"
-                  color="primary"
-                  variant="text"
-                  @click="addCustomProcessEdit"
-                  :disabled="!customProcessEdit || !customProcessEdit.trim()"
-                ></v-btn>
-              </template>
-            </InputField>
+              {{ process }}
+            </v-chip>
           </div>
+        </div>
+        <InputField
+          label="Thêm quy trình khác"
+          v-model="customProcessEdit"
+          placeholder="Nhập tên quy trình và nhấn Enter"
+          @keyup.enter="addCustomProcessEdit"
+          hint="Nhập và nhấn Enter để thêm nhiều quy trình"
+        >
+          <template #append>
+            <v-btn
+              icon="mdi-plus-circle"
+              size="small"
+              color="primary"
+              variant="text"
+              @click="addCustomProcessEdit"
+              :disabled="!customProcessEdit || !customProcessEdit.trim()"
+            ></v-btn>
+          </template>
+        </InputField>
+      </div>
 
-          <InputField
-            label="Ngày tạo"
-            type="date"
-            class="mt-3"
-            v-model="Date_Edit"
-          />
-          <InputTextarea
-            label="Ghi chú"
-            :model-value="Note_Edit"
-            @update:model-value="Note_Edit = $event"
-          />
-        </v-card-text>
-        <v-card-actions>
-          <ButtonDelete @delete="DialogRemove = true" />
-          <v-spacer></v-spacer>
-          <ButtonCancel @cancel="DialogEdit = false" />
-          <ButtonSave @save="SaveEdit()" />
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+      <InputField
+        label="Ngày tạo"
+        type="date"
+        class="mt-3"
+        v-model="Date_Edit"
+      />
+      <InputTextarea
+        label="Ghi chú"
+        :model-value="Note_Edit"
+        @update:model-value="Note_Edit = $event"
+      />
+      <template #actions>
+        <ButtonDelete @delete="DialogRemove = true" />
+        <v-spacer></v-spacer>
+        <ButtonCancel @cancel="DialogEdit = false" />
+        <ButtonSave @save="SaveEdit()" />
+      </template>
+    </BaseDialog>
 
     <!-- Dialog thêm mới dữ liệu -->
-    <v-dialog
-      :model-value="DialogAdd"
-      @update:model-value="DialogAdd = $event"
-      width="500"
-      scrollable
+    <BaseDialog
+      v-model="DialogAdd"
+      title="Thêm dữ liệu sản xuất"
+      icon="mdi-plus"
+      max-width="700px"
     >
-      <v-card max-width="500" class="overflow-y-auto rounded-lg">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon icon="mdi-plus" color="primary" class="me-2"></v-icon>
-          Thêm dữ liệu sản xuất
-        </v-card-title>
-        <v-card-text>
-          <InputField label="Tên dự án" v-model="Name_Manufacture_Add" />
-          <InputField
-            label="Tên đơn hàng"
-            v-model="Name_Order_Manufacture"
-            :rules="[requiredRule]"
-            @update:model-value="Name_Order_Manufacture = $event"
-          />
-          <InputField
-            label="Tổng sản phẩm"
-            type="number"
-            suffix="pcs"
-            :model-value="Total_Manufacture_Add"
-            :rules="[requiredRule]"
-            @update:model-value="Total_Manufacture_Add = $event"
-          />
-          <!-- <InputSelect
+      <InputField label="Tên dự án" v-model="Name_Manufacture_Add" />
+      <InputField
+        label="Tên đơn hàng"
+        v-model="Name_Order_Manufacture"
+        :rules="[requiredRule]"
+        @update:model-value="Name_Order_Manufacture = $event"
+      />
+      <InputField
+        label="Tổng sản phẩm"
+        type="number"
+        suffix="pcs"
+        :model-value="Total_Manufacture_Add"
+        :rules="[requiredRule]"
+        @update:model-value="Total_Manufacture_Add = $event"
+      />
+      <!-- <InputSelect
             label="Quy trình"
             :items="[
               'SMT',
@@ -369,109 +363,84 @@
             @update:model-value="(val) => (Level_Manufacture_Add = val)"
           /> -->
 
-          <!-- Thêm input cho quy trình khác -->
-          <div>
-            <!-- Hiển thị danh sách quy trình tùy chỉnh đã thêm -->
-            <div v-if="customProcessList.length > 0">
-              <div class="text-caption text-grey mb-1">Quy trình đã thêm:</div>
-              <div class="d-flex flex-wrap ga-2 mb-5">
-                <v-chip
-                  v-for="(process, index) in customProcessList"
-                  :key="index"
-                  closable
-                  color="secondary"
-                  size="small"
-                  @click:close="removeCustomProcess(index)"
-                >
-                  {{ process }}
-                </v-chip>
-              </div>
-            </div>
-            <InputField
-              label="Thêm quy trình khác"
-              v-model="customProcess"
-              placeholder="Nhập tên quy trình và nhấn Enter"
-              @keyup.enter="addCustomProcess"
-              hint="Nhập và nhấn Enter để thêm nhiều quy trình"
+      <!-- Thêm input cho quy trình khác -->
+      <div>
+        <!-- Hiển thị danh sách quy trình tùy chỉnh đã thêm -->
+        <div v-if="customProcessList.length > 0">
+          <div class="text-caption text-grey mb-1">Quy trình đã thêm:</div>
+          <div class="d-flex flex-wrap ga-2 mb-5">
+            <v-chip
+              v-for="(process, index) in customProcessList"
+              :key="index"
+              closable
+              color="secondary"
+              size="small"
+              @click:close="removeCustomProcess(index)"
             >
-              <template #append>
-                <v-btn
-                  icon="mdi-plus-circle"
-                  size="small"
-                  color="primary"
-                  variant="text"
-                  @click="addCustomProcess"
-                  :disabled="!customProcess || !customProcess.trim()"
-                ></v-btn>
-              </template>
-            </InputField>
+              {{ process }}
+            </v-chip>
           </div>
+        </div>
+        <InputField
+          label="Thêm quy trình khác"
+          v-model="customProcess"
+          placeholder="Nhập tên quy trình và nhấn Enter"
+          @keyup.enter="addCustomProcess"
+          hint="Nhập và nhấn Enter để thêm nhiều quy trình"
+        >
+          <template #append>
+            <v-btn
+              icon="mdi-plus-circle"
+              size="small"
+              color="primary"
+              variant="text"
+              @click="addCustomProcess"
+              :disabled="!customProcess || !customProcess.trim()"
+            ></v-btn>
+          </template>
+        </InputField>
+      </div>
 
-          <InputField
-            class="mt-3"
-            label="Ngày tạo"
-            type="date"
-            v-model="Date_Manufacture_Add"
-            :rules="[requiredRule]"
-            @update:model-value="Date_Manufacture_Add = $event"
-          />
-          <InputTextarea
-            label="Ghi chú"
-            :model-value="Note_Add_Manufacture"
-            @update:model-value="Note_Add_Manufacture = $event"
-          />
-        </v-card-text>
-        <v-card-actions>
-          <ButtonCancel @cancel="DialogAdd = false" />
-          <ButtonSave @save="SaveAdd()" :disabled="!Name_Manufacture_Add || !Name_Order_Manufacture || !Total_Manufacture_Add || !Date_Manufacture_Add" />
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+      <InputField
+        class="mt-3"
+        label="Ngày tạo"
+        type="date"
+        v-model="Date_Manufacture_Add"
+        :rules="[requiredRule]"
+        @update:model-value="Date_Manufacture_Add = $event"
+      />
+      <InputTextarea
+        label="Ghi chú"
+        :model-value="Note_Add_Manufacture"
+        @update:model-value="Note_Add_Manufacture = $event"
+      />
+      <template #actions>
+        <ButtonCancel @cancel="DialogAdd = false" />
+        <ButtonSave
+          @save="SaveAdd()"
+          :disabled="
+            !Name_Manufacture_Add ||
+            !Name_Order_Manufacture ||
+            !Total_Manufacture_Add ||
+            !Date_Manufacture_Add
+          "
+        />
+      </template>
+    </BaseDialog>
 
     <!-- Dialog xác nhận xóa -->
-    <v-dialog
-      :model-value="DialogRemove"
-      @update:model-value="DialogRemove = $event"
-      width="500"
+    <BaseDialog
+      v-model="DialogRemove"
+      title="Xoá dữ liệu sản xuất"
+      icon="mdi-delete"
+      max-width="500px"
     >
-      <v-card max-width="500" class="rounded-lg">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
-          Xoá dữ liệu sản xuất
-        </v-card-title>
-        <v-card-text>
-          Bạn có chắc chắn muốn xoá kế hoạch sản phẩm này ?
-        </v-card-text>
-        <template #actions>
-          <ButtonCancel @cancel="DialogRemove = false" />
-          <ButtonDelete @delete="RemoveItem()" />
-        </template>
-      </v-card>
-    </v-dialog>
-    <!-- Dialog import file -->
-    <v-dialog
-      :model-value="Dialog"
-      @update:model-value="Dialog = $event"
-      width="400"
-    >
-      <v-card max-width="400" class="rounded-xl">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
-          Thêm dữ liệu sản xuất
-        </v-card-title>
-        <v-card-text>
-          <InputFiles
-            label="Thêm File Excel"
-            :model-value="File"
-            @update:model-value="File = $event"
-          />
-        </v-card-text>
-        <template #actions>
-          <ButtonCancel @cancel="Dialog = false" />
-          <ButtonSave @save="ImportFile()" />
-        </template>
-      </v-card>
-    </v-dialog>
+      <p>Bạn có chắc chắn muốn xoá kế hoạch sản phẩm này ?</p>
+      <template #actions>
+        <ButtonCancel @cancel="DialogRemove = false" />
+        <ButtonDelete @delete="RemoveItem()" />
+      </template>
+    </BaseDialog>
 
     <!-- Các component thông báo và loading -->
     <SnackbarSuccess
@@ -512,6 +481,8 @@ import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
+import BaseDialog from "@/components/BaseDialog.vue";
+
 import { useManufacture } from "@/composables/Manufacture/useManufacture";
 
 // Khởi tạo các composables và biến môi trường
@@ -588,13 +559,19 @@ const requiredRule = (value) => !!value || "Không được để trống";
 
 const progressManufacture = computed(() => {
   return Number.parseFloat(
-    manufacture.value.filter((item) => item.Status_Output === "Đang sản xuất").length / manufacture.value.length * 100
+    (manufacture.value.filter((item) => item.Status_Output === "Đang sản xuất")
+      .length /
+      manufacture.value.length) *
+      100
   ).toFixed(1);
 });
 
 const progressCompleted = computed(() => {
   return Number.parseFloat(
-    manufacture.value.filter((item) => item.Status_Output === "Hoàn thành").length / manufacture.value.length * 100
+    (manufacture.value.filter((item) => item.Status_Output === "Hoàn thành")
+      .length /
+      manufacture.value.length) *
+      100
   ).toFixed(1);
 });
 
@@ -748,13 +725,13 @@ const SaveEdit = async () => {
   ];
 
   // Xử lý sạch dữ liệu: trim + bỏ rỗng
-  let cleaned = allProcesses.map(p => p.trim()).filter(p => p);
+  let cleaned = allProcesses.map((p) => p.trim()).filter((p) => p);
 
   // Loại duplicate theo thứ tự giữ nguyên
   let uniqueLevels = cleaned.filter((p, i) => cleaned.indexOf(p) === i);
 
   // ❗ Đảm bảo Thành phẩm cuối cùng
-  uniqueLevels = uniqueLevels.filter(p => p !== "Thành phẩm"); // bỏ tạm
+  uniqueLevels = uniqueLevels.filter((p) => p !== "Thành phẩm"); // bỏ tạm
 
   // Nếu người dùng không chọn thì tự thêm
   uniqueLevels.push("Thành phẩm");
@@ -788,7 +765,6 @@ const SaveEdit = async () => {
     DialogLoading.value = false;
   }
 };
-
 
 // Hàm lưu thông tin thêm mới
 const SaveAdd = async () => {

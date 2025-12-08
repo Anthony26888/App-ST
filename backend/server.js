@@ -449,7 +449,8 @@ io.on("connection", (socket) => {
                       WHEN SUM(CASE WHEN pd.QuantityAmount = 0 THEN 1 ELSE 0 END) > 0 
                           AND SUM(CASE WHEN pd.QuantityAmount > 0 THEN 1 ELSE 0 END) = 0 THEN 'Hoàn thành'
                       ELSE 'Chưa có PO'
-                  END AS Status
+                  END AS Status,
+                  c.Note
               FROM Customers c
               LEFT JOIN ProductDetails pd ON c.id = pd.CustomerID
               GROUP BY c.id, c.CustomerName
@@ -462,9 +463,145 @@ io.on("connection", (socket) => {
         socket.emit("ProjectError", error);
       }
     }),
-    socket.on("getProjectFind", async () => {
+    socket.on("get-notifications", async () => {
       try {
         const query = `
+        SELECT 
+          vn.id,
+          vn.ItemId,
+          vn.Title,
+          vn.Message,
+          vn.Quantity,
+          vn.Icon,
+          vn.Color,
+          vn.Status,
+          vn.DaysRemaining,
+          sd.DeliveryDate,
+          sd.DeliveryQuantity,
+          sd.DeliveryStatus,
+          vn.IsRead
+        FROM vw_NotificationDelivery vn
+        LEFT JOIN ScheduleDelivery sd ON vn.id = sd.id
+        WHERE vn.Title IS NOT NULL     
+        ORDER BY vn.DaysRemaining ASC
+      `;
+
+        db.all(query, (err, rows) => {
+          if (err) {
+            socket.emit("notifications-error", { error: err.message });
+            return;
+          }
+          socket.emit("notifications-update", rows || []);
+        });
+      } catch (error) {
+        socket.emit("notifications-error", { error: error.message });
+      }
+    });
+
+  // Client request statistics
+  socket.on("get-statistics", async () => {
+    try {
+      const query = `
+        SELECT 
+          COUNT(*) AS Total,
+          SUM(CASE WHEN CAST((DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) = 0 THEN 1 ELSE 0 END) AS Today,
+          SUM(CASE WHEN CAST((DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) = 1 THEN 1 ELSE 0 END) AS Tomorrow,
+          SUM(CASE WHEN CAST((DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) IN (2, 3) THEN 1 ELSE 0 END) AS SoonAfter
+        FROM ScheduleDelivery
+        WHERE DeliveryStatus = 'Chưa giao'
+          AND CAST((DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) BETWEEN 0 AND 3
+      `;
+
+      db.all(query, (err, rows) => {
+        if (err) {
+          socket.emit("statistics-error", { error: err.message });
+          return;
+        }
+        socket.emit("statistics-update", rows[0] || {});
+      });
+    } catch (error) {
+      socket.emit("statistics-error", { error: error.message });
+    }
+  });
+
+  // Mark notification as read
+  socket.on("mark-notification-read", async (notificationId) => {
+    try {
+      const query = `
+        INSERT OR IGNORE INTO NotificationReadStatus (notification_id)
+        VALUES (?)
+      `;
+      
+      db.run(query, [notificationId], (err) => {
+        if (err) {
+          console.error("❌ Error marking notification as read:", err.message);
+          socket.emit("notification-read-error", { error: err.message });
+          return;
+        }
+        
+        console.log(`✅ Notification #${notificationId} marked as read`);
+        
+        // Broadcast to all clients to refresh notifications
+        io.emit("notification-marked-read", { id: notificationId });
+      });
+    } catch (error) {
+      console.error("❌ Error:", error.message);
+      socket.emit("notification-read-error", { error: error.message });
+    }
+  });
+
+  // Mark all notifications as read
+  socket.on("mark-all-notifications-read", async () => {
+    try {
+      // Get all unread notification IDs
+      const getUnreadQuery = `
+        SELECT id FROM vw_NotificationDelivery WHERE IsRead = 0
+      `;
+      
+      db.all(getUnreadQuery, [], (err, rows) => {
+        if (err) {
+          console.error("❌ Error getting unread notifications:", err.message);
+          socket.emit("notification-read-error", { error: err.message });
+          return;
+        }
+        
+        if (rows.length === 0) {
+          console.log("ℹ️ No unread notifications to mark");
+          io.emit("all-notifications-marked-read");
+          return;
+        }
+        
+        // Insert all notification IDs into NotificationReadStatus
+        const placeholders = rows.map(() => "(?)").join(",");
+        const insertQuery = `
+          INSERT OR IGNORE INTO NotificationReadStatus (notification_id)
+          VALUES ${placeholders}
+        `;
+        const ids = rows.map(row => row.id);
+        
+        db.run(insertQuery, ids, (err) => {
+          if (err) {
+            console.error("❌ Error marking all notifications as read:", err.message);
+            socket.emit("notification-read-error", { error: err.message });
+            return;
+          }
+          
+          console.log(`✅ Marked ${rows.length} notifications as read`);
+          
+          // Broadcast to all clients to refresh notifications
+          io.emit("all-notifications-marked-read");
+        });
+      });
+    } catch (error) {
+      console.error("❌ Error:", error.message);
+      socket.emit("notification-read-error", { error: error.message });
+    }
+  });
+
+
+  socket.on("getProjectFind", async () => {
+    try {
+      const query = `
           SELECT 
             a.id,
             c.POID,
@@ -472,6 +609,10 @@ io.on("connection", (socket) => {
             c.ProductDetail,
             a.CustomerName,
 			      c.POID,
+            strftime('%Y-%m-%d', s.DeliveryDate, 'unixepoch', 'localtime') AS DeliveryDateUnixpoch,
+            strftime('%d-%m-%Y', s.DeliveryDate, 'unixepoch', 'localtime') AS DeliveryDate,
+            s.DeliveryQuantity,
+            s.DeliveryStatus,
             c.ProductDetail,
             c.CustomerID,
             CASE
@@ -480,15 +621,16 @@ io.on("connection", (socket) => {
               ELSE 'Chưa có đơn hàng'
             END AS Status
           FROM Customers a
-          LEFT JOIN ProductDetails c ON a.id = c.CustomerID`;
-        db.all(query, [], (err, rows) => {
-          if (err) return socket.emit("ProjectError", err);
-          socket.emit("ProjectFindData", rows);
-        });
-      } catch (error) {
-        socket.emit("ProjectFindError", error);
-      }
-    }),
+          LEFT JOIN ProductDetails c ON a.id = c.CustomerID
+          LEFT JOIN ScheduleDelivery s ON c.id = s.ItemId`;
+      db.all(query, [], (err, rows) => {
+        if (err) return socket.emit("ProjectError", err);
+        socket.emit("ProjectFindData", rows);
+      });
+    } catch (error) {
+      socket.emit("ProjectFindError", error);
+    }
+  }),
     socket.on("getDetailProject", async (id) => {
       try {
         const query = `
@@ -3392,82 +3534,92 @@ app.post("/api/Project/Customer/Add-Schedule-Delivery", async (req, res) => {
     VALUES (?, ?, ?, ?)
   `;
 
-  db.run(query, [ItemId, DeliveryDate, DeliveryQuantity, "Chưa giao"], function (err) {
-    if (err) {
-      console.error("Error:", err.message);
-      return res.status(500).json({
-        message: "Lỗi thêm lịch giao hàng",
+  db.run(
+    query,
+    [ItemId, DeliveryDate, DeliveryQuantity, "Chưa giao"],
+    function (err) {
+      if (err) {
+        console.error("Error:", err.message);
+        return res.status(500).json({
+          message: "Lỗi thêm lịch giao hàng",
+        });
+      }
+      io.emit("updateDetailProjectPO");
+      res.json({
+        message: "Lịch giao hàng thêm thành công",
+        id: this.lastID,
       });
     }
-    io.emit("updateDetailProjectPO");
-    res.json({
-      message: "Lịch giao hàng thêm thành công",
-      id: this.lastID,
-    });
-  });
+  );
 });
 
 // 3. CẬP NHẬT LỊCH GIAO HÀNG CÓ SẴN
-app.put("/api/Project/Customer/Edit-Schedule-Delivery/:id", async (req, res) => {
-  const { DeliveryDate, DeliveryQuantity } = req.body;
-  const { id } = req.params;
+app.put(
+  "/api/Project/Customer/Edit-Schedule-Delivery/:id",
+  async (req, res) => {
+    const { DeliveryDate, DeliveryQuantity } = req.body;
+    const { id } = req.params;
 
-  // Validate input
-  if (!id || !DeliveryDate || !DeliveryQuantity) {
-    return res.status(400).json({
-      message: "Vui lòng điền đầy đủ thông tin",
-    });
-  }
+    // Validate input
+    if (!id || !DeliveryDate || !DeliveryQuantity) {
+      return res.status(400).json({
+        message: "Vui lòng điền đầy đủ thông tin",
+      });
+    }
 
-  const query = `
+    const query = `
     UPDATE ScheduleDelivery
     SET DeliveryDate = ?, DeliveryQuantity = ?
     WHERE id = ?
   `;
 
-  db.run(query, [DeliveryDate, DeliveryQuantity, id], function (err) {
-    if (err) {
-      console.error("Error:", err.message);
-      return res.status(500).json({
-        message: "Lỗi cập nhật lịch giao hàng",
+    db.run(query, [DeliveryDate, DeliveryQuantity, id], function (err) {
+      if (err) {
+        console.error("Error:", err.message);
+        return res.status(500).json({
+          message: "Lỗi cập nhật lịch giao hàng",
+        });
+      }
+      io.emit("updateDetailProjectPO");
+      res.json({
+        message: "Cập nhật lịch giao hàng thành công",
       });
-    }
-    io.emit("updateDetailProjectPO");
-    res.json({
-      message: "Cập nhật lịch giao hàng thành công",
-    });
-  });
-});
-
-// 4. XÓA LỊCH GIAO HÀNG (THÊM CHO ĐẦY ĐỦ)
-app.delete("/api/Project/Customer/Delete-Schedule-Delivery/:id", async (req, res) => {
-  const { id } = req.params;
-
-  // Validate input
-  if (!id) {
-    return res.status(400).json({
-      message: "ID không hợp lệ",
     });
   }
+);
 
-  const query = `
+// 4. XÓA LỊCH GIAO HÀNG (THÊM CHO ĐẦY ĐỦ)
+app.delete(
+  "/api/Project/Customer/Delete-Schedule-Delivery/:id",
+  async (req, res) => {
+    const { id } = req.params;
+
+    // Validate input
+    if (!id) {
+      return res.status(400).json({
+        message: "ID không hợp lệ",
+      });
+    }
+
+    const query = `
     DELETE FROM ScheduleDelivery
     WHERE id = ?
   `;
 
-  db.run(query, [id], function (err) {
-    if (err) {
-      console.error("Error:", err.message);
-      return res.status(500).json({
-        message: "Lỗi xóa lịch giao hàng",
+    db.run(query, [id], function (err) {
+      if (err) {
+        console.error("Error:", err.message);
+        return res.status(500).json({
+          message: "Lỗi xóa lịch giao hàng",
+        });
+      }
+      io.emit("updateDetailProjectPO");
+      res.json({
+        message: "Xóa lịch giao hàng thành công",
       });
-    }
-    io.emit("updateDetailProjectPO");
-    res.json({
-      message: "Xóa lịch giao hàng thành công",
     });
-  });
-});
+  }
+);
 
 app.put("/api/Project/Customer/Confirm-Item/:id", async (req, res) => {
   const { id } = req.params;
@@ -3489,7 +3641,6 @@ app.put("/api/Project/Customer/Confirm-Item/:id", async (req, res) => {
     });
   });
 });
-
 
 // Router update orders in PurchaseDetails table
 app.put("/api/Project/Customer/Edit-Orders/:id", async (req, res) => {
@@ -3560,14 +3711,14 @@ app.delete("/api/Project/Customer/Delete-Orders/:id", async (req, res) => {
 
 // Router update customer in Customers table
 app.put("/api/Project/Customer/Edit-Customer/:id", async (req, res) => {
-  const { CustomerName, Years } = req.body;
+  const { CustomerName, Note } = req.body;
   const { id } = req.params;
   // Insert data into SQLite database
   const query = `
     UPDATE Customers
-    SET CustomerName = ?, Years = ?
+    SET CustomerName = ?, Note = ?
     WHERE id = ?`;
-  db.run(query, [CustomerName, Years, id], function (err) {
+  db.run(query, [CustomerName, Note, id], function (err) {
     if (err) {
       return res
         .status(500)
@@ -3581,13 +3732,13 @@ app.put("/api/Project/Customer/Edit-Customer/:id", async (req, res) => {
 
 // Router add new orders in PurchaseDetails table
 app.post("/api/Project/Customer/Add-Customer", async (req, res) => {
-  const { CustomerName, Years } = req.body;
+  const { CustomerName, Note } = req.body;
   // Insert data into SQLite database
   const query = `
-    INSERT INTO Customers (CustomerName, Years)
+    INSERT INTO Customers (CustomerName, Note)
     VALUES (?, ?)
   `;
-  db.run(query, [CustomerName, Years], function (err) {
+  db.run(query, [CustomerName, Note], function (err) {
     if (err) {
       return res
         .status(500)

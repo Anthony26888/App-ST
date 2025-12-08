@@ -141,105 +141,123 @@
     </v-card-text>
   </v-card>
 
-  <v-dialog v-model="DialogRemoveWareHouse" width="400">
-    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
-      <v-card-text>
-        Bạn có chắc chắn muốn xoá toàn bộ dữ liệu kho ?
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogRemoveWareHouse = false" />
-        <ButtonDelete @delete="RemoveWareHouse()" />
-      </template>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogRemoveWareHouse2" width="400">
-    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
-      <v-card-text>
-        Bạn có chắc chắn muốn xoá toàn bộ dữ liệu kho 2?
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogRemoveWareHouse2 = false" />
-        <ButtonDelete @delete="RemoveWareHouse2()" />
-      </template>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogRemoveCheckBOM" width="400">
-    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
-      <v-card-text>
-        Bạn có chắc chắn muốn xoá toàn bộ dữ liệu Bom ?
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogRemoveCheckBOM = false" />
-        <ButtonDelete @delete="RemoveCheckBOM()" />
-      </template>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogRemoveProject" width="400">
-    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
-      <v-card-text>
-        Bạn có chắc chắn muốn xoá toàn bộ dữ liệu dự án ?
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogRemoveProject = false" />
-        <ButtonDelete @delete="RemoveProject()" />
-      </template>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogRemoveManufacture" width="400">
-    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
-      <v-card-text>
-        Bạn có chắc chắn muốn xoá toàn bộ dữ liệu sản xuất ?
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogRemoveManufacture = false" />
-        <ButtonDelete @delete="RemoveManufacture()" />
-      </template>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogRemoveSummary" width="400">
-    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
-      <v-card-text>
-        Bạn có chắc chắn muốn xoá toàn bộ dữ liệu báo cáo ?
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogRemoveSummary = false" />
-        <ButtonDelete @delete="RemoveSummary()" />
-      </template>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogRemoveMaintenance" width="400">
-    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
-      <v-card-text>
-        Bạn có chắc chắn muốn xoá toàn bộ dữ liệu bảo trì?
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogRemoveMaintenance= false" />
-        <ButtonDelete @delete="RemoveMaintenance()" />
-      </template>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogRemovePnP" width="400">
-    <v-card max-width="400" prepend-icon="mdi-delete" title="Xoá dữ liệu">
-      <v-card-text>
-        Bạn có chắc chắn muốn xoá toàn bộ dữ liệu Pick & Place?
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogRemovePnP= false" />
-        <ButtonDelete @delete="RemovePnP()" />
-      </template>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogDownloadData" width="400">
-    <v-card max-width="400" prepend-icon="mdi-file-download" title="Tải dữ liệu">
-      <v-card-text>
-        Bạn có chắc chắn muốn tải toàn bộ dữ liệu thống?
-      </v-card-text>
-      <template v-slot:actions>
-        <ButtonCancel @cancel="DialogDownloadData= false" />
-        <ButtonDownload @download-file="downloadDatabase()" />
-      </template>
-    </v-card>
-  </v-dialog>
+  <BaseDialog
+    v-model="DialogRemoveWareHouse"
+    width="500"
+    title="Xoá dữ liệu"
+    icon="mdi-delete"
+  >
+    <p>Bạn có chắc chắn muốn xoá toàn bộ dữ liệu kho?</p>
+    <template v-slot:actions>
+      <v-spacer></v-spacer>
+      <ButtonCancel @cancel="DialogRemoveWareHouse = false" />
+      <ButtonDelete @delete="RemoveWareHouse()" class="ms-2" />
+    </template>
+  </BaseDialog>
+  <BaseDialog
+    v-model="DialogRemoveWareHouse2"
+    width="500"
+    title="Xoá dữ liệu"
+    icon="mdi-delete"
+  >
+    <p>Bạn có chắc chắn muốn xoá toàn bộ dữ liệu kho 2?</p>
+    <template v-slot:actions>
+      <v-spacer></v-spacer>
+      <ButtonCancel @cancel="DialogRemoveWareHouse2 = false" />
+      <ButtonDelete @delete="RemoveWareHouse2()" class="ms-2" />
+    </template>
+  </BaseDialog>
+  <BaseDialog
+    v-model="DialogRemoveCheckBOM"
+    width="500"
+    title="Xoá dữ liệu"
+    icon="mdi-delete"
+  >
+    <p>Bạn có chắc chắn muốn xoá toàn bộ dữ liệu Bom?</p>
+    <template v-slot:actions>
+      <v-spacer></v-spacer>
+      <ButtonCancel @cancel="DialogRemoveCheckBOM = false" />
+      <ButtonDelete @delete="RemoveCheckBOM()" class="ms-2" />
+    </template>
+  </BaseDialog>
+  <BaseDialog
+    v-model="DialogRemoveProject"
+    width="500"
+    title="Xoá dữ liệu"
+    icon="mdi-delete"
+  >
+    <p>Bạn có chắc chắn muốn xoá toàn bộ dữ liệu dự án?</p>
+    <template v-slot:actions>
+      <v-spacer></v-spacer>
+      <ButtonCancel @cancel="DialogRemoveProject = false" />
+      <ButtonDelete @delete="RemoveProject()" class="ms-2" />
+    </template>
+  </BaseDialog>
+  <BaseDialog
+    v-model="DialogRemoveManufacture"
+    width="500"
+    title="Xoá dữ liệu"
+    icon="mdi-delete"
+  >
+    <p>Bạn có chắc chắn muốn xoá toàn bộ dữ liệu sản xuất?</p>
+    <template v-slot:actions>
+      <v-spacer></v-spacer>
+      <ButtonCancel @cancel="DialogRemoveManufacture = false" />
+      <ButtonDelete @delete="RemoveManufacture()" class="ms-2" />
+    </template>
+  </BaseDialog>
+  <BaseDialog
+    v-model="DialogRemoveSummary"
+    width="500"
+    title="Xoá dữ liệu"
+    icon="mdi-delete"
+  >
+    <p>Bạn có chắc chắn muốn xoá toàn bộ dữ liệu báo cáo?</p>
+    <template v-slot:actions>
+      <v-spacer></v-spacer>
+      <ButtonCancel @cancel="DialogRemoveSummary = false" />
+      <ButtonDelete @delete="RemoveSummary()" class="ms-2" />
+    </template>
+  </BaseDialog>
+  <BaseDialog
+    v-model="DialogRemoveMaintenance"
+    width="500"
+    title="Xoá dữ liệu"
+    icon="mdi-delete"
+  >
+    <p>Bạn có chắc chắn muốn xoá toàn bộ dữ liệu bảo trì?</p>
+    <template v-slot:actions>
+      <v-spacer></v-spacer>
+      <ButtonCancel @cancel="DialogRemoveMaintenance = false" />
+      <ButtonDelete @delete="RemoveMaintenance()" class="ms-2" />
+    </template>
+  </BaseDialog>
+  <BaseDialog
+    v-model="DialogRemovePnP"
+    width="500"
+    title="Xoá dữ liệu"
+    icon="mdi-delete"
+  >
+    <p>Bạn có chắc chắn muốn xoá toàn bộ dữ liệu Pick & Place?</p>
+    <template v-slot:actions>
+      <v-spacer></v-spacer>
+      <ButtonCancel @cancel="DialogRemovePnP = false" />
+      <ButtonDelete @delete="RemovePnP()" class="ms-2" />
+    </template>
+  </BaseDialog>
+  <BaseDialog
+    v-model="DialogDownloadData"
+    width="500"
+    title="Tải dữ liệu"
+    icon="mdi-file-download"
+  >
+    <p>Bạn có chắc chắn muốn tải toàn bộ dữ liệu hệ thống?</p>
+    <template v-slot:actions>
+      <v-spacer></v-spacer>
+      <ButtonCancel @cancel="DialogDownloadData = false" />
+      <ButtonDownload @download-file="downloadDatabase()" class="ms-2" />
+    </template>
+  </BaseDialog>
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
@@ -256,6 +274,12 @@ import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
+import Loading from "@/components/Loading.vue";
+import BaseDialog from "@/components/BaseDialog.vue";
+import { useDisplay } from "vuetify";
+
+// ===== DISPLAY =====
+const { lgAndUp } = useDisplay();
 
 // ===== STATE MANAGEMENT =====
 // API Configuration

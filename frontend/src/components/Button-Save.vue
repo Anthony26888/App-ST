@@ -1,5 +1,7 @@
 <template lang="">
-  <v-btn class="bg-primary text-caption" @click="emitSave()">Nhập dữ liệu</v-btn>
+  <v-btn class="bg-gradient text-caption" @click="emitSave()"
+    >Nhập dữ liệu</v-btn
+  >
 </template>
 <script>
 export default {
@@ -10,4 +12,13 @@ export default {
   },
 };
 </script>
-<style lang=""></style>
+<style scoped>
+.bg-gradient {
+  background: linear-gradient(
+    135deg,
+    rgb(var(--v-theme-primary)),
+    rgb(var(--v-theme-secondary))
+  );
+  color: white;
+}
+</style>

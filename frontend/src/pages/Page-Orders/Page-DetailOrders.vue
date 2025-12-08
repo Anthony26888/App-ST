@@ -5,7 +5,7 @@
       <p class="text-h4 font-weight-light ms-3">Chi tiết đơn hàng</p>
     </v-card-title>
     <v-card-text>
-      <v-card variant="text">
+      <v-card class="rounded-xl">
         <v-card-title class="d-flex align-center pe-2">
           <v-icon icon="mdi mdi-cart-arrow-down"></v-icon> &nbsp;
           {{ $route.params.id }}
@@ -40,7 +40,9 @@
           :hover="true"
           :dense="false"
           :fixed-header="true"
-          height="calc(100vh - 200px)"
+          height="79vh"
+          fixed-header
+          class="rounded-xl"
         >
           <template v-slot:bottom>
             <div class="text-center pt-2">
@@ -57,7 +59,7 @@
             </div>
           </template>
           <template v-slot:item.SL_Tổng="{ value }">
-            <v-chip variant="tonal" color="success" label >
+            <v-chip variant="tonal" color="success" label>
               {{ value }}
             </v-chip>
           </template>
@@ -81,123 +83,114 @@
           <template v-slot:item.Số_Lượng_Cần_Mua_Misa="{ value }">
             {{ value }}
           </template>
-
         </v-data-table>
       </v-card>
     </v-card-text>
   </v-card>
-  <v-dialog v-model="DialogEdit" width="600" scrollable>
-    <v-card class="overflow-y-auto">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-update" color="primary" class="me-2"></v-icon>
-        Cập nhật dữ liệu
-      </v-card-title>
-      <v-card-text>
-        <v-row>
-          <v-col>
-            <InputSelect label="Mã Kho" v-model="Ma_Kho" :items="Customer" />
-          </v-col>
-          <v-col>
-            <InputField disabled v-model="SL_Ton_Kho"/>
-          </v-col>
-        </v-row>
 
-        <v-row>
-          <v-col>
-            <InputSelect label="Mã Kho Misa" v-model="Ma_Kho_Misa" :items="Customer_Misa" />
-          </v-col>
-          <v-col>
-            <InputField disabled v-model="SL_Ton_Kho_Misa"/>
-          </v-col>
-        </v-row>
-        
-        
-        <!-- <InputField label="Hao phí thực tế" v-model="ActualCost" /> -->
-      </v-card-text>
-      <v-card-actions>
-        <ButtonCancel @cancel="DialogEdit = false" />
-        <ButtonSave @save="SaveEdit()" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogAccept" width="400" scrollable>
-    <v-card class="overflow-y-auto">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-check" color="success" class="me-2"></v-icon>
-        Kho xác nhận dữ liệu
-      </v-card-title>
-      <v-card-text> Bạn có chắc chắn muốn xác nhận dữ liệu? </v-card-text>
-      <v-card-actions>
-        <ButtonCancel @cancel="DialogAccept = false" />
-        <ButtonAgree @agree="WareHouseAcceptWareHouse();WareHouse2AcceptWareHouse()" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
-  <v-dialog v-model="DialogInfo" width="800" scrollable>
-    <v-card class="overflow-y-auto">
-      <v-card-title class="d-flex align-center">
-        <v-icon
-          icon="mdi-information-variant-circle"
-          color="primary"
-          class="me-2"
-        ></v-icon>
-        Thông số kỹ thuật
-        <v-spacer></v-spacer>
-        <v-btn
-          variant="text"
-          icon="mdi-close"
-          @click="DialogInfo = false"
-        ></v-btn>
-      </v-card-title>
+  <BaseDialog
+    v-model="DialogEdit"
+    max-width="600"
+    title="Cập nhật dữ liệu"
+    icon="mdi-update"
+  >
+    <v-row>
+      <v-col>
+        <InputSelect label="Mã Kho" v-model="Ma_Kho" :items="Customer" />
+      </v-col>
+      <v-col>
+        <InputField disabled v-model="SL_Ton_Kho" />
+      </v-col>
+    </v-row>
 
-      <v-card-text>
-        <v-row>
-          <v-col>
-            <v-img :src="ResultSearch.Product.PhotoUrl"></v-img>
-          </v-col>
-          <v-col>
-            <v-list-item density="comfortable" lines="two">
-              <template v-slot:title>
-                <strong class="text-h6">
-                  {{ ResultSearch.Product.ManufacturerProductNumber }}
-                </strong>
-              </template>
-            </v-list-item>
+    <v-row>
+      <v-col>
+        <InputSelect
+          label="Mã Kho Misa"
+          v-model="Ma_Kho_Misa"
+          :items="Customer_Misa"
+        />
+      </v-col>
+      <v-col>
+        <InputField disabled v-model="SL_Ton_Kho_Misa" />
+      </v-col>
+    </v-row>
+    <template v-slot:actions>
+      <ButtonCancel @cancel="DialogEdit = false" />
+      <ButtonSave @save="SaveEdit()" />
+    </template>
+  </BaseDialog>
 
-            <v-table class="text-caption" density="compact">
-              <tbody>
-                <tr>
-                  <td><strong>Datasheet</strong></td>
-                  <td>
-                    <v-btn
-                      size="small"
-                      prepend-icon="mdi-database-arrow-right"
-                      :href="ResultSearch.Product.DatasheetUrl"
-                      target="_blank"
-                      color="primary"
-                      variant="tonal"
-                      class="text-caption"
-                    >
-                      Datasheet
-                    </v-btn>
-                  </td>
-                </tr>
-                <tr
-                  v-for="item in ResultSearch.Product.Parameters"
-                  :key="item.name"
+  <BaseDialog
+    v-model="DialogAccept"
+    max-width="500"
+    title="Kho xác nhận dữ liệu"
+    icon="mdi-check"
+  >
+    <p>Bạn có chắc chắn muốn xác nhận dữ liệu?</p>
+    <template v-slot:actions>
+      <ButtonCancel @cancel="DialogAccept = false" />
+      <ButtonAgree
+        @agree="
+          WareHouseAcceptWareHouse();
+          WareHouse2AcceptWareHouse();
+        "
+      />
+    </template>
+  </BaseDialog>
+
+  <BaseDialog
+    v-model="DialogInfo"
+    title="Thông số kỹ thuật"
+    icon="mdi-information-variant-circle"
+    max-width="700"
+  >
+    <v-row>
+      <v-col>
+        <v-img :src="ResultSearch.Product.PhotoUrl"></v-img>
+      </v-col>
+      <v-col>
+        <v-list-item density="comfortable" lines="two">
+          <template v-slot:title>
+            <strong class="text-h6">
+              {{ ResultSearch.Product.ManufacturerProductNumber }}
+            </strong>
+          </template>
+        </v-list-item>
+
+        <v-table class="text-caption" density="compact">
+          <tbody>
+            <tr>
+              <td><strong>Datasheet</strong></td>
+              <td>
+                <v-btn
+                  size="small"
+                  prepend-icon="mdi-database-arrow-right"
+                  :href="ResultSearch.Product.DatasheetUrl"
+                  target="_blank"
+                  color="primary"
+                  variant="tonal"
+                  class="text-caption"
                 >
-                  <td>
-                    <strong>{{ item.ParameterText }}</strong>
-                  </td>
-                  <td>{{ item.ValueText }}</td>
-                </tr>
-              </tbody>
-            </v-table>
-          </v-col>
-        </v-row>
-      </v-card-text>
-    </v-card>
-  </v-dialog>
+                  Datasheet
+                </v-btn>
+              </td>
+            </tr>
+            <tr
+              v-for="item in ResultSearch.Product.Parameters"
+              :key="item.name"
+            >
+              <td>
+                <strong>{{ item.ParameterText }}</strong>
+              </td>
+              <td>{{ item.ValueText }}</td>
+            </tr>
+          </tbody>
+        </v-table>
+      </v-col>
+    </v-row>
+  </BaseDialog>
+
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <SnackbarCaution v-model="DialogCaution" :message="MessageCautionDialog" />
@@ -232,6 +225,7 @@ import ButtonAgree from "@/components/Button-Agree.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
+import BaseDialog from "@/components/BaseDialog.vue";
 
 // ===== STATE MANAGEMENT =====
 // Route and API Configuration
@@ -246,17 +240,17 @@ const { users } = useUsers();
 const { compare, compareError, headers } = useDetailOrder(id);
 const { WareHouseFind, WareHouseFindError } = useWareHouseFind(PartNumber_1);
 const { WareHouse2Find, WareHouse2FindError } = useWareHouse2Find(PartNumber_1);
-console.log(compare)
+console.log(compare);
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
-const DialogEdit = ref(false);      // Edit item dialog
-const DialogAccept = ref(false);    // Accept confirmation dialog
-const DialogSuccess = ref(false);   // Success notification
-const DialogFailed = ref(false);    // Error notification
-const DialogLoading = ref(false);   // Loading state
-const DialogCaution = ref(false);   // Warning notification
-const DialogInfo = ref(false);      // Product info dialog
+const DialogEdit = ref(false); // Edit item dialog
+const DialogAccept = ref(false); // Accept confirmation dialog
+const DialogSuccess = ref(false); // Success notification
+const DialogFailed = ref(false); // Error notification
+const DialogLoading = ref(false); // Loading state
+const DialogCaution = ref(false); // Warning notification
+const DialogInfo = ref(false); // Product info dialog
 
 // ===== FORM STATES =====
 // Item data states
@@ -336,8 +330,6 @@ onMounted(() => {
   }
 });
 
-
-
 // ===== WATCHERS =====
 /**
  * Watch for changes in compare data to regenerate table headers
@@ -345,7 +337,6 @@ onMounted(() => {
 watch(
   compare,
   (newBomData) => {
-    console.log("checkBOM changed, generating headers with:", newBomData);
     generateHeaders(newBomData);
   },
   { deep: true }
@@ -354,44 +345,67 @@ watch(
 /**
  * Watch for changes in WareHouseFind data to update Customer options
  */
-watch(WareHouseFind, (newData) => {
-  if (newData && newData.length > 0) {
-    Customer.value = newData.map(item => item.Customer);
-    // Find the stock quantity for the selected warehouse
-    const selectedWarehouse = newData.find((item) => item.Customer === Ma_Kho.value);
-    SL_Ton_Kho.value = selectedWarehouse ? selectedWarehouse.SL_Ton_Kho || 0 : 0;
-  }
-}, { immediate: true });
+watch(
+  WareHouseFind,
+  (newData) => {
+    if (newData && newData.length > 0) {
+      Customer.value = newData.map((item) => item.Customer);
+      // Find the stock quantity for the selected warehouse
+      const selectedWarehouse = newData.find(
+        (item) => item.Customer === Ma_Kho.value
+      );
+      SL_Ton_Kho.value = selectedWarehouse
+        ? selectedWarehouse.SL_Ton_Kho || 0
+        : 0;
+    }
+  },
+  { immediate: true }
+);
 
 /**
  * Watch for changes in Ma_Kho to update SL_Ton_Kho
  */
 watch(Ma_Kho, (newValue) => {
   if (WareHouseFind.value && WareHouseFind.value.length > 0) {
-    const selectedWarehouse = WareHouseFind.value.find((item) => item.Customer === newValue);
-    SL_Ton_Kho.value = selectedWarehouse ? selectedWarehouse.SL_Ton_Kho || 0 : 0;
+    const selectedWarehouse = WareHouseFind.value.find(
+      (item) => item.Customer === newValue
+    );
+    SL_Ton_Kho.value = selectedWarehouse
+      ? selectedWarehouse.SL_Ton_Kho || 0
+      : 0;
   }
 });
 
 /**
  * Watch for changes in WareHouse2Find data to update Customer_Misa options
  */
-watch(WareHouse2Find, (newData) => {
-  if (newData && newData.length > 0) {
-    Customer_Misa.value = newData.map(item => item.Customer);
-    // Find the stock quantity for the selected warehouse
-    const selectedWarehouse2 = newData.find((item) => item.Customer === Ma_Kho_Misa.value);
-    SL_Ton_Kho_Misa.value = selectedWarehouse2 ? selectedWarehouse2.SL_Ton_Kho_Misa || 0 : 0;
-  }
-}, { immediate: true });
+watch(
+  WareHouse2Find,
+  (newData) => {
+    if (newData && newData.length > 0) {
+      Customer_Misa.value = newData.map((item) => item.Customer);
+      // Find the stock quantity for the selected warehouse
+      const selectedWarehouse2 = newData.find(
+        (item) => item.Customer === Ma_Kho_Misa.value
+      );
+      SL_Ton_Kho_Misa.value = selectedWarehouse2
+        ? selectedWarehouse2.SL_Ton_Kho_Misa || 0
+        : 0;
+    }
+  },
+  { immediate: true }
+);
 
 watch(Ma_Kho_Misa, (newValue) => {
   if (WareHouse2Find.value && WareHouse2Find.value.length > 0) {
-    const selectedWarehouse2 = WareHouse2Find.value.find((item) => item.Customer === newValue);
-    SL_Ton_Kho_Misa.value = selectedWarehouse2 ? selectedWarehouse2.SL_Ton_Kho_Misa || 0 : 0;
+    const selectedWarehouse2 = WareHouse2Find.value.find(
+      (item) => item.Customer === newValue
+    );
+    SL_Ton_Kho_Misa.value = selectedWarehouse2
+      ? selectedWarehouse2.SL_Ton_Kho_Misa || 0
+      : 0;
   }
 });
-
 
 // ===== TABLE OPERATIONS =====
 /**
@@ -401,7 +415,7 @@ watch(Ma_Kho_Misa, (newValue) => {
 function generateHeaders(bomData) {
   if (bomData && bomData.length > 0) {
     const firstItemKeys = Object.keys(bomData[0]);
-        // Remove the last 4 headers
+    // Remove the last 4 headers
     const filteredKeys = firstItemKeys;
     Headers.value = filteredKeys.map((key) => ({
       title: key.replace(/_/g, " "),
@@ -424,7 +438,7 @@ function GetItem(value) {
   DialogEdit.value = true;
   GetID.value = value;
   const found = compare.value.find((v) => v.Sửa === value);
-  console.log(value)
+  console.log(value);
   if (found) {
     PartNumber_1.value = found.PartNumber_1;
     ActualCost.value = found.Hao_Phi_Thực_Tế;
@@ -465,7 +479,9 @@ const SaveEdit = async () => {
 const WareHouseAcceptWareHouse = async () => {
   DialogLoading.value = true;
   try {
-    const response = await axios.put(`${Url}/WareHouse/update-Inventory-CheckBom/${id}`);
+    const response = await axios.put(
+      `${Url}/WareHouse/update-Inventory-CheckBom/${id}`
+    );
     console.log(response);
     WareHouseAccept();
     WareHouseLog();
@@ -479,7 +495,7 @@ const WareHouseLog = async () => {
   DialogLoading.value = true;
   const formData = {
     Updated_by: UserInfo.value,
-    Created_at: formattedSelectedDate.value
+    Created_at: formattedSelectedDate.value,
   };
   try {
     const response = await axios.post(`${Url}/insert-log/${id}`, formData);
@@ -497,7 +513,9 @@ const WareHouse2AcceptWareHouse = async () => {
   DialogLoading.value = true;
 
   try {
-    const response = await axios.put(`${Url}/WareHouse2/update-Inventory-CheckBom/${id}`);
+    const response = await axios.put(
+      `${Url}/WareHouse2/update-Inventory-CheckBom/${id}`
+    );
     console.log(response);
     WareHouseAccept();
   } catch (error) {
@@ -639,8 +657,10 @@ const searchProduct = async () => {
 const sendEmail = async () => {
   DialogLoading.value = true;
   const found = users.value.find((v) => v.Username === UserInfo.value);
-  const foundAccept = users.value.find((v) => v.Username === localStorage.getItem("Creater_Order"));
-  
+  const foundAccept = users.value.find(
+    (v) => v.Username === localStorage.getItem("Creater_Order")
+  );
+
   try {
     const response = await emailjs.send(
       serviceId,
