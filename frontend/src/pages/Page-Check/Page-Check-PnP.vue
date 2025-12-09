@@ -17,26 +17,26 @@
         </v-col>
         <v-col cols="12" sm="4" md="4">
           <CardStatistic
-            title="Top Layer"
+            title="Top"
             :value="
               combineBom.filter(
-                (item) => item.layer === 'Top' || item.layer === 'TopLayer'
+                (item) => item.layer === 'Top' || item.layer === 'TopLayer' || item.layer === 'top'
               ).length || 0
             "
-            icon="mdi-arrow-up-bold"
+            icon="mdi-arrow-collapse-up"
             color="success"
           />
         </v-col>
         <v-col cols="12" sm="4" md="4">
           <CardStatistic
-            title="Bottom Layer"
+            title="Bottom"
             :value="
               combineBom.filter(
                 (item) =>
-                  item.layer === 'Bottom' || item.layer === 'BottomLayer'
+                  item.layer === 'Bottom' || item.layer === 'BottomLayer' || item.layer === 'bottom'
               ).length || 0
             "
-            icon="mdi-arrow-down-bold"
+            icon="mdi-arrow-collapse-down"
             color="error"
           />
         </v-col>
@@ -142,7 +142,7 @@
                 </template>
                 <template v-slot:item.layer="{ value }">
                   <v-chip
-                    :color="value === 'Top' ? 'success' : 'error'"
+                    :color="value === 'Top' || value === 'top' || value === 'TopLayer' ? 'success' : 'error'"
                     size="small"
                     variant="tonal"
                   >
