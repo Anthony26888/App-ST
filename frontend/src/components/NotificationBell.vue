@@ -1,7 +1,7 @@
 <template>
-  <v-menu :close-on-content-click="false" location="bottom" max-width="700">
+  <v-menu :close-on-content-click="false" location="start" width="500">
     <template v-slot:activator="{ props }">
-      <v-btn class="text-none" variant="text" size="x-large" v-bind="props">
+      <v-btn class="text-none" variant="text" size="large" v-bind="props">
         <v-badge v-if="unreadCount > 0" color="error" :content="unreadCount">
           <v-icon>mdi-bell-outline</v-icon>
         </v-badge>
@@ -9,7 +9,7 @@
       </v-btn>
     </template>
 
-    <v-card class="rounded-xl" max-width="700">
+    <v-card class="rounded-lg" max-width="500">
       <!-- Header -->
       <v-card-title class="d-flex align-center pa-4 bg-gradient">
         <v-icon class="me-2" color="white">mdi-bell</v-icon>
@@ -20,7 +20,7 @@
       <v-divider></v-divider>
 
       <!-- Content -->
-      <v-card-text class="pa-0" style="max-height: 500px; overflow-y: auto">
+      <v-card-text class="pa-0" style="height: 500px; overflow-y: auto">
         <!-- Loading State -->
         <div v-if="loading" class="d-flex justify-center align-center pa-6">
           <v-progress-circular

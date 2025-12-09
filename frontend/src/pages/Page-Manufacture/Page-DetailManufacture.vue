@@ -1153,9 +1153,8 @@
           </v-col>
         </v-row>
 
-        <InputField
+        <InputDate
           label="Ngày tạo"
-          type="date"
           v-model="Date_DetailManufacture_Add"
           :rules="requiredRuleEmpty"
         />
@@ -1252,8 +1251,7 @@
           />
         </v-col>
       </v-row>
-      <InputField
-        type="date"
+      <InputDate
         label="Ngày tạo"
         v-model="Date_DetailManufacture_Edit"
       />
@@ -1321,6 +1319,7 @@ import StackedBarChart from "@/components/Chart-StackedBar.vue";
 import StackedBarChartSummary from "@/components/Chart-StackedBar-Summary.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
 import BaseDialog from "@/components/BaseDialog.vue";
+import InputDate from "@/components/Input-Date.vue";
 
 // ... existing imports ...
 import { useManufactureDetails } from "@/composables/Manufacture/useManufactureDetails";
@@ -1793,122 +1792,148 @@ watch(
 
 watch(
   manufactureSummary,
-  (newValue) => {
-    let mergedValue = newValue;
+  async (newValue) => {
+    // ✅ BẬT LOADING NGAY KHI WATCH CHẠY
+    isManufactureSummaryReady.value = false;
 
-    if (!newValue || typeof newValue !== "object") {
-      isManufactureSummaryReady.value = false;
+    let mergedValue = [];
+
+    if (!newValue || !Array.isArray(newValue)) {
       return;
     }
 
-    if (newValue && Array.isArray(newValue)) {
-      // ========== XỬ LÝ SMT ==========
-      const smtTop = newValue.find(
-        (v) => v.Type === "SMT" && v.Surface === "TOP"
-      );
-      const smtBottom = newValue.find(
-        (v) => v.Type === "SMT" && v.Surface === "BOTTOM"
-      );
+    mergedValue = [...newValue];
 
-      if (smtTop || smtBottom) {
-        SMT_Top_Pass.value = smtTop?.SMT_Top_Quantity || 0;
-        SMT_Bottom_Pass.value = smtBottom?.SMT_Bottom_Quantity || 0;
+    /* =========================
+       XỬ LÝ SMT
+    ========================= */
+    const smtTop = newValue.find(
+      (v) => v.Type === "SMT" && v.Surface === "TOP"
+    );
+    const smtBottom = newValue.find(
+      (v) => v.Type === "SMT" && v.Surface === "BOTTOM"
+    );
 
-        const mergedSMT = {
-          Type: "SMT",
-          Surface: null,
-          Quantity_Pass: Math.min(
-            smtTop?.Quantity_Pass || 0,
-            smtBottom?.Quantity_Pass || 0
-          ),
-          Quantity_Fail:
-            (smtTop?.Quantity_Fail || 0) + (smtBottom?.Quantity_Fail || 0),
-          Quantity_RW:
-            (smtTop?.Quantity_RW || 0) + (smtBottom?.Quantity_RW || 0),
-          Total_Summary_ID:
-            (smtTop?.Total_Summary_ID || 0) +
-            (smtBottom?.Total_Summary_ID || 0),
-          SMT_Top_Quantity: smtTop?.SMT_Top_Quantity || 0,
-          SMT_Bottom_Quantity: smtBottom?.SMT_Bottom_Quantity || 0,
-        };
+    if (smtTop || smtBottom) {
+      SMT_Top_Pass.value = smtTop?.SMT_Top_Quantity || 0;
+      SMT_Bottom_Pass.value = smtBottom?.SMT_Bottom_Quantity || 0;
 
-        mergedValue = newValue.filter((v) => v.Type !== "SMT");
-        mergedValue.push(mergedSMT);
-      } else {
-        SMT_Top_Pass.value = 0;
-        SMT_Bottom_Pass.value = 0;
-      }
+      const mergedSMT = {
+        Type: "SMT",
+        Surface: null,
+        Quantity_Pass: Math.min(
+          smtTop?.Quantity_Pass || 0,
+          smtBottom?.Quantity_Pass || 0
+        ),
+        Quantity_Fail:
+          (smtTop?.Quantity_Fail || 0) +
+          (smtBottom?.Quantity_Fail || 0),
+        Quantity_RW:
+          (smtTop?.Quantity_RW || 0) +
+          (smtBottom?.Quantity_RW || 0),
+        Total_Summary_ID:
+          (smtTop?.Total_Summary_ID || 0) +
+          (smtBottom?.Total_Summary_ID || 0),
+        SMT_Top_Quantity: smtTop?.SMT_Top_Quantity || 0,
+        SMT_Bottom_Quantity:
+          smtBottom?.SMT_Bottom_Quantity || 0
+      };
 
-      // ========== XỬ LÝ AOI ==========
-      const aoiTop = newValue.find(
-        (v) => v.Type === "AOI" && v.Surface === "TOP"
-      );
-      const aoiBottom = newValue.find(
-        (v) => v.Type === "AOI" && v.Surface === "BOTTOM"
-      );
-
-      if (aoiTop || aoiBottom) {
-        AOI_Top_Pass.value = aoiTop?.AOI_Top_Quantity || 0;
-        AOI_Bottom_Pass.value = aoiBottom?.AOI_Bottom_Quantity || 0;
-        AOI_Top_Fail.value = aoiTop?.AOI_Top_Quantity_Fail || 0;
-        AOI_Bottom_Fail.value = aoiBottom?.AOI_Bottom_Quantity_Fail || 0;
-
-        const mergedAOI = {
-          Type: "AOI",
-          Surface: null,
-          Quantity_Pass: Math.min(
-            aoiTop?.Quantity_Pass || 0,
-            aoiBottom?.Quantity_Pass || 0
-          ),
-          Quantity_Fail:
-            (aoiTop?.Quantity_Fail || 0) + (aoiBottom?.Quantity_Fail || 0),
-          Quantity_RW:
-            (aoiTop?.Quantity_RW || 0) + (aoiBottom?.Quantity_RW || 0),
-          Total_Summary_ID:
-            (aoiTop?.Total_Summary_ID || 0) +
-            (aoiBottom?.Total_Summary_ID || 0),
-          AOI_Top_Quantity: aoiTop?.AOI_Top_Quantity || 0,
-          AOI_Bottom_Quantity: aoiBottom?.AOI_Bottom_Quantity || 0,
-        };
-
-        mergedValue = mergedValue.filter((v) => v.Type !== "AOI");
-        mergedValue.push(mergedAOI);
-      } else {
-        AOI_Top_Pass.value = 0;
-        AOI_Bottom_Pass.value = 0;
-        AOI_Top_Fail.value = 0;
-        AOI_Bottom_Fail.value = 0;
-      }
+      mergedValue = mergedValue.filter(v => v.Type !== "SMT");
+      mergedValue.push(mergedSMT);
+    } else {
+      SMT_Top_Pass.value = 0;
+      SMT_Bottom_Pass.value = 0;
     }
 
-    // ✅ RESET levelArray hoàn toàn trước
-    levelArray.value = levelArray.value.map((lvl) => ({
+    /* =========================
+       XỬ LÝ AOI
+    ========================= */
+    const aoiTop = newValue.find(
+      (v) => v.Type === "AOI" && v.Surface === "TOP"
+    );
+    const aoiBottom = newValue.find(
+      (v) => v.Type === "AOI" && v.Surface === "BOTTOM"
+    );
+
+    if (aoiTop || aoiBottom) {
+      AOI_Top_Pass.value = aoiTop?.AOI_Top_Quantity || 0;
+      AOI_Bottom_Pass.value =
+        aoiBottom?.AOI_Bottom_Quantity || 0;
+      AOI_Top_Fail.value =
+        aoiTop?.AOI_Top_Quantity_Fail || 0;
+      AOI_Bottom_Fail.value =
+        aoiBottom?.AOI_Bottom_Quantity_Fail || 0;
+
+      const mergedAOI = {
+        Type: "AOI",
+        Surface: null,
+        Quantity_Pass: Math.min(
+          aoiTop?.Quantity_Pass || 0,
+          aoiBottom?.Quantity_Pass || 0
+        ),
+        Quantity_Fail:
+          (aoiTop?.Quantity_Fail || 0) +
+          (aoiBottom?.Quantity_Fail || 0),
+        Quantity_RW:
+          (aoiTop?.Quantity_RW || 0) +
+          (aoiBottom?.Quantity_RW || 0),
+        Total_Summary_ID:
+          (aoiTop?.Total_Summary_ID || 0) +
+          (aoiBottom?.Total_Summary_ID || 0),
+        AOI_Top_Quantity: aoiTop?.AOI_Top_Quantity || 0,
+        AOI_Bottom_Quantity:
+          aoiBottom?.AOI_Bottom_Quantity || 0
+      };
+
+      mergedValue = mergedValue.filter(v => v.Type !== "AOI");
+      mergedValue.push(mergedAOI);
+    } else {
+      AOI_Top_Pass.value = 0;
+      AOI_Bottom_Pass.value = 0;
+      AOI_Top_Fail.value = 0;
+      AOI_Bottom_Fail.value = 0;
+    }
+
+    /* =========================
+       RESET LEVEL ARRAY
+    ========================= */
+    levelArray.value = levelArray.value.map(lvl => ({
       ...lvl,
       Quantity_Pass: 0,
       Quantity_Fail: 0,
-      Quantity_RW: 0,
+      Quantity_RW: 0
     }));
 
-    // ✅ Cập nhật chỉ những card có trong mergedValue
-    levelArray.value = levelArray.value.map((lvl) => {
-      const match = mergedValue.find((item) => item.Type === lvl.Type);
+    /* =========================
+       APPLY DỮ LIỆU MỚI
+    ========================= */
+    levelArray.value = levelArray.value.map(lvl => {
+      const match = mergedValue.find(
+        item => item.Type === lvl.Type
+      );
       if (match) {
         return {
           ...lvl,
           Quantity_Pass: match.Quantity_Pass || 0,
           Quantity_Fail: match.Quantity_Fail || 0,
           Quantity_RW: match.Quantity_RW || 0,
-          Total_Summary_ID: match.Total_Summary_ID || lvl.Total_Summary_ID,
+          Total_Summary_ID:
+            match.Total_Summary_ID || lvl.Total_Summary_ID
         };
       }
       return lvl;
     });
 
-    // ✅ Xử lý chi tiết cho card đang chọn
+    /* =========================
+       DETAIL CARD ĐANG CHỌN
+    ========================= */
     const currentType = Quantity_Detail_Title.value;
-    const found = mergedValue.find((x) => x.Type === currentType);
+    const found = mergedValue.find(
+      x => x.Type === currentType
+    );
 
-    if (!found || !currentType) {
+    if (!found) {
       Quantity_Detail_Pass.value = 0;
       Quantity_Detail_Fail.value = 0;
       Quantity_Detail_Remain.value = 0;
@@ -1916,55 +1941,23 @@ watch(
       Quantity_Detail_Pass.value = found.Quantity_Pass || 0;
       Quantity_Detail_Fail.value = found.Quantity_Fail || 0;
 
-      if (found.Type === "SMT") {
-        SMT_Top_Pass.value = found.SMT_Top_Quantity || 0;
-        SMT_Bottom_Pass.value = found.SMT_Bottom_Quantity || 0;
-      } else if (found.Type === "AOI") {
-        AOI_Top_Pass.value = found.AOI_Top_Quantity || 0;
-        AOI_Bottom_Pass.value = found.AOI_Bottom_Quantity || 0;
-        AOI_Top_Fail.value = found.AOI_Top_Quantity_Fail || 0;
-        AOI_Bottom_Fail.value = found.AOI_Bottom_Quantity_Fail || 0;
-      }
-
       const remain = Math.max(
         0,
         totalInput.value -
-          (Quantity_Detail_Pass.value + Quantity_Detail_Fail.value)
+          (Quantity_Detail_Pass.value +
+           Quantity_Detail_Fail.value)
       );
       Quantity_Detail_Remain.value = remain;
-
-      const round1 = (num) => Number(num.toFixed(1));
-
-      let percentPass = 0;
-      if (found.Type === "SMT") {
-        const isSingleSide = found.Surface === "1 Mặt";
-        percentPass = isSingleSide
-          ? round1((found.Quantity_Pass / totalInput.value) * 100) || 0
-          : round1(
-              (Math.min(SMT_Top_Pass.value, SMT_Bottom_Pass.value) /
-                totalInput.value) *
-                100
-            ) || 0;
-      } else if (found.Type === "AOI") {
-        const isSingleSide = found.Surface === "1 Mặt";
-        percentPass = isSingleSide
-          ? round1((found.Quantity_Pass / totalInput.value) * 100) || 0
-          : round1(
-              (Math.min(AOI_Top_Pass.value, AOI_Bottom_Pass.value) /
-                totalInput.value) *
-                100
-            ) || 0;
-      } else {
-        percentPass =
-          round1((Quantity_Detail_Pass.value / totalInput.value) * 100) || 0;
-      }
-
-      const percentFail =
-        round1((Quantity_Detail_Fail.value / totalInput.value) * 100) || 0;
-      const percentRemain = round1(100 - (percentPass + percentFail)) || 0;
     }
 
-    // ✅ Đánh dấu dữ liệu summary đã sẵn sàng
+    /* =========================
+       ✅ CHỜ DOM RENDER XONG
+    ========================= */
+    await nextTick();
+
+    /* =========================
+       ✅ TẮT LOADING
+    ========================= */
     isManufactureSummaryReady.value = true;
   },
   { immediate: true, deep: true }

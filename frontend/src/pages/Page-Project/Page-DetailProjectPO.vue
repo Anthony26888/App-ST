@@ -326,6 +326,7 @@
             variant="tonal"
             size="small"
             prepend-icon="mdi-plus"
+            class="text-caption text-medium-emphasis"
             @click="AddDeliveryRowEdit()"
           >
             Thêm lịch
@@ -351,16 +352,16 @@
             class="mb-2 align-center"
           >
             <v-col cols="6" class="pe-2">
-              <InputField
+              <InputDate
                 label="Ngày tạo"
-                type="date"
                 v-model="item.DeliveryDate"
                 @update:model-value="item.DeliveryDate = $event"
               />
             </v-col>
             <v-col cols="5" class="pe-2">
               <InputField
-                label="Ngày tạo"
+                label="Số lượng"
+                suffix="pcs"
                 type="number"
                 v-model="item.DeliveryQuantity"
                 @update:model-value="item.DeliveryQuantity = $event"
@@ -372,6 +373,7 @@
                 size="x-small"
                 color="error"
                 variant="text"
+                class="mb-4"
                 @click="RemoveDeliveryRowEdit(index, item.id)"
               ></v-btn>
             </v-col>
@@ -435,6 +437,7 @@
               size="small"
               variant="tonal"
               prepend-icon="mdi-plus"
+              class="text-caption text-medium-emphasis"
               @click="AddDeliveryRow()"
             >
               Thêm lịch
@@ -460,22 +463,18 @@
               class="mb-2 align-center"
             >
               <v-col cols="6" class="pe-2">
-                <v-text-field
+                <InputDate
                   v-model="item.delivery_date"
-                  type="date"
-                  density="compact"
-                  hide-details
-                  variant="outlined"
-                ></v-text-field>
+                  label="Ngày giao"
+                ></InputDate>
               </v-col>
               <v-col cols="5" class="pe-2">
-                <v-text-field
+                <InputField
                   v-model.number="item.delivery_quantity"
                   type="number"
-                  density="compact"
-                  hide-details
-                  variant="outlined"
-                ></v-text-field>
+                  suffix="pcs"
+                  label="Số lượng"
+                ></InputField>
               </v-col>
               <v-col cols="1" class="text-center">
                 <v-btn
@@ -483,6 +482,7 @@
                   size="x-small"
                   color="error"
                   variant="text"
+                  class="mb-4"
                   @click="RemoveDeliveryRow(index)"
                 ></v-btn>
               </v-col>
@@ -630,6 +630,7 @@ import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
 import BaseDialog from "@/components/BaseDialog.vue";
+import InputDate from "@/components/Input-Date.vue";
 
 // Composables
 import { useDetailProjectPO } from "@/composables/Project/useDetailProjectPO";
@@ -829,7 +830,6 @@ function GetItem(item) {
   Quantity_Amount_Edit.value = item.Quantity_Amount;
   Note_Edit.value = item.Note;
   DeliverySchedules_Edit.value = getScheduleDeliveries(item);
-  console.log(DeliverySchedules_Edit.value);
 }
 
 function GetItemManufacture(item) {
@@ -998,7 +998,6 @@ const RemoveDeliveryRowEdit = async (index, id) => {
   } catch (error) {
     DialogFailed.value = true;
     MessageErrorDialog.value = "Xoá dữ liệu thất bại";
-    console.error(error);
   } finally {
     DialogLoading.value = false;
   }

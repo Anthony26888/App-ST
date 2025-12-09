@@ -62,7 +62,6 @@ export function useNotification() {
 
       // ===== CONNECTION EVENT =====
       socket.value.on("connect", () => {
-        console.log("✅ Socket connected:", socket.value.id);
         connected.value = true;
         error.value = null;
         retryCount.value = 0;
@@ -74,7 +73,6 @@ export function useNotification() {
 
       // ===== DISCONNECT EVENT =====
       socket.value.on("disconnect", (reason) => {
-        console.warn("❌ Socket disconnected:", reason);
         connected.value = false;
         
         if (reason === "io server disconnect") {
@@ -84,25 +82,21 @@ export function useNotification() {
 
       // ===== CONNECTION ERROR =====
       socket.value.on("connect_error", (err) => {
-        console.error("⚠️ Connection error:", err);
         error.value = `Connection failed: ${err.message}`;
         retryCount.value++;
       });
 
       // ===== NOTIFICATIONS EVENTS =====
       socket.value.on("notifications-update", (data) => {
-        console.log("📬 Notifications received:", data.length);
         notifications.value = Array.isArray(data) ? data : [];
       });
 
       socket.value.on("notifications-error", (data) => {
-        console.error("❌ Notifications error:", data.error);
         error.value = `Notifications error: ${data.error}`;
       });
 
       // ===== STATISTICS EVENTS =====
       socket.value.on("statistics-update", (data) => {
-        console.log("📊 Statistics received:", data);
         statistics.value = data || {
           Total: 0,
           Today: 0,
@@ -112,34 +106,28 @@ export function useNotification() {
       });
 
       socket.value.on("statistics-error", (data) => {
-        console.error("❌ Statistics error:", data.error);
       });
 
       // ===== ACTION CONFIRMATION EVENTS =====
       socket.value.on("delivery-completed", (data) => {
-        console.log("✅ Delivery marked:", data);
         fetchNotifications();
         fetchStatistics();
       });
 
       socket.value.on("notification-marked-read", (data) => {
-        console.log("✅ Notification marked read:", data);
         fetchNotifications();
       });
 
       socket.value.on("all-notifications-marked-read", (data) => {
-        console.log("✅ All notifications marked read");
         fetchNotifications();
       });
 
       // ===== ERROR HANDLING =====
       socket.value.on("error", (error) => {
-        console.error("⚠️ Socket error:", error);
         error.value = `Socket error: ${error}`;
       });
 
     } catch (err) {
-      console.error("❌ Failed to initialize socket:", err);
       error.value = err.message;
     }
   };
@@ -147,7 +135,6 @@ export function useNotification() {
   // ============ METHODS ============
   const fetchNotifications = () => {
     if (!socket.value?.connected) {
-      console.warn("⚠️ Socket not connected");
       return;
     }
     
@@ -162,7 +149,6 @@ export function useNotification() {
 
   const fetchStatistics = () => {
     if (!socket.value?.connected) {
-      console.warn("⚠️ Socket not connected");
       return;
     }
     socket.value.emit("get-statistics");
@@ -177,7 +163,6 @@ export function useNotification() {
     try {
       socket.value.emit("mark-delivery", id);
     } catch (err) {
-      console.error("❌ Error marking delivery:", err);
       error.value = err.message;
     }
   };
@@ -197,7 +182,6 @@ export function useNotification() {
 
       socket.value.emit("mark-notification-read", id);
     } catch (err) {
-      console.error("❌ Error marking notification read:", err);
       error.value = err.message;
     }
   };
@@ -216,14 +200,12 @@ export function useNotification() {
 
       socket.value.emit("mark-all-notifications-read");
     } catch (err) {
-      console.error("❌ Error marking all as read:", err);
       error.value = err.message;
     }
   };
 
   const refresh = () => {
     if (!socket.value?.connected) {
-      console.warn("⚠️ Not connected, skipping refresh");
       return;
     }
     
@@ -239,7 +221,6 @@ export function useNotification() {
     if (socket.value) {
       socket.value.disconnect();
       connected.value = false;
-      console.log("🔌 Socket disconnected");
     }
   };
 
@@ -247,7 +228,6 @@ export function useNotification() {
   let refreshInterval = null;
 
   onMounted(() => {
-    console.log("🔧 Initializing notification composable");
     initSocket();
 
     // Auto refresh mỗi 1 phút
@@ -259,7 +239,6 @@ export function useNotification() {
   });
 
   onUnmounted(() => {
-    console.log("🗑️ Cleaning up notification composable");
     
     if (refreshInterval) {
       clearInterval(refreshInterval);

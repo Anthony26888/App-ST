@@ -386,20 +386,13 @@
     <v-card-title>
       <v-row class="ms-2">
         <v-col cols="3" md="3">
-          <v-text-field
-            variant="outlined"
+          <InputDate
             v-model="startDateDelivery"
             label="Từ ngày giao hàng"
-            type="date"
           />
         </v-col>
         <v-col cols="3" md="3">
-          <v-text-field
-            variant="outlined"
-            v-model="endDateDelivery"
-            label="Đến ngày giao hàng"
-            type="date"
-          />
+          <InputDate v-model="endDateDelivery" label="Đến ngày giao hàng" />
         </v-col>
         <v-col cols="1" md="1">
           <v-tooltip text="Xoá lọc" location="bottom">
@@ -517,6 +510,7 @@ import Loading from "@/components/Loading.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
 import NotificationBell from "@/components/NotificationBell.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";
+import InputDate from "@/components/Input-Date.vue";
 
 // Composables
 import { useProject } from "@/composables/Project/useProject";
@@ -866,6 +860,8 @@ export default {
     SnackbarFailed,
     Loading,
     InputSelect,
+    InputDate,
+    ButtonAI,
   },
   data() {
     return {};

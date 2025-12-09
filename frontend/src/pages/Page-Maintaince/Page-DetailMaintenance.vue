@@ -233,17 +233,15 @@
     </v-row>
     <v-row>
       <v-col cols="6">
-        <InputField
+        <InputDate
           label="Ngày bảo trì"
           v-model="NgayBaoTri_Edit"
-          type="date"
         />
       </v-col>
       <v-col cols="6">
-        <InputField
+        <InputDate
           label="Ngày hoàn thành"
           v-model="NgayHoanThanh_Edit"
-          type="date"
         />
       </v-col>
     </v-row>
@@ -332,14 +330,10 @@
     </v-row>
     <v-row>
       <v-col cols="6">
-        <InputField label="Ngày bảo trì" v-model="NgayBaoTri_Add" type="date" />
+        <InputDate label="Ngày bảo trì" v-model="NgayBaoTri_Add" />
       </v-col>
       <v-col cols="6">
-        <InputField
-          label="Ngày hoàn thành"
-          v-model="NgayHoanThanh_Add"
-          type="date"
-        />
+        <InputDate label="Ngày hoàn thành" v-model="NgayHoanThanh_Add" />
       </v-col>
     </v-row>
     <v-row>
@@ -425,6 +419,8 @@ import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 import BaseDialog from "@/components/BaseDialog.vue";
+import InputDate from "@/components/Input-Date.vue";
+
 import { useMaintenance } from "@/composables/Maintenance/useMaintenance";
 
 const { mdAndDown, lgAndUp } = useDisplay();
@@ -492,8 +488,8 @@ const Headers = [
   { title: "Người tạo", key: "NguoiTao" },
   { title: "Người thực hiện", key: "NguoiThucHien" },
   { title: "Chi phí", key: "ChiPhi" },
-  { title: "Ngày bảo trì", key: "NgayBaoTri" },
-  { title: "Ngày hoàn thành", key: "NgayHoanThanh" },
+  { title: "Ngày bảo trì", key: "NgayBaoTriConvert" },
+  { title: "Ngày hoàn thành", key: "NgayHoanThanhConvert" },
   { title: "Trạng thái", key: "TrangThai" },
   { title: "Thao tác", key: "MaBaoTri", sortable: false },
 ];
@@ -518,8 +514,8 @@ function GetItem(item) {
   NguoiTao_Edit.value = item.NguoiTao;
   NguoiThucHien_Edit.value = item.NguoiThucHien;
   ChiPhi_Edit.value = item.ChiPhi;
-  NgayBaoTri_Edit.value = item.NgayBaoTri;
-  NgayHoanThanh_Edit.value = item.NgayHoanThanh;
+  NgayBaoTri_Edit.value = item.NgayBaoTriUnixepoch;
+  NgayHoanThanh_Edit.value = item.NgayHoanThanhUnixepoch;
   TrangThai_Edit.value = item.TrangThai;
 }
 

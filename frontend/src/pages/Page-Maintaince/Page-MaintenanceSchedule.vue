@@ -213,17 +213,15 @@
           />
         </v-col>
         <v-col cols="6">
-          <InputField
+          <InputDate
             label="Ngày bắt đầu"
             v-model="NgayBatDau_Edit"
-            type="date"
           />
         </v-col>
         <v-col cols="6">
-          <InputField
+          <InputDate
             label="Ngày bảo trì tiếp theo"
             v-model="NgayBaoTriTiepTheo_Edit"
-            type="date"
             readonly
             :hint="calculateNextDateEdit"
           />
@@ -277,14 +275,13 @@
           />
         </v-col>
         <v-col cols="6">
-          <InputField
+          <InputDate
             label="Ngày bắt đầu"
             v-model="NgayBatDau_Add"
-            type="date"
           />
         </v-col>
         <v-col cols="6">
-          <InputField
+          <InputDate
             label="Ngày bảo trì tiếp theo"
             v-model="NgayBaoTriTiepTheo_Add"
             type="date"
@@ -351,6 +348,7 @@ import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 import BaseDialog from "@/components/BaseDialog.vue";
+import InputDate from "@/components/Input-Date.vue";
 
 // Composables
 import { useMaintenanceSchedule } from "@/composables/Maintenance/useMaintenanceSchedule";
@@ -414,10 +412,10 @@ const Headers = [
   { title: "Loại bảo trì", key: "LoaiBaoTri", sortable: true },
   { title: "Chu kỳ bảo trì", key: "ChuKyBaoTri", sortable: true },
   { title: "Đơn vị chu kỳ", key: "DonViChuKy", sortable: true },
-  { title: "Ngày bắt đầu", key: "NgayBatDau", sortable: true },
+  { title: "Ngày bắt đầu", key: "NgayBatDauConvert", sortable: true },
   {
     title: "Ngày bảo trì tiếp theo",
-    key: "NgayBaoTriTiepTheo",
+    key: "NgayBaoTriTiepTheoConvert",
     sortable: true,
   },
   { title: "Hạn bảo trì", key: "SoNgayConLai", sortable: true },
@@ -536,11 +534,9 @@ const SaveAdd = async () => {
       `${Url}/MaintenanceSchedule/Add`,
       formData
     );
-    console.log(response.data);
     MessageDialog.value = "Thêm lịch bảo trì thành công";
     Reset();
   } catch (error) {
-    console.error("Error adding maintenance schedule:", error);
     MessageErrorDialog.value = "Thêm lịch bảo trì thất bại";
     Error();
   } finally {
@@ -570,11 +566,9 @@ const SaveEdit = async () => {
       `${Url}/MaintenanceSchedule/Edit/${GetID.value}`,
       formData
     );
-    console.log(response.data);
     MessageDialog.value = "Cập nhật lịch bảo trì thành công";
     Reset();
   } catch (error) {
-    console.error("Error updating maintenance schedule:", error);
     MessageErrorDialog.value = "Cập nhật lịch bảo trì thất bại";
     Error();
   }
@@ -590,11 +584,9 @@ const DeleteItem = async () => {
     const response = await axios.delete(
       `${Url}/MaintenanceSchedule/Delete/${GetID.value}`
     );
-    console.log(response.data.message);
     MessageDialog.value = "Xoá lịch bảo trì thành công";
     Reset();
   } catch (error) {
-    console.log(error);
     MessageErrorDialog.value = "Xoá lịch bảo trì thất bại";
     Error();
   }

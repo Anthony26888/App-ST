@@ -219,7 +219,7 @@
         <InputField label="Nhà sản xuất" v-model="NhaSanXuat_Edit" />
       </v-col>
       <v-col cols="12" md="6">
-        <InputField label="Ngày mua" v-model="NgayMua_Edit" type="date" />
+        <InputDate label="Ngày mua" v-model="NgayMua_Edit" />
       </v-col>
       <v-col cols="12">
         <InputField label="Vị trí" v-model="ViTri_Edit" />
@@ -256,7 +256,7 @@
         <InputField label="Nhà sản xuất" v-model="NhaSanXuat_Add" />
       </v-col>
       <v-col cols="12" md="6">
-        <InputField label="Ngày mua" v-model="NgayMua_Add" type="date" />
+        <InputDate label="Ngày mua" v-model="NgayMua_Add" />
       </v-col>
       <v-col cols="12">
         <InputField label="Vị trí" v-model="ViTri_Add" />
@@ -301,6 +301,7 @@ import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import BaseDialog from "@/components/BaseDialog.vue";
+import InputDate from "@/components/Input-Date.vue";
 
 // ===== STATE MANAGEMENT =====
 // API Configuration
@@ -361,7 +362,7 @@ const Headers = [
   { title: "Tên thiết bị", key: "TenThietBi" },
   { title: "Loại thiết bị", key: "LoaiThietBi" },
   { title: "Nhà sản xuất", key: "NhaSanXuat" },
-  { title: "Ngày mua", key: "NgayMua" },
+  { title: "Ngày mua", key: "NgayMuaConvert" },
   { title: "Vị trí", key: "ViTri" },
   { title: "Mô tả", key: "MoTa", width: "150" },
   { title: "Trạng thái", key: "Status" },
@@ -390,7 +391,7 @@ function GetItem(value) {
   TenThietBi_Edit.value = found.TenThietBi;
   LoaiThietBi_Edit.value = found.LoaiThietBi;
   NhaSanXuat_Edit.value = found.NhaSanXuat;
-  NgayMua_Edit.value = found.NgayMua;
+  NgayMua_Edit.value = found.NgayMuaUnixpoch;
   ViTri_Edit.value = found.ViTri;
   MoTa_Edit.value = found.MoTa;
 }

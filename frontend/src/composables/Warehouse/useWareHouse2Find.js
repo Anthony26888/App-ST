@@ -1,17 +1,11 @@
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import { io } from "socket.io-client";
-import { getSocketUrl } from "@/utils/getSocketUrl";
 
 export function useWareHouse2Find(id) {
   const WareHouse2Find = ref([]);
   const WareHouse2FindError = ref([]);
   const SOCKET_URL = import.meta.env.VITE_SOCKET_URL; // Lấy URL từ .env
   const socket = io(SOCKET_URL) // chỉnh lại nếu deploy
-  // const socket = io(getSocketUrl(), {
-  //   transports: ["websocket"],      // ✅ ưu tiên websocket
-  //   withCredentials: true,          // ✅ gửi cookie nếu có auth
-  //   path: "/socket.io",             // ✅ khớp với backend nếu thay đổi path
-  // });
 
   const fetchData = (partNumber) => {
     if (partNumber) {
@@ -21,7 +15,6 @@ export function useWareHouse2Find(id) {
 
   onMounted(() => {
     socket.on("WareHouse2FindData", (data) => {
-      console.log("Received WareHouse2Find:", data);
       WareHouse2Find.value = data;
     });
     socket.on("WareHouse2FindError", (message) => {

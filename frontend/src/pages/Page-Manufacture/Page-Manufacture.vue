@@ -299,9 +299,8 @@
         </InputField>
       </div>
 
-      <InputField
+      <InputDate
         label="Ngày tạo"
-        type="date"
         class="mt-3"
         v-model="Date_Edit"
       />
@@ -340,28 +339,7 @@
         :rules="[requiredRule]"
         @update:model-value="Total_Manufacture_Add = $event"
       />
-      <!-- <InputSelect
-            label="Quy trình"
-            :items="[
-              'SMT',
-              'AOI',
-              'IPQC (SMT)',
-              'Assembly',
-              'IPQC',
-              'Test 1',
-              'Test 2',
-              'Box Build',
-              'Tẩm phủ',
-              'OQC',
-              'RW',
-              'Thành phẩm',
-            ]"
-            multiple
-            chips
-            hint="Lựa chọn quy trình phù hợp"
-            v-model="Level_Manufacture_Add"
-            @update:model-value="(val) => (Level_Manufacture_Add = val)"
-          /> -->
+      
 
       <!-- Thêm input cho quy trình khác -->
       <div>
@@ -401,10 +379,9 @@
         </InputField>
       </div>
 
-      <InputField
+      <InputDate
         class="mt-3"
         label="Ngày tạo"
-        type="date"
         v-model="Date_Manufacture_Add"
         :rules="[requiredRule]"
         @update:model-value="Date_Manufacture_Add = $event"
@@ -482,6 +459,7 @@ import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
 import BaseDialog from "@/components/BaseDialog.vue";
+import InputDate from "@/components/Input-Date.vue";
 
 import { useManufacture } from "@/composables/Manufacture/useManufacture";
 

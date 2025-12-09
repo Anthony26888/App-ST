@@ -226,16 +226,8 @@
       </v-card-title>
       <v-card-text>
         <InputField label="Chi tiết đơn hàng" v-model="PONumber_Edit" />
-        <InputDate
-          type="date"
-          label="Ngày tạo đơn"
-          v-model="Date_Created_Edit"
-        />
-        <InputDate
-          type="date"
-          label="Ngày giao đơn"
-          v-model="Date_Delivery_Edit"
-        />
+        <InputDate label="Ngày tạo đơn" v-model="Date_Created_Edit" />
+        <InputDate label="Ngày giao đơn" v-model="Date_Delivery_Edit" />
         <InputTextarea label="Ghi chú" v-model="Note_Edit" />
       </v-card-text>
       <v-card-actions>
@@ -255,16 +247,8 @@
       </v-card-title>
       <v-card-text>
         <InputField label="Chi tiết đơn hàng" v-model="PONumber_Add" />
-        <InputDate
-          type="date"
-          label="Ngày tạo đơn"
-          v-model="Date_Created_Add"
-        />
-        <InputDate
-          type="date"
-          label="Ngày giao đơn"
-          v-model="Date_Delivery_Add"
-        />
+        <InputDate label="Ngày tạo đơn" v-model="Date_Created_Add" />
+        <InputDate label="Ngày giao đơn" v-model="Date_Delivery_Add" />
         <InputTextarea label="Ghi chú" v-model="Note_Add" />
       </v-card-text>
       <v-card-actions>
@@ -314,6 +298,7 @@ import ButtonEye from "@/components/Button-Eye.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
+import InputDate from "@/components/Input-Date.vue";
 
 // Composables
 import { useDetailProject } from "@/composables/Project/useDetailProject";
@@ -597,6 +582,7 @@ export default {
     InputTextarea,
     ButtonAdd,
     ButtonDelete,
+    InputDate,
   },
   data() {
     return {

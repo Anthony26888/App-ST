@@ -114,26 +114,6 @@ const io = new Server(server, {
   transports: ["websocket", "polling"],
 });
 
-// const sslOptions = {
-//   key: fs.readFileSync('D:/code/cert/erpapp.hopto.org/erpapp.hopto.org-key.pem'),
-//   cert: fs.readFileSync('D:/code/cert/erpapp.hopto.org/erpapp.hopto.org-crt.pem'),
-//   ca: fs.readFileSync('D:/code/cert/erpapp.hopto.org/erpapp.hopto.org-chain.pem') // Optional nhưng nên có
-// };
-
-// // Route test
-// app.get('/', (req, res) => {
-//   res.send('✅ HTTPS chạy thành công!');
-// });
-
-// // Khởi chạy HTTPS server
-// https.createServer(sslOptions, app).listen(443, () => {
-//   console.log('HTTPS server chạy tại: https://erp.sieuthuat.com');
-// });
-// http.createServer((req, res) => {
-//   res.writeHead(301, { Location: 'https://' + req.headers.host + req.url });
-//   res.end();
-// }).listen(80);
-
 // GIỮ LẠI CHỈ HTTP
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
@@ -513,12 +493,12 @@ io.on("connection", (socket) => {
       const query = `
         SELECT 
           COUNT(*) AS Total,
-          SUM(CASE WHEN CAST((DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) = 0 THEN 1 ELSE 0 END) AS Today,
-          SUM(CASE WHEN CAST((DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) = 1 THEN 1 ELSE 0 END) AS Tomorrow,
-          SUM(CASE WHEN CAST((DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) IN (2, 3) THEN 1 ELSE 0 END) AS SoonAfter
+          SUM(CASE WHEN CAST((DeliveryDate - (strftime('%s', 'now', 'localtime'))) / 86400 AS INTEGER) = 0 THEN 1 ELSE 0 END) AS Today,
+          SUM(CASE WHEN CAST((DeliveryDate - (strftime('%s', 'now', 'localtime'))) / 86400 AS INTEGER) = 1 THEN 1 ELSE 0 END) AS Tomorrow,
+          SUM(CASE WHEN CAST((DeliveryDate - (strftime('%s', 'now', 'localtime'))) / 86400 AS INTEGER) IN (2, 3) THEN 1 ELSE 0 END) AS SoonAfter
         FROM ScheduleDelivery
         WHERE DeliveryStatus = 'Chưa giao'
-          AND CAST((DeliveryDate - (strftime('%s', 'now'))) / 86400 AS INTEGER) BETWEEN 0 AND 3
+          AND CAST((DeliveryDate - (strftime('%s', 'now', 'localtime'))) / 86400 AS INTEGER) BETWEEN 0 AND 3
       `;
 
       db.all(query, (err, rows) => {
@@ -569,13 +549,11 @@ io.on("connection", (socket) => {
 
       db.all(getUnreadQuery, [], (err, rows) => {
         if (err) {
-          console.error("❌ Error getting unread notifications:", err.message);
           socket.emit("notification-read-error", { error: err.message });
           return;
         }
 
         if (rows.length === 0) {
-          console.log("ℹ️ No unread notifications to mark");
           io.emit("all-notifications-marked-read");
           return;
         }
@@ -751,11 +729,12 @@ io.on("connection", (socket) => {
                         a.TenThietBi, 
                         a.LoaiThietBi, 
                         a.NhaSanXuat, 
-                        a.NgayMua, 
+                        strftime('%Y-%m-%d', a.NgayMua, 'unixepoch', 'localtime') AS NgayMuaUnixpoch,
+                        strftime('%d-%m-%Y', a.NgayMua, 'unixepoch', 'localtime') AS NgayMuaConvert,
                         a.ViTri, 
                         a.MoTa, 
                         CASE
-                          WHEN CAST((julianday(b.NgayBaoTriTiepTheo) - julianday('now')) AS INTEGER) > 15 THEN 'Chưa tới hạn'
+                          WHEN CAST((NgayBaoTriTiepTheo - strftime('%s', 'now', 'localtime')) / 86400 AS INTEGER) > 15 THEN 'Chưa tới hạn'
                           ELSE 'Cần bảo trì'
                         END AS Status
                       FROM Machine a 
@@ -773,7 +752,14 @@ io.on("connection", (socket) => {
     }),
     socket.on("getMaintenance", async (id) => {
       try {
-        const query = `SELECT DISTINCT * FROM Maintenance WHERE MaThietBi = ? ORDER BY NgayBaoTri DESC`;
+        const query = `SELECT DISTINCT *,
+                      strftime('%d-%m-%Y', NgayBaoTri, 'unixepoch', 'localtime') AS NgayBaoTriConvert,
+                      strftime('%Y-%m-%d', NgayBaoTri, 'unixepoch', 'localtime') AS NgayBaoTriUnixepoch,
+                      strftime('%d-%m-%Y', NgayHoanThanh, 'unixepoch', 'localtime') AS NgayHoanThanhConvert,
+                      strftime('%Y-%m-%d', NgayHoanThanh, 'unixepoch', 'localtime') AS NgayHoanThanhUnixepoch
+                      FROM Maintenance 
+                      WHERE MaThietBi = ? 
+                      ORDER BY NgayBaoTri DESC`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("MaintenanceError", err);
           socket.emit("MaintenanceData", rows);
@@ -784,7 +770,15 @@ io.on("connection", (socket) => {
     }),
     socket.on("getMaintenanceSchedule", async (id) => {
       try {
-        const query = `SELECT DISTINCT *,  CAST((julianday(NgayBaoTriTiepTheo) - julianday('now')) AS INTEGER) AS SoNgayConLai
+        const query = `SELECT DISTINCT *,  
+                     CAST(
+                        (NgayBaoTriTiepTheo - strftime('%s', 'now', 'localtime')) / 86400
+                        AS INTEGER
+                      ) AS SoNgayConLai,
+                      strftime('%d-%m-%Y', NgayBatDau, 'unixepoch', 'localtime') AS NgayBatDauConvert,
+                      strftime('%Y-%m-%d', NgayBatDau, 'unixepoch', 'localtime') AS NgayBatDauUnixepoch,
+                      strftime('%d-%m-%Y', NgayBaoTriTiepTheo, 'unixepoch', 'localtime') AS NgayBaoTriTiepTheoConvert,
+                      strftime('%Y-%m-%d', NgayBaoTriTiepTheo, 'unixepoch', 'localtime') AS NgayBaoTriTiepTheoUnixepoch
                       FROM MaintenanceSchedule 
                       WHERE MaThietBi = ?
                       ORDER BY NgayBaoTriTiepTheo ASC`;
@@ -1704,7 +1698,10 @@ io.on("connection", (socket) => {
     }),
     socket.on("getFilterBom", async (id) => {
       try {
-        const query = `SELECT *
+        const query = `SELECT 
+					            *,				
+                      strftime('%d-%m-%Y', created_at, 'unixepoch', 'localtime') AS Created_at_unixepoch,
+                      strftime('%Y-%m-%d', created_at, 'unixepoch', 'localtime') AS Created_at
                       FROM FilterBom
                       ORDER BY id DESC`;
         db.all(query, [id], (err, rows) => {
@@ -3783,6 +3780,17 @@ app.delete("/api/Project/Customer/Delete-Customer/:id", async (req, res) => {
 app.post("/api/Machine/Add", async (req, res) => {
   const { TenThietBi, LoaiThietBi, NhaSanXuat, NgayMua, ViTri, MoTa } =
     req.body;
+  let Timestamps = null;
+  if (NgayMua) {
+    const dateObj = new Date(NgayMua); // ví dụ "2025-11-15"
+    if (!isNaN(dateObj.getTime())) {
+      Timestamps = Math.floor(dateObj.getTime() / 1000);
+    } else {
+      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+    }
+  } else {
+    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+  }
   // Insert data into SQLite database
   const query = `
     INSERT INTO Machine (TenThietBi, LoaiThietBi, NhaSanXuat, NgayMua, ViTri, MoTa)
@@ -3790,7 +3798,7 @@ app.post("/api/Machine/Add", async (req, res) => {
   `;
   db.run(
     query,
-    [TenThietBi, LoaiThietBi, NhaSanXuat, NgayMua, ViTri, MoTa],
+    [TenThietBi, LoaiThietBi, NhaSanXuat, Timestamps, ViTri, MoTa],
     function (err) {
       if (err) {
         return res
@@ -3809,6 +3817,17 @@ app.put("/api/Machine/Edit/:id", async (req, res) => {
   const { id } = req.params;
   const { TenThietBi, LoaiThietBi, NhaSanXuat, NgayMua, ViTri, MoTa } =
     req.body;
+  let Timestamps = null;
+  if (NgayMua) {
+    const dateObj = new Date(NgayMua); // ví dụ "2025-11-15"
+    if (!isNaN(dateObj.getTime())) {
+      Timestamps = Math.floor(dateObj.getTime() / 1000);
+    } else {
+      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+    }
+  } else {
+    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+  }
   // Insert data into SQLite database
   const query = `
     UPDATE Machine 
@@ -3817,7 +3836,7 @@ app.put("/api/Machine/Edit/:id", async (req, res) => {
   `;
   db.run(
     query,
-    [TenThietBi, LoaiThietBi, NhaSanXuat, NgayMua, ViTri, MoTa, id],
+    [TenThietBi, LoaiThietBi, NhaSanXuat, Timestamps, ViTri, MoTa, id],
     function (err) {
       if (err) {
         return res
@@ -3883,7 +3902,32 @@ app.post("/api/Maintenance/Add", async (req, res) => {
       PhuongAn,
       PhuTung,
     } = req.body;
-    console.log(req.body);
+    let Timestamps = null;
+    if (NgayBaoTri) {
+      const dateObj = new Date(NgayBaoTri);
+      if (!isNaN(dateObj.getTime())) {
+        Timestamps = Math.floor(dateObj.getTime() / 1000);
+      } else {
+        return res
+          .status(400)
+          .json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+      }
+    } else {
+      Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+    }
+    let Timestamps2 = null;
+    if (NgayHoanThanh) {
+      const dateObj = new Date(NgayHoanThanh);
+      if (!isNaN(dateObj.getTime())) {
+        Timestamps2 = Math.floor(dateObj.getTime() / 1000);
+      } else {
+        return res
+          .status(400)
+          .json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+      }
+    } else {
+      Timestamps2 = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+    }
     // Insert data into SQLite database
     const query = `
       INSERT INTO Maintenance (
@@ -3906,14 +3950,14 @@ app.post("/api/Maintenance/Add", async (req, res) => {
       query,
       [
         MaThietBi,
-        NgayBaoTri,
+        Timestamps,
         LoaiBaoTri,
         MoTaLoi,
         BienPhapKhacPhuc,
         NguoiTao,
         NguoiThucHien,
         ChiPhi,
-        NgayHoanThanh,
+        Timestamps2,
         TrangThai,
         PhuongAn,
         PhuTung,
@@ -3960,6 +4004,29 @@ app.put("/api/Maintenance/Edit/:id", async (req, res) => {
     PhuongAn,
     PhuTung,
   } = req.body;
+  let Timestamps = null;
+  if (NgayBaoTri) {
+    const dateObj = new Date(NgayBaoTri); // ví dụ "2025-11-15"
+    if (!isNaN(dateObj.getTime())) {
+      Timestamps = Math.floor(dateObj.getTime() / 1000);
+    } else {
+      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+    }
+  } else {
+    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+  }
+  let Timestamps2 = null;
+  if (NgayHoanThanh) {
+    const dateObj = new Date(NgayHoanThanh); // ví dụ "2025-11-15"
+    if (!isNaN(dateObj.getTime())) {
+      Timestamps2 = Math.floor(dateObj.getTime() / 1000);
+    } else {
+      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+    }
+  } else {
+    Timestamps2 = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+  }
+
   // Insert data into SQLite database
   const query = `
     UPDATE Maintenance 
@@ -3970,14 +4037,14 @@ app.put("/api/Maintenance/Edit/:id", async (req, res) => {
     query,
     [
       MaThietBi,
-      NgayBaoTri,
+      Timestamps,
       LoaiBaoTri,
       MoTaLoi,
       BienPhapKhacPhuc,
       NguoiTao,
       NguoiThucHien,
       ChiPhi,
-      NgayHoanThanh,
+      Timestamps2,
       TrangThai,
       PhuongAn,
       PhuTung,
@@ -4024,6 +4091,28 @@ app.post("/api/MaintenanceSchedule/Add", async (req, res) => {
     NgayBaoTriTiepTheo,
     GhiChu,
   } = req.body;
+  let Timestamps = null;
+  if (NgayBatDau) {
+    const dateObj = new Date(NgayBatDau); // ví dụ "2025-11-15"
+    if (!isNaN(dateObj.getTime())) {
+      Timestamps = Math.floor(dateObj.getTime() / 1000);
+    } else {
+      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+    }
+  } else {
+    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+  }
+  let Timestamps2 = null;
+  if (NgayBaoTriTiepTheo) {
+    const dateObj = new Date(NgayBaoTriTiepTheo); // ví dụ "2025-11-15"
+    if (!isNaN(dateObj.getTime())) {
+      Timestamps2 = Math.floor(dateObj.getTime() / 1000);
+    } else {
+      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+    }
+  } else {
+    Timestamps2 = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+  }
   // Insert data into SQLite database
   const query = `
     INSERT INTO MaintenanceSchedule (MaThietBi, LoaiBaoTri, ChuKyBaoTri, DonViChuKy, NgayBatDau, NgayBaoTriTiepTheo, GhiChu)
@@ -4036,8 +4125,8 @@ app.post("/api/MaintenanceSchedule/Add", async (req, res) => {
       LoaiBaoTri,
       ChuKyBaoTri,
       DonViChuKy,
-      NgayBatDau,
-      NgayBaoTriTiepTheo,
+      Timestamps,
+      Timestamps2,
       GhiChu,
     ],
     function (err) {
@@ -4064,6 +4153,28 @@ app.put("/api/MaintenanceSchedule/Edit/:id", async (req, res) => {
     NgayBaoTriTiepTheo,
     GhiChu,
   } = req.body;
+  let Timestamps = null;
+  if (NgayBatDau) {
+    const dateObj = new Date(NgayBatDau); // ví dụ "2025-11-15"
+    if (!isNaN(dateObj.getTime())) {
+      Timestamps = Math.floor(dateObj.getTime() / 1000);
+    } else {
+      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+    }
+  } else {
+    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+  }
+  let Timestamps2 = null;
+  if (NgayBaoTriTiepTheo) {
+    const dateObj = new Date(NgayBaoTriTiepTheo); // ví dụ "2025-11-15"
+    if (!isNaN(dateObj.getTime())) {
+      Timestamps2 = Math.floor(dateObj.getTime() / 1000);
+    } else {
+      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+    }
+  } else {
+    Timestamps2 = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+  }
   // Insert data into SQLite database
   const query = `
     UPDATE MaintenanceSchedule 
@@ -4077,8 +4188,8 @@ app.put("/api/MaintenanceSchedule/Edit/:id", async (req, res) => {
       LoaiBaoTri,
       ChuKyBaoTri,
       DonViChuKy,
-      NgayBatDau,
-      NgayBaoTriTiepTheo,
+      Timestamps,
+      Timestamps2,
       GhiChu,
       id,
     ],
@@ -5014,6 +5125,17 @@ app.delete("/api/Summary/Delete-item/:id", async (req, res) => {
 // Post value in table Summary
 app.post("/api/FilterBom/Add-item", (req, res) => {
   const { project_name, created_at, note } = req.body;
+  let Timestamps = null;
+  if (created_at) {
+    const dateObj = new Date(created_at); // ví dụ "2025-11-15"
+    if (!isNaN(dateObj.getTime())) {
+      Timestamps = Math.floor(dateObj.getTime() / 1000);
+    } else {
+      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+    }
+  } else {
+    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+  }
   db.run(
     `INSERT INTO FilterBom (
         project_name, 
@@ -5045,7 +5167,7 @@ app.post("/api/FilterBom/Add-item", (req, res) => {
         panel_frame_Y
         )
      VALUES (?, ?, ?, 'false', 'false', 'false', 0, 0, 0, 0, 0, 0, 0, 0, 'false', 'false', 'false', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)`,
-    [project_name, created_at, note],
+    [project_name, Timestamps, note],
     (err) => {
       if (err) {
         console.error("Database error:", err);
@@ -5063,6 +5185,17 @@ app.post("/api/FilterBom/Add-item", (req, res) => {
 app.put("/api/FilterBom/Edit-item/:id", (req, res) => {
   const { id } = req.params;
   const { project_name, created_at, note } = req.body;
+  let Timestamps = null;
+  if (created_at) {
+    const dateObj = new Date(created_at); // ví dụ "2025-11-15"
+    if (!isNaN(dateObj.getTime())) {
+      Timestamps = Math.floor(dateObj.getTime() / 1000);
+    } else {
+      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+    }
+  } else {
+    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+  }
   db.run(
     `UPDATE FilterBom 
     SET 
@@ -5070,7 +5203,7 @@ app.put("/api/FilterBom/Edit-item/:id", (req, res) => {
       created_at = ?, 
       note = ?
     WHERE id = ?`,
-    [project_name, created_at, note, id],
+    [project_name, Timestamps, note, id],
     (err) => {
       if (err) {
         console.error("Database error:", err);

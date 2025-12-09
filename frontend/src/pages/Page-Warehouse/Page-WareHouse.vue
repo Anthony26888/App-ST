@@ -439,7 +439,6 @@
       :search="searchLog"
       :items-per-page="itemsPerPage"
       v-model:page="page"
-      class="elevation-1"
       :footer-props="{
         'items-per-page-options': [10, 20, 50, 100],
         'items-per-page-text': 'Số hàng mỗi trang',
@@ -603,7 +602,7 @@ const HeadersFile = ref([
 ]);
 
 const HeadersHistoryLog = ref([
-  { key: "PartNumber", title: "Mã hàng", width: "150px", noWrap: true },
+  { key: "PartNumber", title: "Mã hàng", width: "250px", noWrap: true },
   { key: "Customer", title: "Mã kho", width: "150px", noWrap: true },
   { key: "Location", title: "Vị trí", width: "150px", noWrap: true },
   { key: "ActionType", title: "Trạng thái", width: "150px", noWrap: true },

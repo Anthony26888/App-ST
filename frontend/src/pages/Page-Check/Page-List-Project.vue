@@ -67,10 +67,9 @@
       :rules="requiredRule"
       v-model="FileName"
     />
-    <InputField
+    <InputDate
       label="Thời gian tạo"
       :rules="requiredRule"
-      type="date"
       v-model="Created_at"
     />
     <InputTextarea label="Ghi chú" v-model="Note" />
@@ -81,9 +80,8 @@
   </BaseDialog>
   <BaseDialog v-model="DialogEdit" width="500" title="Chỉnh sửa dự án" icon="mdi-update">
     <InputField label="Tên dự án" v-model="FileName_Edit" />
-    <InputField
+    <InputDate
       label="Thời gian tạo"
-      type="date"
       v-model="Created_at_Edit"
     />
     <InputTextarea label="Ghi chú" v-model="Note_Edit" />
@@ -128,6 +126,7 @@ import EmptyMobile from "@/components/Empty-Mobile.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import BaseDialog from "@/components/BaseDialog.vue";
+import InputDate from "@/components/Input-Date.vue";
 
 // Data from Composables
 // ===== STATE MANAGEMENT =====
@@ -162,7 +161,7 @@ const requiredRule = [(v) => !!v || "Dữ liệu này không được bỏ trố
 // Table status
 const Headers = [
   { key: "project_name", title: "Tên dự án" },
-  { key: "created_at", title: "Ngày tạo" },
+  { key: "Created_at_unixepoch", title: "Ngày tạo" },
   { key: "note", title: "Ghi chú" },
   { key: "id", title: "Thao tác" },
 ];
@@ -182,7 +181,7 @@ const GetItem = (value) => {
   GetID.value = value;
   const found = filterBom.value.find((v) => v.id === value);
   FileName_Edit.value = found.project_name;
-  Created_at_Edit.value = found.created_at;
+  Created_at_Edit.value = found.Created_at;
   Note_Edit.value = found.note;
 };
 
