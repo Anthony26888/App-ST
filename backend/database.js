@@ -264,7 +264,9 @@ db.serialize(() => {
       NhaSanXuat TEXT,
       NgayMua DATE,
       ViTri TEXT,
-      MoTa TEXT
+      MoTa TEXT,
+      Image TEXT,
+      Condition TEXT
     )
   `);
   db.run(`

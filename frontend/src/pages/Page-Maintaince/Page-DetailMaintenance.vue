@@ -6,14 +6,14 @@
     </v-card-title>
     <v-card-title class="d-flex" v-else>
       <ButtonBack to="/Bao-tri" />
-      <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
-      {{ route.params.id }}
+      <v-icon icon="mdi mdi-tools" color="primary"></v-icon> &nbsp;
+      {{ NameMachine }}
     </v-card-title>
     <v-card-text>
       <v-card variant="elevated" elevation="0" class="rounded-xl border">
         <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
-          <v-icon icon="mdi mdi-tools"></v-icon> &nbsp;
-          {{ route.params.id }}
+          <v-icon icon="mdi mdi-tools" color="primary"></v-icon> &nbsp;
+          {{ NameMachine }}
 
           <ButtonAdd @add="DialogAdd = true" />
           <v-btn
@@ -66,7 +66,77 @@
           :dense="false"
           :fixed-header="true"
           height="79vh"
+          show-expand
+          item-value="MaBaoTri"
         >
+          <template
+            v-slot:item.data-table-expand="{
+              internalItem,
+              isExpanded,
+              toggleExpand,
+            }"
+          >
+          <v-badge
+            v-if="getAccessories(internalItem.raw).length > 0"
+            :content="getAccessories(internalItem.raw)[0].id === null ? 0 : getAccessories(internalItem.raw).length"
+            :color="getAccessories(internalItem.raw)[0].id === null ? 'grey' : 'primary'"
+            location="top left"
+          >
+            <v-btn
+              v-if="getAccessories(internalItem.raw).length > 0"
+              :append-icon="
+                isExpanded(internalItem) ? 'mdi-chevron-up' : 'mdi-chevron-down'
+              "
+              :text="isExpanded(internalItem) ? 'Thu gọn' : 'Phụ tùng'"
+              class="text-none"
+              color="medium-emphasis"
+              size="small"
+              variant="text"
+              width="105"
+              border
+              slim
+              @click="toggleExpand(internalItem)"
+            ></v-btn>
+          </v-badge>
+          </template>
+
+          <template v-slot:expanded-row="{ columns, item }">
+            <tr>
+              <td :colspan="columns.length" class="py-4">
+                <v-sheet rounded="lg" border class="pa-4">
+                  <div class="mb-4">
+                    <h4 class="text-subtitle1 font-weight-bold mb-3">
+                      Danh sách phụ tùng thay thế
+                    </h4>
+                    <v-table
+                      v-if="getAccessories(item).length > 0"
+                      density="compact"
+                    >
+                      <thead>
+                        <tr class="bg-grey-lighten-4">
+                          <th class="text-left">Tên phụ tùng</th>
+                          <th class="text-left">Số lượng</th>
+                          <th class="text-left">Đơn vị</th>
+                          <th class="text-left">Ghi chú</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="s in getAccessories(item)" :key="s.id">
+                          <td class="py-2">{{ s.TenPhuTung }}</td>
+                          <td class="py-2">{{ s.SoLuongSuDung }}</td>
+                          <td class="py-2">{{ s.DonVi }}</td>
+                          <td class="py-2" style="white-space: pre-line">{{ s.GhiChu }}</td>
+                        </tr>
+                      </tbody>
+                    </v-table>
+                    <div v-else class="text-center text-grey text-caption py-4">
+                      Chưa có phụ tùng thay thế
+                    </div>
+                  </div>
+                </v-sheet>
+              </td>
+            </tr>
+          </template>
           <template v-slot:bottom>
             <div class="text-center pt-2">
               <v-pagination
@@ -105,7 +175,7 @@
           </template>
           <template #item.MaBaoTri="{ item }">
             <div class="d-flex">
-              <ButtonEye @detail="PushItem(item)" />
+              <!-- <ButtonEye @detail="PushItem(item)" /> -->
               <ButtonEdit @edit="GetItem(item)" />
             </div>
           </template>
@@ -135,7 +205,70 @@
           :dense="false"
           :fixed-header="true"
           height="66vh"
+          show-expand
+          item-value="MaBaoTri"
         >
+          <template
+            v-slot:item.data-table-expand="{
+              internalItem,
+              isExpanded,
+              toggleExpand,
+            }"
+          >
+            <v-btn
+              v-if="getAccessories(internalItem.raw).length > 0"
+              :append-icon="
+                isExpanded(internalItem) ? 'mdi-chevron-up' : 'mdi-chevron-down'
+              "
+              :text="isExpanded(internalItem) ? 'Thu gọn' : 'Phụ tùng'"
+              class="text-none"
+              color="medium-emphasis"
+              size="small"
+              variant="text"
+              width="105"
+              border
+              slim
+              @click="toggleExpand(internalItem)"
+            ></v-btn>
+          </template>
+
+          <template v-slot:expanded-row="{ columns, item }">
+            <tr>
+              <td :colspan="columns.length" class="py-4">
+                <v-sheet rounded="lg" border class="pa-4">
+                  <div class="mb-4">
+                    <h4 class="text-subtitle1 font-weight-bold mb-3">
+                      Danh sách phụ tùng thay thế
+                    </h4>
+                    <v-table
+                      v-if="getAccessories(item).length > 0"
+                      density="compact"
+                    >
+                      <thead>
+                        <tr class="bg-grey-lighten-4">
+                          <th class="text-left">Tên phụ tùng</th>
+                          <th class="text-left">Số lượng</th>
+                          <th class="text-left">Đơn vị</th>
+                          <th class="text-left">Ghi chú</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="s in getAccessories(item)" :key="s.id">
+                          <td class="py-2">{{ s.TenPhuTung }}</td>
+                          <td class="py-2">{{ s.SoLuongSuDung }}</td>
+                          <td class="py-2">{{ s.DonVi }}</td>
+                          <td class="py-2" style="white-space: pre-line">{{ s.GhiChu }}</td>
+                        </tr>
+                      </tbody>
+                    </v-table>
+                    <div v-else class="text-center text-grey text-caption py-4">
+                      Chưa có phụ tùng thay thế
+                    </div>
+                  </div>
+                </v-sheet>
+              </td>
+            </tr>
+          </template>
           <template v-slot:item.TrangThai="{ item }">
             <div class="text-start">
               <v-chip
@@ -166,7 +299,7 @@
           </template>
           <template #item.MaBaoTri="{ item }">
             <div class="d-flex">
-              <ButtonEye @detail="PushItem(item)" />
+              <!-- <ButtonEye @detail="PushItem(item)" /> -->
               <ButtonEdit @edit="GetItem(item)" />
             </div>
           </template>
@@ -179,90 +312,142 @@
     v-model="DialogEdit"
     icon="mdi-pencil"
     title="Cập nhật dữ liệu bảo trì"
-    max-width="700"
+    max-width="1200"
   >
-    <InputSelect
-      label="Loại bảo trì"
-      v-model="LoaiBaoTri_Edit"
-      hint="Ví dụ: Bảo trì định kỳ, Sửa chữa, Thay thế"
-      :items="itemsType"
-      item-text="text"
-      item-value="value"
-    />
     <v-row>
       <v-col cols="6">
         <InputSelect
-          label="Phương án"
-          v-model="PhuongAn_Edit"
-          hint="Mô tả phương án bảo trì"
-          :items="itemsPlan"
+          label="Loại bảo trì"
+          v-model="LoaiBaoTri_Edit"
+          hint="Ví dụ: Bảo trì định kỳ, Sửa chữa, Thay thế"
+          :items="itemsType"
           item-text="text"
           item-value="value"
         />
+        <v-row>
+          <v-col cols="6">
+            <InputSelect
+              label="Phương án"
+              v-model="PhuongAn_Edit"
+              hint="Mô tả phương án bảo trì"
+              :items="itemsPlan"
+              item-text="text"
+              item-value="value"
+            />
+          </v-col>
+          <v-col cols="6">
+            <InputSelect
+              label="Phụ tùng"
+              v-model="PhuTung_Edit"
+              hint="Liệt kê các phụ tùng sử dụng"
+              :items="itemsSparePart"
+              item-text="text"
+              item-value="value"
+            />
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col cols="6">
+            <InputSelect
+              label="Trạng thái"
+              v-model="TrangThai_Edit"
+              hint="Ví dụ: Đã hoàn thành, Đang thực hiện, Chờ phê duyệt"
+              :items="itemsStatus"
+              item-text="text"
+              item-value="value"
+            />
+          </v-col>
+          <v-col cols="6">
+            <InputField
+              label="Chi phí"
+              v-model="ChiPhi_Edit"
+              type="number"
+              hint="Đơn vị: VND"
+            />
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col cols="6">
+            <InputDate label="Ngày bảo trì" v-model="NgayBaoTri_Edit" />
+          </v-col>
+          <v-col cols="6">
+            <InputDate label="Ngày hoàn thành" v-model="NgayHoanThanh_Edit" />
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col cols="6">
+            <InputField label="Người tạo" v-model="NguoiTao_Edit" />
+          </v-col>
+          <v-col cols="6">
+            <InputField label="Người thực hiện" v-model="NguoiThucHien_Edit" />
+          </v-col>
+        </v-row>
+        <InputTextarea
+          label="Mô tả lỗi"
+          v-model="MoTaLoi_Edit"
+          hint="Mô tả chi tiết lỗi cần bảo trì"
+        />
+        <InputTextarea
+          label="Biện pháp khắc phục"
+          v-model="BienPhapKhacPhuc_Edit"
+          hint="Mô tả cách thức khắc phục lỗi"
+        />
       </v-col>
       <v-col cols="6">
-        <InputSelect
-          label="Phụ tùng"
-          v-model="PhuTung_Edit"
-          hint="Liệt kê các phụ tùng sử dụng"
-          :items="itemsSparePart"
-          item-text="text"
-          item-value="value"
-        />
+        <div class="d-flex justify-space-between align-center mb-3">
+          <h4 class="text-h6">Phụ tùng thay thế</h4>
+          <v-btn
+            color="primary"
+            size="small"
+            variant="tonal"
+            prepend-icon="mdi-plus"
+            class="text-caption text-medium-emphasis"
+            @click="OpenAddAccessory('edit')"
+          >
+            Thêm phụ tùng
+          </v-btn>
+        </div>
+
+        <v-table density="compact" border class="rounded-lg">
+          <thead class="bg-grey-lighten-4">
+            <tr>
+              <th class="text-left font-weight-bold">Tên phụ tùng</th>
+              <th class="text-left font-weight-bold" width="80">SL</th>
+              <th class="text-left font-weight-bold" width="80">ĐV</th>
+              <th class="text-left font-weight-bold">Ghi chú</th>
+              <th class="text-center font-weight-bold" width="100">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, index) in Accessory_Edit" :key="index">
+              <td>{{ item.TenPhuTung }}</td>
+              <td>{{ item.SoLuongSuDung }}</td>
+              <td>{{ item.DonVi }}</td>
+              <td style="white-space: pre-line">{{ item.GhiChu }}</td>
+              <td class="text-center">
+                <v-btn
+                  icon="mdi-pencil"
+                  size="x-small"
+                  color="primary"
+                  variant="text"
+                  @click="OpenEditAccessory(item, index, 'edit')"
+                ></v-btn>
+                <v-btn
+                  icon="mdi-delete"
+                  size="x-small"
+                  color="error"
+                  variant="text"
+                  @click="RemoveAccessoryRowEdit(index, item.id)"
+                ></v-btn>
+              </td>
+            </tr>
+            <tr v-if="Accessory_Edit.length === 0">
+              <td colspan="5" class="text-center text-grey text-caption py-4">Chưa có phụ tùng thay thế</td>
+            </tr>
+          </tbody>
+        </v-table>
       </v-col>
     </v-row>
-    <v-row>
-      <v-col cols="6">
-        <InputSelect
-          label="Trạng thái"
-          v-model="TrangThai_Edit"
-          hint="Ví dụ: Đã hoàn thành, Đang thực hiện, Chờ phê duyệt"
-          :items="itemsStatus"
-          item-text="text"
-          item-value="value"
-        />
-      </v-col>
-      <v-col cols="6">
-        <InputField
-          label="Chi phí"
-          v-model="ChiPhi_Edit"
-          type="number"
-          hint="Đơn vị: VND"
-        />
-      </v-col>
-    </v-row>
-    <v-row>
-      <v-col cols="6">
-        <InputDate
-          label="Ngày bảo trì"
-          v-model="NgayBaoTri_Edit"
-        />
-      </v-col>
-      <v-col cols="6">
-        <InputDate
-          label="Ngày hoàn thành"
-          v-model="NgayHoanThanh_Edit"
-        />
-      </v-col>
-    </v-row>
-    <v-row>
-      <v-col cols="6">
-        <InputField label="Người tạo" v-model="NguoiTao_Edit" />
-      </v-col>
-      <v-col cols="6">
-        <InputField label="Người thực hiện" v-model="NguoiThucHien_Edit" />
-      </v-col>
-    </v-row>
-    <InputTextarea
-      label="Mô tả lỗi"
-      v-model="MoTaLoi_Edit"
-      hint="Mô tả chi tiết lỗi cần bảo trì"
-    />
-    <InputTextarea
-      label="Biện pháp khắc phục"
-      v-model="BienPhapKhacPhuc_Edit"
-      hint="Mô tả cách thức khắc phục lỗi"
-    />
     <template #actions>
       <ButtonDelete @delete="DialogRemove = true" />
       <v-spacer></v-spacer>
@@ -275,85 +460,144 @@
     v-model="DialogAdd"
     icon="mdi-plus"
     title="Thêm dữ liệu bảo trì"
-    max-width="700"
+    max-width="1200"
   >
-    <InputSelect
-      label="Loại bảo trì"
-      v-model="LoaiBaoTri_Add"
-      hint="Ví dụ: Bảo trì định kỳ, Sửa chữa, Thay thế"
-      :items="itemsType"
-      item-text="text"
-      item-value="value"
-    />
+    <v-row>
+      <v-col cols="6">
+        <InputSelect
+          label="Loại bảo trì"
+          v-model="LoaiBaoTri_Add"
+          hint="Ví dụ: Bảo trì định kỳ, Sửa chữa, Thay thế"
+          :items="itemsType"
+          item-text="text"
+          item-value="value"
+        />
 
-    <v-row>
-      <v-col cols="6">
-        <InputSelect
-          label="Phương án"
-          v-model="PhuongAn_Add"
-          hint="Tìm kiếm phương án"
-          :items="itemsPlan"
-          item-text="text"
-          item-value="value"
+        <v-row>
+          <v-col cols="6">
+            <InputSelect
+              label="Phương án"
+              v-model="PhuongAn_Add"
+              hint="Tìm kiếm phương án"
+              :items="itemsPlan"
+              item-text="text"
+              item-value="value"
+            />
+          </v-col>
+          <v-col cols="6">
+            <InputSelect
+              label="Phụ tùng"
+              v-model="PhuTung_Add"
+              hint="Liệt kê các phụ tùng sử dụng"
+              :items="itemsSparePart"
+              item-text="text"
+              item-value="value"
+            />
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col cols="6">
+            <InputSelect
+              label="Trạng thái"
+              v-model="TrangThai_Add"
+              hint="Ví dụ: Đã hoàn thành, Đang thực hiện, Chờ phê duyệt"
+              :items="itemsStatus"
+              item-text="text"
+              item-value="value"
+            />
+          </v-col>
+          <v-col cols="6">
+            <InputField
+              label="Chi phí"
+              v-model="ChiPhi_Add"
+              type="number"
+              hint="Đơn vị: VND"
+            />
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col cols="6">
+            <InputDate label="Ngày bảo trì" v-model="NgayBaoTri_Add" />
+          </v-col>
+          <v-col cols="6">
+            <InputDate label="Ngày hoàn thành" v-model="NgayHoanThanh_Add" />
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col cols="6">
+            <InputField label="Người tạo" v-model="NguoiTao_Add" />
+          </v-col>
+          <v-col cols="6">
+            <InputField label="Người thực hiện" v-model="NguoiThucHien_Add" />
+          </v-col>
+        </v-row>
+        <InputTextarea
+          label="Mô tả lỗi"
+          v-model="MoTaLoi_Add"
+          hint="Mô tả chi tiết lỗi cần bảo trì"
+        />
+        <InputTextarea
+          label="Biện pháp khắc phục"
+          v-model="BienPhapKhacPhuc_Add"
+          hint="Mô tả cách thức khắc phục lỗi"
         />
       </v-col>
       <v-col cols="6">
-        <InputSelect
-          label="Phụ tùng"
-          v-model="PhuTung_Add"
-          hint="Liệt kê các phụ tùng sử dụng"
-          :items="itemsSparePart"
-          item-text="text"
-          item-value="value"
-        />
+        <div class="d-flex justify-space-between align-center mb-3">
+          <h4 class="text-h6">Phụ tùng thay thế</h4>
+          <v-btn
+            color="primary"
+            size="small"
+            variant="tonal"
+            prepend-icon="mdi-plus"
+            class="text-caption text-medium-emphasis"
+            @click="OpenAddAccessory('add')"
+          >
+            Thêm phụ tùng
+          </v-btn>
+        </div>
+
+        <v-table density="compact" border class="rounded-lg">
+          <thead class="bg-grey-lighten-4">
+            <tr>
+              <th class="text-left font-weight-bold">Tên phụ tùng</th>
+              <th class="text-left font-weight-bold" width="80">SL</th>
+              <th class="text-left font-weight-bold" width="80">ĐV</th>
+              <th class="text-left font-weight-bold">Ghi chú</th>
+              <th class="text-center font-weight-bold" width="100">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, index) in Accessory" :key="index">
+              <td>{{ item.TenPhuTung }}</td>
+              <td>{{ item.SoLuongSuDung }}</td>
+              <td>{{ item.DonVi }}</td>
+              <td class="text-wrap" style="white-space: pre-line">{{ item.GhiChu }}</td>
+              <td class="text-center">
+                <v-btn
+                  icon="mdi-pencil"
+                  size="x-small"
+                  color="primary"
+                  variant="text"
+                  @click="OpenEditAccessory(item, index, 'add')"
+                ></v-btn>
+                <v-btn
+                  icon="mdi-delete"
+                  size="x-small"
+                  color="error"
+                  variant="text"
+                  @click="RemoveAccessoryRow(index)"
+                ></v-btn>
+              </td>
+            </tr>
+            <tr v-if="Accessory.length === 0">
+              <td colspan="5" class="text-center text-grey text-caption py-4">Chưa có phụ tùng thay thế</td>
+            </tr>
+          </tbody>
+        </v-table>
       </v-col>
     </v-row>
-    <v-row>
-      <v-col cols="6">
-        <InputSelect
-          label="Trạng thái"
-          v-model="TrangThai_Add"
-          hint="Ví dụ: Đã hoàn thành, Đang thực hiện, Chờ phê duyệt"
-          :items="itemsStatus"
-          item-text="text"
-          item-value="value"
-        />
-      </v-col>
-      <v-col cols="6">
-        <InputField
-          label="Chi phí"
-          v-model="ChiPhi_Add"
-          type="number"
-          hint="Đơn vị: VND"
-        />
-      </v-col>
-    </v-row>
-    <v-row>
-      <v-col cols="6">
-        <InputDate label="Ngày bảo trì" v-model="NgayBaoTri_Add" />
-      </v-col>
-      <v-col cols="6">
-        <InputDate label="Ngày hoàn thành" v-model="NgayHoanThanh_Add" />
-      </v-col>
-    </v-row>
-    <v-row>
-      <v-col cols="6">
-        <InputField label="Người tạo" v-model="NguoiTao_Add" />
-      </v-col>
-      <v-col cols="6">
-        <InputField label="Người thực hiện" v-model="NguoiThucHien_Add" />
-      </v-col>
-    </v-row>
-    <InputTextarea
-      label="Mô tả lỗi"
-      v-model="MoTaLoi_Add"
-      hint="Mô tả chi tiết lỗi cần bảo trì"
-    />
-    <InputTextarea
-      label="Biện pháp khắc phục"
-      v-model="BienPhapKhacPhucs_Add"
-      hint="Mô tả cách thức khắc phục lỗi"
-    />
+
     <template #actions>
       <ButtonCancel @cancel="DialogAdd = false" />
       <ButtonSave @save="SaveAdd()" class="ms-2" />
@@ -366,35 +610,69 @@
     title="Xóa bảo trì"
     max-width="500"
   >
+    <p>Bạn có chắc chắn muốn xóa bản ghi bảo trì này?</p>
     <template #actions>
       <ButtonCancel @cancel="DialogRemove = false" />
       <ButtonDelete @delete="RemoveItem()" />
     </template>
   </BaseDialog>
 
-  <v-dialog v-model="DialogRemove" width="400">
-    <v-card class="rounded-xl">
-      <v-card-title class="d-flex align-center pa-4">
-        <v-icon icon="mdi-delete" color="error" class="me-2"></v-icon>
-        Xóa bảo trì
-      </v-card-title>
-
-      <v-card-text class="pa-4">
-        <div class="text-body-1">
-          Bạn có chắc chắn muốn xóa bản ghi bảo trì này?
-        </div>
-      </v-card-text>
-
-      <v-card-actions class="pa-4">
-        <v-spacer></v-spacer>
-        <ButtonCancel @cancel="DialogRemove = false" />
-        <ButtonDelete @delete="RemoveItem()" class="ms-2" />
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
+
+  <!-- Sub-dialogs for Accessories -->
+  <BaseDialog
+    v-model="DialogAddAccessory"
+    icon="mdi-plus"
+    title="Thêm phụ tùng"
+    max-width="600"
+  >
+    <v-row>
+      <v-col cols="12">
+        <InputField v-model="TempAccessory.TenPhuTung" label="Tên phụ tùng" />
+      </v-col>
+      <v-col cols="6">
+        <InputField v-model.number="TempAccessory.SoLuongSuDung" type="number" label="Số lượng" />
+      </v-col>
+      <v-col cols="6">
+        <InputField v-model="TempAccessory.DonVi" label="Đơn vị" />
+      </v-col>
+      <v-col cols="12">
+        <InputTextarea v-model="TempAccessory.GhiChu" label="Ghi chú" />
+      </v-col>
+    </v-row>
+    <template #actions>
+      <ButtonCancel @cancel="DialogAddAccessory = false" />
+      <ButtonSave @save="ConfirmAddAccessory()" class="ms-2" />
+    </template>
+  </BaseDialog>
+
+  <BaseDialog
+    v-model="DialogEditAccessory"
+    icon="mdi-pencil"
+    title="Cập nhật phụ tùng"
+    max-width="600"
+  >
+    <v-row>
+      <v-col cols="12">
+        <InputField v-model="TempAccessory.TenPhuTung" label="Tên phụ tùng" />
+      </v-col>
+      <v-col cols="6">
+        <InputField v-model.number="TempAccessory.SoLuongSuDung" type="number" label="Số lượng" />
+      </v-col>
+      <v-col cols="6">
+        <InputField v-model="TempAccessory.DonVi" label="Đơn vị" />
+      </v-col>
+      <v-col cols="12">
+        <InputTextarea v-model="TempAccessory.GhiChu" label="Ghi chú" />
+      </v-col>
+    </v-row>
+    <template #actions>
+      <ButtonCancel @cancel="DialogEditAccessory = false" />
+      <ButtonSave @save="ConfirmEditAccessory()" class="ms-2" />
+    </template>
+  </BaseDialog>
 </template>
 <script setup>
 import axios from "axios";
@@ -427,7 +705,8 @@ const { mdAndDown, lgAndUp } = useDisplay();
 const Url = import.meta.env.VITE_API_URL;
 const router = useRouter();
 const route = useRoute();
-const id = localStorage.getItem("MaintenanceID");
+const id = route.params.id;
+const NameMachine = localStorage.getItem("MaintenanceID");
 
 // Dialog states
 const DialogEdit = ref(false);
@@ -435,6 +714,8 @@ const DialogSuccess = ref(false);
 const DialogFailed = ref(false);
 const DialogRemove = ref(false);
 const DialogAdd = ref(false);
+const DialogAddAccessory = ref(false);
+const DialogEditAccessory = ref(false);
 const DialogLoading = ref(false);
 const MessageDialog = ref("");
 const MessageErrorDialog = ref("");
@@ -477,7 +758,7 @@ const page = ref(1);
 const itemsPerPage = ref(10);
 
 // Data
-const { maintenance, maintenanceError } = useMaintenance(id);
+const { maintenance, maintenanceError } = useMaintenance(route.params.id);
 
 const Headers = [
   { title: "Loại bảo trì", key: "LoaiBaoTri" },
@@ -493,7 +774,83 @@ const Headers = [
   { title: "Trạng thái", key: "TrangThai" },
   { title: "Thao tác", key: "MaBaoTri", sortable: false },
 ];
-function PushSchedule() {
+
+const getAccessories = (item) => {
+  if (!item.Accessories || item.Accessories === "") return [];
+  try {
+    return JSON.parse(item.Accessories);
+  } catch (e) {
+    console.error("Error parsing accessories:", e);
+    return [];
+  }
+};
+
+// Lịch giao hàng (Phụ tùng)
+const Accessory = ref([]);
+const Accessory_Edit = ref([]);
+const TempAccessory = ref({
+  TenPhuTung: "",
+  SoLuongSuDung: null,
+  DonVi: "",
+  GhiChu: ""
+});
+const EditIndex = ref(-1);
+const AccessoryMode = ref("add"); // 'add' or 'edit' context for main maintenance dialog
+
+// Methods
+const OpenAddAccessory = (mode) => {
+  AccessoryMode.value = mode;
+  TempAccessory.value = {
+    TenPhuTung: "",
+    SoLuongSuDung: null,
+    DonVi: "",
+    GhiChu: ""
+  };
+  DialogAddAccessory.value = true;
+};
+
+const ConfirmAddAccessory = () => {
+  if (AccessoryMode.value === "add") {
+    Accessory.value.push({ ...TempAccessory.value });
+  } else {
+    Accessory_Edit.value.push({ ...TempAccessory.value });
+  }
+  DialogAddAccessory.value = false;
+};
+
+const OpenEditAccessory = (item, index, mode) => {
+  AccessoryMode.value = mode;
+  EditIndex.value = index;
+  TempAccessory.value = { ...item };
+  DialogEditAccessory.value = true;
+};
+
+const ConfirmEditAccessory = () => {
+  if (AccessoryMode.value === "add") {
+    Accessory.value[EditIndex.value] = { ...TempAccessory.value };
+  } else {
+    Accessory_Edit.value[EditIndex.value] = { ...TempAccessory.value };
+  }
+  DialogEditAccessory.value = false;
+};
+
+const RemoveAccessoryRow = (index) => {
+  Accessory.value.splice(index, 1);
+};
+
+const RemoveAccessoryRowEdit = async (index, accessoryId) => {
+  Accessory_Edit.value.splice(index, 1);
+  if (accessoryId) {
+    try {
+      await axios.delete(`${Url}/SparePartUsage/Delete/${accessoryId}`);
+    } catch (error) {
+      console.error("Error deleting accessory:", error);
+    }
+  }
+};
+
+// ===== CRUD ======
+function PushSchedule(item) {
   localStorage.setItem("MaintenanceID", id);
   router.push(`/Bao-tri/Lich-bao-tri/${route.params.id}`);
 }
@@ -514,14 +871,16 @@ function GetItem(item) {
   NguoiTao_Edit.value = item.NguoiTao;
   NguoiThucHien_Edit.value = item.NguoiThucHien;
   ChiPhi_Edit.value = item.ChiPhi;
+  // Backend returns strings "YYYY-MM-DD", no need for multiplier
   NgayBaoTri_Edit.value = item.NgayBaoTriUnixepoch;
   NgayHoanThanh_Edit.value = item.NgayHoanThanhUnixepoch;
   TrangThai_Edit.value = item.TrangThai;
+  Accessory_Edit.value = getAccessories(item);
 }
 
 const SaveEdit = async () => {
   DialogLoading.value = true;
-  const formData = reactive({
+  const formData = {
     LoaiBaoTri: LoaiBaoTri_Edit.value,
     MoTaLoi: MoTaLoi_Edit.value,
     BienPhapKhacPhuc: BienPhapKhacPhuc_Edit.value,
@@ -529,32 +888,51 @@ const SaveEdit = async () => {
     PhuTung: PhuTung_Edit.value,
     NguoiTao: NguoiTao_Edit.value,
     NguoiThucHien: NguoiThucHien_Edit.value,
-    ChiPhi: ChiPhi_Edit.value,
+    ChiPhi: parseFloat(ChiPhi_Edit.value) || 0,
     NgayBaoTri: NgayBaoTri_Edit.value,
     NgayHoanThanh: NgayHoanThanh_Edit.value,
     TrangThai: TrangThai_Edit.value,
-    MaThietBi: id,
-  });
-  axios
-    .put(`${Url}/Maintenance/Edit/${GetID.value}`, formData)
-    .then(function (response) {
-      MessageDialog.value = response.data.message;
-      DialogEdit.value = false;
-      DialogSuccess.value = true;
-    })
-    .catch(function (error) {
-      MessageErrorDialog.value = error.response.data.message;
-      DialogFailed.value = true;
-    })
-    .finally(function () {
-      DialogLoading.value = false;
-    });
+    MaThietBi: route.params.id,
+  };
+
+  try {
+    const response = await axios.put(`${Url}/Maintenance/Edit/${GetID.value}`, formData);
+    
+    // Cập nhật phụ tùng
+    for (const acc of Accessory_Edit.value) {
+      const payload = {
+        MaBaoTri: GetID.value,
+        MaThietBi: route.params.id,
+        TenPhuTung: acc.TenPhuTung,
+        SoLuongSuDung: parseInt(acc.SoLuongSuDung) || 0,
+        DonVi: acc.DonVi,
+        GhiChu: acc.GhiChu,
+      };
+
+      if (acc.MaSuDung || acc.id) {
+        const idToUpdate = acc.MaSuDung || acc.id;
+        await axios.put(`${Url}/SparePartUsage/Edit/${idToUpdate}`, payload);
+      } else {
+        await axios.post(`${Url}/SparePartUsage/Add`, payload);
+      }
+    }
+
+    MessageDialog.value = response.data.message;
+    DialogEdit.value = false;
+    DialogSuccess.value = true;
+  } catch (error) {
+    console.error("Error in SaveEdit:", error);
+    MessageErrorDialog.value = error.response?.data?.message || error.response?.data?.error || "Lỗi khi cập nhật dữ liệu";
+    DialogFailed.value = true;
+  } finally {
+    DialogLoading.value = false;
+  }
 };
 
 const SaveAdd = async () => {
   DialogLoading.value = true;
-  const formData = reactive({
-    MaThietBi: localStorage.getItem("MaintenanceID"),
+  const formData = {
+    MaThietBi: route.params.id,
     NgayBaoTri: NgayBaoTri_Add.value,
     LoaiBaoTri: LoaiBaoTri_Add.value,
     MoTaLoi: MoTaLoi_Add.value,
@@ -566,15 +944,32 @@ const SaveAdd = async () => {
     TrangThai: TrangThai_Add.value,
     PhuongAn: PhuongAn_Add.value,
     PhuTung: PhuTung_Add.value,
-  });
+  };
 
   try {
     const response = await axios.post(`${Url}/Maintenance/Add`, formData);
-    MessageSuccess(response.data.message);
-    Reset();
+    const maintenanceId = response.data.id;
+
+    // Lưu phụ tùng
+    for (const acc of Accessory.value) {
+      await axios.post(`${Url}/SparePartUsage/Add`, {
+        MaBaoTri: maintenanceId,
+        MaThietBi: route.params.id,
+        TenPhuTung: acc.TenPhuTung,
+        SoLuongSuDung: parseInt(acc.SoLuongSuDung) || 0,
+        DonVi: acc.DonVi,
+        GhiChu: acc.GhiChu,
+      });
+    }
+
+    MessageDialog.value = response.data.message;
     DialogAdd.value = false;
+    Reset();
+    DialogSuccess.value = true;
   } catch (error) {
-    MessageError(error.response.data.message);
+    console.error("Error in SaveAdd:", error);
+    MessageErrorDialog.value = error.response?.data?.message || error.response?.data?.error || "Lỗi khi thêm dữ liệu";
+    DialogFailed.value = true;
   } finally {
     DialogLoading.value = false;
   }
@@ -582,21 +977,26 @@ const SaveAdd = async () => {
 
 const RemoveItem = async () => {
   DialogLoading.value = true;
-  axios
-    .delete(`${Url}/Maintenance/Delete/${GetID.value}`)
-    .then(function (response) {
-      console.log(response.data.message);
-      Reset();
-    })
-    .catch(function (error) {
-      console.log(error);
-      Error();
-    });
+  try {
+    const response = await axios.delete(
+      `${Url}/Maintenance/Delete/${GetID.value}`
+    );
+    MessageDialog.value = "Xoá dữ liệu thành công";
+    DialogRemove.value = false;
+    DialogSuccess.value = true;
+    DialogLoading.value = false;
+    DialogEdit.value = false;
+  } catch (error) {
+    MessageErrorDialog.value = "Xoá dữ liệu thất bại";
+    DialogFailed.value = true;
+    DialogLoading.value = false;
+    DialogRemove.value = false;
+    DialogEdit.value = false;
+  }
 };
 
 function Reset() {
   DialogRemove.value = false;
-  DialogSuccess.value = true;
   DialogEdit.value = false;
   DialogAdd.value = false;
   DialogLoading.value = false;
@@ -608,8 +1008,11 @@ function Reset() {
   NguoiTao_Add.value = "";
   NguoiThucHien_Add.value = "";
   ChiPhi_Add.value = "";
+  NgayBaoTri_Add.value = "";
   NgayHoanThanh_Add.value = "";
   TrangThai_Add.value = "";
+  Accessory.value = [];
+  Accessory_Edit.value = [];
 }
 
 function Error() {

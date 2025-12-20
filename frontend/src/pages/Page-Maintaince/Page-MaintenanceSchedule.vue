@@ -10,14 +10,14 @@
 
       <v-card-title class="d-flex" v-else>
         <ButtonBack :to="`/Bao-tri/Chi-tiet/${route.params.id}`" />
-        <v-icon icon="mdi mdi-calendar-clock"></v-icon> &nbsp;
-        {{ route.params.id }}
+        <v-icon icon="mdi mdi-calendar-clock" color="primary"></v-icon> &nbsp;
+        {{ id }}
       </v-card-title>
       <v-card-text>
         <v-card variant="elevated" elevation="0" class="rounded-xl border">
           <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
-            <v-icon icon="mdi mdi-calendar-clock"></v-icon> &nbsp;
-            {{ route.params.id }}
+            <v-icon icon="mdi mdi-calendar-clock" color="primary"></v-icon> &nbsp;
+            {{ id }}
 
             <ButtonAdd @add="DialogAdd = true" />
             <p class="ms-2 font-weight-thin text-subtitle-1">
@@ -365,7 +365,7 @@ const router = useRouter();
 const id = localStorage.getItem("MaintenanceID");
 
 // Initialize composables
-const { maintenanceSchedule } = useMaintenanceSchedule(id);
+const { maintenanceSchedule } = useMaintenanceSchedule(route.params.id);
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
@@ -505,8 +505,8 @@ const GetItem = (item) => {
   LoaiBaoTri_Edit.value = item.LoaiBaoTri;
   ChuKyBaoTri_Edit.value = item.ChuKyBaoTri;
   DonViChuKy_Edit.value = item.DonViChuKy;
-  NgayBatDau_Edit.value = item.NgayBatDau;
-  NgayBaoTriTiepTheo_Edit.value = item.NgayBaoTriTiepTheo;
+  NgayBatDau_Edit.value = item.NgayBatDauUnixepoch;
+  NgayBaoTriTiepTheo_Edit.value = item.NgayBaoTriTiepTheoUnixepoch;
   GhiChu_Edit.value = item.GhiChu;
   GetID.value = item.MaLich;
   DialogEdit.value = true;

@@ -9,6 +9,7 @@ const bcrypt = require("bcrypt");
 const db = require("./database.js");
 const { v4: uuidv4 } = require("uuid"); // tạo UUID
 const routes = require("./routes");
+const { router: aiSummaryRouter, setIO: setAISummaryIO } = require("./routes/AI-Summary/ai.summary");
 const axios = require("axios");
 const app = express();
 const { Server } = require("socket.io");
@@ -91,6 +92,7 @@ app.use(
 
 app.use(bodyParser.json());
 app.use("/", routes);
+app.use("/api/ai", aiSummaryRouter);
 app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ extended: true, limit: "100mb" }));
 // BẮT BUỘC CÓ để xử lý preflight OPTIONS
@@ -113,6 +115,9 @@ const io = new Server(server, {
   },
   transports: ["websocket", "polling"],
 });
+
+// Initialize Socket.IO for AI routes
+setAISummaryIO(io);
 
 // GIỮ LẠI CHỈ HTTP
 io.on("connection", (socket) => {
@@ -159,6 +164,30 @@ const upload = multer({
     }
   },
 });
+
+const storageMachine = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/machine"); // tạo sẵn folder này
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, Date.now() + ext);
+  },
+});
+
+// chỉ cho phép png/jpg
+const fileFilterMachine = (req, file, cb) => {
+  const allowed = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/heic"];
+  if (allowed.includes(file.mimetype)) cb(null, true);
+  else cb(new Error("Chỉ cho phép PNG, JPG, WEBP, HEIC"));
+};
+
+const uploadMachine = multer({
+  storage: storageMachine,
+  fileFilter: fileFilterMachine,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+});
+
 
 const userProjects = new Map();
 // Khi client kết nối
@@ -733,17 +762,53 @@ io.on("connection", (socket) => {
                         strftime('%d-%m-%Y', a.NgayMua, 'unixepoch', 'localtime') AS NgayMuaConvert,
                         a.ViTri, 
                         a.MoTa, 
+                        a.Image,
+                        a.Condition,
+                        MIN(b.LoaiBaoTri) as LoaiBaoTri,
+                        MIN(b.ChuKyBaoTri) as ChuKyBaoTri,
+                        MIN(b.DonViChuKy) as DonViChuKy,
+                        b.GhiChu,
+                        strftime('%Y-%m-%d', MIN(b.NgayBatDau), 'unixepoch', 'localtime') AS NgayBaoTriUnixepoch,
+                        strftime('%d-%m-%Y', MIN(b.NgayBatDau), 'unixepoch', 'localtime') AS NgayBaoTriConvert,
+                        strftime('%Y-%m-%d', MIN(b.NgayBaoTriTiepTheo), 'unixepoch', 'localtime') AS NgayBaoTriTiepTheoUnixepoch,
+                        strftime('%d-%m-%Y', MIN(b.NgayBaoTriTiepTheo), 'unixepoch', 'localtime') AS NgayBaoTriTiepTheoConvert,
                         CASE
-                          WHEN CAST((NgayBaoTriTiepTheo - strftime('%s', 'now', 'localtime')) / 86400 AS INTEGER) > 15 THEN 'Chưa tới hạn'
+                          WHEN CAST((MIN(b.NgayBaoTriTiepTheo) - strftime('%s', 'now', 'localtime')) / 86400 AS INTEGER) > 15 THEN 'Chưa tới hạn'
                           ELSE 'Cần bảo trì'
-                        END AS Status
+                        END AS Status,
+                        COALESCE(
+                            GROUP_CONCAT(DISTINCT
+                                json_object(
+                                    'MaLich', b.MaLich,
+                                    'LoaiBaoTri', b.LoaiBaoTri,
+                                    'ChuKyBaoTri', b.ChuKyBaoTri,
+                                    'DonViChuKy', b.DonViChuKy,
+                                    'NgayBaoTriTiepTheo', strftime('%d-%m-%Y', b.NgayBaoTriTiepTheo, 'unixepoch', 'localtime'),
+                                    'GhiChu', b.GhiChu,
+                                    'Status', CASE
+                                        WHEN CAST((b.NgayBaoTriTiepTheo - strftime('%s', 'now', 'localtime')) / 86400 AS INTEGER) > 15 THEN 'Chưa tới hạn'
+                                        ELSE 'Cần bảo trì'
+                                    END
+                                )
+                            ), '[]'
+                        ) as Schedules
                       FROM Machine a 
                       LEFT JOIN MaintenanceSchedule b 
                       ON a.MaThietBi = b.MaThietBi
-                      GROUP BY TenThietBi 
-                      ORDER BY Status DESC`;
+                      LEFT JOIN Maintenance m ON a.MaThietBi = m.MaThietBi
+                      GROUP BY a.MaThietBi 
+                      ORDER BY a.ViTri ASC`;
         db.all(query, [], (err, rows) => {
-          if (err) return socket.emit("MachineError", err);
+          if (err) {
+             console.error("MachineError", err);
+             return socket.emit("MachineError", err);
+          }
+          // SQLite GROUP_CONCAT returns a comma-separated string of JSON objects, which is NOT valid JSON array [{},{}]
+          // We need to fix it here or in frontend. 
+          // However, simpler is to do it in frontend as we did before.
+          // BUT wait, DISTINCT json_object might NOT work if json_object returns varying strings?
+          // Actually, json_object returns string. DISTINCT works on strings.
+          
           socket.emit("MachineData", rows);
         });
       } catch (error) {
@@ -752,14 +817,29 @@ io.on("connection", (socket) => {
     }),
     socket.on("getMaintenance", async (id) => {
       try {
-        const query = `SELECT DISTINCT *,
-                      strftime('%d-%m-%Y', NgayBaoTri, 'unixepoch', 'localtime') AS NgayBaoTriConvert,
-                      strftime('%Y-%m-%d', NgayBaoTri, 'unixepoch', 'localtime') AS NgayBaoTriUnixepoch,
-                      strftime('%d-%m-%Y', NgayHoanThanh, 'unixepoch', 'localtime') AS NgayHoanThanhConvert,
-                      strftime('%Y-%m-%d', NgayHoanThanh, 'unixepoch', 'localtime') AS NgayHoanThanhUnixepoch
-                      FROM Maintenance 
-                      WHERE MaThietBi = ? 
-                      ORDER BY NgayBaoTri DESC`;
+        const query = `SELECT 
+                          m.*,
+                          strftime('%d-%m-%Y', m.NgayBaoTri, 'unixepoch', 'localtime') AS NgayBaoTriConvert,
+                          strftime('%Y-%m-%d', m.NgayBaoTri, 'unixepoch', 'localtime') AS NgayBaoTriUnixepoch,
+                          strftime('%d-%m-%Y', m.NgayHoanThanh, 'unixepoch', 'localtime') AS NgayHoanThanhConvert,
+                          strftime('%Y-%m-%d', m.NgayHoanThanh, 'unixepoch', 'localtime') AS NgayHoanThanhUnixepoch,
+                          COALESCE(
+                              '[' || GROUP_CONCAT(
+                                  json_object(
+                                      'id', s.MaSuDung,
+                                      'TenPhuTung', s.TenPhuTung,
+                                      'SoLuongSuDung', s.SoLuongSuDung,
+                                      'DonVi', s.DonVi,
+                                      'GhiChu', s.GhiChu
+                                  )
+                              ) || ']',
+                              '[]'
+                          ) AS Accessories
+                      FROM Maintenance m
+                      LEFT JOIN SparePartUsage s ON m.MaBaoTri = s.MaBaoTri
+                      WHERE m.MaThietBi = ? 
+                      GROUP BY m.MaBaoTri
+                      ORDER BY m.NgayBaoTri DESC`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("MaintenanceError", err);
           socket.emit("MaintenanceData", rows);
@@ -3777,77 +3857,141 @@ app.delete("/api/Project/Customer/Delete-Customer/:id", async (req, res) => {
 });
 
 // Router add new item in Maintenance table
-app.post("/api/Machine/Add", async (req, res) => {
-  const { TenThietBi, LoaiThietBi, NhaSanXuat, NgayMua, ViTri, MoTa } =
-    req.body;
-  let Timestamps = null;
-  if (NgayMua) {
-    const dateObj = new Date(NgayMua); // ví dụ "2025-11-15"
-    if (!isNaN(dateObj.getTime())) {
-      Timestamps = Math.floor(dateObj.getTime() / 1000);
-    } else {
-      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
-    }
-  } else {
-    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
-  }
-  // Insert data into SQLite database
-  const query = `
-    INSERT INTO Machine (TenThietBi, LoaiThietBi, NhaSanXuat, NgayMua, ViTri, MoTa)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `;
-  db.run(
-    query,
-    [TenThietBi, LoaiThietBi, NhaSanXuat, Timestamps, ViTri, MoTa],
-    function (err) {
-      if (err) {
-        return res
-          .status(500)
-          .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
+app.post(
+  "/api/Machine/Add",
+  uploadMachine.single("image"),
+  (req, res) => {
+    const {
+      TenThietBi,
+      LoaiThietBi,
+      NhaSanXuat,
+      NgayMua,
+      ViTri,
+      MoTa,
+    } = req.body;
+
+    const imagePath = req.file
+      ? `/uploads/machine/${req.file.filename}`
+      : null;
+
+    const query = `
+      INSERT INTO Machine 
+      (TenThietBi, LoaiThietBi, NhaSanXuat, NgayMua, ViTri, MoTa, Image, Condition)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'Tốt')
+    `;
+
+    db.run(
+      query,
+      [
+        TenThietBi,
+        LoaiThietBi,
+        NhaSanXuat,
+        NgayMua,
+        ViTri,
+        MoTa,
+        imagePath,
+      ],
+      function (err) {
+        if (err) {
+          return res.status(500).json({ error: "Lỗi DB" });
+        }
+        io.emit("MachineUpdate");
+        res.json({ message: "Thêm thiết bị thành công" });
       }
-      io.emit("MachineUpdate");
-      // Broadcast the new message to all clients
-      res.json({ message: "Đã cập nhật dữ liệu thành công" });
-    }
-  );
-});
+    );
+  }
+);
 
 // Router update item in Machine table
-app.put("/api/Machine/Edit/:id", async (req, res) => {
-  const { id } = req.params;
-  const { TenThietBi, LoaiThietBi, NhaSanXuat, NgayMua, ViTri, MoTa } =
-    req.body;
-  let Timestamps = null;
-  if (NgayMua) {
-    const dateObj = new Date(NgayMua); // ví dụ "2025-11-15"
-    if (!isNaN(dateObj.getTime())) {
-      Timestamps = Math.floor(dateObj.getTime() / 1000);
-    } else {
-      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+app.put(
+  "/api/Machine/Edit/:id",
+  uploadMachine.single("image"),
+  async (req, res) => {
+    const { id } = req.params;
+
+    const {
+      TenThietBi,
+      LoaiThietBi,
+      NhaSanXuat,
+      NgayMua,
+      ViTri,
+      MoTa,
+      TinhTrang,
+    } = req.body;
+
+    try {
+      // ===== lấy ảnh cũ =====
+      db.get(
+        "SELECT Image FROM Machine WHERE MaThietBi = ?",
+        [id],
+        (err, row) => {
+          if (err) return res.status(500).json({ error: "Lỗi DB" });
+
+          let imagePath = row?.Image || null;
+
+          // ===== nếu upload ảnh mới =====
+          if (req.file) {
+            imagePath = `/uploads/machine/${req.file.filename}`;
+
+            // 🔥 xoá ảnh cũ (nếu có)
+            if (row?.Image) {
+              const oldPath = path.join(
+                __dirname,
+                row.Image.replace("/uploads/", "uploads/")
+              );
+
+              fs.existsSync(oldPath) && fs.unlinkSync(oldPath);
+            }
+          }
+
+          // ===== update DB =====
+          const query = `
+            UPDATE Machine 
+            SET 
+              TenThietBi = ?,
+              LoaiThietBi = ?,
+              NhaSanXuat = ?,
+              NgayMua = ?,
+              ViTri = ?,
+              MoTa = ?,
+              Image = ?,
+              Condition = ?
+            WHERE MaThietBi = ?
+          `;
+
+          db.run(
+            query,
+            [
+              TenThietBi,
+              LoaiThietBi,
+              NhaSanXuat,
+              NgayMua,
+              ViTri,
+              MoTa,
+              imagePath,
+              TinhTrang,
+              id,
+            ],
+            function (err) {
+              if (err) {
+                return res
+                  .status(500)
+                  .json({ error: "Lỗi khi cập nhật dữ liệu" });
+              }
+
+              io.emit("MachineUpdate");
+              res.json({ message: "Cập nhật thiết bị thành công" });
+            }
+          );
+        }
+      );
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Upload failed" });
     }
-  } else {
-    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
   }
-  // Insert data into SQLite database
-  const query = `
-    UPDATE Machine 
-    SET TenThietBi = ?, LoaiThietBi = ?, NhaSanXuat = ?, NgayMua = ?, ViTri = ?, MoTa = ?
-    WHERE MaThietBi = ?
-  `;
-  db.run(
-    query,
-    [TenThietBi, LoaiThietBi, NhaSanXuat, Timestamps, ViTri, MoTa, id],
-    function (err) {
-      if (err) {
-        return res
-          .status(500)
-          .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
-      }
-      io.emit("MachineUpdate");
-      res.json({ message: "Đã cập nhật dữ liệu thành công" });
-    }
-  );
-});
+);
+
 
 // Router delete item in Machine table
 app.delete("/api/Machine/Delete/:id", async (req, res) => {
@@ -3972,6 +4116,7 @@ app.post("/api/Maintenance/Add", async (req, res) => {
         }
 
         io.emit("MaintenanceUpdate");
+        io.emit("SparePartUsageUpdate");
         res.json({
           message: "Thêm dữ liệu bảo trì thành công",
           id: this.lastID,
@@ -4057,6 +4202,7 @@ app.put("/api/Maintenance/Edit/:id", async (req, res) => {
           .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
       }
       io.emit("MaintenanceUpdate");
+      io.emit("SparePartUsageUpdate");
       res.json({ message: "Đã cập nhật dữ liệu thành công" });
     }
   );
@@ -4065,18 +4211,24 @@ app.put("/api/Maintenance/Edit/:id", async (req, res) => {
 // Router delete item in Maintenance table
 app.delete("/api/Maintenance/Delete/:id", async (req, res) => {
   const { id } = req.params;
-  // Insert data into SQLite database
-  const query = `
-    DELETE FROM Maintenance WHERE MaBaoTri = ?
-  `;
-  db.run(query, [id], function (err) {
+  
+  const deletePartsQuery = `DELETE FROM SparePartUsage WHERE MaBaoTri = ?`;
+  const deleteMaintenanceQuery = `DELETE FROM Maintenance WHERE MaBaoTri = ?`;
+
+  db.run(deletePartsQuery, [id], (err) => {
     if (err) {
-      return res
-        .status(500)
-        .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
+      console.error("Error deleting spare parts:", err);
+      return res.status(500).json({ error: "Lỗi khi xoá dữ liệu phụ tùng" });
     }
-    io.emit("MaintenanceUpdate");
-    res.json({ message: "Đã xoá dữ liệu thành công" });
+    
+    db.run(deleteMaintenanceQuery, [id], function (err) {
+      if (err) {
+        console.error("Error deleting maintenance record:", err);
+        return res.status(500).json({ error: "Lỗi khi xoá dữ liệu bảo trì" });
+      }
+      io.emit("MaintenanceUpdate");
+      res.json({ message: "Đã xoá dữ liệu thành công" });
+    });
   });
 });
 
@@ -4136,6 +4288,7 @@ app.post("/api/MaintenanceSchedule/Add", async (req, res) => {
           .json({ error: "Lỗi khi thêm dữ liệu vào cơ sở dữ liệu" });
       }
       io.emit("MaintenanceScheduleUpdate");
+      io.emit("MachineUpdate");
       res.json({ message: "Đã thêm dữ liệu bảo trì định kỳ thành công" });
     }
   );
@@ -4200,6 +4353,7 @@ app.put("/api/MaintenanceSchedule/Edit/:id", async (req, res) => {
           .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
       }
       io.emit("MaintenanceScheduleUpdate");
+      io.emit("MachineUpdate");
       res.json({ message: "Đã cập nhật dữ liệu bảo trì định kỳ thành công" });
     }
   );
@@ -4219,6 +4373,7 @@ app.delete("/api/MaintenanceSchedule/Delete/:id", async (req, res) => {
         .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
     }
     io.emit("MaintenanceScheduleUpdate");
+    io.emit("MachineUpdate");
     res.json({ message: "Đã xoá dữ liệu bảo trì định kỳ thành công" });
   });
 });
@@ -4242,6 +4397,7 @@ app.post("/api/SparePartUsage/Add", async (req, res) => {
           .json({ error: "Lỗi khi thêm dữ liệu vào cơ sở dữ liệu" });
       }
       io.emit("SparePartUsageUpdate");
+      io.emit("MaintenanceUpdate");
       res.json({ message: "Đã thêm dữ liệu sử dụng phụ tùng thành công" });
     }
   );
@@ -4268,6 +4424,7 @@ app.put("/api/SparePartUsage/Edit/:id", async (req, res) => {
           .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
       }
       io.emit("SparePartUsageUpdate");
+      io.emit("MaintenanceUpdate");
       res.json({ message: "Đã cập nhật dữ liệu sử dụng phụ tùng thành công" });
     }
   );
@@ -4287,6 +4444,7 @@ app.delete("/api/SparePartUsage/Delete/:id", async (req, res) => {
         .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
     }
     io.emit("SparePartUsageUpdate");
+    io.emit("MaintenanceUpdate");
     res.json({ message: "Đã xoá dữ liệu sử dụng phụ tùng thành công" });
   });
 });
@@ -5748,6 +5906,10 @@ app.put("/api/Component/Edit-item/:id", (req, res) => {
   );
 });
 
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "uploads"))
+);
 // Serve static files from frontend/dist
 app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
@@ -5755,6 +5917,8 @@ app.use(express.static(path.join(__dirname, "../frontend/dist")));
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
 });
+
+
 
 // Khởi động servers
 server.listen(PORT, "0.0.0.0", () => {

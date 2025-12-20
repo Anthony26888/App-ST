@@ -8,10 +8,17 @@
     <v-card-title class="d-flex justify-space-between align-center pa-4">
       <span class="text-h4 font-weight-light">Báo cáo hằng ngày</span>
       <v-spacer></v-spacer>
+      <v-tooltip text="Phân tích AI" location="start">
+        <template v-slot:activator="{ props }">
+          <v-btn variant="text" class="mt-2" @click="analyze" v-bind="props">
+            <v-icon start size="24" color="primary">mdi-robot</v-icon>
+          </v-btn>
+        </template>
+      </v-tooltip>
       <v-sheet
         rounded="lg"
         border
-        class="d-flex align-center px-4 py-2 mt-3"
+        class="d-flex align-center px-4 py-2 mt-3 ms-2"
         color="surface"
         elevation="0"
         v-tooltip="'Chọn ngày xem báo cáo'"
@@ -294,7 +301,11 @@
         </v-col>
       </v-row>
 
-      <v-card variant="elevated" elevation="0" class="rounded-xl mt-3 bg-surface">
+      <v-card
+        variant="elevated"
+        elevation="0"
+        class="rounded-xl mt-3 bg-surface"
+      >
         <v-data-table-virtual
           density="compact"
           :headers="Headers"
@@ -332,9 +343,7 @@
             </v-toolbar>
           </template>
 
-          <template
-            v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }"
-          >
+          <template v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }">
             <tr>
               <td
                 :colspan="columns.length"
@@ -385,7 +394,11 @@
       <!-- Bảng dữ liệu tỷ lệ lỗi -->
       <v-row>
         <v-col lg="7" md="12">
-          <v-card variant="elevated" elevation="0" class="rounded-xl mt-5 bg-surface">
+          <v-card
+            variant="elevated"
+            elevation="0"
+            class="rounded-xl mt-5 bg-surface"
+          >
             <v-data-table-virtual
               density="compact"
               :headers="HeadersError"
@@ -488,7 +501,8 @@
         <v-col lg="5" md="12">
           <v-card
             class="mb-4 rounded-xl mt-5 border"
-            variant="elevated" elevation="0"
+            variant="elevated"
+            elevation="0"
             height="500px"
           >
             <v-card-title class="d-flex align-center">
@@ -831,12 +845,7 @@
           <template v-slot:top>
             <v-toolbar flat color="transparent" class="border-b px-2">
               <v-toolbar-title class="d-flex align-center">
-                <v-avatar
-                  color="error"
-                  variant="tonal"
-                  size="32"
-                  class="me-3"
-                >
+                <v-avatar color="error" variant="tonal" size="32" class="me-3">
                   <v-icon icon="mdi-message-alert" size="20"></v-icon>
                 </v-avatar>
                 <span class="text-h6 font-weight-bold"
@@ -924,6 +933,193 @@
     </v-card-text>
   </v-card>
 
+  <BaseDialog
+    v-model="DialogAI"
+    max-width="1000px"
+    :title="'Phân tích AI - Báo cáo ngày ' + formattedSelectedDate"
+    icon="mdi-robot"
+  >
+    <v-card>
+      <v-card-text class="pa-6">
+        <div v-if="aiLoading && !aiText" class="text-center py-8">
+          <v-progress-circular
+            indeterminate
+            color="primary"
+            size="64"
+          ></v-progress-circular>
+          <p class="mt-4 text-medium-emphasis">AI đang phân tích dữ liệu...</p>
+        </div>
+
+        <div v-else-if="aiText">
+          <v-row>
+            <!-- Left Col: Analysis Result -->
+            <v-col cols="12" md="6">
+              <v-alert
+                type="info"
+                variant="tonal"
+                class="h-100"
+                style="max-height: 550px; overflow-y: auto"
+              >
+                <div class="text-subtitle-2 font-weight-bold mb-2">
+                  📊 Phân tích từ AI:
+                </div>
+                <div style="white-space: pre-wrap; line-height: 1.6">
+                  {{ aiText }}
+                </div>
+              </v-alert>
+            </v-col>
+
+            <!-- Right Col: Chat Interface -->
+            <v-col cols="12" md="6">
+              <div class="d-flex flex-column h-100">
+                <div
+                  class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center"
+                >
+                  <v-icon icon="mdi-chat" class="mr-2" color="primary"></v-icon>
+                  💬 Hỏi thêm AI
+                </div>
+
+                <!-- Chat Messages -->
+                <div
+                  class="chat-messages mb-4 pa-3 rounded-lg flex-grow-1"
+                  style="
+                    height: 400px;
+                    overflow-y: auto;
+                    background-color: rgba(var(--v-theme-surface-variant), 0.3);
+                  "
+                  ref="chatContainer"
+                >
+                  <div
+                    v-if="messages.length === 0"
+                    class="text-center text-medium-emphasis mt-10"
+                  >
+                    <v-icon
+                      icon="mdi-message-text-outline"
+                      size="48"
+                      class="mb-2"
+                    ></v-icon>
+                    <div>Bạn có thắc mắc gì về báo cáo này không?</div>
+                  </div>
+
+                  <div
+                    v-for="(message, index) in messages"
+                    :key="index"
+                    class="mb-3"
+                  >
+                    <div
+                      v-if="message.role === 'user'"
+                      class="d-flex justify-end"
+                    >
+                      <v-chip
+                        color="primary"
+                        variant="flat"
+                        class="px-4 py-2"
+                        style="
+                          height: auto;
+                          white-space: pre-wrap;
+                          max-width: 80%;
+                        "
+                      >
+                        {{ message.content }}
+                      </v-chip>
+                    </div>
+                    <div v-else class="d-flex justify-start">
+                      <v-chip
+                        color="surface-variant"
+                        variant="flat"
+                        class="px-4 py-2"
+                        style="
+                          height: auto;
+                          white-space: pre-wrap;
+                          max-width: 80%;
+                        "
+                      >
+                        {{ message.content }}
+                      </v-chip>
+                    </div>
+                  </div>
+
+                  <!-- Current streaming response -->
+                  <div v-if="currentChatResponse" class="d-flex justify-start">
+                    <v-chip
+                      color="surface-variant"
+                      variant="flat"
+                      class="px-4 py-2"
+                      style="
+                        height: auto;
+                        white-space: pre-wrap;
+                        max-width: 80%;
+                      "
+                    >
+                      {{ currentChatResponse }}
+                      <v-progress-circular
+                        indeterminate
+                        size="16"
+                        width="2"
+                        class="ml-2"
+                      ></v-progress-circular>
+                    </v-chip>
+                  </div>
+                </div>
+
+                <!-- Chat Input -->
+                <div class="d-flex gap-2">
+                  <v-text-field
+                    v-model="chatInput"
+                    placeholder="Hỏi AI về báo cáo này..."
+                    variant="outlined"
+                    density="comfortable"
+                    hide-details
+                    :disabled="chatLoading"
+                    @keyup.enter="sendChatMessage"
+                  >
+                    <template v-slot:prepend-inner>
+                      <v-icon
+                        icon="mdi-message-text-outline"
+                        size="20"
+                      ></v-icon>
+                    </template>
+                  </v-text-field>
+                  <v-btn
+                    color="primary"
+                    :loading="chatLoading"
+                    :disabled="!chatInput.trim()"
+                    @click="sendChatMessage"
+                  >
+                    <v-icon>mdi-send</v-icon>
+                  </v-btn>
+                </div>
+
+                <div class="text-caption text-medium-emphasis mt-2">
+                  💡 Ví dụ: "Tại sao lỗi SMT cao?", "Làm sao cải thiện tỷ lệ
+                  Pass?"
+                </div>
+              </div>
+            </v-col>
+          </v-row>
+        </div>
+
+        <div v-else class="text-center py-8 text-medium-emphasis">
+          <v-icon icon="mdi-robot-outline" size="64" class="mb-4"></v-icon>
+          <p>Nhấn nút "Phân tích AI" để bắt đầu</p>
+        </div>
+      </v-card-text>
+
+      <v-divider></v-divider>
+
+      <v-card-actions class="pa-4">
+        <v-spacer></v-spacer>
+        <ButtonSave @click="analyze" :loading="aiLoading">
+          <v-icon start>mdi-robot</v-icon>
+          Phân tích lại
+        </ButtonSave>
+        <ButtonCancel variant="text" @click="DialogAI = false"
+          >Đóng</ButtonCancel
+        >
+      </v-card-actions>
+    </v-card>
+  </BaseDialog>
+
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
@@ -965,6 +1161,7 @@ import CardStatistic from "@/components/Card-Statistic.vue";
 import { useSummary } from "@/composables/Summary/useSummary";
 import { useCompareSummary } from "@/composables/Summary/useCompareSummary";
 import { useSummaryFail } from "@/composables/Summary/useSummaryFail";
+import { useSummaryAI } from "@/composables/Summary/useSummaryAI";
 
 // import { useActived } from "@/composables/Summary/useActived";
 
@@ -983,6 +1180,7 @@ const router = useRouter();
 const DialogSuccess = ref(false); // Success notification
 const DialogFailed = ref(false); // Error notification
 const DialogLoading = ref(false); // Loading state
+const DialogAI = ref(false); // AI dialog
 // ===== MESSAGE DIALOG =====
 // Message for success and error notifications
 const MessageDialog = ref("");
@@ -1112,7 +1310,125 @@ const formattedWeekDate = computed(() => {
 const { summary, summaryError } = useSummary(formattedSelectedDate);
 const { compareSummary } = useCompareSummary(formattedSelectedDate);
 const { summaryFail, summaryFailError } = useSummaryFail(formattedSelectedDate);
+const {
+  aiText,
+  loading: aiLoading,
+  analyze: analyzeAI,
+  messages,
+  chatLoading,
+  currentChatResponse,
+  askQuestion,
+  clearChat,
+} = useSummaryAI();
 // const { status, statusError } = useActived();
+
+// Chat input
+const chatInput = ref("");
+
+// AI Analysis function (includes comparison if available)
+const analyze = () => {
+  DialogAI.value = true;
+
+  // Prepare concise summary data (optimized for speed)
+  const summaryData = {
+    date: formattedSelectedDate.value,
+    stats: {
+      totalPO: Total_Po_Today.value,
+      totalCategory: Total_Category_Today.value,
+      completed:
+        summary.value?.filter((item) => Number(item.Percent) >= 100).length ||
+        0,
+      inProgress:
+        summary.value?.filter((item) => Number(item.Percent) < 100).length || 0,
+      passRate: overallSummaryRate.value,
+      totalPass: totalSummaryOK.value,
+      totalFail: totalSummaryError.value,
+    },
+    // Add process breakdown with detailed stats
+    processes: summaryDetailByType.value || {},
+  };
+
+  // Add comparison if available (concise format)
+  if (compareSummary.value && compareSummary.value.length > 0) {
+    const comp = compareSummary.value[0];
+    summaryData.comparison = {
+      yesterdayPO: comp.Yesterday_Total_PONumber || 0,
+      yesterdayCategory: comp.Yesterday_Total_Category || 0,
+      poTrend: comp.PONumber_Trend_Percent || 0,
+      categoryTrend: comp.Category_Trend_Percent || 0,
+    };
+  }
+
+  // Add top 3 error types only (if any)
+  const topErrors = Object.entries(summaryFailChart.value)
+    .filter(([_, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([type, count]) => `${type}: ${count}`);
+
+  if (topErrors.length > 0) {
+    summaryData.topErrors = topErrors;
+  }
+
+  // Add full raw data for detailed AI questions
+  summaryData.fullData = {
+    // Complete summary list with all details
+    summaryList: summary.value || [],
+    // Manufacture fail details
+    manufactureFail: Manufacture_Fail.value || [],
+    // Fail chart breakdown
+    failByGroup: summaryFailChart.value || {},
+    // Summary by type with all details
+    summaryByType: summaryDetailByType.value || {},
+  };
+
+  analyzeAI(summaryData);
+};
+
+// Send chat message
+const chatContainer = ref(null);
+const sendChatMessage = async () => {
+  if (!chatInput.value.trim()) return;
+
+  await askQuestion(chatInput.value);
+  chatInput.value = "";
+
+  // Auto-scroll to bottom
+  nextTick(() => {
+    if (chatContainer.value) {
+      chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
+    }
+  });
+};
+
+// Watch for new messages to auto-scroll
+watch(
+  () => messages.value.length,
+  () => {
+    nextTick(() => {
+      if (chatContainer.value) {
+        chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
+      }
+    });
+  }
+);
+
+// Watch for streaming response to auto-scroll
+watch(currentChatResponse, () => {
+  nextTick(() => {
+    if (chatContainer.value) {
+      chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
+    }
+  });
+});
+
+// Clear chat when closing dialog
+watch(DialogAI, (newVal) => {
+  if (!newVal) {
+    clearChat();
+    chatInput.value = "";
+  }
+});
 
 // Hàm tính số giây chênh lệch giữa hiện tại và timestamp dạng dd/MM/yyyy HH:mm:ss
 const getTimeDifference = (timestamp) => {

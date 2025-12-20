@@ -1,7 +1,7 @@
 <template>
   <v-menu :close-on-content-click="false" location="start" width="500">
     <template v-slot:activator="{ props }">
-      <v-btn class="text-none" variant="text" size="large" v-bind="props">
+      <v-btn class="text-none" variant="text" size="large" :color="unreadCount > 0 ? 'error' : 'primary'" v-bind="props">
         <v-badge v-if="unreadCount > 0" color="error" :content="unreadCount">
           <v-icon>mdi-bell-outline</v-icon>
         </v-badge>
