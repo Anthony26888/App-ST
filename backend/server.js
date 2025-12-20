@@ -9,7 +9,7 @@ const bcrypt = require("bcrypt");
 const db = require("./database.js");
 const { v4: uuidv4 } = require("uuid"); // tạo UUID
 const routes = require("./routes");
-const { router: aiSummaryRouter, setIO: setAISummaryIO } = require("./routes/AI-Summary/ai.summary");
+// const { router: aiSummaryRouter, setIO: setAISummaryIO } = require("./routes/AI-Summary/ai.summary");
 const axios = require("axios");
 const app = express();
 const { Server } = require("socket.io");
@@ -92,7 +92,7 @@ app.use(
 
 app.use(bodyParser.json());
 app.use("/", routes);
-app.use("/api/ai", aiSummaryRouter);
+// app.use("/api/ai", aiSummaryRouter);
 app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ extended: true, limit: "100mb" }));
 // BẮT BUỘC CÓ để xử lý preflight OPTIONS
@@ -117,7 +117,7 @@ const io = new Server(server, {
 });
 
 // Initialize Socket.IO for AI routes
-setAISummaryIO(io);
+// setAISummaryIO(io);
 
 // GIỮ LẠI CHỈ HTTP
 io.on("connection", (socket) => {
