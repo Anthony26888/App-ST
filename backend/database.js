@@ -266,7 +266,8 @@ db.serialize(() => {
       ViTri TEXT,
       MoTa TEXT,
       Image TEXT,
-      Condition TEXT
+      Condition TEXT,
+      MachineCode TEXT
     )
   `);
   db.run(`

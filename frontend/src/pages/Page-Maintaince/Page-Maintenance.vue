@@ -417,6 +417,9 @@
     max-width="700"
   >
     <v-row>
+      <v-col cols="12" md="12">
+        <InputField label="Mã thiết bị" v-model="MachineCode_Edit" />
+      </v-col>
       <v-col cols="12" md="6">
         <InputField label="Tên thiết bị" v-model="TenThietBi_Edit" />
       </v-col>
@@ -497,6 +500,9 @@
     max-width="700"
   >
     <v-row>
+      <v-col cols="12" md="12">
+        <InputField label="Mã thiết bị" v-model="MachineCode_Add" />
+      </v-col>
       <v-col cols="12" md="6">
         <InputField label="Tên thiết bị" v-model="TenThietBi_Add" />
       </v-col>
@@ -589,8 +595,7 @@ import InputDate from "@/components/Input-Date.vue";
 // ===== STATE MANAGEMENT =====
 // API Configuration
 const Url = import.meta.env.VITE_API_URL;
-const API_URL = "http://localhost:3000";
-
+const API_URL = import.meta.env.VITE_API_ERP_URL || "http://localhost:3000";
 // Router
 const router = useRouter();
 const { mdAndDown, lgAndUp } = useDisplay();
@@ -632,6 +637,7 @@ const MoTa_Edit = ref(""); // Description for editing
 const Image_Edit = ref(null); // Image for editing
 const ImagePreview_Edit = ref(null); // Image preview for editing
 const TinhTrang_Edit = ref(""); // Condition for editing
+const MachineCode_Edit = ref(""); // Machine code for editing
 
 // Add form states
 const TenThietBi_Add = ref(""); // Device name for adding new
@@ -642,6 +648,7 @@ const ViTri_Add = ref(""); // Location for adding new
 const MoTa_Add = ref(""); // Description for adding new
 const Image_Add = ref(null); // Image for adding new
 const ImagePreview_Add = ref(null);
+const MachineCode_Add = ref("");
 
 // ===== TABLE CONFIGURATION =====
 // Search and pagination states
@@ -652,6 +659,7 @@ const itemsPerPage = ref(15);
 // Table headers configuration
 const Headers = [
   { title: "Ảnh", key: "Image", width: "150" },
+  { title: "Mã thiết bị", key: "MachineCode", width: "200" },
   { title: "Tên thiết bị", key: "TenThietBi", width: "250" },
   { title: "Loại thiết bị", key: "LoaiThietBi" },
   { title: "Nhà sản xuất", key: "NhaSanXuat" },
@@ -710,6 +718,7 @@ function GetItem(value) {
   MoTa_Edit.value = found.MoTa;
   Image_Edit.value = null;
   TinhTrang_Edit.value = found.Condition;
+  MachineCode_Edit.value = found.MachineCode;
 
   // ✅ preview ảnh từ server
   ImagePreview_Edit.value = found.Image ? `${API_URL}${found.Image}` : null;
@@ -731,6 +740,7 @@ const SaveEdit = async () => {
   formData.append("ViTri", ViTri_Edit.value);
   formData.append("MoTa", MoTa_Edit.value);
   formData.append("TinhTrang", TinhTrang_Edit.value);
+  formData.append("MachineCode", MachineCode_Edit.value);
 
   // ✅ CHỈ append nếu có chọn ảnh mới
   if (Image_Edit.value) {
@@ -768,6 +778,7 @@ const SaveAdd = async () => {
   formData.append("NgayMua", NgayMua_Add.value);
   formData.append("ViTri", ViTri_Add.value);
   formData.append("MoTa", MoTa_Add.value);
+  formData.append("MachineCode", MachineCode_Add.value);
 
   if (Image_Add.value) {
     formData.append("image", Image_Add.value);
@@ -777,7 +788,7 @@ const SaveAdd = async () => {
     await axios.post(`${Url}/Machine/Add`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
-
+    Reset();
     DialogSuccess.value = true;
     MessageDialog.value = "Thêm dữ liệu thành công";
   } catch (err) {
@@ -873,6 +884,8 @@ function Reset() {
   NgayMua_Add.value = "";
   ViTri_Add.value = "";
   MoTa_Add.value = "";
+  Image_Add.value = null;
+  ImagePreview_Add.value = null;
 }
 
 /**

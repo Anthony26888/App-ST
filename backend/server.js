@@ -754,6 +754,7 @@ io.on("connection", (socket) => {
     socket.on("getMachine", async () => {
       try {
         const query = `SELECT 
+                        a.MachineCode,
                         a.MaThietBi, 
                         a.TenThietBi, 
                         a.LoaiThietBi, 
@@ -1967,6 +1968,7 @@ io.on("connection", (socket) => {
         socket.emit("OrderTrackingError", error);
       }
     }),
+    
     // socket.on("ask", async (message) => {
     //   try {
     //     const result = await queryWithLangChain(message);
@@ -3868,6 +3870,7 @@ app.post(
       NgayMua,
       ViTri,
       MoTa,
+      MachineCode,
     } = req.body;
 
     const imagePath = req.file
@@ -3876,8 +3879,8 @@ app.post(
 
     const query = `
       INSERT INTO Machine 
-      (TenThietBi, LoaiThietBi, NhaSanXuat, NgayMua, ViTri, MoTa, Image, Condition)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'Tốt')
+      (TenThietBi, LoaiThietBi, NhaSanXuat, NgayMua, ViTri, MoTa, Image, Condition, MachineCode)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'Tốt', ?)
     `;
 
     db.run(
@@ -3890,6 +3893,7 @@ app.post(
         ViTri,
         MoTa,
         imagePath,
+        MachineCode,
       ],
       function (err) {
         if (err) {
@@ -3917,6 +3921,7 @@ app.put(
       ViTri,
       MoTa,
       TinhTrang,
+      MachineCode,
     } = req.body;
 
     try {
@@ -3955,7 +3960,8 @@ app.put(
               ViTri = ?,
               MoTa = ?,
               Image = ?,
-              Condition = ?
+              Condition = ?,
+              MachineCode = ?
             WHERE MaThietBi = ?
           `;
 
@@ -3970,6 +3976,7 @@ app.put(
               MoTa,
               imagePath,
               TinhTrang,
+              MachineCode,
               id,
             ],
             function (err) {

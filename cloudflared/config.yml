@@ -4,4 +4,11 @@ credentials-file: /etc/cloudflared/efdcf16b-d285-47ff-8c3b-8241c386198f.json
 ingress:
   - hostname: erpst.io.vn
     service: http://frontend:80
+
+  - hostname: api.erpst.io.vn
+    service: http://backend:3000
+
+  - hostname: ai.erpst.io.vn
+    service: http://backend:11434
+
   - service: http_status:404
