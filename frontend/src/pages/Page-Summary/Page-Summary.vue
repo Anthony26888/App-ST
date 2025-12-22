@@ -8,13 +8,13 @@
     <v-card-title class="d-flex justify-space-between align-center pa-4">
       <span class="text-h4 font-weight-light">Báo cáo hằng ngày</span>
       <v-spacer></v-spacer>
-      <!-- <v-tooltip text="Phân tích AI" location="start">
+      <v-tooltip text="Phân tích AI" location="start">
         <template v-slot:activator="{ props }">
           <v-btn variant="text" class="mt-2" @click="analyze" v-bind="props">
             <v-icon start size="24" color="primary">mdi-robot</v-icon>
           </v-btn>
         </template>
-      </v-tooltip> -->
+      </v-tooltip>
       <v-sheet
         rounded="lg"
         border
@@ -1161,9 +1161,9 @@ import CardStatistic from "@/components/Card-Statistic.vue";
 import { useSummary } from "@/composables/Summary/useSummary";
 import { useCompareSummary } from "@/composables/Summary/useCompareSummary";
 import { useSummaryFail } from "@/composables/Summary/useSummaryFail";
-// import { useSummaryAI } from "@/composables/Summary/useSummaryAI";
+import { useSummaryAI } from "@/composables/Summary/useSummaryAI";
 
-// import { useActived } from "@/composables/Summary/useActived";
+import { useActived } from "@/composables/Summary/useActived";
 
 // ===== STATE MANAGEMENT =====
 const { mdAndDown, lgAndUp } = useDisplay();
@@ -1310,17 +1310,17 @@ const formattedWeekDate = computed(() => {
 const { summary, summaryError } = useSummary(formattedSelectedDate);
 const { compareSummary } = useCompareSummary(formattedSelectedDate);
 const { summaryFail, summaryFailError } = useSummaryFail(formattedSelectedDate);
-// const {
-//   aiText,
-//   loading: aiLoading,
-//   analyze: analyzeAI,
-//   messages,
-//   chatLoading,
-//   currentChatResponse,
-//   askQuestion,
-//   clearChat,
-// } = useSummaryAI();
-// const { status, statusError } = useActived();
+const {
+  aiText,
+  loading: aiLoading,
+  analyze: analyzeAI,
+  messages,
+  chatLoading,
+  currentChatResponse,
+  askQuestion,
+  clearChat,
+} = useSummaryAI();
+const { status, statusError } = useActived();
 
 // Chat input
 const chatInput = ref("");
