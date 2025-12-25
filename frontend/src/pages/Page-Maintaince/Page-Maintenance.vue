@@ -884,6 +884,7 @@ function Reset() {
   NgayMua_Add.value = "";
   ViTri_Add.value = "";
   MoTa_Add.value = "";
+  MachineCode_Add.value = "";
   Image_Add.value = null;
   ImagePreview_Add.value = null;
 }
@@ -909,6 +910,14 @@ export default {
     SnackbarSuccess,
     SnackbarFailed,
     Loading,
+    ButtonAdd,
+    ButtonCancel,
+    ButtonSave,
+    ButtonRemove,
+    ButtonEdit,
+    ButtonImportFile,
+    ButtonDownload,
+    ButtonEye,
   },
   data() {
     return {

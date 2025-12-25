@@ -69,6 +69,8 @@ const allowedOrigins = new Set([
   // Production domain – **đầy đủ biến thể**
   "http://erpst.io.vn",
   "https://erpst.io.vn",
+  "https://ai.erpst.io.vn",
+  "https://api.erpst.io.vn",
 ]);
 
 app.use(
@@ -88,13 +90,15 @@ app.use(
   })
 );
 
+// BẮT BUỘC CÓ để xử lý preflight OPTIONS
+app.options("*", cors());
+
 app.use(bodyParser.json());
 app.use("/", routes);
 app.use("/api/ai", aiSummaryRouter);
 app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ extended: true, limit: "100mb" }));
-// BẮT BUỘC CÓ để xử lý preflight OPTIONS
-app.options("*", cors());
+
 
 // Tạo HTTP server
 const server = require("http").createServer(app);
