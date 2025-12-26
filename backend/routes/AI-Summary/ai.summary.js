@@ -4,7 +4,7 @@ const fetch = require("node-fetch");
 const http = require("http");
 
 // Ollama API configuration
-const OLLAMA_API_URL = "http://ai.erpst.io.vn/api/chat";
+const OLLAMA_API_URL = "https://ai.erpst.io.vn/api/chat";
 const SYSTEM_PROMPT = `Bạn là trợ lý phân tích ERP Siêu Thuật.
 
 QUAN TRỌNG: 

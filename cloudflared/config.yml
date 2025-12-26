@@ -9,6 +9,6 @@ ingress:
     service: http://backend:3000
 
   - hostname: ai.erpst.io.vn
-    service: http://backend:11434
+    service: http://ollama:11434
 
   - service: http_status:404

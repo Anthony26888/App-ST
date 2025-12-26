@@ -591,6 +591,8 @@ import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import BaseDialog from "@/components/BaseDialog.vue";
 import InputDate from "@/components/Input-Date.vue";
+import ButtonAdd from "@/components/Button-Add.vue";
+import ButtonRemove from "@/components/Button-Remove.vue";
 
 // ===== STATE MANAGEMENT =====
 // API Configuration
