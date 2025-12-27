@@ -778,7 +778,9 @@ const Headers = [
 const getAccessories = (item) => {
   if (!item.Accessories || item.Accessories === "") return [];
   try {
-    return JSON.parse(item.Accessories);
+    const data = JSON.parse(item.Accessories);
+    // Filter out potential null or empty objects returned by aggregation
+    return Array.isArray(data) ? data.filter(i => i && (i.id || i.TenPhuTung)) : [];
   } catch (e) {
     console.error("Error parsing accessories:", e);
     return [];

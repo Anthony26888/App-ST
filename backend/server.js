@@ -828,13 +828,15 @@ io.on("connection", (socket) => {
                           strftime('%Y-%m-%d', m.NgayHoanThanh, 'unixepoch', 'localtime') AS NgayHoanThanhUnixepoch,
                           COALESCE(
                               '[' || GROUP_CONCAT(
-                                  json_object(
-                                      'id', s.MaSuDung,
-                                      'TenPhuTung', s.TenPhuTung,
-                                      'SoLuongSuDung', s.SoLuongSuDung,
-                                      'DonVi', s.DonVi,
-                                      'GhiChu', s.GhiChu
-                                  )
+                                  CASE WHEN s.MaSuDung IS NOT NULL THEN
+                                    json_object(
+                                        'id', s.MaSuDung,
+                                        'TenPhuTung', s.TenPhuTung,
+                                        'SoLuongSuDung', s.SoLuongSuDung,
+                                        'DonVi', s.DonVi,
+                                        'GhiChu', s.GhiChu
+                                    )
+                                  END
                               ) || ']',
                               '[]'
                           ) AS Accessories
