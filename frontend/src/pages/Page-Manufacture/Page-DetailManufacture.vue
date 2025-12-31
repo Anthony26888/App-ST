@@ -2055,7 +2055,7 @@ const getPassRate = (card) => {
   if (!card.Quantity_Pass || card.Quantity_Pass === 0) return "0%";
 
   const percentage = (card.Quantity_Pass / totalInput.value) * 100;
-  return Number.parseFloat(percentage.toFixed(1)) + "%";
+  return Number.parseFloat(percentage.toFixed(1)) + "%";  
 };
 
 const getFailRate = (card) => {

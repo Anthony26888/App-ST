@@ -436,7 +436,7 @@
         <InputField label="Vị trí" v-model="ViTri_Edit" />
       </v-col>
       <v-col cols="12" md="6">
-        <InputSelect label="Tình trạng" v-model="TinhTrang_Edit" :items="['Tốt', 'Hư hỏng']" />
+        <InputSelect label="Tình trạng" v-model="TinhTrang_Edit" :items="['Tốt', 'Hư hỏng', 'Đang thử nghiệm', 'Đang bảo trì']" />
       </v-col>
       <v-col cols="12">
         <v-row>
@@ -597,7 +597,7 @@ import ButtonRemove from "@/components/Button-Remove.vue";
 // ===== STATE MANAGEMENT =====
 // API Configuration
 const Url = import.meta.env.VITE_API_URL;
-const API_URL = import.meta.env.VITE_API_ERP_URL || "http://localhost:3000";
+const API_URL = import.meta.env.VITE_SOCKET_URL;
 // Router
 const router = useRouter();
 const { mdAndDown, lgAndUp } = useDisplay();
@@ -920,6 +920,11 @@ export default {
     ButtonImportFile,
     ButtonDownload,
     ButtonEye,
+    InputTextarea,
+    InputDate,
+    CardStatistic,
+    BaseDialog,
+
   },
   data() {
     return {

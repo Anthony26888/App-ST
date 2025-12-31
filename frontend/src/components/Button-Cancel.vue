@@ -1,5 +1,5 @@
 <template lang="">
-  <v-btn @click="emitCancel()" variant="tonal" class="text-caption">Huỷ</v-btn>
+  <v-btn @click="emitCancel()" variant="text" class="text-caption">Huỷ</v-btn>
 </template>
 <script>
 export default {

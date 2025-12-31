@@ -120,21 +120,31 @@
               toggleExpand,
             }"
           >
-            <v-btn
-              v-if="getScheduleDeliveries(internalItem.raw).length > 0"
-              :append-icon="
-                isExpanded(internalItem) ? 'mdi-chevron-up' : 'mdi-chevron-down'
-              "
-              :text="isExpanded(internalItem) ? 'Thu gọn' : 'Lịch giao'"
-              class="text-none"
-              color="medium-emphasis"
-              size="small"
-              variant="text"
-              width="105"
-              border
-              slim
-              @click="toggleExpand(internalItem)"
-            ></v-btn>
+            <template v-if="getScheduleDeliveries(internalItem.raw).length > 0">
+              <v-badge
+                :content="getOverdueCount(internalItem.raw)"
+                :model-value="getOverdueCount(internalItem.raw) > 0"
+                color="error"
+                location="top left"
+              >
+                <v-btn
+                  :append-icon="
+                    isExpanded(internalItem)
+                      ? 'mdi-chevron-up'
+                      : 'mdi-chevron-down'
+                  "
+                  :text="isExpanded(internalItem) ? 'Thu gọn' : 'Lịch giao'"
+                  class="text-none"
+                  color="medium-emphasis"
+                  size="small"
+                  variant="text"
+                  width="105"
+                  border
+                  slim
+                  @click="toggleExpand(internalItem)"
+                ></v-btn>
+              </v-badge>
+            </template>
           </template>
 
           <template v-slot:expanded-row="{ columns, item }">
@@ -813,6 +823,13 @@ const getScheduleDeliveries = (item) => {
   } catch (e) {
     return [];
   }
+};
+
+const getOverdueCount = (item) => {
+  const deliveries = getScheduleDeliveries(item);
+  return deliveries.filter(
+    (p) => p.DeliveryStatus === "Trễ hạn" && p.DeliveryCheck === "Chưa giao"
+  ).length;
 };
 
 // ===== CRUD OPERATIONS =====
