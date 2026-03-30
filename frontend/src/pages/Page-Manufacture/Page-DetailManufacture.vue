@@ -1965,10 +1965,18 @@ watch(
 
 const progress = computed(() => levelArray.value.map((item) => item.Type));
 const passListSummary = computed(() =>
-  levelArray.value.map((item) => item.Quantity_Pass)
+  levelArray.value.map((item) => {
+    DialogLoading.value = true;
+    return item.Quantity_Pass;
+    DialogLoading.value = false;
+  })
 );
 const failListSummary = computed(() =>
-  levelArray.value.map((item) => item.Quantity_Fail)
+  levelArray.value.map((item) => {
+    DialogLoading.value = true;
+    return item.Quantity_Fail;
+    DialogLoading.value = false;
+  })
 );
 
 watch(

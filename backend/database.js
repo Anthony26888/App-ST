@@ -169,8 +169,9 @@ db.serialize(() => {
           QuantityDelivered INTEGER,
           QuantityAmount INTEGER,
           CustomerID INTEGER,
-          Note,
+          Note TEXT,
           FOREIGN KEY (CustomerID) REFERENCES Customers(id) ON DELETE CASCADE
+          FOREIGN KEY (POID) REFERENCES PurchaseOrders(id) ON DELETE CASCADE
       )
   `);
 
@@ -400,31 +401,7 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       project_name TEXT,
       created_at TEXT,
-      note TEXT,
-      flipX_top TEXT,
-      flipY_top TEXT,
-      swapXY_top TEXT,
-      cx_top REAL,
-      cy_top REAL,
-      rotation_top INTERGER,
-      rotationSVG_top INTERGER,
-      manualOffsetX_top REAL,
-      manualOffsetY_top REAL,
-      labelAngle_top INTERGER,
-      componentBodyAngle_top INTERGER,
-      flipX_bottom TEXT,
-      flipY_bottom TEXT,
-      swapXY_bottom TEXT,
-      cx_bottom REAL,
-      cy_bottom REAL,
-      rotation_bottom INTERGER,
-      rotationSVG_bottom INTERGER,
-      manualOffsetX_bottom REAL,
-      manualOffsetY_bottom REAL,
-      labelAngle_bottom INTERGER,
-      componentBodyAngle_bottom INTERGER,
-      panel_frame_X INTERGER,
-      panel_frame_Y INTERGER
+      note TEXT
     )
   `);
 
@@ -437,6 +414,7 @@ db.serialize(() => {
       designator TEXT,
       quantity INTEGER,
       project_id INTERGER,
+      note TEXT,
       FOREIGN KEY (project_id) REFERENCES FilterBom(id) ON DELETE CASCADE
     )
   `);
@@ -452,6 +430,40 @@ db.serialize(() => {
       rotation REAL,
       type TEXT,
       project_id INTERGER,
+      note TEXT,
+      FOREIGN KEY (project_id) REFERENCES FilterBom(id) ON DELETE CASCADE
+    )
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS BomHighlight (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      description TEXT,
+      mpn TEXT,
+      mpn2 TEXT,
+      mpn3 TEXT,
+      manufacture TEXT,
+      designator TEXT,
+      quantity INTEGER,
+      project_id INTERGER,
+      note TEXT,
+      FOREIGN KEY (project_id) REFERENCES FilterBom(id) ON DELETE CASCADE
+    )
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS SettingPCB (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      manualOffsetX_top REAL,
+      manualOffsetY_top REAL,
+      manualOffsetX_bottom REAL,
+      manualOffsetY_bottom REAL,
+      width REAL,
+      length REAL,
+      originOffsetX REAL,
+      originOffsetY REAL,
+      railOffsetX REAL,
+      railOffsetY REAL,
+      angle INTEGER,
+      project_id INTEGER NOT NULL,
       FOREIGN KEY (project_id) REFERENCES FilterBom(id) ON DELETE CASCADE
     )
   `);
@@ -491,6 +503,18 @@ db.serialize(() => {
     CREATE TABLE IF NOT EXISTS heartbeats (
       device_id TEXT PRIMARY KEY,
       last_seen INTEGER
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ToDos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      department TEXT,
+      title TEXT,
+      description TEXT,
+      status TEXT,
+      creater TEXT,
+      createdAt TEXT
     )
   `);
   

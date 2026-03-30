@@ -9,7 +9,10 @@ const bcrypt = require("bcrypt");
 const db = require("./database.js");
 const { v4: uuidv4 } = require("uuid"); // tạo UUID
 const routes = require("./routes");
-const { router: aiSummaryRouter, setIO: setAISummaryIO } = require("./routes/AI-Summary/ai.summary");
+const {
+  router: aiSummaryRouter,
+  setIO: setAISummaryIO,
+} = require("./routes/AI-Summary/ai.summary");
 const axios = require("axios");
 const app = express();
 const { Server } = require("socket.io");
@@ -27,10 +30,12 @@ const parse = require("csv-parse").parse; // đảm bảo lấy đúng hàm pars
 const parseGerber = require("gerber-parser");
 const gerberToSvg = require("gerber-to-svg");
 const SvgPath = require("svgpath");
+const { createCanvas } = require("canvas");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 const timezone = require("dayjs/plugin/timezone");
 const { nanoid } = require("nanoid");
+const deliveryChatRouter = require("./routes/AI/ai-project.js");
 
 // const {queryWithLangChain } = require("./Ollama-AI/queryEngine.js");
 // const queryMap = require("./Ollama-AI/queryMap")
@@ -87,7 +92,7 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  })
+  }),
 );
 
 // BẮT BUỘC CÓ để xử lý preflight OPTIONS
@@ -98,7 +103,6 @@ app.use("/", routes);
 app.use("/api/ai", aiSummaryRouter);
 app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ extended: true, limit: "100mb" }));
-
 
 // Tạo HTTP server
 const server = require("http").createServer(app);
@@ -167,6 +171,30 @@ const upload = multer({
   },
 });
 
+// Multer storage dành riêng cho PDF
+const storagePDF = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = "uploads/pdf";
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}_${file.originalname}`);
+  },
+});
+
+const uploadPDF = multer({
+  storage: storagePDF,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+  fileFilter: (req, file, cb) => {
+    if (path.extname(file.originalname).toLowerCase() === ".pdf") {
+      cb(null, true);
+    } else {
+      cb(new Error("Chỉ chấp nhận file PDF"));
+    }
+  },
+});
+
 const storageMachine = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, "uploads/machine"); // tạo sẵn folder này
@@ -179,7 +207,13 @@ const storageMachine = multer.diskStorage({
 
 // chỉ cho phép png/jpg
 const fileFilterMachine = (req, file, cb) => {
-  const allowed = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/heic"];
+  const allowed = [
+    "image/png",
+    "image/jpeg",
+    "image/jpg",
+    "image/webp",
+    "image/heic",
+  ];
   if (allowed.includes(file.mimetype)) cb(null, true);
   else cb(new Error("Chỉ cho phép PNG, JPG, WEBP, HEIC"));
 };
@@ -190,13 +224,12 @@ const uploadMachine = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
 
-
 const userProjects = new Map();
 // Khi client kết nối
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
   if (!sessions[socket.id]) sessions[socket.id] = [];
-  socket.on("getInforUser", async (id) => {
+  (socket.on("getInforUser", async (id) => {
     try {
       const query = `SSELECT * FROM Users WHERE Username = ?`;
       db.all(query, [id], (err, rows) => {
@@ -516,7 +549,7 @@ io.on("connection", (socket) => {
       } catch (error) {
         socket.emit("notifications-error", { error: error.message });
       }
-    });
+    }));
 
   // Client request statistics
   socket.on("get-statistics", async () => {
@@ -601,7 +634,7 @@ io.on("connection", (socket) => {
           if (err) {
             console.error(
               "❌ Error marking all notifications as read:",
-              err.message
+              err.message,
             );
             socket.emit("notification-read-error", { error: err.message });
             return;
@@ -619,7 +652,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("getProjectFind", async () => {
+  (socket.on("getProjectFind", async () => {
     try {
       const query = `
           SELECT 
@@ -694,46 +727,58 @@ io.on("connection", (socket) => {
                               NULLIF(a.QuantityProduct, 0), 
                               2
                           ) AS Percent_Delivered,
-                          COALESCE(COUNT(DISTINCT CASE WHEN LOWER(TRIM(c.Type)) = 'thành phẩm' THEN c.id END), 0) AS Quantity_Manufacture,
+
+                          COALESCE(
+                              COUNT(DISTINCT CASE 
+                                  WHEN LOWER(TRIM(c.Type)) = 'thành phẩm' THEN c.id 
+                              END), 
+                          0) AS Quantity_Manufacture,
+
                           a.Note AS Note,
+
                           CASE
                               WHEN a.QuantityProduct = a.QuantityDelivered THEN 'Hoàn thành'
                               ELSE 'Đang sản xuất'
                           END AS Status,
+
                           COALESCE(
                               GROUP_CONCAT(
                                   json_object(
                                       'id', d.id,
-                                      'DeliveryDate', strftime('%Y-%m-%d', d.DeliveryDate, 'unixepoch', 'localtime'),
-                                      'DeliveryDateConvert', strftime('%d-%m-%Y', d.DeliveryDate, 'unixepoch', 'localtime'),
+                                      'DeliveryDate', strftime('%Y-%m-%d', d.DeliveryDate, 'localtime'),
+                                      'DeliveryDateConvert', strftime('%d-%m-%Y', d.DeliveryDate, 'localtime'),
                                       'DeliveryQuantity', d.DeliveryQuantity,
                                       'DeliveryCheck', d.DeliveryStatus,
+
                                       'DeliveryStatus', CASE
                                           WHEN d.DeliveryDate IS NULL THEN 'Chưa có lịch'
-                                          WHEN datetime(d.DeliveryDate, 'unixepoch', 'localtime') < datetime('now', 'localtime') THEN 'Trễ hạn'
-                                          WHEN datetime(d.DeliveryDate, 'unixepoch', 'localtime') >= datetime('now', 'localtime') THEN 'Chưa đến hạn'
-                                          ELSE 'Không xác định'
+                                          WHEN datetime(d.DeliveryDate, 'localtime') < datetime('now', 'localtime') THEN 'Trễ hạn'
+                                          ELSE 'Chưa đến hạn'
                                       END,
+
                                       'DaysRemaining', CAST(
                                           ROUND(
-                                              (CAST(d.DeliveryDate AS REAL) - CAST(strftime('%s', 'now') AS REAL)) / 86400.0
-                                          )
-                                          AS INTEGER
+                                              (julianday(d.DeliveryDate) - julianday('now'))
+                                          ) AS INTEGER
                                       )
                                   ), ','
                               ),
                               ''
                           ) AS DeliverySchedules
+
                       FROM ProductDetails a
                       LEFT JOIN PlanManufacture b ON b.ProjectID = a.id
                       LEFT JOIN ManufactureCounting c ON c.PlanID = b.id
                       LEFT JOIN ScheduleDelivery d ON d.ItemId = a.id
+
                       WHERE a.CustomerID = ?
+
                       GROUP BY 
                           a.id, a.POID, a.ProductDetail, 
                           a.QuantityProduct, a.QuantityDelivered, 
                           a.Note
-                      ORDER BY Status DESC, Product_Detail ASC`;
+
+                      ORDER BY Status DESC, Product_Detail ASC;`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("DetailProjectPOError", err);
           socket.emit("DetailProjectPOData", rows);
@@ -803,15 +848,15 @@ io.on("connection", (socket) => {
                       ORDER BY a.ViTri ASC`;
         db.all(query, [], (err, rows) => {
           if (err) {
-             console.error("MachineError", err);
-             return socket.emit("MachineError", err);
+            console.error("MachineError", err);
+            return socket.emit("MachineError", err);
           }
           // SQLite GROUP_CONCAT returns a comma-separated string of JSON objects, which is NOT valid JSON array [{},{}]
-          // We need to fix it here or in frontend. 
+          // We need to fix it here or in frontend.
           // However, simpler is to do it in frontend as we did before.
           // BUT wait, DISTINCT json_object might NOT work if json_object returns varying strings?
           // Actually, json_object returns string. DISTINCT works on strings.
-          
+
           socket.emit("MachineData", rows);
         });
       } catch (error) {
@@ -1011,9 +1056,9 @@ io.on("connection", (socket) => {
       } catch (error) {
         socket.emit("ManufactureDetailsError", error);
       }
-    });
+    }));
 
-  socket.on("getConfigs", async () => {
+  (socket.on("getConfigs", async () => {
     try {
       const query = `SELECT * FROM configs ORDER BY id DESC`;
       db.all(query, [], (err, rows) => {
@@ -1028,9 +1073,9 @@ io.on("connection", (socket) => {
     socket.on("setProject", (id) => {
       console.log(`Client ${socket.id} chọn project_id = ${id}`);
       userProjects.set(socket.id, id);
-    });
+    }));
 
-  socket.on("getManufactureCounting", async (id) => {
+  (socket.on("getManufactureCounting", async (id) => {
     try {
       const query = `SELECT 
                             id,
@@ -1492,7 +1537,7 @@ io.on("connection", (socket) => {
       } catch (error) {
         socket.emit("ManufactureSummaryError", error);
       }
-    });
+    }));
 
   socket.on("getCompareSummary", async (endDay) => {
     try {
@@ -1541,7 +1586,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("getSummaryFail", async (id) => {
+  (socket.on("getSummaryFail", async (id) => {
     try {
       const query = `SELECT 
                           id,
@@ -1801,53 +1846,117 @@ io.on("connection", (socket) => {
       try {
         const query = `WITH pm_match AS (
                         SELECT 
-                          b.project_id,
-                          b.designator, 
-                          pm.package,
-                          pm.width,
-                          pm.length,
-						              pm.id,
-                          LENGTH(pm.package) AS match_len,
-                          ROW_NUMBER() OVER (
-                              PARTITION BY b.project_id, b.designator
-                              ORDER BY LENGTH(pm.package) DESC
-                          ) AS rn
-                      FROM Bom b
-                      JOIN Components pm 
-                          ON b.description LIKE '%' || pm.package || '%'
-                  )
-                  SELECT 
-                      p.id,
-                      p.project_id,
-					            o.id AS id_components_overrides,
-					            pm.id AS id_component,
-                      p.designator,
-                      ROUND(p.x, 2) AS x,
-                      ROUND(p.y, 2) AS y,
-                      p.rotation, 
-                      p.layer,
-                      b.mpn,
-                      p.type,
-                      b.description AS description_bom,
-                      COALESCE(o.width, pm.width)  AS width,
-                      COALESCE(o.length, pm.length) AS length,
-                      pm.package AS package,
-                      CASE
-                          WHEN o.mpn IS NOT NULL THEN 'override'
-                          WHEN pm.package IS NOT NULL THEN 'package_map'
-                          ELSE 'missing'
-                      END AS source
-                  FROM Pickplace p
-                  LEFT JOIN Bom b
-                      ON p.designator = b.designator 
-                    AND p.project_id = b.project_id
-                  LEFT JOIN pm_match pm
-                      ON b.designator = pm.designator 
-                    AND b.project_id = pm.project_id 
-                    AND pm.rn = 1
-                  LEFT JOIN Component_overrides o
-                      ON b.mpn = o.mpn
-                  WHERE p.project_id = ?`;
+                            b.project_id,
+                            b.designator, 
+                            pm.package,
+                            pm.width,
+                            pm.length,
+                            pm.id,
+                            LENGTH(pm.package) AS match_len,
+                            ROW_NUMBER() OVER (
+                                PARTITION BY b.project_id, b.designator
+                                ORDER BY LENGTH(pm.package) DESC
+                            ) AS rn
+                        FROM Bom b
+                        JOIN Components pm 
+                            ON UPPER(b.description) LIKE '%' || UPPER(pm.package) || '%'
+                    )
+
+                    SELECT 
+                        p.id,
+                        p.project_id,
+                        o.id AS id_components_overrides,
+                        pm.id AS id_component,
+                        p.designator,
+                        ROUND(p.x, 2) AS x,
+                        ROUND(p.y, 2) AS y,
+                        p.rotation, 
+                        p.layer,
+                        b.mpn,
+                        b.description AS description_bom,
+
+                        COALESCE(o.width, pm.width)  AS width,
+                        COALESCE(o.length, pm.length) AS length,
+                        pm.package AS package,
+
+                        -- SOURCE
+                        CASE
+                            WHEN o.mpn IS NOT NULL THEN 'override'
+                            WHEN pm.package IS NOT NULL THEN 'package_map'
+                            ELSE 'missing'
+                        END AS source,
+
+                        -- 🔥 MOUNT TYPE (CHUẨN)
+                        CASE
+                            -- 0. Không có description
+                            WHEN b.description IS NULL OR TRIM(b.description) = '' THEN 'UNKNOWN'
+
+                            -- 1. Override
+                            WHEN o.mpn IS NOT NULL THEN 'REVIEW'
+
+                            -- 2. SMT keyword mạnh (ƯU TIÊN CAO NHẤT)
+                            WHEN UPPER(b.description) LIKE '%SMD%' THEN 'SMT'
+                            WHEN UPPER(b.description) LIKE '%QFN%' THEN 'SMT'
+                            WHEN UPPER(b.description) LIKE '%DFN%' THEN 'SMT'
+                            WHEN UPPER(b.description) LIKE '%BGA%' THEN 'SMT'
+                            WHEN UPPER(b.description) LIKE '%LGA%' THEN 'SMT'
+                            WHEN UPPER(b.description) LIKE '%0402%' THEN 'SMT'
+                            WHEN UPPER(b.description) LIKE '%0603%' THEN 'SMT'
+                            WHEN UPPER(b.description) LIKE '%0805%' THEN 'SMT'
+                            WHEN UPPER(b.description) LIKE '%1206%' THEN 'SMT'
+                            WHEN UPPER(b.description) LIKE '%SOT%' THEN 'SMT'
+                            WHEN UPPER(b.description) LIKE '%SOIC%' THEN 'SMT'
+                            WHEN UPPER(b.description) LIKE '%SOP%' THEN 'SMT'
+
+                            -- 3. Package từ Components
+                            WHEN pm.package IN (
+                                '0402','0603','0805','1206',
+                                'QFN','DFN','BGA','LGA',
+                                'SOT-23','SOT-223','SOP','SOIC'
+                            ) THEN 'SMT'
+
+                            -- 4. THT keyword
+                            WHEN UPPER(b.description) LIKE '%DIP%' THEN 'HAND'
+                            WHEN UPPER(b.description) LIKE '%TO-%' THEN 'HAND'
+
+                            -- 5. Connector (KHÔNG phải SMD)
+                            WHEN UPPER(b.description) LIKE '%CONN%' 
+                                AND UPPER(b.description) NOT LIKE '%SMD%' THEN 'HAND'
+
+                            WHEN UPPER(b.description) LIKE '%HEADER%' THEN 'HAND'
+                            WHEN UPPER(b.description) LIKE '%USB%' 
+                                AND UPPER(b.description) NOT LIKE '%SMD%' THEN 'HAND'
+
+                            -- 6. Pickplace fallback
+                            WHEN p.x IS NOT NULL AND p.y IS NOT NULL THEN 'SMT'
+
+                            -- 7. Default
+                            ELSE 'UNKNOWN'
+                        END AS mount_type,
+
+                        -- 🔥 NEED REVIEW
+                        CASE
+                            WHEN b.description IS NULL OR TRIM(b.description) = '' THEN 1
+                            WHEN o.mpn IS NOT NULL THEN 1
+                            WHEN pm.package IS NULL THEN 1
+                            ELSE 0
+                        END AS need_review
+
+                    FROM Pickplace p
+
+                    LEFT JOIN Bom b
+                        ON p.designator = b.designator 
+                      AND p.project_id = b.project_id
+
+                    LEFT JOIN pm_match pm
+                        ON b.designator = pm.designator 
+                      AND b.project_id = pm.project_id 
+                      AND pm.rn = 1
+
+                    LEFT JOIN Component_overrides o
+                        ON b.mpn = o.mpn
+
+                    WHERE p.project_id = ?`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("CombineBomError", err);
           socket.emit("CombineBomData", rows);
@@ -1855,6 +1964,67 @@ io.on("connection", (socket) => {
       } catch (error) {
         socket.emit("CombineBomError", error);
       }
+    }),
+    socket.on("getBomHighlight", (project_id) => {
+      const ppQuery = `
+        SELECT designator, LOWER(TRIM(layer)) as layer
+        FROM Pickplace
+        WHERE project_id = ?
+      `;
+
+      db.all(ppQuery, [project_id], (err, ppRows) => {
+        if (err) return socket.emit("error", err.message);
+
+        // Map designator -> layer
+        const map = new Map();
+        ppRows.forEach((r) => {
+          const key = String(r.designator || "")
+            .trim()
+            .toUpperCase();
+
+          map.set(key, r.layer);
+        });
+
+        const bomQuery = `
+          SELECT * FROM Bom
+          WHERE project_id = ?
+        `;
+
+        db.all(bomQuery, [project_id], (err, bomRows) => {
+          if (err) return socket.emit("error", err.message);
+
+          const result = bomRows.map((row) => {
+            const original = String(row.designator || "");
+
+            const parts = original.split(",").map((s) => s.trim());
+
+            const parsed = parts.map((p) => {
+              const key = p.toUpperCase();
+              const layer = map.get(key);
+
+              let status = "normal";
+
+              if (!layer) {
+                status = "missing"; // (optional)
+              } else if (layer === "bottom" || layer === "bottomlayer") {
+                status = "bottom"; // 🔴
+              }
+
+              return {
+                text: p, // giữ nguyên text
+                status,
+              };
+            });
+
+            return {
+              ...row,
+              designatorParsed: parsed,
+            };
+          });
+
+          socket.emit("BomHighlightData", result);
+        });
+      });
     }),
     socket.on("getGerberFile", async (id) => {
       try {
@@ -1927,17 +2097,17 @@ io.on("connection", (socket) => {
         socket.emit("PnPFileError", error);
       }
     }),
-    socket.on("getSettingSVG", async (id) => {
+    socket.on("getSettingPCB", async (id) => {
       try {
         const query = `SELECT DISTINCT  *
-                      FROM FilterBom
-                      WHERE id = ?`;
+                      FROM SettingPCB
+                      WHERE project_id = ?`;
         db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("SettingSVGError", err);
-          socket.emit("SettingSVGData", rows);
+          if (err) return socket.emit("SettingPCBError", err);
+          socket.emit("SettingPCBData", rows);
         });
       } catch (error) {
-        socket.emit("SettingSVGError", error);
+        socket.emit("SettingPCBError", error);
       }
     }),
     socket.on("getOrderTracking", async (id) => {
@@ -1972,7 +2142,21 @@ io.on("connection", (socket) => {
         socket.emit("OrderTrackingError", error);
       }
     }),
-    
+    socket.on("getToDo", () => {
+      try {
+        const query = `SELECT *,
+                          strftime('%d-%m-%Y', createdAt, 'unixepoch', 'localtime') AS createdAt,
+                          strftime('%Y-%m-%d', createdAt, 'unixepoch', 'localtime') AS updatedAt
+                        FROM ToDos
+                        ORDER BY id DESC`;
+        db.all(query, (err, rows) => {
+          if (err) return socket.emit("todoError", err);
+          socket.emit("todoData", rows);
+        });
+      } catch (error) {
+        socket.emit("todoError", error);
+      }
+    }),
     // socket.on("ask", async (message) => {
     //   try {
     //     const result = await queryWithLangChain(message);
@@ -1984,7 +2168,7 @@ io.on("connection", (socket) => {
 
     socket.on("disconnect", () => {
       console.log("🔌 Client disconnected");
-    });
+    }));
 
   socket.on("disconnect", () => {
     console.log("Client disconnected:", socket.id);
@@ -2009,13 +2193,13 @@ const getPivotQuery = async (id) => {
         // Create dynamic column aggregation
         const columns = Boms.map(
           (bom) =>
-            `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE NULL END) AS [${bom.Bom}]`
+            `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE NULL END) AS [${bom.Bom}]`,
         ).join(", ");
 
         // Tạo biểu thức tổng từ các cột động
         const sumColumns = Boms.map(
           (bom) =>
-            `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE 0 END)`
+            `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE 0 END)`,
         ).join(" + ");
 
         // Full SQL query
@@ -2054,7 +2238,7 @@ const getPivotQuery = async (id) => {
           GROUP BY a.PartNumber_1;
         `;
         resolve(query);
-      }
+      },
     );
   });
 };
@@ -2111,7 +2295,7 @@ const getDetailPO = async (id) => {
 
         `;
         resolve(query);
-      }
+      },
     );
   });
 };
@@ -2128,13 +2312,13 @@ const getCompareWareHouse = async (id) => {
         // Create dynamic column aggregation
         const columns = Boms.map(
           (bom) =>
-            `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE NULL END) AS [${bom.Bom}]`
+            `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE NULL END) AS [${bom.Bom}]`,
         ).join(", ");
 
         // Tạo biểu thức tổng từ các cột động
         const sumColumns = Boms.map(
           (bom) =>
-            `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE 0 END)`
+            `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE 0 END)`,
         ).join(" + ");
 
         const Buy = `
@@ -2183,7 +2367,7 @@ const getCompareWareHouse = async (id) => {
           GROUP BY a.PartNumber_1;
         `;
         resolve(query);
-      }
+      },
     );
   });
 };
@@ -2260,7 +2444,7 @@ app.post("/api/insert-compare-inventory/:id", async (req, res) => {
           }
           console.log(`Deleted ${this.changes} old rows for order ${orderId}`);
           resolve();
-        }
+        },
       );
     });
 
@@ -2324,7 +2508,7 @@ app.post("/api/insert-compare-inventory/:id", async (req, res) => {
                 successCount++;
                 resolve();
               }
-            }
+            },
           );
         });
       } catch (err) {
@@ -2335,7 +2519,7 @@ app.post("/api/insert-compare-inventory/:id", async (req, res) => {
 
     insertStmt.finalize();
     console.log(
-      `Insert completed. Success: ${successCount}, Errors: ${errorCount}`
+      `Insert completed. Success: ${successCount}, Errors: ${errorCount}`,
     );
 
     res.json({
@@ -2373,7 +2557,7 @@ app.post("/api/Users/register", (req, res) => {
         io.emit("updateUsers");
         // Broadcast the new message to all clients
         res.json({ message: "Item inserted successfully" });
-      }
+      },
     );
   });
 });
@@ -2437,7 +2621,7 @@ app.post("/api/WareHouse/Upload", upload.single("file"), async (req, res) => {
           (err, result) => {
             if (err) reject(err);
             else resolve(result);
-          }
+          },
         );
       });
 
@@ -2445,7 +2629,7 @@ app.post("/api/WareHouse/Upload", upload.single("file"), async (req, res) => {
         // Update existing row
         await new Promise((resolve, reject) => {
           const updateStmt = db.prepare(
-            "UPDATE WareHouse SET Input = Input + ?, Inventory = Inventory + ? WHERE PartNumber_1 = ? AND Description = ? AND Customer = ? AND Location = ?"
+            "UPDATE WareHouse SET Input = Input + ?, Inventory = Inventory + ? WHERE PartNumber_1 = ? AND Description = ? AND Customer = ? AND Location = ?",
           );
           updateStmt.run(
             row.Input || 0,
@@ -2458,14 +2642,14 @@ app.post("/api/WareHouse/Upload", upload.single("file"), async (req, res) => {
               updateStmt.finalize();
               if (err) reject(err);
               else resolve();
-            }
+            },
           );
         });
       } else {
         // Insert new row
         await new Promise((resolve, reject) => {
           const insertStmt = db.prepare(
-            "INSERT INTO WareHouse (Description, PartNumber_1, PartNumber_2, Input, Output, Inventory, Customer, Location, Note, Note_Output) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            "INSERT INTO WareHouse (Description, PartNumber_1, PartNumber_2, Input, Output, Inventory, Customer, Location, Note, Note_Output) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           );
           insertStmt.run(
             row.Description,
@@ -2482,7 +2666,7 @@ app.post("/api/WareHouse/Upload", upload.single("file"), async (req, res) => {
               insertStmt.finalize();
               if (err) reject(err);
               else resolve();
-            }
+            },
           );
         });
       }
@@ -2539,7 +2723,7 @@ app.put("/api/WareHouse/update-item/:id", async (req, res) => {
       io.emit("TemporaryWareHouseUpdate");
       // Broadcast the new message to all clients
       res.json({ message: "Item inserted successfully" });
-    }
+    },
   );
 });
 
@@ -2597,7 +2781,7 @@ app.post("/api/WareHouse/upload-new-item", (req, res) => {
       io.emit("WareHouseUpdate");
       // Broadcast the new message to all clients
       res.json({ message: "Item inserted successfully" });
-    }
+    },
   );
 });
 
@@ -2625,7 +2809,7 @@ app.post("/api/WareHouse2/Upload", upload.single("file"), async (req, res) => {
           (err, result) => {
             if (err) reject(err);
             else resolve(result);
-          }
+          },
         );
       });
 
@@ -2633,7 +2817,7 @@ app.post("/api/WareHouse2/Upload", upload.single("file"), async (req, res) => {
         // Update existing row
         await new Promise((resolve, reject) => {
           const updateStmt = db.prepare(
-            "UPDATE WareHouse2 SET Input = Input + ?, Inventory = Inventory + ? WHERE PartNumber_1 = ? AND Description = ? AND Customer = ? AND Location = ?"
+            "UPDATE WareHouse2 SET Input = Input + ?, Inventory = Inventory + ? WHERE PartNumber_1 = ? AND Description = ? AND Customer = ? AND Location = ?",
           );
           updateStmt.run(
             row.Input || 0,
@@ -2646,14 +2830,14 @@ app.post("/api/WareHouse2/Upload", upload.single("file"), async (req, res) => {
               updateStmt.finalize();
               if (err) reject(err);
               else resolve();
-            }
+            },
           );
         });
       } else {
         // Insert new row
         await new Promise((resolve, reject) => {
           const insertStmt = db.prepare(
-            "INSERT INTO WareHouse2 (Description, PartNumber_1, PartNumber_2, Input, Output, Inventory, Customer, Location, Note, Note_Output) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            "INSERT INTO WareHouse2 (Description, PartNumber_1, PartNumber_2, Input, Output, Inventory, Customer, Location, Note, Note_Output) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           );
           insertStmt.run(
             row.Description,
@@ -2670,7 +2854,7 @@ app.post("/api/WareHouse2/Upload", upload.single("file"), async (req, res) => {
               insertStmt.finalize();
               if (err) reject(err);
               else resolve();
-            }
+            },
           );
         });
       }
@@ -2725,7 +2909,7 @@ app.put("/api/WareHouse2/update-item/:id", async (req, res) => {
       io.emit("WareHouse2Update");
       // Broadcast the new message to all clients
       res.json({ message: "Item inserted successfully" });
-    }
+    },
   );
 });
 // Router delete item in WareHouse2 table
@@ -2781,7 +2965,7 @@ app.post("/api/WareHouse2/upload-new-item", (req, res) => {
       io.emit("WareHouse2Update");
       // Broadcast the new message to all clients
       res.json({ message: "Item inserted successfully" });
-    }
+    },
   );
 });
 
@@ -2888,7 +3072,7 @@ app.put("/api/Temporary_WareHouse/Update-File", async (req, res) => {
               function (err) {
                 if (err) reject(err);
                 else resolve();
-              }
+              },
             );
           });
         }
@@ -2897,7 +3081,7 @@ app.put("/api/Temporary_WareHouse/Update-File", async (req, res) => {
           message:
             "Đã cập nhật dữ liệu từ Temporary_WareHouse vào WareHouse thành công",
         });
-      }
+      },
     );
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -2950,7 +3134,7 @@ app.post(
 
     // Insert data into SQLite database
     const stmt = db.prepare(
-      `INSERT INTO Temporary_WareHouse (Description, PartNumber_1, Input, Location, Note) VALUES (?, ?, ?, ?, ?)`
+      `INSERT INTO Temporary_WareHouse (Description, PartNumber_1, Input, Location, Note) VALUES (?, ?, ?, ?, ?)`,
     );
     data.forEach((row) => {
       stmt.run(
@@ -2958,14 +3142,14 @@ app.post(
         row.PartNumber_1,
         row.Input,
         row.Location,
-        row.Note
+        row.Note,
       );
     });
 
     stmt.finalize();
     io.emit("TemporaryWareHouseUpdate");
     res.send("File processed successfully.");
-  }
+  },
 );
 
 // Router upload item in Temporary WareHouse 2 table from xlsx
@@ -2984,7 +3168,7 @@ app.post(
 
     // Insert data into SQLite database
     const stmt = db.prepare(
-      `INSERT INTO Temporary_WareHouse_2 (Description, PartNumber_1, Input, Location, Note) VALUES (?, ?, ?, ?, ?)`
+      `INSERT INTO Temporary_WareHouse_2 (Description, PartNumber_1, Input, Location, Note) VALUES (?, ?, ?, ?, ?)`,
     );
     data.forEach((row) => {
       stmt.run(
@@ -2992,14 +3176,14 @@ app.post(
         row.PartNumber_1,
         row.Input,
         row.Location,
-        row.Note
+        row.Note,
       );
     });
 
     stmt.finalize();
     io.emit("WareHouse2Update");
     res.send("File processed successfully.");
-  }
+  },
 );
 
 // Router upload file xlsx to WareHouse table
@@ -3033,7 +3217,7 @@ app.put("/api/Temporary_WareHouse_2/Update-File", async (req, res) => {
               function (err) {
                 if (err) reject(err);
                 else resolve();
-              }
+              },
             );
           });
         }
@@ -3042,7 +3226,7 @@ app.put("/api/Temporary_WareHouse_2/Update-File", async (req, res) => {
           message:
             "Đã cập nhật dữ liệu từ Temporary_WareHouse vào WareHouse thành công",
         });
-      }
+      },
     );
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -3111,7 +3295,7 @@ app.post("/api/WareHouse/Log/add-new-item", async (req, res) => {
       io.emit("WareHouseLogUpdate");
       // Broadcast the new message to all clients
       res.json({ message: "Item inserted successfully" });
-    }
+    },
   );
 });
 
@@ -3134,7 +3318,7 @@ app.post(
 
     // Insert data into SQLite database
     const stmt = db.prepare(
-      `INSERT INTO WareHouseLog (ActionType, PartNumber, Quantity, Location, Created_at, Updated_by) VALUES ('Xuất', ?, ?, ?, ?, ?)`
+      `INSERT INTO WareHouseLog (ActionType, PartNumber, Quantity, Location, Created_at, Updated_by) VALUES ('Xuất', ?, ?, ?, ?, ?)`,
     );
     data.forEach((row) => {
       stmt.run(
@@ -3142,14 +3326,14 @@ app.post(
         row.Input,
         row.Location,
         Created_at,
-        Updated_by
+        Updated_by,
       );
     });
 
     stmt.finalize();
     io.emit("WareHouseLogUpdate");
     res.send("File processed successfully.");
-  }
+  },
 );
 
 //Router to post all item into WareHouseLog table
@@ -3171,7 +3355,7 @@ app.post(
 
     // Insert data into SQLite database
     const stmt = db.prepare(
-      `INSERT INTO WareHouseLog (ActionType, PartNumber, Quantity, Location, Customer, Created_at, Updated_by) VALUES ('Nhập', ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO WareHouseLog (ActionType, PartNumber, Quantity, Location, Customer, Created_at, Updated_by) VALUES ('Nhập', ?, ?, ?, ?, ?, ?)`,
     );
     data.forEach((row) => {
       stmt.run(
@@ -3180,14 +3364,14 @@ app.post(
         row.Location,
         row.Customer,
         Created_at,
-        Updated_by
+        Updated_by,
       );
     });
 
     stmt.finalize();
     io.emit("WareHouseLogUpdate");
     res.send("File processed successfully.");
-  }
+  },
 );
 
 // Router insert item in WareHouseLog table from Orders table
@@ -3236,7 +3420,7 @@ app.post("/api/insert-log/:po", async (req, res) => {
           if (--pending === 0) {
             res.json({ message: "Inserted into WareHouseLog successfully" });
           }
-        }
+        },
       );
     });
   });
@@ -3274,7 +3458,7 @@ app.post("/api/WareHouse2/Log/add-new-item", async (req, res) => {
       io.emit("WareHouseLogUpdate");
       // Broadcast the new message to all clients
       res.json({ message: "Item inserted successfully" });
-    }
+    },
   );
 });
 
@@ -3325,7 +3509,7 @@ app.post("/api/ListPO/upload-new-PO", async (req, res) => {
       io.emit("updateOrders");
       // Broadcast the new message to all clients
       res.json({ message: "Item inserted successfully" });
-    }
+    },
   );
 });
 // Router update Hao_Phi in CheckBom table
@@ -3359,7 +3543,7 @@ app.put("/api/DetailOrders/Update", async (req, res) => {
       io.emit("updateCompare", PO);
       // Broadcast the new message to all clients
       res.json({ message: "Item inserted successfully" });
-    }
+    },
   );
 });
 
@@ -3442,7 +3626,7 @@ app.post("/api/Project/upload", upload.single("file"), async (req, res) => {
               if (err) reject(err);
               customerId = row ? row.id : null;
               resolve();
-            }
+            },
           );
         });
       });
@@ -3468,9 +3652,9 @@ app.post("/api/Project/upload", upload.single("file"), async (req, res) => {
                 if (err) reject(err);
                 poId = row ? row.id : null;
                 resolve();
-              }
+              },
             );
-          }
+          },
         );
       });
 
@@ -3490,7 +3674,7 @@ app.post("/api/Project/upload", upload.single("file"), async (req, res) => {
           function (err) {
             if (err) reject(err);
             resolve();
-          }
+          },
         );
       });
     }
@@ -3552,7 +3736,7 @@ app.put("/api/Project/Customer/Edit-Item/:id", async (req, res) => {
       }
       io.emit("updateDetailProjectPO");
       res.json({ message: "Đã cập nhật dữ liệu thành công" });
-    }
+    },
   );
 });
 
@@ -3590,7 +3774,7 @@ app.post("/api/Project/Customer/Add-Item", async (req, res) => {
       io.emit("updateDetailProjectPO");
       // Broadcast the new message to all clients
       res.json({ message: "Item inserted successfully", id: this.lastID });
-    }
+    },
   );
 });
 
@@ -3643,7 +3827,7 @@ app.post("/api/Project/Customer/Add-Schedule-Delivery", async (req, res) => {
         message: "Lịch giao hàng thêm thành công",
         id: this.lastID,
       });
-    }
+    },
   );
 });
 
@@ -3679,7 +3863,7 @@ app.put(
         message: "Cập nhật lịch giao hàng thành công",
       });
     });
-  }
+  },
 );
 
 // 4. XÓA LỊCH GIAO HÀNG (THÊM CHO ĐẦY ĐỦ)
@@ -3712,7 +3896,7 @@ app.delete(
         message: "Xóa lịch giao hàng thành công",
       });
     });
-  }
+  },
 );
 
 app.put("/api/Project/Customer/Confirm-Item/:id", async (req, res) => {
@@ -3757,7 +3941,7 @@ app.put("/api/Project/Customer/Edit-Orders/:id", async (req, res) => {
       io.emit("updateDetailProject");
       // Broadcast the new message to all clients
       res.json({ message: "Đã cập nhật dữ liệu thành công" });
-    }
+    },
   );
 });
 
@@ -3781,7 +3965,7 @@ app.post("/api/Project/Customer/Add-Orders", async (req, res) => {
       io.emit("updateDetailProject");
       // Broadcast the new message to all clients
       res.json({ message: "Đã cập nhật dữ liệu thành công" });
-    }
+    },
   );
 });
 
@@ -3863,52 +4047,46 @@ app.delete("/api/Project/Customer/Delete-Customer/:id", async (req, res) => {
 });
 
 // Router add new item in Maintenance table
-app.post(
-  "/api/Machine/Add",
-  uploadMachine.single("image"),
-  (req, res) => {
-    const {
+app.post("/api/Machine/Add", uploadMachine.single("image"), (req, res) => {
+  const {
+    TenThietBi,
+    LoaiThietBi,
+    NhaSanXuat,
+    NgayMua,
+    ViTri,
+    MoTa,
+    MachineCode,
+  } = req.body;
+
+  const imagePath = req.file ? `/uploads/machine/${req.file.filename}` : null;
+
+  const query = `
+      INSERT INTO Machine 
+      (TenThietBi, LoaiThietBi, NhaSanXuat, NgayMua, ViTri, MoTa, Image, Condition, MachineCode)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'Tốt', ?)
+    `;
+
+  db.run(
+    query,
+    [
       TenThietBi,
       LoaiThietBi,
       NhaSanXuat,
       NgayMua,
       ViTri,
       MoTa,
+      imagePath,
       MachineCode,
-    } = req.body;
-
-    const imagePath = req.file
-      ? `/uploads/machine/${req.file.filename}`
-      : null;
-
-    const query = `
-      INSERT INTO Machine 
-      (TenThietBi, LoaiThietBi, NhaSanXuat, NgayMua, ViTri, MoTa, Image, Condition, MachineCode)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'Tốt', ?)
-    `;
-
-    db.run(
-      query,
-      [
-        TenThietBi,
-        LoaiThietBi,
-        NhaSanXuat,
-        NgayMua,
-        ViTri,
-        MoTa,
-        imagePath,
-        MachineCode,
-      ],
-      function (err) {
-        if (err) {
-          return res.status(500).json({ error: "Lỗi DB" });
-        }
-        io.emit("MachineUpdate");
-        res.json({ message: "Thêm thiết bị thành công" });
+    ],
+    function (err) {
+      if (err) {
+        return res.status(500).json({ error: "Lỗi DB" });
       }
-    );
-  }
-);
+      io.emit("MachineUpdate");
+      res.json({ message: "Thêm thiết bị thành công" });
+    },
+  );
+});
 
 // Router update item in Machine table
 app.put(
@@ -3946,7 +4124,7 @@ app.put(
             if (row?.Image) {
               const oldPath = path.join(
                 __dirname,
-                row.Image.replace("/uploads/", "uploads/")
+                row.Image.replace("/uploads/", "uploads/"),
               );
 
               fs.existsSync(oldPath) && fs.unlinkSync(oldPath);
@@ -3992,17 +4170,16 @@ app.put(
 
               io.emit("MachineUpdate");
               res.json({ message: "Cập nhật thiết bị thành công" });
-            }
+            },
           );
-        }
+        },
       );
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Upload failed" });
     }
-  }
+  },
 );
-
 
 // Router delete item in Machine table
 app.delete("/api/Machine/Delete/:id", async (req, res) => {
@@ -4132,7 +4309,7 @@ app.post("/api/Maintenance/Add", async (req, res) => {
           message: "Thêm dữ liệu bảo trì thành công",
           id: this.lastID,
         });
-      }
+      },
     );
   } catch (error) {
     console.error("Server error:", error);
@@ -4215,14 +4392,14 @@ app.put("/api/Maintenance/Edit/:id", async (req, res) => {
       io.emit("MaintenanceUpdate");
       io.emit("SparePartUsageUpdate");
       res.json({ message: "Đã cập nhật dữ liệu thành công" });
-    }
+    },
   );
 });
 
 // Router delete item in Maintenance table
 app.delete("/api/Maintenance/Delete/:id", async (req, res) => {
   const { id } = req.params;
-  
+
   const deletePartsQuery = `DELETE FROM SparePartUsage WHERE MaBaoTri = ?`;
   const deleteMaintenanceQuery = `DELETE FROM Maintenance WHERE MaBaoTri = ?`;
 
@@ -4231,7 +4408,7 @@ app.delete("/api/Maintenance/Delete/:id", async (req, res) => {
       console.error("Error deleting spare parts:", err);
       return res.status(500).json({ error: "Lỗi khi xoá dữ liệu phụ tùng" });
     }
-    
+
     db.run(deleteMaintenanceQuery, [id], function (err) {
       if (err) {
         console.error("Error deleting maintenance record:", err);
@@ -4301,7 +4478,7 @@ app.post("/api/MaintenanceSchedule/Add", async (req, res) => {
       io.emit("MaintenanceScheduleUpdate");
       io.emit("MachineUpdate");
       res.json({ message: "Đã thêm dữ liệu bảo trì định kỳ thành công" });
-    }
+    },
   );
 });
 
@@ -4366,7 +4543,7 @@ app.put("/api/MaintenanceSchedule/Edit/:id", async (req, res) => {
       io.emit("MaintenanceScheduleUpdate");
       io.emit("MachineUpdate");
       res.json({ message: "Đã cập nhật dữ liệu bảo trì định kỳ thành công" });
-    }
+    },
   );
 });
 
@@ -4410,7 +4587,7 @@ app.post("/api/SparePartUsage/Add", async (req, res) => {
       io.emit("SparePartUsageUpdate");
       io.emit("MaintenanceUpdate");
       res.json({ message: "Đã thêm dữ liệu sử dụng phụ tùng thành công" });
-    }
+    },
   );
 });
 
@@ -4437,7 +4614,7 @@ app.put("/api/SparePartUsage/Edit/:id", async (req, res) => {
       io.emit("SparePartUsageUpdate");
       io.emit("MaintenanceUpdate");
       res.json({ message: "Đã cập nhật dữ liệu sử dụng phụ tùng thành công" });
-    }
+    },
   );
 });
 
@@ -4530,7 +4707,7 @@ app.post("/api/PlanManufacture/Add", async (req, res) => {
 
       io.emit("ManufactureUpdate");
       res.json({ message: "Đã thêm dữ liệu dự án sản xuất thành công" });
-    }
+    },
   );
 });
 
@@ -4598,7 +4775,7 @@ app.put("/api/PlanManufacture/Edit/:id", async (req, res) => {
       }
       io.emit("ManufactureUpdate");
       res.json({ message: "Đã cập nhật dữ liệu dự án sản xuất thành công" });
-    }
+    },
   );
 });
 
@@ -4741,7 +4918,7 @@ app.post("/api/add-config", (req, res) => {
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ status: "ok", id: this.lastID });
-    }
+    },
   );
 });
 
@@ -4758,7 +4935,7 @@ app.get("/api/get-config", (req, res) => {
       if (err) return res.status(500).json({ error: err.message });
       if (!row) return res.json({}); // Không có config mới
       res.json(row);
-    }
+    },
   );
 });
 
@@ -4777,7 +4954,7 @@ app.post("/api/config-confirm", (req, res) => {
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ status: "ok", updated: this.changes });
-    }
+    },
   );
 });
 
@@ -4796,7 +4973,7 @@ app.post("/api/sensor", (req, res) => {
   }
 
   const stmt = db.prepare(
-    "INSERT INTO ManufactureSMT (HistoryID, PartNumber, Timestamp, Status, Source, PlanID) VALUES (?, ?, ?, 'ok', ?, ?)"
+    "INSERT INTO ManufactureSMT (HistoryID, PartNumber, Timestamp, Status, Source, PlanID) VALUES (?, ?, ?, 'ok', ?, ?)",
   );
   stmt.run(project_id, input_value, Timestamp, source, plan_id, function (err) {
     if (err) {
@@ -4824,7 +5001,7 @@ app.post("/api/heartbeat", (req, res) => {
   }
 
   console.log(
-    `📡 Heartbeat from ${device_id} at ${new Date(now).toISOString()}`
+    `📡 Heartbeat from ${device_id} at ${new Date(now).toISOString()}`,
   );
 
   db.run(
@@ -4845,7 +5022,7 @@ app.post("/api/heartbeat", (req, res) => {
       });
 
       res.json({ message: "✅ Heartbeat received" });
-    }
+    },
   );
 });
 
@@ -4888,7 +5065,7 @@ app.post("/api/ManufactureCounting", (req, res) => {
     const stmt = db.prepare(
       `INSERT INTO ManufactureCounting 
         (PartNumber, HistoryID, Timestamp, Status, GroupFail, Note, PlanID, Type)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     );
 
     for (let i = 0; i < Quantity; i++) {
@@ -4962,7 +5139,7 @@ app.put("/api/ManufactureCounting/Edit-status-fixed/:id", (req, res) => {
       io.emit("ActivedUpdate");
       io.emit("updateDetailProjectPO");
       res.json({ message: "Summary received" });
-    }
+    },
   );
 });
 
@@ -5012,7 +5189,7 @@ app.put("/api/ManufactureCounting/Edit-status-rw/:id", (req, res) => {
       io.emit("UpdateSummary");
       io.emit("UpdateHistory");
       res.json({ message: "Summary received" });
-    }
+    },
   );
 });
 
@@ -5053,7 +5230,7 @@ app.post("/api/ManufactureSMT", (req, res) => {
     const stmt = db.prepare(
       `INSERT INTO ManufactureSMT
          (PartNumber, HistoryID, Timestamp, Status, PlanID, Source)
-       VALUES (?, ?, ?, 'ok', ?, ?)`
+       VALUES (?, ?, ?, 'ok', ?, ?)`,
     );
 
     for (const src of sourcesToInsert) {
@@ -5096,7 +5273,7 @@ app.put("/api/Summary/Edit-item-action-stopped-line1", (req, res) => {
       io.emit("UpdateSummary");
       io.emit("UpdateHistory");
       res.json({ message: "Summary received" });
-    }
+    },
   );
 });
 
@@ -5112,7 +5289,7 @@ app.put("/api/Summary/Edit-item-action-stopped-line2", (req, res) => {
       io.emit("UpdateSummary");
       io.emit("UpdateHistory");
       res.json({ message: "Summary received" });
-    }
+    },
   );
 });
 
@@ -5130,7 +5307,7 @@ app.put("/api/Summary/Edit-item-action/:id", (req, res) => {
       io.emit("UpdateSummary");
       io.emit("UpdateHistory");
       res.json({ message: "Summary received" });
-    }
+    },
   );
 });
 
@@ -5194,7 +5371,7 @@ app.post("/api/Summary/Add-item", (req, res) => {
       io.emit("ActivedUpdate");
       io.emit("updateDetailProjectPO");
       res.json({ message: "Summary received" });
-    }
+    },
   );
 });
 
@@ -5256,7 +5433,7 @@ app.put("/api/Summary/Edit-item/:id", (req, res) => {
       io.emit("UpdateManufactureRW", { PlanID, Type });
 
       res.json({ message: "Summary received" });
-    }
+    },
   );
 });
 
@@ -5292,60 +5469,42 @@ app.delete("/api/Summary/Delete-item/:id", async (req, res) => {
 // Bom , Pick&Place table
 
 // Post value in table Summary
-app.post("/api/FilterBom/Add-item", (req, res) => {
+app.post("/api/FilterBom/Add-item", function (req, res) {
   const { project_name, created_at, note } = req.body;
+
   let Timestamps = null;
   if (created_at) {
-    const dateObj = new Date(created_at); // ví dụ "2025-11-15"
+    const dateObj = new Date(created_at);
     if (!isNaN(dateObj.getTime())) {
       Timestamps = Math.floor(dateObj.getTime() / 1000);
     } else {
       return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
     }
   } else {
-    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+    Timestamps = Math.floor(Date.now() / 1000);
   }
+
   db.run(
-    `INSERT INTO FilterBom (
-        project_name, 
-        created_at, 
-        note, 
-        flipX_top, 
-        flipY_top, 
-        swapXY_top, 
-        cx_top, 
-        cy_top, 
-        rotation_top, 
-        rotationSVG_top, 
-        manualOffsetX_top, 
-        manualOffsetY_top,
-        labelAngle_top,
-        componentBodyAngle_top,
-        flipX_bottom, 
-        flipY_bottom, 
-        swapXY_bottom, 
-        cx_bottom, 
-        cy_bottom, 
-        rotation_bottom, 
-        rotationSVG_bottom, 
-        manualOffsetX_bottom, 
-        manualOffsetY_bottom,
-        labelAngle_bottom,
-        componentBodyAngle_bottom,
-        panel_frame_X,
-        panel_frame_Y
-        )
-     VALUES (?, ?, ?, 'false', 'false', 'false', 0, 0, 0, 0, 0, 0, 0, 0, 'false', 'false', 'false', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)`,
+    `INSERT INTO FilterBom (project_name, created_at, note)
+     VALUES (?, ?, ?)`,
     [project_name, Timestamps, note],
-    (err) => {
+    function (err) {
       if (err) {
         console.error("Database error:", err);
-        return res
-          .status(500)
-          .json({ error: "Database error", details: err.message });
+        return res.status(500).json({
+          error: "Database error",
+          details: err.message,
+        });
       }
+
+      const insertedId = this.lastID; // 🔥 QUAN TRỌNG
+
       io.emit("UpdateFilterBom");
-      res.json({ message: "Filter Bom received" });
+
+      res.json({
+        message: "Filter Bom received",
+        id: insertedId, // 👈 trả về id
+      });
     }
   );
 });
@@ -5382,7 +5541,7 @@ app.put("/api/FilterBom/Edit-item/:id", (req, res) => {
       }
       io.emit("UpdateFilterBom");
       res.json({ message: "Summary received" });
-    }
+    },
   );
 });
 
@@ -5404,6 +5563,101 @@ app.delete("/api/FilterBom/Delete-item/:id", async (req, res) => {
   });
 });
 
+// Post value in table SettingPCB
+app.post("/api/SettingPCB/Add-item", (req, res) => {
+  const { project_id } = req.body;
+
+  db.run(
+    `INSERT INTO SettingPCB (
+        project_id,
+        manualOffsetX_top,
+        manualOffsetY_top,
+        manualOffsetX_bottom,
+        manualOffsetY_bottom,
+        width,
+        length,
+        originOffsetX,
+        originOffsetY,
+        railOffsetX,
+        railOffsetY,
+        angle
+     )
+     VALUES (?, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0)`,
+    [project_id],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res.status(500).json({
+          error: "Database error",
+          details: err.message,
+        });
+      }
+
+      io.emit("SettingPCBUpdate");
+
+      res.json({ message: "SettingPCB created" });
+    }
+  );
+});
+
+// Put value in table SettingPCB table
+app.put("/api/SettingPCB/Edit-item/:id", (req, res) => {
+  const { id } = req.params;
+  const {
+    manualOffsetX_top,
+    manualOffsetY_top,
+    manualOffsetX_bottom,
+    manualOffsetY_bottom,
+    width,
+    length,
+    originOffsetX,
+    originOffsetY,
+    railOffsetX,
+    railOffsetY,
+    angle,
+  } = req.body;
+  db.run(
+    `UPDATE SettingPCB
+    SET 
+      manualOffsetX_top = ?,
+      manualOffsetY_top = ?,
+      manualOffsetX_bottom = ?,
+      manualOffsetY_bottom = ?,
+      width = ?,
+      length = ?,
+      originOffsetX = ?,
+      originOffsetY = ?,
+      railOffsetX = ?,
+      railOffsetY = ?,
+      angle = ?
+    WHERE project_id = ?`,
+    [
+      manualOffsetX_top,
+      manualOffsetY_top,
+      manualOffsetX_bottom,
+      manualOffsetY_bottom,
+      width,
+      length,
+      originOffsetX,
+      originOffsetY,
+      railOffsetX,
+      railOffsetY,
+      angle,
+      id,
+    ],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("SettingPCBUpdate");
+      res.json({ message: "Đã cập nhật cài đặt PCB" });
+    },
+  );
+});
+
 // Router post item in Bom table
 app.post(
   "/api/upload-bom/:project_id",
@@ -5417,49 +5671,84 @@ app.post(
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = xlsx.utils.sheet_to_json(sheet);
 
-      const stmt = db.prepare(`
-      INSERT INTO Bom (description, mpn, designator, quantity, project_id)
-      VALUES (?, ?, ?, ?, ?)
-    `);
+      // 👉 stmt BOM (clean data)
+      const stmtBom = db.prepare(`
+        INSERT INTO Bom (description, mpn, designator, quantity, project_id, note)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `);
 
-      // Dùng Set để lưu ref đã insert, tránh trùng
+      // 👉 stmt BOM Highlight (raw data)
+      const stmtHighlight = db.prepare(`
+        INSERT INTO BomHighlight (description, mpn, mpn2, mpn3, manufacture, designator, quantity, project_id, note)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
       const insertedRefs = new Set();
 
       rows.forEach((row) => {
+        /** =========================
+         * 🔹 LOGIC 1: BOM (tách + remove duplicate)
+         ========================= */
         const refs = String(row["Reference(s)"] || row["Designator"] || "")
           .split(",")
           .map((r) => r.trim())
           .filter((r) => r.length > 0);
 
         refs.forEach((ref) => {
-          // Nếu chưa tồn tại thì mới insert
           if (!insertedRefs.has(ref)) {
-            stmt.run(
+            let mpnValue = row.MPN || row.Comment || "";
+
+            // replace , → .
+            mpnValue = String(mpnValue).replace(/,/g, ".");
+
+            stmtBom.run(
               row.Description || "",
-              row.MPN || row.Comment || "",
+              mpnValue,
               ref,
-              1, // mỗi reference 1
-              projectId
+              1,
+              projectId,
+              row.note || "",
             );
+
             insertedRefs.add(ref);
           }
         });
+
+        /** =========================
+         * 🔹 LOGIC 2: BOM Highlight (raw giữ nguyên)
+         ========================= */
+        stmtHighlight.run(
+          row.Description || "" || row.description,
+          row.MPN || "" || row.mpn,
+          row.MPN2 || "" || row.mpn2,
+          row.MPN3 || "" || row.mpn3,
+          row.Manufacture || "" || row.manufacture,
+          row["Reference(s)"] || row.Designator || "" || row.designator,
+          row.Quantity || row.Qty || row.qty || row.QTY || 1,
+          projectId,
+          row.Note || row.note || "",
+        );
       });
 
-      stmt.finalize();
+      stmtBom.finalize();
+      stmtHighlight.finalize();
+
+      // emit riêng để frontend biết update gì
       io.emit("CombineBomUpdate");
+      io.emit("BomHighlightUpdate");
+
       fs.unlinkSync(filePath);
 
       res.json({
-        message: "BOM uploaded & formatted successfully, duplicates removed",
+        message: "Upload BOM + Highlight thành công",
+        totalRows: rows.length,
       });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Lỗi xử lý file BOM" });
     }
-  }
+  },
 );
-
 const XLSX = require("xlsx");
 
 // Router post item in Pick & Place table
@@ -5500,6 +5789,7 @@ app.post(
           posY: parseFloat(row.PosY || 0),
           rotation: parseFloat(row.Rotation || 0),
           project_id: id,
+          note: row.note || "",
         });
       }
 
@@ -5507,8 +5797,8 @@ app.post(
       await new Promise((resolve, reject) => {
         db.serialize(() => {
           const stmt = db.prepare(`
-          INSERT INTO Pickplace (designator, layer, x, y, rotation, project_id, type)
-          VALUES (?, ?, ?, ?, ?, ?, 'SMT')
+          INSERT INTO Pickplace (designator, layer, x, y, rotation, project_id, type, note)
+          VALUES (?, ?, ?, ?, ?, ?, 'SMT', ?)
         `);
 
           for (const r of uniqueRows) {
@@ -5518,7 +5808,8 @@ app.post(
               r.posX,
               r.posY,
               r.rotation,
-              r.project_id
+              r.project_id,
+              r.note,
             );
           }
 
@@ -5544,7 +5835,7 @@ app.post(
       console.error("Lỗi xử lý Pick&Place:", error);
       res.status(500).json({ error: "Lỗi xử lý file Pick&Place (Excel)" });
     }
-  }
+  },
 );
 
 // Detect layer by file extension
@@ -5578,35 +5869,288 @@ function detectFormat(fileContent) {
 }
 
 // Upload Gerber
-app.post("/api/upload-gerber/:id", upload.single("FileGerber"), (req, res) => {
-  const projectId = req.params.id;
-  const filePath = req.file.path;
-  const fileName = req.file.originalname;
-  const layer = detectLayer(fileName);
+// app.post("/api/upload-gerber/:id", upload.single("FileGerber"), (req, res) => {
+//   const projectId = req.params.id;
+//   const filePath = req.file.path;
+//   const fileName = req.file.originalname;
+//   const layer = detectLayer(fileName);
 
-  try {
-    // Đọc nội dung file text để detect unit + format
-    const fileContent = fs.readFileSync(filePath, "utf8");
-    const unit = detectUnit(fileContent);
-    const format = detectFormat(fileContent);
+//   try {
+//     // Đọc nội dung file text để detect unit + format
+//     const fileContent = fs.readFileSync(filePath, "utf8");
+//     const unit = detectUnit(fileContent);
+//     const format = detectFormat(fileContent);
 
-    // Convert sang SVG
-    const fileStream = fs.createReadStream(filePath);
-    const converter = gerberToSvg(fileStream);
+//     // Convert sang SVG
+//     const fileStream = fs.createReadStream(filePath);
+//     const converter = gerberToSvg(fileStream);
 
-    let svgData = "";
-    converter.on("data", (d) => (svgData += d.toString()));
-    converter.on("end", () => {
+//     let svgData = "";
+//     converter.on("data", (d) => (svgData += d.toString()));
+//     converter.on("end", () => {
+//       db.run(
+//         `INSERT INTO GerberData (layer, svg, filename, project_id, unit, format) 
+//          VALUES (?, ?, ?, ?, ?, ?)`,
+//         [
+//           layer,
+//           svgData,
+//           fileName,
+//           projectId,
+//           unit,
+//           format ? JSON.stringify(format) : null,
+//         ],
+//         function (err) {
+//           if (err) {
+//             console.error("DB insert error:", err.message);
+//             return res.status(500).json({ error: err.message });
+//           }
+
+//           io.emit("gerber_uploaded", {
+//             id: this.lastID,
+//             layer,
+//             unit,
+//             format,
+//             svg: svgData,
+//           });
+//           io.emit("CombineBomUpdate", { project_id: projectId });
+//           io.emit("GerberFileUpdate", { project_id: projectId });
+//           io.emit("PnPFileUpdate");
+//           res.json({ id: this.lastID, layer, unit, format });
+//         },
+//       );
+
+//       fs.unlinkSync(filePath); // Xóa file upload sau khi xử lý
+//     });
+
+//     converter.on("error", (err) => {
+//       console.error("Gerber convert error:", err.message);
+//       res.status(500).json({ error: "Failed to convert Gerber to SVG" });
+//       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+//     });
+//   } catch (e) {
+//     console.error("Upload error:", e.message);
+//     res.status(500).json({ error: e.message });
+//     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+//   }
+// });
+
+// ─── Layer color map ──────────────────────────────────────────────────────────
+const LAYER_COLORS = {
+  copper_top:        "#cc0000",
+  copper_bottom:     "#0000cc",
+  soldermask_top:    "#00aa4488",
+  soldermask_bottom: "#00aa4488",
+  silkscreen_top:    "#ffffff",
+  silkscreen_bottom: "#ffff00",
+  board_outline:     "#ffaa00",
+  drill:             "#888888",
+};
+
+// ─── Layer stack order (bottom → top) ────────────────────────────────────────
+const LAYER_ORDER = [
+  "copper_bottom",
+  "drill",
+  "board_outline",
+  "copper_top",
+  "soldermask_bottom",
+  "soldermask_top",
+  "silkscreen_bottom",
+  "silkscreen_top",
+];
+
+// ─── Auto-detect layer từ extension ──────────────────────────────────────────
+const EXT_LAYER_MAP = {
+  ".gtl": "copper_top",
+  ".gbl": "copper_bottom",
+  ".gtp": "soldermask_top",
+  ".gbp": "soldermask_bottom",
+  ".gto": "silkscreen_top",
+  ".gbo": "silkscreen_bottom",
+  ".gko": "board_outline",
+  ".drl": "drill",
+  ".exc": "drill",
+  ".xln": "drill",
+};
+
+function detectLayer(fileName) {
+  const ext = "." + fileName.split(".").pop().toLowerCase();
+  return EXT_LAYER_MAP[ext] ?? "copper_top";
+}
+
+// ─── Detect unit từ nội dung file ─────────────────────────────────────────────
+function detectUnit(content) {
+  if (/\%MOMM\%/.test(content)) return "mm";
+  if (/\%MOIN\%/.test(content)) return "inch";
+  return "unknown";
+}
+
+// ─── Detect format từ nội dung file ──────────────────────────────────────────
+function detectFormat(content) {
+  const match = content.match(/%FSLA?X?(\d)(\d)Y(\d)(\d)\*%/);
+  if (!match) return null;
+  return {
+    x: { integer: parseInt(match[1]), decimal: parseInt(match[2]) },
+    y: { integer: parseInt(match[3]), decimal: parseInt(match[4]) },
+  };
+}
+
+// ─── Convert 1 file Gerber → SVG string ──────────────────────────────────────
+function processGerberFile(file, layerOverride = null) {
+  return new Promise((resolve, reject) => {
+    const filePath = file.path;
+    const fileName = file.originalname;
+
+    const cleanup = () => {
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    };
+
+    try {
+      const fileContent = fs.readFileSync(filePath, "utf8");
+      const layer  = layerOverride ?? detectLayer(fileName);
+      const unit   = detectUnit(fileContent);
+      const format = detectFormat(fileContent);
+
+      const fileStream = fs.createReadStream(filePath);
+      const converter  = gerberToSvg(fileStream);
+
+      let svgData = "";
+      converter.on("data",  (chunk) => (svgData += chunk.toString()));
+      converter.on("end",   () => {
+        cleanup();
+        resolve({ layer, svg: svgData, fileName, unit, format });
+      });
+      converter.on("error", (err) => {
+        cleanup();
+        reject(new Error(`Convert failed [${fileName}]: ${err.message}`));
+      });
+    } catch (e) {
+      cleanup();
+      reject(e);
+    }
+  });
+}
+
+// ─── Merge nhiều SVG thành 1 SVG duy nhất ────────────────────────────────────
+function mergeLayersToSvg(layerResults) {
+  // Sort theo thứ tự stack PCB
+  const sorted = [...layerResults].sort((a, b) => {
+    const ai = LAYER_ORDER.indexOf(a.layer);
+    const bi = LAYER_ORDER.indexOf(b.layer);
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  });
+
+  // Lấy viewBox từ SVG hợp lệ đầu tiên
+  let viewBox = "0 0 100 100";
+  let width   = null;
+  let height  = null;
+
+  for (const { svg } of sorted) {
+    const vbMatch = svg.match(/viewBox=["']([^"']+)["']/);
+    const wMatch  = svg.match(/\bwidth=["']([^"']+)["']/);
+    const hMatch  = svg.match(/\bheight=["']([^"']+)["']/);
+    if (vbMatch) {
+      viewBox = vbMatch[1];
+      width   = wMatch?.[1]  ?? null;
+      height  = hMatch?.[1]  ?? null;
+      break;
+    }
+  }
+
+  // Build <g> group cho từng layer
+  const groups = sorted.map(({ layer, svg }) => {
+    const bodyMatch = svg.match(/<svg[^>]*>([\s\S]*?)<\/svg>/i);
+    const body      = bodyMatch ? bodyMatch[1] : svg;
+
+    // Tách <defs> ra khỏi body để đặt lên đầu merged SVG
+    const defsMatch = body.match(/(<defs[^>]*>[\s\S]*?<\/defs>)/i);
+    const defs      = defsMatch ? defsMatch[1] : "";
+    const content   = body.replace(/<defs[^>]*>[\s\S]*?<\/defs>/gi, "").trim();
+
+    const color = LAYER_COLORS[layer] ?? "#888888";
+
+    return {
+      defs,
+      group: `
+  <!-- ═══ Layer: ${layer} ═══ -->
+  <g id="layer-${layer}"
+     data-layer="${layer}"
+     fill="${color}"
+     stroke="${color}"
+     opacity="1">
+    ${content}
+  </g>`,
+    };
+  });
+
+  const allDefs    = groups.map((g) => g.defs).filter(Boolean).join("\n  ");
+  const allGroups  = groups.map((g) => g.group).join("\n");
+  const layerNames = sorted.map((r) => r.layer).join(",");
+  const fileNames  = sorted.map((r) => r.fileName).join(", ");
+
+  const widthAttr  = width  ? ` width="${width}"`   : "";
+  const heightAttr = height ? ` height="${height}"` : "";
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     viewBox="${viewBox}"${widthAttr}${heightAttr}
+     data-layers="${layerNames}">
+  <desc>Merged Gerber: ${fileNames}</desc>
+  <defs>
+    ${allDefs}
+  </defs>
+${allGroups}
+</svg>`;
+}
+
+// ─── POST /api/upload-gerber/:id ──────────────────────────────────────────────
+app.post(
+  "/api/upload-gerber/:id",
+  upload.array("FileGerber"),
+  async (req, res) => {
+    const projectId = req.params.id;
+    const files     = req.files;
+    const layer     = req.body.layer;
+
+    // ── Validate ──────────────────────────────────────────────────────────────
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: "Không có file nào được upload" });
+    }
+
+    // layers[] từ frontend (tương ứng thứ tự files[])
+    const rawLayers    = req.body.layers ?? [];
+    const layerOverrides = Array.isArray(rawLayers) ? rawLayers : [rawLayers];
+
+    try {
+      // ── Xử lý song song tất cả file ──────────────────────────────────────
+      const layerResults = await Promise.all(
+        files.map((file, i) =>
+          processGerberFile(file, layerOverrides[i] || null)
+        )
+      );
+
+      // ── Merge tất cả SVG thành 1 ─────────────────────────────────────────
+      const mergedSvg = mergeLayersToSvg(layerResults);
+
+      // ── Metadata tổng hợp ─────────────────────────────────────────────────
+      const mergedUnit    = layerResults.find((r) => r.unit !== "unknown")?.unit ?? "unknown";
+      const mergedFormat  = layerResults.map((r) => ({
+        layer:  r.layer,
+        format: r.format,
+      }));
+      const mergedFileNames = layerResults.map((r) => r.fileName).join(",");
+
+      // ── Insert vào DB ─────────────────────────────────────────────────────
       db.run(
-        `INSERT INTO GerberData (layer, svg, filename, project_id, unit, format) 
+        `INSERT INTO GerberData (layer, svg, filename, project_id, unit, format)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [
           layer,
-          svgData,
-          fileName,
+          mergedSvg,
+          mergedFileNames,
           projectId,
-          unit,
-          format ? JSON.stringify(format) : null,
+          mergedUnit,
+          JSON.stringify(mergedFormat),
         ],
         function (err) {
           if (err) {
@@ -5614,35 +6158,161 @@ app.post("/api/upload-gerber/:id", upload.single("FileGerber"), (req, res) => {
             return res.status(500).json({ error: err.message });
           }
 
+          // ── Emit socket events ──────────────────────────────────────────
+          const responsePayload = {
+            id:         this.lastID,
+            layer:      "merged",
+            unit:       mergedUnit,
+            format:     mergedFormat,
+            svg:        mergedSvg,
+            layers:     layerResults.map((r) => ({
+              layer:    r.layer,
+              fileName: r.fileName,
+              unit:     r.unit,
+              format:   r.format,
+            })),
+          };
+
+          io.emit("gerber_uploaded",   responsePayload);
+          io.emit("CombineBomUpdate",  { project_id: projectId });
+          io.emit("GerberFileUpdate",  { project_id: projectId });
+          io.emit("PnPFileUpdate");
+
+          return res.status(201).json(responsePayload);
+        }
+      );
+    } catch (e) {
+      console.error("Upload error:", e.message);
+
+      // Dọn dẹp các file còn sót nếu Promise.all thất bại giữa chừng
+      files.forEach((f) => {
+        if (fs.existsSync(f.path)) fs.unlinkSync(f.path);
+      });
+
+      return res.status(500).json({ error: e.message });
+    }
+  }
+);
+
+// Upload Gerber PDF - Convert PDF page to SVG
+app.post(
+  "/api/upload-gerber-pdf/:id",
+  uploadPDF.single("FileGerberPDF"),
+  async (req, res) => {
+    const projectId = req.params.id;
+    const layer = req.body.layer || "Top";
+
+    if (!req.file) {
+      return res.status(400).json({ error: "Không có file PDF" });
+    }
+
+    const fs = require("fs");
+    const { createCanvas } = require("canvas");
+    const filePath = req.file.path;
+
+    try {
+      // 👉 load pdfjs (Node)
+      const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+
+      const pdfData = new Uint8Array(fs.readFileSync(filePath));
+
+      const pdfDoc = await pdfjsLib.getDocument({
+        data: pdfData,
+        disableWorker: true,
+      }).promise;
+
+      const page = await pdfDoc.getPage(1);
+
+      // 🔥 scale cao để giữ nét Gerber
+      const scale = 3.0;
+      const viewport = page.getViewport({ scale });
+
+      const w = Math.ceil(viewport.width);
+      const h = Math.ceil(viewport.height);
+
+      // 👉 render canvas
+      const canvas = createCanvas(w, h);
+      const ctx = canvas.getContext("2d");
+
+      // nền tối để thấy nét trắng
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, w, h);
+
+      await page.render({
+        canvasContext: ctx,
+        viewport: viewport,
+      }).promise;
+
+      // 👉 dùng PNG (KHÔNG dùng JPEG)
+      const imgDataUrl = canvas.toDataURL("image/png");
+
+      // 👉 convert inch (chuẩn PDF: 72dpi)
+      const wInch = w / 72;
+      const hInch = h / 72;
+
+      // ✅ SVG CHUẨN (KHÔNG lỗi hiển thị)
+      const finalSvg = `
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="${wInch}in"
+     height="${hInch}in"
+     viewBox="0 0 ${w} ${h}">
+     
+  <image href="${imgDataUrl}"
+         x="0"
+         y="0"
+         width="${w}"
+         height="${h}" />
+</svg>`;
+
+      // 👉 format Gerber
+      const formatObj = {
+        suppression: "trailing",
+        x_int: 2,
+        x_dec: 5,
+        y_int: 2,
+        y_dec: 5,
+      };
+
+      const formatStr = JSON.stringify(formatObj);
+
+      // 👉 lưu DB
+      db.run(
+        `INSERT INTO GerberData (layer, svg, filename, project_id, unit, format) 
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [layer, finalSvg, req.file.originalname, projectId, "inch", formatStr],
+        function (err) {
+          if (err) {
+            console.error("DB error:", err.message);
+            return res.status(500).json({ error: err.message });
+          }
+
+          // 👉 realtime update
           io.emit("gerber_uploaded", {
             id: this.lastID,
             layer,
-            unit,
-            format,
-            svg: svgData,
+            unit: "inch",
+            format: formatStr,
+            svg: finalSvg,
           });
-          io.emit("CombineBomUpdate", { project_id: projectId });
+
           io.emit("GerberFileUpdate", { project_id: projectId });
-          io.emit("PnPFileUpdate");
-          res.json({ id: this.lastID, layer, unit, format });
-        }
+
+          res.json({
+            id: this.lastID,
+            message: "Upload PDF thành công",
+          });
+        },
       );
 
-      fs.unlinkSync(filePath); // Xóa file upload sau khi xử lý
-    });
-
-    converter.on("error", (err) => {
-      console.error("Gerber convert error:", err.message);
-      res.status(500).json({ error: "Failed to convert Gerber to SVG" });
+      // 👉 cleanup
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    });
-  } catch (e) {
-    console.error("Upload error:", e.message);
-    res.status(500).json({ error: e.message });
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-  }
-});
-
+    } catch (err) {
+      console.error("Lỗi convert PDF:", err.message);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      res.status(500).json({ error: err.message });
+    }
+  },
+);
 // Put value in table Pick Place table
 app.put("/api/Pickplace/Edit-item/:id", (req, res) => {
   const { id } = req.params;
@@ -5668,7 +6338,7 @@ app.put("/api/Pickplace/Edit-item/:id", (req, res) => {
       io.emit("PnPFileUpdate");
       io.emit("SettingSVGUpdate");
       res.json({ message: "Summary received" });
-    }
+    },
   );
 });
 
@@ -5705,136 +6375,6 @@ app.put("/api/PickPlace/Update-item", (req, res) => {
   });
 });
 
-// Put value in table SettingSVG table
-app.put("/api/SettingSVG/Edit-item-top/:id", (req, res) => {
-  const { id } = req.params;
-  const {
-    cx,
-    cy,
-    rotation,
-    rotationSVG,
-    manualOffsetX,
-    manualOffsetY,
-    flipX,
-    flipY,
-    swapXY,
-    labelAngle,
-    componentBodyAngle,
-    panelFrameX,
-    panelFrameY,
-  } = req.body;
-  db.run(
-    `UPDATE FilterBom
-    SET 
-      flipX_top = ?,
-      flipY_top = ?,
-      swapXY_top = ?,
-      cx_top = ?, 
-      cy_top = ?, 
-      rotation_top = ?,
-      rotationSVG_top = ?,
-      manualOffsetX_top = ?,
-      manualOffsetY_top = ?,
-      labelAngle_top = ?,
-      componentBodyAngle_top = ?,
-      panel_frame_X = ?,
-      panel_frame_Y = ?
-    WHERE id = ?`,
-    [
-      flipX,
-      flipY,
-      swapXY,
-      cx,
-      cy,
-      rotation,
-      rotationSVG,
-      manualOffsetX,
-      manualOffsetY,
-      labelAngle,
-      componentBodyAngle,
-      panelFrameX,
-      panelFrameY,
-      id,
-    ],
-    (err) => {
-      if (err) {
-        console.error("Database error:", err);
-        return res
-          .status(500)
-          .json({ error: "Database error", details: err.message });
-      }
-      io.emit("CombineBomUpdate");
-      io.emit("PnPFileUpdate");
-      io.emit("SettingSVGUpdate");
-      res.json({ message: "Summary received" });
-    }
-  );
-});
-
-app.put("/api/SettingSVG/Edit-item-bottom/:id", (req, res) => {
-  const { id } = req.params;
-  const {
-    cx,
-    cy,
-    rotation,
-    rotationSVG,
-    manualOffsetX,
-    manualOffsetY,
-    flipX,
-    flipY,
-    swapXY,
-    labelAngle,
-    componentBodyAngle,
-    panelFrameX,
-    panelFrameY,
-  } = req.body;
-  db.run(
-    `UPDATE FilterBom
-    SET 
-      flipX_bottom = ?,
-      flipY_bottom = ?,
-      swapXY_bottom = ?,
-      cx_bottom = ?, 
-      cy_bottom = ?, 
-      rotation_bottom = ?,
-      rotationSVG_bottom = ?,
-      manualOffsetX_bottom = ?,
-      manualOffsetY_bottom = ?,
-      labelAngle_bottom = ?,
-      componentBodyAngle_bottom = ?,
-      panel_frame_X = ?,
-      panel_frame_Y = ?
-    WHERE id = ?`,
-    [
-      flipX,
-      flipY,
-      swapXY,
-      cx,
-      cy,
-      rotation,
-      rotationSVG,
-      manualOffsetX,
-      manualOffsetY,
-      labelAngle,
-      componentBodyAngle,
-      panelFrameX,
-      panelFrameY,
-      id,
-    ],
-    (err) => {
-      if (err) {
-        console.error("Database error:", err);
-        return res
-          .status(500)
-          .json({ error: "Database error", details: err.message });
-      }
-      io.emit("CombineBomUpdate");
-      io.emit("PnPFileUpdate");
-      io.emit("SettingSVGUpdate");
-      res.json({ message: "Summary received" });
-    }
-  );
-});
 
 // Post item in Component overrides
 app.post("/api/Component-overrides/Add-item", (req, res) => {
@@ -5859,7 +6399,7 @@ app.post("/api/Component-overrides/Add-item", (req, res) => {
       io.emit("CombineBomUpdate");
       io.emit("PnPFileUpdate");
       res.json({ message: "Filter Bom received" });
-    }
+    },
   );
 });
 
@@ -5886,7 +6426,7 @@ app.put("/api/Component-overrides/Edit-item/:id", (req, res) => {
       io.emit("CombineBomUpdate");
       io.emit("PnPFileUpdate");
       res.json({ message: "Filter Bom received" });
-    }
+    },
   );
 });
 
@@ -5913,14 +6453,128 @@ app.put("/api/Component/Edit-item/:id", (req, res) => {
       io.emit("CombineBomUpdate");
       io.emit("PnPFileUpdate");
       res.json({ message: "Filter Bom received" });
-    }
+    },
   );
 });
 
-app.use(
-  "/uploads",
-  express.static(path.join(__dirname, "uploads"))
-);
+// Post item in To Do
+app.post("/api/To-Do/Add-item", (req, res) => {
+  const { department, title, description, status, creater, createdAt } =
+    req.body;
+  let Timestamps = null;
+  if (createdAt) {
+    const dateObj = new Date(createdAt); // ví dụ "2025-11-15"
+    if (!isNaN(dateObj.getTime())) {
+      Timestamps = Math.floor(dateObj.getTime() / 1000);
+    } else {
+      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+    }
+  } else {
+    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+  }
+  db.run(
+    `INSERT INTO ToDos (
+        department,
+        title, 
+        description, 
+        status,
+        creater,
+        createdAt
+        )
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [department, title, description, status, creater, Timestamps],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("updateToDo");
+      res.json({ message: "To Do received" });
+    },
+  );
+});
+
+// Put item in To Do
+app.put("/api/To-Do/Edit-item/:id", (req, res) => {
+  const { id } = req.params;
+  const { department, title, description, status, creater, createdAt } =
+    req.body;
+  let Timestamps = null;
+  if (createdAt) {
+    const dateObj = new Date(createdAt); // ví dụ "2025-11-15"
+    if (!isNaN(dateObj.getTime())) {
+      Timestamps = Math.floor(dateObj.getTime() / 1000);
+    } else {
+      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+    }
+  } else {
+    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+  }
+  db.run(
+    `UPDATE ToDos
+     SET
+        department = ?,
+        title = ?, 
+        description = ?, 
+        status = ?,
+        creater = ?,
+        createdAt = ?
+     WHERE id = ?`,
+    [department, title, description, status, creater, Timestamps, id],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("updateToDo");
+      res.json({ message: "To Do received" });
+    },
+  );
+});
+
+app.put("/api/To-Do/Update-status/:id", (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  db.run(
+    `UPDATE ToDos
+     SET
+        status = ?
+     WHERE id = ?`,
+    [status, id],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("updateToDo");
+      res.json({ message: "To Do received" });
+    },
+  );
+});
+
+app.delete("/api/To-Do/Delete-item/:id", (req, res) => {
+  const { id } = req.params;
+  db.run(`DELETE FROM ToDos WHERE id = ?`, [id], (err) => {
+    if (err) {
+      console.error("Database error:", err);
+      return res
+        .status(500)
+        .json({ error: "Database error", details: err.message });
+    }
+    io.emit("updateToDo");
+    res.json({ message: "To Do received" });
+  });
+});
+
+app.use("/api/ai-project", deliveryChatRouter(db));
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // Serve static files from frontend/dist
 app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
@@ -5928,8 +6582,6 @@ app.use(express.static(path.join(__dirname, "../frontend/dist")));
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
 });
-
-
 
 // Khởi động servers
 server.listen(PORT, "0.0.0.0", () => {

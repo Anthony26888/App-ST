@@ -301,13 +301,25 @@
               <div>
                 <v-chip
                   v-if="value == 'Hư hỏng'"
-                  color="red"
+                  color="error"
                   text="Hư hỏng"
                   size="small"
                 ></v-chip>
                 <v-chip
+                  v-else-if="value == 'Đang thử nghiệm'"
+                  color="warning"
+                  text="Đang thử nghiệm"
+                  size="small"
+                ></v-chip>
+                <v-chip
+                  v-else-if="value == 'Đang bảo trì'"
+                  color="primary"
+                  text="Đang bảo trì"
+                  size="small"
+                ></v-chip>
+                <v-chip
                   v-else
-                  color="green"
+                  color="success"
                   text="Tốt"
                   size="small"
                 ></v-chip>

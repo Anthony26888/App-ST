@@ -20,7 +20,10 @@
             title="Top"
             :value="
               combineBom.filter(
-                (item) => item.layer === 'Top' || item.layer === 'TopLayer' || item.layer === 'top'
+                (item) =>
+                  item.layer === 'Top' ||
+                  item.layer === 'TopLayer' ||
+                  item.layer === 'top',
               ).length || 0
             "
             icon="mdi-arrow-collapse-up"
@@ -33,7 +36,9 @@
             :value="
               combineBom.filter(
                 (item) =>
-                  item.layer === 'Bottom' || item.layer === 'BottomLayer' || item.layer === 'bottom'
+                  item.layer === 'Bottom' ||
+                  item.layer === 'BottomLayer' ||
+                  item.layer === 'bottom',
               ).length || 0
             "
             icon="mdi-arrow-collapse-down"
@@ -48,36 +53,101 @@
         <v-tabs v-model="tab" align-tabs="center" color="deep-orange">
           <v-tab :value="1" class="text-caption">Bom và Pick & Place</v-tab>
           <v-tab :value="2" class="text-caption">Gerber</v-tab>
+          <v-tab :value="3" class="text-caption">PCB & Panel</v-tab>
         </v-tabs>
 
         <v-tabs-window v-model="tab">
           <v-tabs-window-item :value="1">
             <v-card-title class="d-flex align-center pe-2">
-              <v-btn
-                @click="DialogAddBom = true"
-                prepend-icon="mdi-plus"
-                class="text-caption"
-                color="primary"
-                variant="tonal"
-                >Bom</v-btn
-              >
-              <v-btn
-                @click="DialogAddPnP = true"
-                prepend-icon="mdi-plus"
-                class="text-caption"
-                color="primary ms-2"
-                variant="tonal"
-                >Pick & Place</v-btn
-              >
-              <v-btn
-                @click="DialogAddGerber = true"
-                prepend-icon="mdi-plus"
-                class="text-caption ms-2"
-                color="primary"
-                variant="tonal"
-                >Gerber</v-btn
-              >
-              <ButtonDownload @download-file="DownloadPnP()" />
+              <v-menu>
+                <template v-slot:activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    prepend-icon="mdi-import"
+                    append-icon="mdi-chevron-down"
+                    color="primary"
+                    variant="tonal"
+                    class="text-caption"
+                  >
+                    Nhập dữ liệu
+                  </v-btn>
+                </template>
+                <v-list density="compact">
+                  <v-list-item
+                    @click="DialogAddBom = true"
+                    prepend-icon="mdi-plus"
+                  >
+                    <v-list-item-title class="text-caption"
+                      >BOM</v-list-item-title
+                    >
+                  </v-list-item>
+                  <v-list-item
+                    @click="DialogAddPnP = true"
+                    prepend-icon="mdi-plus"
+                  >
+                    <v-list-item-title class="text-caption"
+                      >Pick & Place</v-list-item-title
+                    >
+                  </v-list-item>
+                  <v-list-item
+                    @click="DialogAddGerber = true"
+                    prepend-icon="mdi-plus"
+                  >
+                    <v-list-item-title class="text-caption"
+                      >Gerber</v-list-item-title
+                    >
+                  </v-list-item>
+                </v-list>
+              </v-menu>
+
+              <v-menu>
+                <template v-slot:activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    prepend-icon="mdi-export"
+                    append-icon="mdi-chevron-down"
+                    color="success"
+                    variant="tonal"
+                    class="text-caption ms-2"
+                  >
+                    Xuất dữ liệu
+                  </v-btn>
+                </template>
+                <v-list density="compact">
+                  <v-list-item
+                    @click="DownloadPnP()"
+                    prepend-icon="mdi-download"
+                  >
+                    <v-list-item-title class="text-caption"
+                      >Tải file PnP</v-list-item-title
+                    >
+                  </v-list-item>
+                  <v-list-item
+                    @click="DownloadPnPBottom()"
+                    prepend-icon="mdi-download"
+                  >
+                    <v-list-item-title class="text-caption"
+                      >Tải file Bottom</v-list-item-title
+                    >
+                  </v-list-item>
+                  <v-list-item
+                    @click="DownloadPnPTop()"
+                    prepend-icon="mdi-download"
+                  >
+                    <v-list-item-title class="text-caption"
+                      >Tải file Top</v-list-item-title
+                    >
+                  </v-list-item>
+                  <v-list-item
+                    @click="DownloadBomHighlight()"
+                    prepend-icon="mdi-download"
+                  >
+                    <v-list-item-title class="text-caption"
+                      >Tải file Bom Highlight</v-list-item-title
+                    >
+                  </v-list-item>
+                </v-list>
+              </v-menu>
               <v-spacer></v-spacer>
               <InputSearch v-model="searchBom" />
             </v-card-title>
@@ -142,7 +212,11 @@
                 </template>
                 <template v-slot:item.layer="{ value }">
                   <v-chip
-                    :color="value === 'Top' || value === 'top' || value === 'TopLayer' ? 'success' : 'error'"
+                    :color="
+                      value === 'Top' || value === 'top' || value === 'TopLayer'
+                        ? 'success'
+                        : 'error'
+                    "
                     size="small"
                     variant="tonal"
                   >
@@ -164,102 +238,282 @@
                 <template v-slot:item.y="{ item }">
                   {{ item.y }}
                 </template>
+                <template v-slot:item.need_review="{ value }">
+                  <v-icon
+                    :icon="value === 1 ? 'mdi-check' : 'mdi-alert-outline'"
+                    :color="value === 1 ? 'success' : 'warning'"
+                  ></v-icon>
+                </template>
               </v-data-table>
             </v-card-text>
           </v-tabs-window-item>
-          <v-tabs-window-item :value="2" >
+          <v-tabs-window-item :value="2">
             <v-card height="100vh" variant="text">
-            <v-card-title class="d-flex align-center mt-5" height="62vh">
-              <span>So sánh Gerber và Pick & Place</span>
-              <!-- <Button-Download @click="downloadExcelPnP()"/> -->
-              <v-spacer></v-spacer>
-              <!-- Coordinate scaling controls -->
-              <v-btn
-                @click="GetSettingSVG()"
-                prepend-icon="mdi-tune"
-                variant="tonal"
-                class="me-2 ms-2 text-caption"
-                title="Cài đặt tọa độ"
-                >Cài đặt</v-btn
+              <v-card-title class="d-flex align-center mt-5" height="62vh">
+                <span>So sánh Gerber và Pick & Place</span>
+                <!-- <Button-Download @click="downloadExcelPnP()"/> -->
+                <v-spacer></v-spacer>
+                <!-- Coordinate scaling controls -->
+                <v-btn
+                  @click="GetSettingPCB()"
+                  prepend-icon="mdi-tune"
+                  variant="tonal"
+                  class="me-2 ms-2 text-caption"
+                  title="Cài đặt tọa độ"
+                  >Cài đặt</v-btn
+                >
+
+                <!-- Controls for overlay -->
+
+                <!-- Layer select -->
+                <v-select
+                  v-model="selectedLayer"
+                  :items="['Top', 'Bottom']"
+                  label="Layer"
+                  class="me-4"
+                  density="comfortable"
+                  variant="outlined"
+                  hide-details
+                  style="max-width: 160px"
+                />
+              </v-card-title>
+              <v-card-text
+                class="pa-0 ma-0 overflow-hidden"
+                style="height: calc(100vh - 120px)"
               >
+                <!-- Hiển thị SVG với overlay Pick & Place -->
+                <div
+                  v-if="svgWithPnP && overlayMode !== 'pnp'"
+                  class="gerber-svg-container-full"
+                  ref="svgContainer"
+                  @mousemove="handleMouseMoveSVG"
+                >
+                  <!-- GRID -->
+                  <div v-if="showGrid" class="coordinate-grid-overlay">
+                    <svg width="100%" height="100%">
+                      <defs>
+                        <pattern
+                          id="grid"
+                          width="20"
+                          height="20"
+                          patternUnits="userSpaceOnUse"
+                        >
+                          <path
+                            d="M 20 0 L 0 0 0 20"
+                            fill="none"
+                            stroke="#e0e0e0"
+                            stroke-width="0.5"
+                          />
+                        </pattern>
+                      </defs>
+                      <rect width="100%" height="100%" fill="url(#grid)" />
+                    </svg>
+                  </div>
 
-              <!-- Controls for overlay -->
-
-              <!-- Layer select -->
-              <v-select
-                v-model="selectedLayer"
-                :items="['Top', 'Bottom']"
-                label="Layer"
-                class="me-4"
-                density="comfortable"
-                variant="outlined"
-                hide-details
-                style="max-width: 160px"
-              />
-            </v-card-title>
-            <v-card-text class="mt-3">
-              <v-row>
-                <v-col cols="12" class="mt-5">
-                  <!-- Hiển thị SVG với overlay Pick & Place -->
+                  <!-- SVG -->
                   <div
-                    v-if="svgWithPnP && overlayMode !== 'pnp'"
-                    class="gerber-svg-container"
-                    ref="svgContainer"
-                    @wheel="handleZoom"
-                    @mousedown="handleMouseDown"
-                    @mousemove="handleMouseMove"
-                    @mouseup="handleMouseUp"
-                    @mouseleave="handleMouseUp"
-                  >
-                    <!-- Coordinate grid overlay -->
-                    <div v-if="showGrid" class="coordinate-grid-overlay">
-                      <svg width="100%" height="100%" class="grid-svg">
-                        <defs>
-                          <pattern
-                            id="grid"
-                            width="20"
-                            height="20"
-                            patternUnits="userSpaceOnUse"
-                          >
-                            <path
-                              d="M 20 0 L 0 0 0 20"
-                              fill="none"
-                              stroke="#e0e0e0"
-                              stroke-width="0.5"
-                            />
-                          </pattern>
-                        </defs>
-                        <rect width="100%" height="100%" fill="url(#grid)" />
-                      </svg>
+                    ref="svgWrapper"
+                    v-html="currentSvgContent"
+                    class="svg-full-wrapper"
+                  ></div>
+
+                  <!-- Subtle Status Bar -->
+                  <div class="gerber-status-bar d-flex align-center px-4 py-1">
+                    <div class="d-flex align-center me-4">
+                      <v-icon size="x-small" color="primary" class="me-1"
+                        >mdi-magnify-plus</v-icon
+                      >
+                      <span class="text-caption font-weight-bold"
+                        >{{ Math.round(zoomLevel * 100) }}%</span
+                      >
                     </div>
-
-                    <div
-                      v-html="currentSvgContent"
-                      :style="svgContainerStyle"
-                    ></div>
-
-                    <!-- Zoom indicator -->
-                    <div class="zoom-indicator">
-                      {{ Math.round(zoomLevel * 100) }}%
+                    <v-divider
+                      vertical
+                      class="mx-2 my-1"
+                      style="opacity: 0.2"
+                    ></v-divider>
+                    <div class="d-flex align-center ms-2">
+                      <v-icon size="x-small" color="success" class="me-1"
+                        >mdi-axis-arrow</v-icon
+                      >
+                      <span
+                        class="text-caption font-weight-medium text-grey-darken-2"
+                      >
+                        X: <span class="text-black">{{ mouseCoords.x }}</span>
+                        <span class="ms-2">Y: </span
+                        ><span class="text-black">{{ mouseCoords.y }}</span>
+                        <span class="ms-1 text-grey">mm</span>
+                      </span>
+                    </div>
+                    <v-spacer></v-spacer>
+                    <div class="text-caption text-grey-darken-1">
+                      {{ selectedLayer }} Layer
                     </div>
                   </div>
-                  <v-empty-state
-                    v-if="overlayMode !== 'pnp' && !currentGerberSvg"
-                    title="Dữ liệu trống"
-                    text="Chưa có dữ liệu Gerber cho layer đã chọn"
-                    icon="mdi-image-off"
-                  ></v-empty-state>
+                </div>
+
+                <v-empty-state
+                  v-if="overlayMode !== 'pnp' && !currentGerberSvg"
+                  title="Dữ liệu trống"
+                  text="Chưa có dữ liệu Gerber"
+                  icon="mdi-image-off"
+                  class="mt-10"
+                />
+              </v-card-text>
+            </v-card>
+          </v-tabs-window-item>
+
+          <v-tabs-window-item :value="3">
+            <v-card-title class="d-flex align-center pe-2">
+              <v-btn
+                @click="GetSettingPCB()"
+                prepend-icon="mdi-file-document"
+                color="primary"
+                variant="tonal"
+                class="text-caption ms-2"
+              >
+                Dữ liệu PCB & Panel
+              </v-btn>
+              <Button-Download
+                @click="DownloadPCB()"
+                text="Tải file PCB"
+              />
+            </v-card-title>
+            <v-card-text>
+              <v-row>
+                <v-col cols="6">
+                  <v-data-table-virtual
+                    density="comfortable"
+                    :headers="HeadersPCBTop"
+                    :items="resultTop"
+                    :search="searchPCBTopLayer"
+                    :items-per-page="itemPerPCBTopLayer"
+                    v-model:page="pagePCBTopLayer"
+                    class="elevation-0"
+                    :footer-props="{
+                      'items-per-page-options': [10, 20, 50, 100],
+                      'items-per-page-text': 'Số hàng mỗi trang',
+                    }"
+                    :header-props="{
+                      sortByText: 'Sắp xếp theo',
+                      sortDescText: 'Giảm dần',
+                      sortAscText: 'Tăng dần',
+                    }"
+                    :loading="DialogLoading"
+                    loading-text="Đang tải dữ liệu..."
+                    no-data-text="Không có dữ liệu"
+                    no-results-text="Không tìm thấy kết quả"
+                    :hover="true"
+                    :dense="false"
+                    :fixed-header="true"
+                    height="58vh"
+                  >
+                    <template v-slot:top>
+                      <v-toolbar flat class="d-flex align-center bg-transparent" >
+                        <v-toolbar-title>
+                          <v-icon
+                            color="success"
+                            icon="mdi-arrow-collapse-up"
+                            size="x-small"
+                            start
+                          ></v-icon>
+
+                          Top Layer
+                        </v-toolbar-title>
+
+                        <InputSearch v-model="searchPCBTopLayer" />
+                      </v-toolbar>
+                    </template>
+
+                    <template v-slot:item.stt="{ index }">
+                      {{
+                        (pagePCBTopLayer - 1) * itemPerPCBTopLayer + index + 1
+                      }}
+                    </template>
+
+                    <template v-slot:item.x="{ item }">
+                      {{ item.x }}
+                    </template>
+                    <template v-slot:item.y="{ item }">
+                      {{ item.y }}
+                    </template>
+                  </v-data-table-virtual>
+                </v-col>
+                <v-divider vertical></v-divider>
+                <v-col cols="6">
+                  <v-data-table-virtual
+                    density="comfortable"
+                    :headers="HeadersPCBBottom"
+                    :items="resultBottom"
+                    :search="searchPCBBottomLayer"
+                    :items-per-page="itemPerPCBBottomLayer"
+                    v-model:page="pagePCBBottomLayer"
+                    class="elevation-0"
+                    :footer-props="{
+                      'items-per-page-options': [10, 20, 50, 100],
+                      'items-per-page-text': 'Số hàng mỗi trang',
+                    }"
+                    :header-props="{
+                      sortByText: 'Sắp xếp theo',
+                      sortDescText: 'Giảm dần',
+                      sortAscText: 'Tăng dần',
+                    }"
+                    :loading="DialogLoading"
+                    loading-text="Đang tải dữ liệu..."
+                    no-data-text="Không có dữ liệu"
+                    no-results-text="Không tìm thấy kết quả"
+                    :hover="true"
+                    :dense="false"
+                    :fixed-header="true"
+                    height="58vh"
+                  >
+                    <template v-slot:top>
+                      <v-toolbar flat class="d-flex align-center bg-transparent">
+                        <v-toolbar-title>
+                          <v-icon
+                            color="success"
+                            icon="mdi-arrow-collapse-down"
+                            size="x-small"
+                            start
+                          ></v-icon>
+
+                          Bottom Layer
+                        </v-toolbar-title>
+
+                        <InputSearch v-model="searchPCBBottomLayer" />
+                      </v-toolbar>
+                    </template>
+                  
+                    <template v-slot:item.stt="{ index }">
+                      {{
+                        (pagePCBBottomLayer - 1) * itemPerPCBBottomLayer +
+                        index +
+                        1
+                      }}
+                    </template>
+
+                    <template v-slot:item.x="{ item }">
+                      {{ item.x }}
+                    </template>
+                    <template v-slot:item.y="{ item }">
+                      {{ item.y }}
+                    </template>
+                  </v-data-table-virtual>
                 </v-col>
               </v-row>
             </v-card-text>
-            </v-card>
           </v-tabs-window-item>
         </v-tabs-window>
       </v-card>
     </v-card-text>
   </v-card>
 
-  <BaseDialog v-model="DialogAddBom" width="600" title="Thêm dữ liệu BOM" icon="mdi-plus">
+  <BaseDialog
+    v-model="DialogAddBom"
+    width="600"
+    title="Thêm dữ liệu BOM"
+    icon="mdi-plus"
+  >
     <InputFiles
       label="Nhập file Bom (.xlsx)"
       class="mt-2"
@@ -271,7 +525,12 @@
       <ButtonSave @save="uploadBOM()" />
     </template>
   </BaseDialog>
-  <BaseDialog v-model="DialogAddPnP" width="700" title="Thêm dữ liệu Pick & Place" icon="mdi-plus">
+  <BaseDialog
+    v-model="DialogAddPnP"
+    width="700"
+    title="Thêm dữ liệu Pick & Place"
+    icon="mdi-plus"
+  >
     <InputFiles
       label="Nhập file Pick & Place (.xlsx)"
       class="mt-2"
@@ -292,26 +551,151 @@
       <ButtonSave @save="uploadPNP" />
     </template>
   </BaseDialog>
-  <BaseDialog v-model="DialogAddGerber" width="700" title="Thêm dữ liệu Gerber" icon="mdi-plus">
+
+  <BaseDialog
+    v-model="DialogAddGerber"
+    width="700"
+    title="Thêm dữ liệu Gerber"
+    icon="mdi-plus"
+  >
+    <!-- Upload files -->
     <InputFiles
-      label="Nhập file Gerber (.gtp, .gbp)"
+      label="Nhập file Gerber (.gtp, .gbp, .gtl, .gbl, ...)"
       class="mt-2"
       v-model="FileGerber"
       accept="*"
       name="gerber"
+      multiple
     />
-    <div class="d-flex">
+    <v-select
+      v-model="LayerGerber"
+      :items="['Top', 'Bottom']"
+      label="Layer"
+      class="mt-3"
+      density="comfortable"
+      variant="outlined"
+      prepend-inner-icon="mdi-layers-triple"
+    />
+
+    <!-- File list với layer selector -->
+    <div v-if="gerberFileList.length > 0" class="mt-3">
+      <p class="text-subtitle-2 mb-2">Danh sách file & chọn layer:</p>
+      <v-table density="compact" class="rounded border">
+        <thead>
+          <tr>
+            <th>Tên file</th>
+            <th style="width: 220px">Layer</th>
+            <th style="width: 40px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(item, index) in gerberFileList" :key="index">
+            <td>
+              <div class="d-flex align-center gap-2">
+                <v-icon size="16" color="grey">mdi-file-outline</v-icon>
+                <span
+                  class="text-body-2 text-truncate"
+                  style="max-width: 250px"
+                >
+                  {{ item.file.name }}
+                </span>
+              </div>
+            </td>
+            <td>
+              <v-select
+                v-model="item.layer"
+                :items="layerOptions"
+                item-title="label"
+                item-value="value"
+                density="compact"
+                variant="outlined"
+                hide-details
+                class="my-1"
+              >
+                <template #item="{ item: opt, props }">
+                  <v-list-item v-bind="props">
+                    <template #prepend>
+                      <v-icon :color="opt.raw.color" size="14" class="mr-1">
+                        mdi-square
+                      </v-icon>
+                    </template>
+                  </v-list-item>
+                </template>
+                <template #selection="{ item: opt }">
+                  <v-icon :color="opt.raw.color" size="14" class="mr-1">
+                    mdi-square
+                  </v-icon>
+                  <span class="text-body-2">{{ opt.raw.label }}</span>
+                </template>
+              </v-select>
+            </td>
+            <td>
+              <v-btn
+                icon="mdi-close"
+                size="x-small"
+                variant="text"
+                color="error"
+                @click="removeFile(index)"
+              />
+            </td>
+          </tr>
+        </tbody>
+      </v-table>
+    </div>
+
+    <!-- Note -->
+    <div class="d-flex mt-3">
       <p class="text-bold text-warning">Lưu ý:</p>
       <p class="font-weight-light ms-2">
         Cần chuyển đổi đơn vị file Gerber .gtp, .gbp là inch
       </p>
     </div>
+
     <template #actions>
-      <ButtonCancel @cancel="DialogAddGerber = false" />
-      <ButtonSave @save="uploadGerber" />
+      <ButtonCancel @cancel="closeDialog" />
+      <ButtonSave
+        @save="uploadGerber"
+        :disabled="gerberFileList.length === 0"
+      />
     </template>
   </BaseDialog>
-  <BaseDialog v-model="DialogAddSize" width="600" title="Cập nhật kích thước linh kiện" icon="mdi-update">
+  <BaseDialog
+    v-model="DialogAddGerberPDF"
+    width="700"
+    title="Thêm dữ liệu Gerber PDF"
+    icon="mdi-file-pdf-box"
+  >
+    <InputFiles
+      label="Nhập file Gerber PDF (.pdf)"
+      class="mt-2"
+      v-model="FileGerberPDF"
+      accept=".pdf"
+      name="gerber-pdf"
+    />
+    <v-select
+      v-model="LayerGerberPDF"
+      :items="['Top', 'Bottom']"
+      label="Layer"
+      class="mt-3"
+      density="comfortable"
+      variant="outlined"
+      prepend-inner-icon="mdi-layers-triple"
+    />
+    <v-alert type="info" variant="tonal" class="mt-2 text-caption">
+      Upload file PDF Gerber – hệ thống sẽ tự động convert trang đầu tiên thành
+      ảnh SVG và hiển thị trong tab Gerber.
+    </v-alert>
+    <template #actions>
+      <ButtonCancel @cancel="DialogAddGerberPDF = false" />
+      <ButtonSave @save="uploadGerberPDF" />
+    </template>
+  </BaseDialog>
+  <BaseDialog
+    v-model="DialogAddSize"
+    width="600"
+    title="Cập nhật kích thước linh kiện"
+    icon="mdi-update"
+  >
     <InputField
       label="Mã linh kiện | Manufacture Part Number"
       v-model="MPN_Add_Size"
@@ -325,14 +709,24 @@
       <ButtonSave @save="SaveAddSize()" />
     </template>
   </BaseDialog>
-  <BaseDialog v-model="DialogRemove" width="400" title="Xoá dữ liệu" icon="mdi-delete">
+  <BaseDialog
+    v-model="DialogRemove"
+    width="400"
+    title="Xoá dữ liệu"
+    icon="mdi-delete"
+  >
     Bạn có chắc chắn muốn xoá Bom này ?
     <template #actions>
       <ButtonCancel @cancel="DialogRemove = false" />
       <ButtonDelete @delete="RemoveItem()" />
     </template>
   </BaseDialog>
-  <BaseDialog v-model="DialogEdit" width="600" title="Chỉnh sửa Pick & Place" icon="mdi-update">
+  <BaseDialog
+    v-model="DialogEdit"
+    width="600"
+    title="Chỉnh sửa Pick & Place"
+    icon="mdi-update"
+  >
     <v-row>
       <v-col cols="4">
         <InputField
@@ -349,11 +743,7 @@
         />
       </v-col>
       <v-col cols="4">
-        <InputField
-          label="Góc"
-          v-model="PnP_Angle_Edit"
-          hint="Góc linh kiện"
-        />
+        <InputField label="Góc" v-model="PnP_Angle_Edit" hint="Góc linh kiện" />
       </v-col>
     </v-row>
 
@@ -379,7 +769,12 @@
       <ButtonSave @save="SaveEditPnP()" />
     </template>
   </BaseDialog>
-  <BaseDialog v-model="DialogInfo" width="800" title="Thông số kỹ thuật" icon="mdi-information-variant-circle">
+  <BaseDialog
+    v-model="DialogInfo"
+    width="800"
+    title="Thông số kỹ thuật"
+    icon="mdi-information-variant-circle"
+  >
     <v-row>
       <v-col>
         <v-img :src="ResultSearch.Product.PhotoUrl"></v-img>
@@ -426,7 +821,12 @@
     </v-row>
   </BaseDialog>
 
-  <BaseDialog v-model="DialogCoordinateSettings" width="700" title="Cài đặt tọa độ" icon="mdi-tune">
+  <BaseDialog
+    v-model="DialogCoordinateSettings"
+    width="700"
+    title="Cài đặt tọa độ"
+    icon="mdi-tune"
+  >
     <p class="text-caption text-grey mb-2">Điều chỉnh tọa độ thủ công:</p>
 
     <div class="ga-2">
@@ -521,13 +921,164 @@
         Reset
       </v-btn>
       <v-spacer></v-spacer>
-      <ButtonSave
-        @save="
-          SaveSettingSVG();
-          SaveTransformPnP();
-        "
-      />
+      <ButtonSave @save="SaveSettingPCB()" />
     </div>
+  </BaseDialog>
+  <BaseDialog v-model="DialogSettingPCB" title="Cài đặt PCB" max-width="600px">
+    <v-card-text>
+      <div class="text-body-small pa-3 text-black">
+        Kích thước PCB (mm)
+        <v-btn
+          variant="text"
+          size="small"
+          class="text-caption ms-2"
+          color="primary"
+          prepend-icon="mdi-information-variant-circle"
+        >
+          <v-tooltip activator="parent" location="end"
+            >Lấy kích thước PCB</v-tooltip
+          >
+        </v-btn>
+      </div>
+
+      <v-row>
+        <v-col cols="6">
+          <InputField
+            v-model.number="length"
+            label="Chiều dài L (mm)"
+            type="number"
+            density="comfortable"
+            variant="outlined"
+            step="0.01"
+          />
+        </v-col>
+        <v-col cols="6">
+          <InputField
+            v-model.number="width"
+            label="Chiều rộng W (mm)"
+            type="number"
+            density="comfortable"
+            variant="outlined"
+            step="0.01"
+          />
+        </v-col>
+      </v-row>
+      <div class="text-body-small pa-3 text-black">
+        Toạ độ gốc (mm)
+        <v-btn
+          variant="text"
+          size="small"
+          class="text-caption ms-2"
+          color="primary"
+          prepend-icon="mdi-information-variant-circle"
+        >
+          <v-tooltip activator="parent" location="end"
+            >Lấy toạ độ góc trái dưới từ PCB</v-tooltip
+          >
+        </v-btn>
+      </div>
+
+      <v-row>
+        <v-col cols="6">
+          <InputField
+            v-model.number="originOffsetX"
+            label="Toạ độ X (mm)"
+            type="number"
+            density="comfortable"
+            variant="outlined"
+            step="0.01"
+          />
+        </v-col>
+        <v-col cols="6">
+          <InputField
+            v-model.number="originOffsetY"
+            label="Toạ độ Y (mm)"
+            type="number"
+            density="comfortable"
+            variant="outlined"
+            step="0.01"
+          />
+        </v-col>
+      </v-row>
+
+      <div class="text-body-small pa-3 text-black">
+        Rìa Panel (mm)
+        <v-btn
+          variant="text"
+          size="small"
+          class="text-caption ms-2"
+          color="primary"
+          prepend-icon="mdi-information-variant-circle"
+        >
+          <v-tooltip activator="parent" location="end"
+            >Phần rìa X, Y của PCB</v-tooltip
+          >
+        </v-btn>
+      </div>
+
+      <v-row>
+        <v-col cols="6">
+          <InputField
+            v-model.number="railOffsetX"
+            label="Rìa X (mm)"
+            type="number"
+            density="comfortable"
+            variant="outlined"
+            step="0.01"
+          />
+        </v-col>
+        <v-col cols="6">
+          <InputField
+            v-model.number="railOffsetY"
+            label="Rìa Y (mm)"
+            type="number"
+            density="comfortable"
+            variant="outlined"
+            step="0.01"
+          />
+        </v-col>
+      </v-row>
+
+      <div class="text-body-small pa-3 text-black">
+        Góc xoay (độ)
+        <v-btn
+          variant="text"
+          size="small"
+          class="text-caption ms-2"
+          color="primary"
+          prepend-icon="mdi-information-variant-circle"
+        >
+          <v-tooltip activator="parent" location="end"
+            >Góc xoay của PCB so với góc chuẩn</v-tooltip
+          >
+        </v-btn>
+      </div>
+      <v-row>
+        <v-col cols="4">
+          <InputSelect
+            v-model="rotationMode"
+            :items="['CCW', 'CW']"
+            label="Chế độ xoay"
+            density="comfortable"
+            variant="outlined"
+          />
+        </v-col>
+        <v-col cols="8">
+          <InputSelect
+            v-model.number="angle"
+            label="Góc xoay (độ)"
+            :items="[0, 90, 180, 270]"
+            density="comfortable"
+            variant="outlined"
+            step="0.01"
+          />
+        </v-col>
+      </v-row>
+    </v-card-text>
+    <template v-slot:actions>
+      <Button-Cancel @click="DialogSettingPCB = false"></Button-Cancel>
+      <Button-Save @click="SaveSettingPCB()"></Button-Save>
+    </template>
   </BaseDialog>
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarCaution v-model="DialogCaution" :message="MessageCautionDialog" />
@@ -539,9 +1090,10 @@ import axios from "axios";
 import { ref, watch, computed, onMounted, reactive } from "vue";
 import { useRoute } from "vue-router";
 import { useCombineBom } from "@/composables/CheckBOM/useCombineBom";
+import { useBomHighlight } from "@/composables/CheckBOM/useBomHighlight";
 import { usePnPFile } from "@/composables/CheckBOM/usePnPFile";
 import { useGerberFile } from "@/composables/CheckBOM/useGerberFile";
-import { useSettingSVG } from "@/composables/CheckBOM/useSettingSVG";
+import { useSettingPCB } from "@/composables/CheckBOM/useSettingPCB";
 
 import ButtonBack from "@/components/Button-Back.vue";
 import InputSearch from "@/components/Input-Search.vue";
@@ -551,36 +1103,50 @@ import InputSelect from "@/components/Input-Select.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarCaution from "@/components/Snackbar-Caution.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
-import ButtonAdd from "@/components/Button-Add.vue";
 import ButtonEdit from "@/components/Button-Edit.vue";
-import ButtonRemove from "@/components/Button-Remove.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonSearch from "@/components/Button-Search.vue";
-import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import Loading from "@/components/Loading.vue";
-import EmptyMobile from "@/components/Empty-Mobile.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
 import BaseDialog from "@/components/BaseDialog.vue";
 
 import ExcelJS from "exceljs";
+import svgPanZoom from "svg-pan-zoom";
+import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 //
 
+// ==========================================
+// 1. CONSTANTS & API CONFIG
+// ==========================================
 const Url = import.meta.env.VITE_API_URL;
-const GetID = ref("");
+const clientId = import.meta.env.VITE_DIGIKEY_CLIENT_ID;
+const clientSecret = import.meta.env.VITE_DIGIKEY_CLIENT_SECRET;
 const route = useRoute();
 const id = route.params.id;
-const { combineBom, combineBomErrror } = useCombineBom(id);
-const { detailPnP, detailPnPError } = usePnPFile(id);
-const { detailGerber, detailGerberError } = useGerberFile(id);
-const { detailSetting, detailSettingError } = useSettingSVG(id);
-// Dialog status
+
+// ==========================================
+// 2. COMPOSABLES
+// ==========================================
+const { combineBom } = useCombineBom(id);
+const { bomHighlight } = useBomHighlight(id);
+const { detailPnP } = usePnPFile(id);
+const { detailGerber } = useGerberFile(id);
+const { detailSetting } = useSettingPCB(id);
+
+// ==========================================
+// 3. STATE MANAGEMENT
+// ==========================================
+
+// --- Dialog & UI States ---
 const DialogEdit = ref(false);
 const DialogAddBom = ref(false);
 const DialogAddPnP = ref(false);
 const DialogAddGerber = ref(false);
+const DialogAddGerberPDF = ref(false);
+const DialogSettingPCB = ref(false);
 const DialogAddSize = ref(false);
 const DialogRemove = ref(false);
 const DialogFailed = ref(false);
@@ -588,16 +1154,118 @@ const DialogCaution = ref(false); // Warning notification
 const DialogLoading = ref(false); // Loading state
 const DialogSuccess = ref(false);
 const DialogInfo = ref(false);
-const DialogCoordinateSettings = ref(false);
 const MessageDialog = ref("");
 const MessageErrorDialog = ref("");
 const MessageCautionDialog = ref("");
+const tab = ref(null);
 
-// Data page
+// --- File & Project States ---
 const project_name = ref(localStorage.getItem("BomName"));
 const FileBom = ref(null);
 const FilePnP = ref(null);
 const FileGerber = ref(null);
+const FileGerberPDF = ref(null);
+const LayerGerberPDF = ref("Top");
+const LayerGerber = ref("Top");
+const gerberFileList = ref([]);
+
+// --- Gerber & SVG View States ---
+const overlayMode = ref("both"); // 'both', 'gerber', 'pnp'
+const svgContainer = ref(null);
+const zoomLevel = ref(1);
+const mouseCoords = reactive({ x: 0, y: 0 });
+const svgWrapper = ref(null);
+const panZoomInstance = ref(null);
+const selectedLayer = ref("Top");
+
+// --- Coordinate & Transformation States ---
+const coordinateScale = ref(1);
+const coordinateOffsetX = ref(0);
+const coordinateOffsetY = ref(0);
+const coordinateRotation = ref(0);
+const showGrid = ref(false);
+const showComponentBoxes = ref(true);
+const pnpYOffsetMm = ref(12);
+
+const flipX = ref(false);
+const flipY = ref(false);
+const swapXY = ref(false);
+
+const cx = ref(0);
+const cy = ref(0);
+const rotationAngle = ref(0);
+const svgRotation = ref(0);
+const designatorLabelAngle = ref(0);
+const componentBodyAngle = ref(0);
+
+const manualOffsetX = ref(0);
+const manualOffsetY = ref(0);
+const totalAddedX = ref(0);
+const totalAddedY = ref(0);
+const totalAdjustedCountX = ref(0);
+const totalAdjustedCountY = ref(0);
+const hintOffsetX = ref(0);
+const hintOffsetY = ref(0);
+
+// --- Setting PCB States ---
+const width = ref(0);
+const length = ref(0);
+const originOffsetX = ref(0);
+const originOffsetY = ref(0);
+const railOffsetX = ref(0);
+const railOffsetY = ref(0);
+const angle = ref(0);
+const rotationMode = ref("CW");
+
+// --- DigiKey API States ---
+const GetDigikey = ref("");
+const accessToken = ref(null);
+const tokenType = ref(null);
+const ResultSearch = ref(null);
+
+// --- Table & Data States ---
+const Headers = [
+  { title: "STT", key: "stt" },
+  { title: "Designator", key: "designator", width: "150px" },
+  { title: "MPN", key: "mpn", width: "150px" },
+  { title: "X (mm)", key: "x" },
+  { title: "Y (mm)", key: "y" },
+  { title: "Rotation", key: "rotation" },
+  { title: "Layer", key: "layer" },
+  { title: "Description", key: "description_bom" },
+  { title: "Width", key: "width" },
+  { title: "Length", key: "length" },
+  { title: "Mount Type", key: "mount_type" },
+  { title: "Need Review", key: "need_review" },
+  { title: "Thao tác", key: "id", sortable: false },
+];
+
+const HeadersPCBTop = [
+  { title: "STT", key: "stt" },
+  { title: "Designator", key: "designator", width: "150px" },
+  { title: "X (mm)", key: "x" },
+  { title: "Y (mm)", key: "y" },
+  { title: "Rotation", key: "rotation" },
+  { title: "MPN", key: "mpn", width: "150px" },
+];
+
+const HeadersPCBBottom = [
+  { title: "STT", key: "stt" },
+  { title: "Designator", key: "designator", width: "150px" },
+  { title: "X (mm)", key: "x" },
+  { title: "Y (mm)", key: "y" },
+  { title: "Rotation", key: "rotation" },
+  { title: "MPN", key: "mpn", width: "150px" },
+];
+const searchBom = ref("");
+const itemsPerPageBom = ref(20);
+const pageBom = ref(1);
+const searchPCBTopLayer = ref("");
+const searchPCBBottomLayer = ref("");
+const itemPerPCBTopLayer = ref(15);
+const itemPerPCBBottomLayer = ref(15);
+const pagePCBTopLayer = 1;
+const pagePCBBottomLayer = 1;
 
 const MPN_Add_Size = ref("");
 const Package_Add_Size = ref("");
@@ -613,609 +1281,107 @@ const PnP_Y_Edit = ref("");
 const PnP_Type_Edit = ref("");
 const PnP_Layer_Edit = ref("");
 
-// Overlay controls
-const tab = ref(null);
-const overlayMode = ref("both"); // 'both', 'gerber', 'pnp'
-const svgContainer = ref(null);
-const zoomLevel = ref(1);
+// ==========================================
+// 4. COMPUTED PROPERTIES
+// ==========================================
 
-// Layer selection
-const selectedLayer = ref("Top");
-
-// Coordinate transformation controls
-const coordinateScale = ref(1);
-const coordinateOffsetX = ref(0);
-const coordinateOffsetY = ref(0);
-const coordinateRotation = ref(0);
-const showGrid = ref(false);
-const showComponentBoxes = ref(true);
-
-// Additional Y offset for PnP markers (in mm) to align with SVG
-const pnpYOffsetMm = ref(12);
-
-// Coordinate flip controls
-const flipX = ref(false);
-const flipY = ref(false);
-const swapXY = ref(false);
-
-// Board rotation controls
-const cx = ref(0);
-const cy = ref(0);
-const rotationAngle = ref(0);
-const svgRotation = ref(0);
-
-// Designator label and component body rotation controls
-const designatorLabelAngle = ref(0);
-const componentBodyAngle = ref(0);
-
-// Manual coordinate adjustment
-const manualOffsetX = ref(0);
-const manualOffsetY = ref(0);
-const totalAddedX = ref(0);
-const totalAddedY = ref(0);
-const totalAdjustedCountX = ref(0);
-const totalAdjustedCountY = ref(0);
-const hintOffsetX = ref(0);
-const hintOffsetY = ref(0);
-
-// Adjustment include panel frame và rotation SVG
-const panelFrameX = ref(0);
-const panelFrameY = ref(0);
-
-// Data search item in digikey
-const clientId = import.meta.env.VITE_DIGIKEY_CLIENT_ID;
-const clientSecret = import.meta.env.VITE_DIGIKEY_CLIENT_SECRET;
-const GetDigikey = ref("");
-const accessToken = ref(null);
-const tokenType = ref(null);
-const expires_in = ref(null);
-const ResultSearch = ref(null);
-
-// Table status
-const Headers = [
-  { title: "STT", key: "stt" },
-  { title: "Designator", key: "designator", width: "150px" },
-  { title: "Manufacture Part Number", key: "mpn", width: "150px" },
-  { title: "X (mm)", key: "x" },
-  { title: "Y (mm)", key: "y" },
-  { title: "Rotation", key: "rotation" },
-  { title: "Layer", key: "layer" },
-  { title: "Định dạng", key: "type" },
-  { title: "Package", key: "description_bom" },
-  { title: "Width", key: "width" },
-  { title: "Length", key: "length" },
-  { title: "Thao tác", key: "id", sortable: false },
-];
-
-// const HeadersPnP = [
-//   { title: "STT", key: "stt" },
-//   { title: "Designator", key: "designator" },
-//   { title: "X(mm)", key: "x" },
-//   { title: "Y(mm)", key: "y" },
-//   { title: "Rotation (°)", key: "rotation" },
-//   { title: "MPN", key: "mpn" },
-// ];
-const searchBom = ref("");
-const itemsPerPageBom = ref(20);
-const pageBom = ref(1);
-
-// const searchPnP = ref("")
-// const itemsPerPagePnP = ref(20);
-// const pagePnP = ref(1);
-// Color mapping for match quality categories
-
-// ============ onMounted =============
-
-onMounted(() => {
-  if (coordinateScale.value) {
-    return (coordinateScale.value /= 0.0254);
-  }
-
-  if (detailSetting.value) {
-    return rotatePnPAroundCenter();
-  }
+const filteredPnP = computed(() => {
+  const list = detailPnP.value || [];
+  return list.filter(
+    (p) => (p.layer || "Top") === selectedLayer.value && p.type === "SMT",
+  );
 });
 
-// Function
+const topLayerCount = computed(() => {
+  if (!combineBom.value) return 0;
+  return combineBom.value.filter((item) => item.layer === "Top").length;
+});
 
-const uploadBOM = async () => {
-  DialogLoading.value = true;
-  try {
-    const formData = new FormData();
-    formData.append("FileBom", FileBom.value);
-    await axios.post(`${Url}/upload-bom/${id}`, formData);
-    DialogSuccess.value = true;
-    MessageDialog.value = "Upload Bom thành công";
-    DialogAddBom.value = false;
-    FileBom.value = null;
-    DialogLoading.value = false;
-  } catch (error) {
-    DialogFailed.value = true;
-    MessageErrorDialog.value = "Upload Bom thất bại";
-    console.error("Lỗi upload BOM:", error);
-    DialogLoading.value = false;
+const bottomLayerCount = computed(() => {
+  if (!combineBom.value) return 0;
+  return combineBom.value.filter((item) => item.layer === "Bottom").length;
+});
+
+const componentsWithSize = computed(() => {
+  if (!filteredPnP.value) return 0;
+  return filteredPnP.value.filter(
+    (p) => p.width && p.length && p.width > 0 && p.length > 0,
+  ).length;
+});
+
+const pnpBounds = computed(() => {
+  if (!filteredPnP.value || filteredPnP.value.length === 0) return null;
+  const valid = filteredPnP.value.filter(
+    (p) => typeof p.x === "number" && typeof p.y === "number",
+  );
+  if (valid.length === 0) return null;
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const p of valid) {
+    if (p.x < minX) minX = p.x;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.y > maxY) maxY = p.y;
   }
-};
+  return {
+    minX,
+    maxX,
+    minY,
+    maxY,
+    cxRaw: (minX + maxX) / 2,
+    cyRaw: (minY + maxY) / 2,
+  };
+});
 
-const uploadPNP = async () => {
-  DialogLoading.value = true;
-  try {
-    const formData = new FormData();
-    formData.append("FilePnP", FilePnP.value);
-    await axios.post(`${Url}/upload-pickplace/${id}`, formData);
-    DialogSuccess.value = true;
-    MessageDialog.value = "Upload Pick&Place thành công";
-    DialogAddPnP.value = false;
-    FilePnP.value = null;
-    DialogLoading.value = false;
-  } catch (error) {
-    DialogFailed.value = true;
-    MessageErrorDialog.value = "Upload Pick&Place thất bại";
-    console.error("Lỗi upload PickPlace:", error);
-    DialogLoading.value = false;
-  }
-};
-
-const uploadGerber = async () => {
-  DialogLoading.value = true;
-  try {
-    const formData = new FormData();
-    // Nếu Vuetify trả về mảng thì lấy phần tử đầu tiên
-    formData.append("FileGerber", FileGerber.value);
-
-    await axios.post(`${Url}/upload-gerber/${id}`, formData);
-
-    DialogSuccess.value = true;
-    MessageDialog.value = "Upload Gerber thành công";
-    DialogAddGerber.value = false;
-    FileGerber.value = null;
-    DialogLoading.value = false;
-  } catch (error) {
-    console.error("Lỗi upload Gerber:", error.response?.data || error);
-    DialogLoading.value = false;
-    DialogFailed.value = true;
-    MessageErrorDialog.value = "Upload Gerber thất bại";
-  }
-};
-
-// ====== Edit Pick Place ===========
-const GetItemEdit = (item) => {
-  DialogEdit.value = true;
-  GetIDPnP.value = item.id;
-  PnP_X_Edit.value = item.x;
-  PnP_Y_Edit.value = item.y;
-  PnP_Angle_Edit.value = item.rotation;
-  PnP_Type_Edit.value = item.type;
-  PnP_Layer_Edit.value = item.layer;
-};
-
-const GetSettingSVG = () => {
-  DialogCoordinateSettings.value = true;
-  const found = detailSetting.value.find((item) => (item.id = id));
-  if (selectedLayer.value == "Top") {
-    hintOffsetX.value = found.manualOffsetX_top.toFixed(2);
-    hintOffsetY.value = found.manualOffsetY_top.toFixed(2);
-    cx.value = found.cx_top;
-    cy.value = found.cy_top;
-    rotationAngle.value = found.rotation_top;
-    svgRotation.value = found.rotationSVG_top;
-    designatorLabelAngle.value = found.labelAngle_top || 0;
-    componentBodyAngle.value = found.componentBodyAngle_top || 0;
-    panelFrameX.value = found.panel_frame_X || 0;
-    panelFrameY.value = found.panel_frame_Y || 0;
-    if (found.flipX_top == 1 || found.flipX_top == true) {
-      flipX.value = true;
-    } else {
-      flipX.value = false;
-    }
-    if (found.flipY_top == 1 || found.flipY_top == true) {
-      flipY.value = true;
-    } else {
-      flipY.value = false;
-    }
-    if (found.swapXY_top == 1 || found.swapXY_top == true) {
-      swapXY.value = true;
-    }
-  } else {
-    hintOffsetX.value = found.manualOffsetX_bottom;
-    hintOffsetY.value = found.manualOffsetY_bottom;
-    cx.value = found.cx_bottom;
-    cy.value = found.cy_bottom;
-    rotationAngle.value = found.rotation_bottom;
-    svgRotation.value = found.rotationSVG_bottom;
-    designatorLabelAngle.value = found.labelAngle_bottom || 0;
-    componentBodyAngle.value = found.componentBodyAngle_bottom || 0;
-    panelFrameX.value = found.panel_frame_X || 0;
-    panelFrameY.value = found.panel_frame_Y || 0;
-    if (found.flipX_bottom == 1 || found.flipX_bottom == true) {
-      flipX.value = true;
-    } else {
-      flipX.value = false;
-    }
-    if (found.flipY_bottom == 1 || found.flipY_bottom == true) {
-      flipY.value = true;
-    } else {
-      flipY.value = false;
-    }
-    if (found.swapXY_bottom == 1 || found.swapXY_bottom == true) {
-      swapXY.value = true;
-    } else {
-      swapXY.value = false;
-    }
-  }
-};
-
-// Get information Update size
-const GetAddSize = (item) => {
-  DialogAddSize.value = true;
-  MPN_Add_Size.value = item.mpn;
-  Package_Add_Size.value = item.package;
-  Length_Add_Size.value = item.length;
-  Width_Add_Size.value = item.width;
-  if (item.source == "override") {
-    return (
-      (GetIDSize.value = item.id_components_overrides),
-      (Check_Size.value = item.source)
+const currentGerberSvg = computed(() => {
+  const dg = detailGerber.value;
+  if (!dg) return "";
+  if (Array.isArray(dg) && dg.length > 0) {
+    const byLayer = dg.find(
+      (item) => item && item.layer === selectedLayer.value && item.svg,
     );
+    if (byLayer && typeof byLayer.svg === "string") return byLayer.svg;
+    return "";
+  } else if (dg && typeof dg === "object") {
+    return dg.svg || "";
+  } else if (typeof dg === "string") {
+    return dg;
   }
-  if (item.source == "package_map") {
-    return (
-      (GetIDSize.value = item.id_component),
-      (Check_Size.value = item.source),
-      GetIDSize.value
+  return "";
+});
+
+const currentGerberUnit = computed(() => {
+  const dg = detailGerber.value;
+  if (!dg) return "";
+  if (Array.isArray(dg) && dg.length > 0) {
+    const byLayer = dg.find(
+      (item) => item && item.layer === selectedLayer.value && item.unit,
     );
+    if (byLayer && typeof byLayer.unit === "string") return byLayer.unit;
+    return "";
+  } else if (dg && typeof dg === "object") {
+    return dg.unit || "";
+  } else if (typeof dg === "string") {
+    return dg;
   }
-};
+  return "";
+});
 
-// Get information  Update size of accessory
-const SaveAddSize = async () => {
-  DialogLoading.value = true;
-
-  if (Check_Size.value == "package_map") {
-    const formData = reactive({
-      package: Package_Add_Size.value,
-      length: Length_Add_Size.value,
-      width: Width_Add_Size.value,
-    });
-    try {
-      const response = await axios.put(
-        `${Url}/Component/Edit-item/${GetIDSize.value}`,
-        formData
-      );
-      console.log(response.data.message);
-
-      DialogLoading.value = false;
-      DialogAddSize.value = false;
-      DialogSuccess.value = true;
-      MessageDialog.value = "Thêm dữ liệu thành công";
-    } catch (error) {
-      console.log(error);
-      DialogLoading.value = false;
-      DialogAddSize.value = false;
-      DialogFailed.value = true;
-      MessageErrorDialog.value = "Thêm dữ liệu thất bại";
-    }
-  } else if (Check_Size.value == "override") {
-    const formData = reactive({
-      package: Package_Add_Size.value,
-      length: Length_Add_Size.value,
-      width: Width_Add_Size.value,
-    });
-    try {
-      const response = await axios.put(
-        `${Url}/Component-overrides/Edit-item/${GetIDSize.value}`,
-        formData
-      );
-      console.log(response.data.message);
-
-      DialogLoading.value = false;
-      DialogAddSize.value = false;
-      DialogSuccess.value = true;
-      MessageDialog.value = "Thêm dữ liệu thành công";
-    } catch (error) {
-      console.log(error);
-      DialogLoading.value = false;
-      DialogAddSize.value = false;
-      DialogFailed.value = true;
-      MessageErrorDialog.value = "Thêm dữ liệu thất bại";
-    }
-  } else {
-    const formData = reactive({
-      mpn: MPN_Add_Size,
-      package: Package_Add_Size.value,
-      length: Length_Add_Size.value,
-      width: Width_Add_Size.value,
-    });
-    try {
-      const response = await axios.post(
-        `${Url}/Component-overrides/Add-item`,
-        formData
-      );
-      console.log(response.data.message);
-
-      DialogLoading.value = false;
-      DialogAddSize.value = false;
-      DialogSuccess.value = true;
-      MessageDialog.value = "Thêm dữ liệu thành công";
-    } catch (error) {
-      console.log(error);
-      DialogLoading.value = false;
-      DialogAddSize.value = false;
-      DialogFailed.value = true;
-      MessageErrorDialog.value = "Thêm dữ liệu thất bại";
-    }
-  }
-};
-
-// Put item in Pickplace table
-const SaveEditPnP = async () => {
-  DialogLoading.value = true;
-  const formData = reactive({
-    x: PnP_X_Edit.value,
-    y: PnP_Y_Edit.value,
-    rotation: PnP_Angle_Edit.value,
-    type: PnP_Type_Edit.value,
-    layer: PnP_Layer_Edit.value,
-  });
-
-  try {
-    const response = await axios.put(
-      `${Url}/PickPlace/Edit-item/${GetIDPnP.value}`,
-      formData
-    );
-    DialogLoading.value = false;
-    DialogEdit.value = false;
-    DialogSuccess.value = true;
-    MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
-  } catch (error) {
-    DialogLoading.value = false;
-    DialogEdit.value = false;
-    DialogFailed.value = true;
-    MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
-  }
-};
-
-// Put item in Pickplace table with x, y transform-origin
-const SaveTransformPnP = async () => {
-  DialogLoading.value = true;
-  try {
-    const response = await axios.put(
-      `${Url}/PickPlace/Update-item`,
-      filteredPnP.value
-    );
-
-    DialogLoading.value = false;
-    DialogEdit.value = false;
-    DialogSuccess.value = true;
-    MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
-  } catch (error) {
-    DialogLoading.value = false;
-    DialogEdit.value = false;
-    DialogFailed.value = true;
-    MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
-  }
-};
-
-const SaveSettingSVG = async () => {
-  DialogLoading.value = true;
-  const formData = reactive({
-    flipX: flipX.value,
-    flipY: flipY.value,
-    swapXY: swapXY.value,
-    cx: cx.value,
-    cy: cy.value,
-    rotation: rotationAngle.value,
-    rotationSVG: svgRotation.value,
-    designatorLabelAngle: designatorLabelAngle.value,
-    componentBodyAngle: componentBodyAngle.value,
-    manualOffsetX: totalAddedX.value,
-    manualOffsetY: totalAddedY.value,
-    labelAngle: designatorLabelAngle.value,
-    componentBodyAngle: componentBodyAngle.value,
-    panelFrameX: panelFrameX.value,
-    panelFrameY: panelFrameY.value,
-  });
-  if (selectedLayer.value == "Top") {
-    try {
-      const response = await axios.put(
-        `${Url}/SettingSVG/Edit-item-top/${id}`,
-        formData
-      );
-      console.log(response.data.message);
-
-      DialogLoading.value = false;
-      DialogCoordinateSettings.value = false;
-      DialogSuccess.value = true;
-      MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
-    } catch (error) {
-      console.log(error);
-      DialogLoading.value = false;
-      DialogCoordinateSettings.value = false;
-      DialogFailed.value = true;
-      MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
-    }
-  } else {
-    try {
-      const response = await axios.put(
-        `${Url}/SettingSVG/Edit-item-bottom/${id}`,
-        formData
-      );
-      console.log(response.data.message);
-
-      DialogLoading.value = false;
-      DialogCoordinateSettings.value = false;
-      DialogSuccess.value = true;
-      MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
-    } catch (error) {
-      console.log(error);
-      DialogLoading.value = false;
-      DialogCoordinateSettings.value = false;
-      DialogFailed.value = true;
-      MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
-    }
-  }
-};
-
-const downloadExcelPnP = async () => {
-  const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet("Dữ liệu SMT");
-
-  // Tạo header
-  worksheet.columns = [
-    { header: "Designator", key: "designator", width: 20 },
-    { header: "X-Center", key: "x", width: 20 },
-    { header: "Y- Center", key: "y", width: 20 },
-    { header: "Rotation", key: "rotation", width: 20 },
-    { header: "Layer", key: "layer", width: 20 },
-    { header: "MPN", key: "mpn", width: 50 },
-  ];
-
-  // Thêm dữ liệu từ composables
-  filteredPnP.value.forEach((item) => {
-    worksheet.addRow(item);
-  });
-
-  // Xuất buffer
-  const buffer = await workbook.xlsx.writeBuffer();
-  saveAs(new Blob([buffer]), "DataSMT.xlsx");
-};
-
-// ===== DIGIKEY API OPERATIONS =====
-/**
- * Gets access token from DigiKey API
- * @param {string} value - The ID of the item to search
- */
-const getAccessToken = async (value) => {
-  DialogLoading.value = true;
-  const found = combineBom.value.find((v) => v.id === value.id);
-  GetDigikey.value = found.mpn;
-
-  const tokenUrl = "https://api.digikey.com/v1/oauth2/token";
-  const params = new URLSearchParams();
-  params.append("grant_type", "client_credentials");
-  params.append("client_id", clientId); // <-- Bổ sung
-  params.append("client_secret", clientSecret); // <-- Bổ sung
-
-  try {
-    const response = await axios.post(tokenUrl, params.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
-
-    accessToken.value = response.data.access_token;
-    tokenType.value = response.data.token_type;
-    expires_in.value = response.data.expires_in;
-
-    console.log("Đã lấy access token thành công:", accessToken.value);
-
-    if (accessToken.value && tokenType.value && GetDigikey.value) {
-      return await searchProduct();
-    }
-
-    return true;
-  } catch (error) {
-    console.error(
-      "Lỗi khi lấy access token:",
-      error.response ? error.response.data : error.message
-    );
-    MessageErrorDialog.value = "Lỗi khi lấy access token";
-    return false;
-  }
-};
-
-/**
- * Searches for product details using DigiKey API
- */
-const searchProduct = async () => {
-  if (!accessToken.value) {
-    console.error("Chưa có access token. Vui lòng lấy token trước.");
-    return;
+const currentSvgContent = computed(() => {
+  let content = "";
+  if (overlayMode.value === "both") {
+    content = svgWithPnP.value;
+  } else if (overlayMode.value === "gerber") {
+    content = currentGerberSvg.value || "";
   }
 
-  const searchUrl = `https://api.digikey.com/products/v4/search/${GetDigikey.value}/productdetails`;
+  if (!content) return "";
 
-  try {
-    const response = await axios.get(searchUrl, {
-      headers: {
-        Authorization: `${tokenType.value} ${accessToken.value}`,
-        "Content-Type": "application/json",
-        "X-DIGIKEY-Client-Id": `${clientId}`,
-      },
-    });
-    ResultSearch.value = response.data;
-    DialogSuccess.value = true;
-    MessageDialog.value = "Tìm kiếm sản phẩm thành công";
-    if (ResultSearch.value) {
-      return (DialogInfo.value = true), (DialogLoading.value = false);
-    }
-    return response.data;
-  } catch (error) {
-    console.error(
-      "Lỗi khi tìm kiếm sản phẩm:",
-      error.response ? error.response.data : error.message,
-      (DialogCaution.value = true),
-      (DialogLoading.value = false)
-    );
-    DialogFailed.value = true;
-    DialogLoading.value = false;
-    MessageErrorDialog.value = "Lỗi khi tìm kiếm sản phẩm";
-    return null;
-  }
-};
-
-const DownloadPnP = async () => {
-  try {
-    const response = await fetch(`${Url}/PickPlace/download/${id}`);
-    if (!response.ok) throw new Error("Download failed");
-
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `PickPlace.xlsx`;
-    document.body.appendChild(a);
-    a.click();
-
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  } catch (error) {
-    MessageErrorDialog.value = "Tải file thất bại";
-    console.error("Error downloading file:", error);
-    Error();
-  }
-};
-
-// Project demo (id=1)
-const loadData = async () => {
-  await loadGerber(1);
-  await loadPnP(1);
-};
-
-// Helper: parse SVG height from viewBox or height attribute
-const getSvgRenderedHeight = (svgString) => {
-  if (typeof svgString !== "string") return null;
-  // Try viewBox first: viewBox="minX minY width height"
-  const viewBoxMatch = svgString.match(/viewBox\s*=\s*"([^"]+)"/i);
-  if (viewBoxMatch && viewBoxMatch[1]) {
-    const parts = viewBoxMatch[1]
-      .trim()
-      .split(/\s+/)
-      .map((n) => Number(n));
-    if (parts.length === 4 && parts.every((v) => Number.isFinite(v))) {
-      return parts[3];
-    }
-  }
-  // Fallback to height attribute
-  const heightMatch = svgString.match(/height\s*=\s*"([^"]+)"/i);
-  if (heightMatch && heightMatch[1]) {
-    const val = heightMatch[1].trim();
-    const num = Number(val.replace(/[^0-9.+-]/g, ""));
-    if (Number.isFinite(num)) return num;
-  }
-  return null;
-};
+  // Inject ID and Viewport for svg-pan-zoom
+  return prepareSvg(content);
+});
 
 // Combine Gerber + Pick&Place overlay
 const svgWithPnP = computed(() => {
@@ -1236,8 +1402,25 @@ const svgWithPnP = computed(() => {
   }
 
   const svgHeight = getSvgRenderedHeight(svg);
-
-  const pnpMarkers = filteredPnP.value
+  let offset = [];
+  if (selectedLayer.value === "Top") {
+    const offsetSettingY = detailSetting.value[0].manualOffsetY_top || 0;
+    const offsetSettingX = detailSetting.value[0].manualOffsetX_top || 0;
+    offset = filteredPnP.value.map((pnp) => ({
+      ...pnp,
+      y: pnp.y - offsetSettingY,
+      x: pnp.x - offsetSettingX,
+    }));
+  } else {
+    const offsetSettingY = detailSetting.value[0].manualOffsetY_bottom || 0;
+    const offsetSettingX = detailSetting.value[0].manualOffsetX_bottom || 0;
+    offset = filteredPnP.value.map((pnp) => ({
+      ...pnp,
+      y: pnp.y - offsetSettingY,
+      x: pnp.x - offsetSettingX,
+    }));
+  }
+  const pnpMarkers = offset
     .filter((pnp) => pnp.x !== null && pnp.y !== null && pnp.designator)
     .map((pnp) => {
       let transformedX =
@@ -1316,55 +1499,31 @@ const svgWithPnP = computed(() => {
               fill="rgba(255, 179, 0, 0.4)"
               stroke="#E65100"
               stroke-width="3"
-              opacity="1"
-            />
-            <!-- Component outline for better visibility -->
-            <rect
-              class="pnp-component-outline"
-              x="${-(rectLength / 2)}"
-              y="${-(rectWidth / 2)}"
-              width="${rectLength}"
-              height="${rectWidth}"
-              fill="none"
-              stroke="#FFFFFF"
-              stroke-width="1.5"
-              stroke-dasharray="2,2"
-              opacity="1"
             />
           </g>
         `;
       }
 
       return `
-        <g transform="translate(${transformedX}, ${transformedY}) rotate(${componentRotation}) scale(${crosshairScale})" class="pnp-marker" data-designator="${
-        pnp.designator
-      }">
+        <g transform="translate(${transformedX}, ${transformedY}) rotate(${componentRotation}) scale(${crosshairScale})" class="pnp-marker" data-designator="${pnp.designator}">
           ${componentMarkup}
-          <!-- Crosshair marker - làm to hơn để dễ nhìn -->
+          <!-- Crosshair marker -->
           <line x1="-25" y1="0" x2="25" y2="0" stroke="red" stroke-width="1.5" opacity="0.9"/>
           <line x1="0" y1="-25" x2="0" y2="25" stroke="red" stroke-width="1.5" opacity="0.9"/>
-          <!-- Circle around the point - làm to hơn -->
+          <!-- Circle around the point -->
           <circle cx="0" cy="0" r="2" fill="none" stroke="red" stroke-width="0.8" opacity="0.8"/>
-          <!-- Designator label with rotation -->
+          <!-- Designator label -->
           <text
             x="6"
             y="3"
             font-size="23"
             fill="blue"
             font-weight="bold"
-            opacity="1"
             transform="rotate(${designatorLabelAngle.value})"
             transform-origin="6 3"
           >${pnp.designator}</text>
-          <!-- Coordinate info on hover -->
-          <title>${pnp.designator}: X=${pnp.x}mm, Y=${pnp.y}mm${
-        rectWidth > 0 && rectLength > 0
-          ? `, Size=${(pnp.width || 0).toFixed(2)}x${(pnp.length || 0).toFixed(
-              2
-            )}mm`
-          : ""
-      }</title>
-    </g>
+          <title>${pnp.designator}: X=${pnp.x}mm, Y=${pnp.y}mm</title>
+        </g>
       `;
     })
     .join("");
@@ -1372,271 +1531,688 @@ const svgWithPnP = computed(() => {
   return svg.replace("</svg>", `${pnpMarkers}</svg>`);
 });
 
-// SVG rotation state
-
-// Computed properties for better performance
-const componentsWithSize = computed(() => {
-  if (!filteredPnP.value) return 0;
-  return filteredPnP.value.filter(
-    (p) => p.width && p.length && p.width > 0 && p.length > 0
-  ).length;
+const PCBTopLayer = computed(() => {
+  return combineBom.value.filter((item) => item.layer === "Top");
 });
 
-// Pan and zoom state
-const panX = ref(0);
-const panY = ref(0);
-const isPanning = ref(false);
-const lastPanPoint = ref({ x: 0, y: 0 });
-
-// Computed for current SVG content based on overlay mode
-const currentSvgContent = computed(() => {
-  if (overlayMode.value === "both") {
-    return svgWithPnP.value;
-  } else if (overlayMode.value === "gerber") {
-    return currentGerberSvg.value || "";
-  }
-  return "";
+const PCBBottomLayer = computed(() => {
+  return combineBom.value.filter((item) => item.layer === "Bottom");
 });
 
-// Computed for SVG container transform style
-const svgContainerStyle = computed(() => {
-  const transforms = [];
+// ==========================================
+// 5. LIFECYCLE HOOKS
+// ==========================================
 
-  // Add pan transform
-  if (panX.value !== 0 || panY.value !== 0) {
-    transforms.push(`translate(${panX.value}px, ${panY.value}px)`);
+onMounted(() => {
+  if (coordinateScale.value) {
+    coordinateScale.value /= 0.0254;
   }
-
-  // Add zoom transform
-  if (zoomLevel.value !== 1) {
-    transforms.push(`scale(${zoomLevel.value})`);
-  }
-
-  // Add SVG rotation transform
-  if (svgRotation.value !== 0) {
-    transforms.push(`rotate(${svgRotation.value}deg)`);
-  }
-
-  return {
-    transform: transforms.join(" "),
-    transformOrigin: "center center",
-    cursor: isPanning.value ? "grabbing" : "grab",
-  };
 });
 
-// Helper function to calculate transformed coordinates
-const getTransformedCoordinates = (x, y) => {
-  let transformedX = x * coordinateScale.value + coordinateOffsetX.value;
-  let transformedY = y * coordinateScale.value + coordinateOffsetY.value;
+// ==========================================
+// 6. CORE FUNCTIONS
+// ==========================================
 
-  // Apply flips around board center and swaps
-  const { cxT, cyT } = getTransformedCenter();
-  if (flipX.value) transformedX = 2 * cxT - transformedX;
-  if (flipY.value) transformedY = 2 * cyT - transformedY;
-  if (swapXY.value) [transformedX, transformedY] = [transformedY, transformedX];
+// --- File Upload Handlers ---
 
-  return { x: transformedX, y: transformedY };
-};
-
-// Pan and Zoom logic
-const handleZoom = (event) => {
-  event.preventDefault();
-  const delta = event.deltaY;
-  const zoomFactor = delta > 0 ? 0.9 : 1.1;
-  const newScale = zoomLevel.value * zoomFactor;
-
-  // Limit zoom range
-  if (newScale >= 0.1 && newScale <= 5) {
-    // Calculate zoom center (mouse position relative to container)
-    const rect = event.currentTarget.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
-
-    // Calculate new pan to keep mouse position fixed
-    const scaleDiff = newScale - zoomLevel.value;
-    panX.value -= mouseX * scaleDiff * 0.1;
-    panY.value -= mouseY * scaleDiff * 0.1;
-
-    zoomLevel.value = newScale;
+const uploadBOM = async () => {
+  DialogLoading.value = true;
+  try {
+    const formData = new FormData();
+    formData.append("FileBom", FileBom.value);
+    await axios.post(`${Url}/upload-bom/${id}`, formData);
+    DialogSuccess.value = true;
+    MessageDialog.value = "Upload Bom thành công";
+    DialogAddBom.value = false;
+    FileBom.value = null;
+    DialogLoading.value = false;
+  } catch (error) {
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Upload Bom thất bại";
+    console.error("Lỗi upload BOM:", error);
+    DialogLoading.value = false;
   }
 };
 
-const handleMouseDown = (event) => {
-  if (event.button === 0) {
-    // Left mouse button only
-    isPanning.value = true;
-    lastPanPoint.value = { x: event.clientX, y: event.clientY };
-    event.preventDefault();
+const uploadPNP = async () => {
+  DialogLoading.value = true;
+  try {
+    const formData = new FormData();
+    formData.append("FilePnP", FilePnP.value);
+    await axios.post(`${Url}/upload-pickplace/${id}`, formData);
+    DialogSuccess.value = true;
+    MessageDialog.value = "Upload Pick&Place thành công";
+    DialogAddPnP.value = false;
+    FilePnP.value = null;
+    DialogLoading.value = false;
+  } catch (error) {
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Upload Pick&Place thất bại";
+    console.error("Lỗi upload PickPlace:", error);
+    DialogLoading.value = false;
   }
 };
 
-const handleMouseMove = (event) => {
-  if (isPanning.value) {
-    const deltaX = event.clientX - lastPanPoint.value.x;
-    const deltaY = event.clientY - lastPanPoint.value.y;
+const layerOptions = [
+  { label: "Copper Top", value: "copper_top", color: "#cc0000" },
+  { label: "Copper Bottom", value: "copper_bottom", color: "#0000cc" },
+  { label: "Soldermask Top", value: "soldermask_top", color: "#00aa44" },
+  { label: "Soldermask Bottom", value: "soldermask_bottom", color: "#00aa44" },
+  { label: "Silkscreen Top", value: "silkscreen_top", color: "#ffffff" },
+  { label: "Silkscreen Bottom", value: "silkscreen_bottom", color: "#ffff00" },
+  { label: "Board Outline", value: "board_outline", color: "#ffaa00" },
+  { label: "Drill", value: "drill", color: "#888888" },
+];
 
-    panX.value += deltaX;
-    panY.value += deltaY;
+// Map extension → layer mặc định
+const EXT_LAYER_MAP = {
+  ".gtl": "copper_top",
+  ".gbl": "copper_bottom",
+  ".gtp": "soldermask_top",
+  ".gbp": "soldermask_bottom",
+  ".gto": "silkscreen_top",
+  ".gbo": "silkscreen_bottom",
+  ".gko": "board_outline",
+  ".drl": "drill",
+  ".exc": "drill",
+  ".xln": "drill",
+};
 
-    lastPanPoint.value = { x: event.clientX, y: event.clientY };
-    event.preventDefault();
+// ─── Watch: sync FileGerbers → gerberFileList ─────────────────────────────
+
+// ─── Actions ─────────────────────────────────────────────────────────────────
+const removeFile = (index) => {
+  gerberFileList.value.splice(index, 1);
+};
+
+const closeDialog = () => {
+  DialogAddGerber.value = false;
+  gerberFileList.value = [];
+  FileGerber.value = null;
+};
+
+const uploadGerber = async () => {
+  if (gerberFileList.value.length === 0) return;
+
+  DialogLoading.value = true;
+  try {
+    const formData = new FormData();
+
+    gerberFileList.value.forEach(({ file, layer }) => {
+      // Gửi kèm layer metadata qua filename hoặc field riêng
+      formData.append("FileGerber", file);
+      formData.append(
+        "layers",
+        gerberFileList.value.map((i) => i.layer),
+      ); // mảng layers tương ứng
+      formData.append("layer", LayerGerber.value);
+    });
+
+    await axios.post(`${Url}/upload-gerber/${id}`, formData);
+
+    DialogSuccess.value = true;
+    MessageDialog.value = `Upload ${gerberFileList.value.length} file Gerber thành công`;
+    closeDialog();
+  } catch (error) {
+    console.error("Lỗi upload Gerber:", error.response?.data || error);
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Upload Gerber thất bại";
+  } finally {
+    DialogLoading.value = false;
   }
 };
 
-const handleMouseUp = () => {
-  isPanning.value = false;
-};
-
-const resetPanAndZoom = () => {
-  panX.value = 0;
-  panY.value = 0;
-  zoomLevel.value = 1;
-};
-
-const centerSvg = () => {
-  if (svgContainer.value) {
-    const container = svgContainer.value;
-    const rect = container.getBoundingClientRect();
-
-    // Center the SVG in the container
-    panX.value = rect.width / 2;
-    panY.value = rect.height / 2;
-  }
-};
-
-const resetZoom = () => {
-  resetPanAndZoom();
-};
-
-const toggleFullscreen = () => {
-  const svgContainerElement = svgContainer.value;
-  if (svgContainerElement) {
-    if (!document.fullscreenElement) {
-      svgContainerElement.requestFullscreen().catch((err) => {
-        console.error(
-          `Error attempting to enable full-screen mode: ${err.message} (${err.name})`
-        );
-      });
-    } else {
-      document.exitFullscreen();
-    }
-  }
-};
-
-// Watch for fullscreen change to reset zoom
-watch(
-  () => document.fullscreenElement,
-  () => {
-    if (!document.fullscreenElement) {
-      resetZoom();
-    }
-  }
-);
-
-// Reset zoom when container size changes
-watch(
-  svgContainer,
-  () => {
-    if (svgContainer.value) {
-      // Container size change handling - just reset zoom for now
-      resetZoom();
-    }
-  },
-  { immediate: true }
-);
-
-// Reset coordinate transformation
-const resetCoordinates = () => {
-  coordinateOffsetX.value = 0;
-  coordinateOffsetY.value = 0;
-  coordinateRotation.value = 0;
-  flipX.value = false;
-  flipY.value = false;
-  swapXY.value = false;
-  cx.value = 0;
-  cy.value = 0;
-  rotationAngle.value = 0;
-  manualOffsetX.value = 0;
-  manualOffsetY.value = 0;
-  svgRotation.value = 0;
-  designatorLabelAngle.value = 0;
-  componentBodyAngle.value = 0;
-  resetPanAndZoom();
-};
-
-// Rotate point around center function
-const rotatePoint = (x, y, cx, cy, deg) => {
-  const rad = (deg * Math.PI) / 180;
-  const cos = Math.cos(rad);
-  const sin = Math.sin(rad);
-  const xt = x - cx;
-  const yt = y - cy;
-  const xpt = xt * cos - yt * sin;
-  const ypt = xt * sin + yt * cos;
-  return { xRot: xpt + cx, yRot: ypt + cy };
-};
-
-// Quick rotation function
-const quickRotate = (angle) => {
-  if (!detailPnP.value || detailPnP.value.length === 0) {
-    MessageCautionDialog.value = "Không có dữ liệu Pick&Place để xoay";
+const uploadGerberPDF = async () => {
+  if (!FileGerberPDF.value) {
+    MessageCautionDialog.value = "Vui lòng chọn file PDF";
     DialogCaution.value = true;
     return;
   }
+  DialogLoading.value = true;
+  try {
+    const formData = new FormData();
+    formData.append("FileGerberPDF", FileGerberPDF.value);
+    formData.append("layer", LayerGerberPDF.value);
 
-  detailPnP.value = detailPnP.value.map((item) => {
-    if (item.x === null || item.y === null) return item;
+    await axios.post(`${Url}/upload-gerber-pdf/${id}`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
 
-    const { xRot, yRot } = rotatePoint(
-      item.x,
-      item.y,
-      cx.value,
-      cy.value,
-      angle
+    DialogSuccess.value = true;
+    MessageDialog.value = `Upload Gerber PDF (${LayerGerberPDF.value}) thành công`;
+    DialogAddGerberPDF.value = false;
+    FileGerberPDF.value = null;
+    LayerGerberPDF.value = "Top";
+    DialogLoading.value = false;
+  } catch (error) {
+    console.error("Lỗi upload Gerber PDF:", error.response?.data || error);
+    DialogLoading.value = false;
+    DialogFailed.value = true;
+    MessageErrorDialog.value =
+      error.response?.data?.error || "Upload Gerber PDF thất bại";
+  }
+};
+
+// --- Data Edit/Update Handlers ---
+const GetItemEdit = (item) => {
+  DialogEdit.value = true;
+  GetIDPnP.value = item.id;
+  PnP_X_Edit.value = item.x;
+  PnP_Y_Edit.value = item.y;
+  PnP_Angle_Edit.value = item.rotation;
+  PnP_Type_Edit.value = item.type;
+  PnP_Layer_Edit.value = item.layer;
+};
+
+const GetSettingPCB = () => {
+  DialogSettingPCB.value = true;
+  const found = detailSetting.value[0];
+  if (selectedLayer.value == "Top") {
+    hintOffsetX.value = found.manualOffsetX_top;
+    hintOffsetY.value = found.manualOffsetY_top;
+  } else {
+    hintOffsetX.value = found.manualOffsetX_bottom;
+    hintOffsetY.value = found.manualOffsetY_bottom;
+  }
+  length.value = found.length;
+  width.value = found.width;
+  angle.value = found.angle;
+  railOffsetX.value = found.railOffsetX;
+  railOffsetY.value = found.railOffsetY;
+  originOffsetX.value = found.originOffsetX;
+  originOffsetY.value = found.originOffsetY;
+};
+
+// Get information Update size
+const GetAddSize = (item) => {
+  DialogAddSize.value = true;
+  MPN_Add_Size.value = item.mpn;
+  Package_Add_Size.value = item.package;
+  Length_Add_Size.value = item.length;
+  Width_Add_Size.value = item.width;
+  if (item.source == "override") {
+    return (
+      (GetIDSize.value = item.id_components_overrides),
+      (Check_Size.value = item.source)
     );
-    return { ...item, x: Number(xRot.toFixed(3)), y: Number(yRot.toFixed(3)) };
+  }
+  if (item.source == "package_map") {
+    return (
+      (GetIDSize.value = item.id_component),
+      (Check_Size.value = item.source),
+      GetIDSize.value
+    );
+  }
+};
+
+// Get information  Update size of accessory
+const SaveAddSize = async () => {
+  DialogLoading.value = true;
+
+  if (Check_Size.value == "package_map") {
+    const formData = reactive({
+      package: Package_Add_Size.value,
+      length: Length_Add_Size.value,
+      width: Width_Add_Size.value,
+    });
+    try {
+      const response = await axios.put(
+        `${Url}/Component/Edit-item/${GetIDSize.value}`,
+        formData,
+      );
+      console.log(response.data.message);
+
+      DialogLoading.value = false;
+      DialogAddSize.value = false;
+      DialogSuccess.value = true;
+      MessageDialog.value = "Thêm dữ liệu thành công";
+    } catch (error) {
+      console.log(error);
+      DialogLoading.value = false;
+      DialogAddSize.value = false;
+      DialogFailed.value = true;
+      MessageErrorDialog.value = "Thêm dữ liệu thất bại";
+    }
+  } else if (Check_Size.value == "override") {
+    const formData = reactive({
+      package: Package_Add_Size.value,
+      length: Length_Add_Size.value,
+      width: Width_Add_Size.value,
+    });
+    try {
+      const response = await axios.put(
+        `${Url}/Component-overrides/Edit-item/${GetIDSize.value}`,
+        formData,
+      );
+      console.log(response.data.message);
+
+      DialogLoading.value = false;
+      DialogAddSize.value = false;
+      DialogSuccess.value = true;
+      MessageDialog.value = "Thêm dữ liệu thành công";
+    } catch (error) {
+      console.log(error);
+      DialogLoading.value = false;
+      DialogAddSize.value = false;
+      DialogFailed.value = true;
+      MessageErrorDialog.value = "Thêm dữ liệu thất bại";
+    }
+  } else {
+    const formData = reactive({
+      mpn: MPN_Add_Size,
+      package: Package_Add_Size.value,
+      length: Length_Add_Size.value,
+      width: Width_Add_Size.value,
+    });
+    try {
+      const response = await axios.post(
+        `${Url}/Component-overrides/Add-item`,
+        formData,
+      );
+      console.log(response.data.message);
+
+      DialogLoading.value = false;
+      DialogAddSize.value = false;
+      DialogSuccess.value = true;
+      MessageDialog.value = "Thêm dữ liệu thành công";
+    } catch (error) {
+      console.log(error);
+      DialogLoading.value = false;
+      DialogAddSize.value = false;
+      DialogFailed.value = true;
+      MessageErrorDialog.value = "Thêm dữ liệu thất bại";
+    }
+  }
+};
+
+// Put item in Pickplace table
+const SaveEditPnP = async () => {
+  DialogLoading.value = true;
+  const formData = reactive({
+    x: PnP_X_Edit.value,
+    y: PnP_Y_Edit.value,
+    rotation: PnP_Angle_Edit.value,
+    type: PnP_Type_Edit.value,
+    layer: PnP_Layer_Edit.value,
   });
 
-  MessageDialog.value = `Đã xoay ${
-    detailPnP.value.length
-  } điểm Pick&Place quanh tâm (${cx.value.toFixed(2)}, ${cy.value.toFixed(
-    2
-  )}) với góc ${angle}°`;
-  DialogSuccess.value = true;
+  try {
+    const response = await axios.put(
+      `${Url}/PickPlace/Edit-item/${GetIDPnP.value}`,
+      formData,
+    );
+    DialogLoading.value = false;
+    DialogEdit.value = false;
+    DialogSuccess.value = true;
+    MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
+  } catch (error) {
+    DialogLoading.value = false;
+    DialogEdit.value = false;
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
+  }
 };
 
-// Rotate Pick&Place around board center (custom angle)
-const rotatePnPAroundCenter = () => {
-  if (!detailPnP.value || detailPnP.value.length === 0) {
-    MessageCautionDialog.value = "Không có dữ liệu Pick&Place để xoay";
-    DialogCaution.value = true;
-    return;
+// Put item in Pickplace table with x, y transform-origin
+
+const SaveSettingPCB = async () => {
+  DialogLoading.value = true;
+  const formData = reactive({
+    manualOffsetX_top:
+      selectedLayer.value == "Top"
+        ? totalAddedX.value
+        : detailSetting.value[0].manualOffsetX_top,
+    manualOffsetY_top:
+      selectedLayer.value == "Top"
+        ? totalAddedY.value
+        : detailSetting.value[0].manualOffsetY_top,
+    manualOffsetX_bottom:
+      selectedLayer.value == "Bottom"
+        ? totalAddedX.value
+        : detailSetting.value[0].manualOffsetX_bottom,
+    manualOffsetY_bottom:
+      selectedLayer.value == "Bottom"
+        ? totalAddedY.value
+        : detailSetting.value[0].manualOffsetY_bottom,
+    width: width.value,
+    length: length.value,
+    originOffsetX: originOffsetX.value,
+    originOffsetY: originOffsetY.value,
+    railOffsetX: railOffsetX.value,
+    railOffsetY: railOffsetY.value,
+    angle: angle.value,
+  });
+  try {
+    const response = await axios.put(
+      `${Url}/SettingPCB/Edit-item/${id}`,
+      formData,
+    );
+    DialogLoading.value = false;
+    DialogSettingPCB.value = false;
+    DialogSuccess.value = true;
+    MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
+    run();
+  } catch (error) {
+    DialogLoading.value = false;
+    DialogSettingPCB.value = false;
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
+  }
+};
+
+// Apply rotation mode
+function toNum(v) {
+  const n = Number(v);
+  return isNaN(n) ? null : n;
+}
+
+function pickValue(primary, fallback, allowZero = false) {
+  const v = toNum(primary);
+
+  if (v === null) return fallback;
+  if (!allowZero && v === 0) return fallback;
+
+  return v;
+}
+
+function normalizeRotation(r) {
+  return ((r % 360) + 360) % 360;
+}
+
+/* =======================
+   CONFIG THEO LAYER
+======================= */
+function getCfgByLayer(layer) {
+  const raw = detailSetting.value?.[0] || {};
+
+  const pcbLayer =
+    layer?.toLowerCase() === "bottom"
+      ? PCBBottomLayer.value?.[0] || {}
+      : PCBTopLayer.value?.[0] || {};
+
+  return {
+    X0: pickValue(raw.X0, pcbLayer.X0 ?? 0),
+    Y0: pickValue(raw.Y0, pcbLayer.Y0 ?? 0),
+
+    L: pickValue(raw.L, pcbLayer.L ?? 0),
+    W: pickValue(raw.W, pcbLayer.W ?? 0),
+
+    offsetX: pickValue(raw.offsetX, pcbLayer.offsetX ?? 0),
+    offsetY: pickValue(raw.offsetY, pcbLayer.offsetY ?? 0),
+
+    angle: pickValue(raw.angle, 0, true),
+
+    rotationMode: raw.rotationMode || "CCW",
+
+    rotationOffset: pickValue(raw.rotationOffset, 0, true)
+  };
+}
+
+/* =======================
+   TRANSFORM
+======================= */
+function transform(p) {
+  const cfg = getCfgByLayer(p.layer);
+
+  let px = toNum(p.x);
+  let py = toNum(p.y);
+  let pr = toNum(p.rotation);
+
+  if (px === null || py === null) {
+    console.warn("❌ Invalid XY:", p);
+    return null;
   }
 
-  if (rotationAngle.value === 0) {
-    MessageCautionDialog.value = "Vui lòng nhập góc xoay khác 0";
-    DialogCaution.value = true;
-    return;
+  if (pr === null) pr = 0;
+
+  let x = px - cfg.X0;
+  let y = py - cfg.Y0;
+  let r = normalizeRotation(pr);
+
+  r = normalizeRotation(r + cfg.rotationOffset);
+
+  // mirror bottom
+  if (p.layer?.toLowerCase() === "bottom") {
+    x = cfg.L - x;
+    r = -r;
   }
 
-  quickRotate(rotationAngle.value);
+  // rotate
+  let x2, y2;
+
+  switch (cfg.angle) {
+    case 90:
+      x2 = y;
+      y2 = cfg.L - x;
+      break;
+    case 180:
+      x2 = cfg.L - x;
+      y2 = cfg.W - y;
+      break;
+    case 270:
+      x2 = cfg.W - y;
+      y2 = x;
+      break;
+    default:
+      x2 = x;
+      y2 = y;
+  }
+
+  // rotation
+  let r2 =
+    cfg.rotationMode === "CCW"
+      ? r + cfg.angle
+      : r - cfg.angle;
+
+  // offset
+  x2 += cfg.offsetX;
+  y2 += cfg.offsetY;
+
+  r2 = normalizeRotation(r2);
+
+  return {
+    ...p,
+    x: Number(x2.toFixed(3)),
+    y: Number(y2.toFixed(3)),
+    rotation: r2
+  };
+}
+
+/* =======================
+   COMPUTED
+======================= */
+const transformedPnP = ref([]);
+
+watch(detailPnP, (val) => {
+  transformedPnP.value = val
+    .map(transform)
+    .filter(Boolean);
+}, { immediate: true });
+
+const resultTop = ref([]);
+const resultBottom = ref([]);
+
+watch(transformedPnP, (val) => {
+  resultTop.value = val.filter(
+    (p) => p.layer?.toLowerCase() === "top"
+  );
+
+  resultBottom.value = val.filter(
+    (p) => p.layer?.toLowerCase() === "bottom"
+  );
+}, { immediate: true });
+
+// --- Download Handlers ---
+
+const downloadExcelPnP = async () => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Dữ liệu SMT");
+
+  // Tạo header
+  worksheet.columns = [
+    { header: "Designator", key: "designator", width: 20 },
+    { header: "X-Center", key: "x", width: 20 },
+    { header: "Y-Center", key: "y", width: 20 },
+    { header: "Rotation", key: "rotation", width: 20 },
+    { header: "Layer", key: "layer", width: 20 },
+    { header: "MPN", key: "mpn", width: 50 },
+  ];
+
+  // Thêm dữ liệu từ composables
+  filteredPnP.value.forEach((item) => {
+    worksheet.addRow(item);
+  });
+
+  // Xuất buffer
+  const buffer = await workbook.xlsx.writeBuffer();
+  saveAs(new Blob([buffer]), "DataSMT.xlsx");
 };
 
-// Manual coordinate adjustment functions
+const DownloadPnP = async () => {
+  try {
+    const response = await fetch(`${Url}/PickPlace/download/${id}`);
+    if (!response.ok) throw new Error("Download failed");
 
-const adjustCoordinates = (deltaX, deltaY) => {
-  manualOffsetX.value += deltaX;
-  manualOffsetY.value += deltaY;
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `PickPlace.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    MessageErrorDialog.value = "Tải file thất bại";
+    console.error("Error downloading file:", error);
+  }
 };
 
-// Quick adjustment functions (incremental)
-const quickAdjustX = (deltaX) => {
-  manualOffsetX.value += deltaX;
+const DownloadPnPTop = async () => {
+  try {
+    const response = await fetch(`${Url}/PickPlaceTop/download/${id}`);
+    if (!response.ok) throw new Error("Download failed");
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `PickPlace_Top.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    MessageErrorDialog.value = "Tải file thất bại";
+    console.error("Error downloading file:", error);
+  }
 };
 
-const quickAdjustY = (deltaY) => {
-  manualOffsetY.value += deltaY;
+const DownloadPnPBottom = async () => {
+  try {
+    const response = await fetch(`${Url}/PickPlaceBottom/download/${id}`);
+    if (!response.ok) throw new Error("Download failed");
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `PickPlace_Bottom.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    MessageErrorDialog.value = "Tải file thất bại";
+    console.error("Error downloading file:", error);
+  }
 };
+
+const DownloadBomHighlight = async () => {
+  try {
+    const response = await fetch(`${Url}/BomHighlight/download/${id}`);
+    if (!response.ok) throw new Error("Download failed");
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `BomHighlight.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    MessageErrorDialog.value = "Tải file thất bại";
+    console.error("Error downloading file:", error);
+  }
+};
+
+const DownloadPCB = () => {
+  // 👉 Convert data
+  // ===== TOP =====
+  const topData = resultTop.value.map((item, index) => ({
+    STT: index + 1,
+    Designator: item.designator,
+    X: item.x,
+    Y: item.y,
+    Rotation: item.rotation,
+    Layer: item.layer,
+    MPN: item.mpn
+  }));
+
+  const wsTop = XLSX.utils.json_to_sheet(topData);
+  const wbTop = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wbTop, wsTop, "Top");
+
+  const bufferTop = XLSX.write(wbTop, {
+    bookType: "xlsx",
+    type: "array"
+  });
+
+  saveAs(
+    new Blob([bufferTop], { type: "application/octet-stream" }),
+    `PnP_Top_${Date.now()}.xlsx`
+  );
+
+  // ===== BOTTOM =====
+  const bottomData = resultBottom.value.map((item, index) => ({
+    STT: index + 1,
+    Designator: item.designator,
+    X: item.x,
+    Y: item.y,
+    Rotation: item.rotation,
+    Layer: item.layer,
+    MPN: item.mpn
+  }));
+
+  const wsBottom = XLSX.utils.json_to_sheet(bottomData);
+  const wbBottom = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wbBottom, wsBottom, "Bottom");
+
+  const bufferBottom = XLSX.write(wbBottom, {
+    bookType: "xlsx",
+    type: "array"
+  });
+
+  saveAs(
+    new Blob([bufferBottom], { type: "application/octet-stream" }),
+    `PnP_Bottom_${Date.now()}.xlsx`
+  );
+}
+// --- Coordinate Transformation Logic ---
+
+/**
+ * Rotates a point around a center by a given angle
+ */
 
 const applyManualAdjustmentX = () => {
   if (!detailPnP.value || detailPnP.value.length === 0) {
@@ -1650,7 +2226,6 @@ const applyManualAdjustmentX = () => {
     DialogCaution.value = true;
     return;
   }
-  console.log(manualOffsetX.value);
   let adjustedCountX = 0;
   detailPnP.value = detailPnP.value.map((item) => {
     if (item.x === null) return item;
@@ -1658,7 +2233,7 @@ const applyManualAdjustmentX = () => {
     adjustedCountX += 1;
     return {
       ...item,
-      x: Number(item.x + manualOffsetX.value),
+      x: Number((item.x + manualOffsetX.value).toFixed(3)),
     };
   });
 
@@ -1666,13 +2241,12 @@ const applyManualAdjustmentX = () => {
   totalAdjustedCountX.value += adjustedCountX;
 
   MessageDialog.value = `Đã điều chỉnh X cho ${adjustedCountX} điểm Pick&Place: +${manualOffsetX.value.toFixed(
-    3
+    3,
   )}mm (Cộng dồn X: +${totalAddedX.value.toFixed(
-    3
+    3,
   )}mm, Tổng điểm đã cập nhật X: ${totalAdjustedCountX.value})`;
   DialogSuccess.value = true;
 
-  // Reset manual offset X after applying
   manualOffsetX.value = 0;
 };
 
@@ -1696,7 +2270,7 @@ const applyManualAdjustmentY = () => {
     adjustedCountY += 1;
     return {
       ...item,
-      y: Number(item.y + manualOffsetY.value),
+      y: Number((item.y + manualOffsetY.value).toFixed(3)),
     };
   });
 
@@ -1704,13 +2278,12 @@ const applyManualAdjustmentY = () => {
   totalAdjustedCountY.value += adjustedCountY;
 
   MessageDialog.value = `Đã điều chỉnh Y cho ${adjustedCountY} điểm Pick&Place: +${manualOffsetY.value.toFixed(
-    3
+    3,
   )}mm (Cộng dồn Y: +${totalAddedY.value.toFixed(
-    3
+    3,
   )}mm, Tổng điểm đã cập nhật Y: ${totalAdjustedCountY.value})`;
   DialogSuccess.value = true;
 
-  // Reset manual offset Y after applying
   manualOffsetY.value = 0;
 };
 
@@ -1756,17 +2329,16 @@ const applyManualAdjustment = () => {
   MessageDialog.value = `Đã điều chỉnh ${
     adjustedCountX + adjustedCountY
   } cập nhật: X +${manualOffsetX.value.toFixed(
-    3
+    3,
   )}mm (cộng dồn: +${totalAddedX.value.toFixed(3)}mm, điểm X: ${
     totalAdjustedCountX.value
   }), Y +${manualOffsetY.value.toFixed(
-    3
+    3,
   )}mm (cộng dồn: +${totalAddedY.value.toFixed(3)}mm, điểm Y: ${
     totalAdjustedCountY.value
   })`;
   DialogSuccess.value = true;
 
-  // Reset manual offsets after applying
   manualOffsetX.value = 0;
   manualOffsetY.value = 0;
 };
@@ -1778,218 +2350,24 @@ const resetManualAdjustment = () => {
   DialogSuccess.value = true;
 };
 
-// Preset transformation functions
-// const applyPreset = (presetType) => {
-//   if (!detailPnP.value || detailPnP.value.length === 0) {
-//     MessageCautionDialog.value = "Không có dữ liệu Pick&Place để biến đổi";
-//     DialogCaution.value = true;
-//     return;
-//   }
-
-//   let transformationApplied = false;
-//   let transformationName = "";
-//   let transformationDescription = "";
-
-//   switch (presetType) {
-//     case "mm_to_inch":
-//       // Convert mm to inch (divide by 25.4)
-//       coordinateScale.value = 1 / 0.0254;
-//       transformationApplied = true;
-//       transformationName = "mm → inch";
-//       transformationDescription = "Chia cho 25.4";
-//       break;
-
-//     case "inch_to_mm":
-//       // Convert inch to mm (multiply by 25.4)
-//       coordinateScale.value = 25.4;
-//       transformationApplied = true;
-//       transformationName = "inch → mm";
-//       transformationDescription = "Nhân với 25.4";
-//       break;
-
-//     case "mil_to_mm":
-//       // Convert mil to mm (multiply by 0.0254)
-//       coordinateScale.value = 0.0254;
-//       transformationApplied = true;
-//       transformationName = "mil → mm";
-//       transformationDescription = "Nhân với 0.0254";
-//       break;
-
-//     case "mm_to_um":
-//       // Convert mm to µm (multiply by 1000)
-//       coordinateScale.value = 1000;
-//       transformationApplied = true;
-//       transformationName = "mm → µm";
-//       transformationDescription = "Nhân với 1000";
-//       break;
-
-//     default:
-//       MessageCautionDialog.value = "Loại biến đổi không hợp lệ";
-//       DialogCaution.value = true;
-//       return;
-//   }
-
-//   if (transformationApplied) {
-//     MessageDialog.value = `Đã áp dụng biến đổi ${transformationName} (${transformationDescription}) cho ${detailPnP.value.length} điểm Pick&Place`;
-//     DialogSuccess.value = true;
-//   }
-// };
-
-// SVG rotation functions
-const rotateSvg = (angle) => {
-  svgRotation.value += angle;
-  // Keep angle between -360 and 360 degrees
-  if (svgRotation.value > 360) svgRotation.value -= 360;
-  if (svgRotation.value < -360) svgRotation.value += 360;
-};
-
-const setSvgRotation = (angle) => {
-  svgRotation.value = angle;
-};
-
-const resetSvgRotation = () => {
+const resetCoordinates = () => {
+  coordinateOffsetX.value = 0;
+  coordinateOffsetY.value = 0;
+  coordinateRotation.value = 0;
+  flipX.value = false;
+  flipY.value = false;
+  swapXY.value = false;
+  cx.value = 0;
+  cy.value = 0;
+  rotationAngle.value = 0;
+  manualOffsetX.value = 0;
+  manualOffsetY.value = 0;
   svgRotation.value = 0;
-  MessageDialog.value = "Đã reset xoay SVG";
-  DialogSuccess.value = true;
-};
-
-// Designator label rotation functions
-const rotateDesignatorLabel = (angle) => {
-  designatorLabelAngle.value += angle;
-  // Keep angle between -360 and 360 degrees
-  if (designatorLabelAngle.value > 360) designatorLabelAngle.value -= 360;
-  if (designatorLabelAngle.value < -360) designatorLabelAngle.value += 360;
-
-  MessageDialog.value = `Đã xoay designator label ${
-    angle > 0 ? "+" : ""
-  }${angle}° (Tổng: ${designatorLabelAngle.value}°)`;
-  DialogSuccess.value = true;
-};
-
-const resetDesignatorLabelAngle = () => {
   designatorLabelAngle.value = 0;
-  MessageDialog.value = "Đã reset góc designator label";
-  DialogSuccess.value = true;
-};
-
-// Component body rotation functions
-const rotateComponentBody = (angle) => {
-  componentBodyAngle.value += angle;
-  // Keep angle between -360 and 360 degrees
-  if (componentBodyAngle.value > 360) componentBodyAngle.value -= 360;
-  if (componentBodyAngle.value < -360) componentBodyAngle.value += 360;
-
-  MessageDialog.value = `Đã xoay component body ${
-    angle > 0 ? "+" : ""
-  }${angle}° (Tổng: ${componentBodyAngle.value}°)`;
-  DialogSuccess.value = true;
-};
-
-const resetComponentBodyAngle = () => {
   componentBodyAngle.value = 0;
-  MessageDialog.value = "Đã reset góc component body";
-  DialogSuccess.value = true;
+  resetPanAndZoom();
 };
 
-// const autoRotateSvgToFitPnP = () => {
-//   if (!detailPnP.value || detailPnP.value.length === 0) {
-//     MessageCautionDialog.value = "Không có dữ liệu Pick&Place để phân tích";
-//     DialogCaution.value = true;
-//     return;
-//   }
-
-//   // Analyze PnP data to determine optimal rotation
-//   const rotations = detailPnP.value
-//     .filter((pnp) => pnp.rotation !== null && pnp.rotation !== undefined)
-//     .map((pnp) => pnp.rotation || pnp.rot || 0);
-
-//   if (rotations.length === 0) {
-//     MessageCautionDialog.value =
-//       "Không tìm thấy thông tin xoay trong dữ liệu Pick&Place";
-//     DialogCaution.value = true;
-//     return;
-//   }
-
-//   // Calculate average rotation
-//   const avgRotation =
-//     rotations.reduce((sum, rot) => sum + rot, 0) / rotations.length;
-
-//   // Normalize to common angles (0, 90, 180, 270)
-//   const normalizedRotation = Math.round(avgRotation / 90) * 90;
-
-//   setSvgRotation(normalizedRotation);
-//   MessageDialog.value = `Đã xoay SVG ${normalizedRotation}° để phù hợp với dữ liệu Pick&Place`;
-//   DialogSuccess.value = true;
-// };
-
-// Test SVG rotation function
-// const testSvgRotation = () => {
-//   console.log("Testing SVG rotation...");
-//   console.log("Current svgRotation:", svgRotation.value);
-//   console.log("Current SVG container style:", svgContainerStyle.value);
-
-//   // Test with a simple rotation
-//   svgRotation.value = 45;
-//   console.log("After setting rotation to 45°:", svgRotation.value);
-//   console.log("Updated SVG container style:", svgContainerStyle.value);
-
-//   MessageDialog.value =
-//     "Đã test xoay SVG 45°. Kiểm tra console để xem kết quả.";
-//   DialogSuccess.value = true;
-// };
-
-const GetSetting = () => {
-  const found = detailSetting.value[0];
-  if (found) {
-    rotationAngle.value = found.rotation;
-    cx.value = found.cx;
-    cy.value = found.cy;
-    hintOffsetX.value = found.manualOffsetX;
-    hintOffsetY.value = found.manualOffsetY;
-    swapXY.value = found.swapXY;
-  } else {
-  }
-};
-
-// Computed properties for layer counts
-const topLayerCount = computed(() => {
-  if (!combineBom.value) return 0;
-  return combineBom.value.filter((item) => item.layer === "Top").length;
-});
-
-const bottomLayerCount = computed(() => {
-  if (!combineBom.value) return 0;
-  return combineBom.value.filter((item) => item.layer === "Bottom").length;
-});
-
-// Computed bounds and center of current PnP dataset (raw units)
-const pnpBounds = computed(() => {
-  if (!filteredPnP.value || filteredPnP.value.length === 0) return null;
-  const valid = filteredPnP.value.filter(
-    (p) => typeof p.x === "number" && typeof p.y === "number"
-  );
-  if (valid.length === 0) return null;
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minY = Infinity;
-  let maxY = -Infinity;
-  for (const p of valid) {
-    if (p.x < minX) minX = p.x;
-    if (p.x > maxX) maxX = p.x;
-    if (p.y < minY) minY = p.y;
-    if (p.y > maxY) maxY = p.y;
-  }
-  return {
-    minX,
-    maxX,
-    minY,
-    maxY,
-    cxRaw: (minX + maxX) / 2,
-    cyRaw: (minY + maxY) / 2,
-  };
-});
-
-// Helper to get center in transformed space (after scale and offsets)
 const getTransformedCenter = () => {
   if (!pnpBounds.value) return { cxT: 0, cyT: 0 };
   const cxT =
@@ -1999,55 +2377,276 @@ const getTransformedCenter = () => {
   return { cxT, cyT };
 };
 
-// Current Gerber SVG for selected layer
-const currentGerberSvg = computed(() => {
-  const dg = detailGerber.value;
-  if (!dg) return "";
-  if (Array.isArray(dg) && dg.length > 0) {
-    const byLayer = dg.find(
-      (item) => item && item.layer === selectedLayer.value && item.svg
-    );
-    if (byLayer && typeof byLayer.svg === "string") return byLayer.svg;
-    return "";
-  } else if (dg && typeof dg === "object") {
-    return dg.svg || "";
-  } else if (typeof dg === "string") {
-    return dg;
+const getTransformedCoordinates = (x, y) => {
+  let transformedX = x * coordinateScale.value + coordinateOffsetX.value;
+  let transformedY = y * coordinateScale.value + coordinateOffsetY.value;
+
+  const { cxT, cyT } = getTransformedCenter();
+  if (flipX.value) transformedX = 2 * cxT - transformedX;
+  if (flipY.value) transformedY = 2 * cyT - transformedY;
+  if (swapXY.value) [transformedX, transformedY] = [transformedY, transformedX];
+
+  return { x: transformedX, y: transformedY };
+};
+
+// --- SVG & View Interaction Logic ---
+
+/**
+ * Parses SVG height from viewBox or height attribute
+ */
+const getSvgRenderedHeight = (svgString) => {
+  if (typeof svgString !== "string") return null;
+  const viewBoxMatch = svgString.match(/viewBox\s*=\s*"([^"]+)"/i);
+  if (viewBoxMatch && viewBoxMatch[1]) {
+    const parts = viewBoxMatch[1]
+      .trim()
+      .split(/\s+/)
+      .map((n) => Number(n));
+    if (parts.length === 4 && parts.every((v) => Number.isFinite(v))) {
+      return parts[3];
+    }
   }
-  return "";
+  const heightMatch = svgString.match(/height\s*=\s*"([^"]+)"/i);
+  if (heightMatch && heightMatch[1]) {
+    const val = heightMatch[1].trim();
+    const num = Number(val.replace(/[^0-9.+-]/g, ""));
+    if (Number.isFinite(num)) return num;
+  }
+  return null;
+};
+
+/**
+ * Real-time coordinate tracking on mouse move
+ */
+const handleMouseMoveSVG = (event) => {
+  const svgElement = document.getElementById("gerber-svg");
+  if (!svgElement) return;
+
+  const point = svgElement.createSVGPoint();
+  point.x = event.clientX;
+  point.y = event.clientY;
+
+  try {
+    const ctm = svgElement.getScreenCTM().inverse();
+    const svgPoint = point.matrixTransform(ctm);
+    const scale = coordinateScale.value || 1;
+    const offsetX = coordinateOffsetX.value || 0;
+    const offsetY = coordinateOffsetY.value || 0;
+
+    let boardX = (svgPoint.x - offsetX) / scale;
+    let boardY = (svgPoint.y - offsetY) / scale;
+
+    mouseCoords.x = boardX.toFixed(2);
+    mouseCoords.y = boardY.toFixed(2);
+  } catch (e) {}
+};
+
+const resetPanAndZoom = () => {
+  if (panZoomInstance.value) {
+    panZoomInstance.value.reset();
+    panZoomInstance.value.fit();
+    panZoomInstance.value.center();
+  }
+  zoomLevel.value = 1;
+};
+
+const resetZoom = () => {
+  resetPanAndZoom();
+};
+
+/**
+ * Prepares SVG string with necessary IDs and viewports
+ */
+function prepareSvg(svgString) {
+  if (!svgString) return "";
+  let svg = svgString;
+  if (!svg.includes('id="gerber-svg"')) {
+    svg = svg.replace("<svg", '<svg id="gerber-svg"');
+  }
+  if (!svg.includes('class="viewport"')) {
+    svg = svg.replace(/<svg[^>]*>/, (match) => {
+      return match + '<g class="viewport">';
+    });
+    svg = svg.replace("</svg>", "</g></svg>");
+  }
+  return svg;
+}
+
+/**
+ * Initializes pan and zoom for the SVG viewer
+ */
+function initPanZoom() {
+  nextTick(() => {
+    const svgElement = document.getElementById("gerber-svg");
+    if (!svgElement) return;
+    if (panZoomInstance.value) {
+      panZoomInstance.value.destroy();
+    }
+
+    panZoomInstance.value = svgPanZoom(svgElement, {
+      zoomEnabled: true,
+      controlIconsEnabled: false,
+      fit: true,
+      center: true,
+      minZoom: 0.1,
+      maxZoom: 50,
+      zoomScaleSensitivity: 0.4,
+      mouseWheelZoomEnabled: true,
+      preventMouseEventsDefault: true,
+      viewportSelector: ".viewport",
+      onZoom: (scale) => {
+        zoomLevel.value = scale;
+      },
+    });
+  });
+}
+
+// ===== DIGIKEY API OPERATIONS =====
+/**
+ * Gets access token from DigiKey API
+ * @param {string} value - The ID of the item to search
+ */
+const getAccessToken = async (value) => {
+  DialogLoading.value = true;
+  const found = combineBom.value.find((v) => v.id === value.id);
+  GetDigikey.value = found.mpn;
+
+  const tokenUrl = "https://api.digikey.com/v1/oauth2/token";
+  const params = new URLSearchParams();
+  params.append("grant_type", "client_credentials");
+  params.append("client_id", clientId); // <-- Bổ sung
+  params.append("client_secret", clientSecret); // <-- Bổ sung
+
+  try {
+    const response = await axios.post(tokenUrl, params.toString(), {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
+
+    accessToken.value = response.data.access_token;
+    tokenType.value = response.data.token_type;
+
+    console.log("Đã lấy access token thành công:", accessToken.value);
+
+    if (accessToken.value && tokenType.value && GetDigikey.value) {
+      return await searchProduct();
+    }
+
+    return true;
+  } catch (error) {
+    console.error(
+      "Lỗi khi lấy access token:",
+      error.response ? error.response.data : error.message,
+    );
+    MessageErrorDialog.value = "Lỗi khi lấy access token";
+    return false;
+  }
+};
+
+/**
+ * Searches for product details using DigiKey API
+ */
+const searchProduct = async () => {
+  if (!accessToken.value) {
+    console.error("Chưa có access token. Vui lòng lấy token trước.");
+    return;
+  }
+
+  const searchUrl = `https://api.digikey.com/products/v4/search/${GetDigikey.value}/productdetails`;
+
+  try {
+    const response = await axios.get(searchUrl, {
+      headers: {
+        Authorization: `${tokenType.value} ${accessToken.value}`,
+        "Content-Type": "application/json",
+        "X-DIGIKEY-Client-Id": `${clientId}`,
+      },
+    });
+    ResultSearch.value = response.data;
+    DialogSuccess.value = true;
+    MessageDialog.value = "Tìm kiếm sản phẩm thành công";
+
+    if (ResultSearch.value) {
+      return (DialogInfo.value = true), (DialogLoading.value = false);
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Lỗi khi tìm kiếm sản phẩm:",
+      error.response ? error.response.data : error.message,
+    );
+    DialogFailed.value = true;
+    DialogLoading.value = false;
+    MessageErrorDialog.value = "Lỗi khi tìm kiếm sản phẩm";
+    return null;
+  }
+};
+
+// ==========================================
+// 7. WATCHERS
+// ==========================================
+
+// Watch for fullscreen change to reset zoom
+watch(
+  () => document.fullscreenElement,
+  () => {
+    if (!document.fullscreenElement) {
+      resetZoom();
+    }
+  },
+);
+
+// Reset zoom when container size changes
+watch(
+  svgContainer,
+  () => {
+    if (svgContainer.value) {
+      resetZoom();
+    }
+  },
+  { immediate: true },
+);
+
+watch(FileGerber, (val) => {
+  if (!val) return;
+
+  const incoming = Array.isArray(val) ? val : [val];
+  const existingNames = new Set(gerberFileList.value.map((i) => i.file.name));
+
+  incoming.forEach((file) => {
+    if (existingNames.has(file.name)) return;
+    const ext = "." + file.name.split(".").pop().toLowerCase();
+    const layer = EXT_LAYER_MAP[ext] ?? "copper_top";
+    gerberFileList.value.push({ file, layer });
+  });
 });
 
-const currentGerberUnit = computed(() => {
-  const dg = detailGerber.value;
-  if (!dg) return "";
-  if (Array.isArray(dg) && dg.length > 0) {
-    const byLayer = dg.find(
-      (item) => item && item.layer === selectedLayer.value && item.unit
-    );
-    if (byLayer && typeof byLayer.unit === "string") return byLayer.unit;
-    return "";
-  } else if (dg && typeof dg === "object") {
-    return dg.unit || "";
-  } else if (typeof dg === "string") {
-    return dg;
-  }
-  return "";
+watch(currentSvgContent, async () => {
+  await nextTick();
+  initPanZoom();
 });
 
-// Filtered PnP by selected layer
-const filteredPnP = computed(() => {
-  const list = detailPnP.value || [];
-  return list.filter(
-    (p) => (p.layer || "Top") === selectedLayer.value && p.type === "SMT"
-  );
-});
+// ==========================================
+// 8. HELPER FUNCTIONS
+// ==========================================
+
+const getColor = (status) => {
+  if (status === "bottom") {
+    return {
+      color: "red",
+      fontWeight: "bold",
+    };
+  }
+  return {};
+};
 </script>
 <script>
 export default {
   components: {
     ButtonBack,
     ButtonEdit,
-    ButtonRemove,
     ButtonDelete,
     InputSearch,
     SnackbarSuccess,
@@ -2070,17 +2669,36 @@ export default {
   padding: 16px;
 }
 
-.gerber-svg-container {
+.gerber-svg-container-full {
   width: 100%;
-  height: 85vh;
+  height: 100%;
   overflow: hidden;
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  padding: 16px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: #ffffff;
   position: relative;
   user-select: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.svg-full-wrapper {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.svg-full-wrapper :deep(svg) {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+.gerber-status-bar {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(4px);
+  border-top: 1px solid #e0e0e0;
+  z-index: 10;
+  height: 32px;
 }
 
 .gerber-svg-container :deep(svg) {
@@ -2135,14 +2753,14 @@ export default {
 }
 
 /* Enhanced PnP marker styles */
-.gerber-svg-container :deep(.pnp-marker) {
+.gerber-svg-container-full :deep(.pnp-marker) {
   cursor: pointer;
   transition: all 0.2s ease;
   z-index: 10;
 }
 
 /* Component body rectangle */
-.gerber-svg-container :deep(.pnp-component-body) {
+.gerber-svg-container-full :deep(.pnp-component-body) {
   fill: rgba(255, 179, 0, 0.4);
   stroke: #e65100;
   stroke-width: 3;
@@ -2150,7 +2768,7 @@ export default {
 }
 
 /* Component outline for better visibility */
-.gerber-svg-container :deep(.pnp-component-outline) {
+.gerber-svg-container-full :deep(.pnp-component-outline) {
   fill: none;
   stroke: #ffffff;
   stroke-width: 1.5;
@@ -2159,54 +2777,54 @@ export default {
   transition: all 0.2s ease;
 }
 
-.gerber-svg-container :deep(.pnp-marker:hover) {
+.gerber-svg-container-full :deep(.pnp-marker:hover) {
   opacity: 1 !important;
   filter: brightness(1.1) drop-shadow(0 0 4px rgba(0, 0, 0, 0.5));
 }
 
-.gerber-svg-container :deep(.pnp-marker:hover .pnp-component-body) {
+.gerber-svg-container-full :deep(.pnp-marker:hover .pnp-component-body) {
   fill: rgba(255, 179, 0, 0.6);
   stroke: #bf360c;
   stroke-width: 3.5;
 }
 
-.gerber-svg-container :deep(.pnp-marker:hover .pnp-component-outline) {
+.gerber-svg-container-full :deep(.pnp-marker:hover .pnp-component-outline) {
   stroke: #ffffff;
   stroke-width: 2;
   opacity: 1;
 }
 
-.gerber-svg-container :deep(.pnp-marker:hover circle) {
+.gerber-svg-container-full :deep(.pnp-marker:hover circle) {
   stroke-width: 1.5;
   r: 3;
   stroke: #e65100;
 }
 
-.gerber-svg-container :deep(.pnp-marker:hover line) {
+.gerber-svg-container-full :deep(.pnp-marker:hover line) {
   stroke-width: 2.5;
   stroke: #e65100;
 }
 
-.gerber-svg-container :deep(.pnp-marker:hover text) {
+.gerber-svg-container-full :deep(.pnp-marker:hover text) {
   font-size: 4;
   fill: #1565c0;
   font-weight: bold;
 }
 
 /* Default marker styles - làm rõ hơn */
-.gerber-svg-container :deep(.pnp-marker line) {
+.gerber-svg-container-full :deep(.pnp-marker line) {
   stroke: #ff0000;
   stroke-width: 1.5;
   opacity: 0.9;
 }
 
-.gerber-svg-container :deep(.pnp-marker circle) {
+.gerber-svg-container-full :deep(.pnp-marker circle) {
   stroke: #ff0000;
   stroke-width: 0.8;
   opacity: 0.8;
 }
 
-.gerber-svg-container :deep(.pnp-marker text) {
+.gerber-svg-container-full :deep(.pnp-marker text) {
   font-family: "Arial", sans-serif;
   font-weight: bold;
   text-anchor: start;
@@ -2241,17 +2859,17 @@ export default {
 }
 
 /* Fullscreen enhancements */
-.gerber-svg-container:fullscreen {
+.gerber-svg-container-full:fullscreen {
   background: black;
   padding: 20px;
 }
 
-.gerber-svg-container:fullscreen :deep(svg) {
+.gerber-svg-container-full:fullscreen :deep(svg) {
   max-height: 90vh;
 }
 
 /* Loading state for SVG */
-.gerber-svg-container.loading {
+.gerber-svg-container-full.loading {
   display: flex;
   align-items: center;
   justify-content: center;

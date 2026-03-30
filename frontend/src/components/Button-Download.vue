@@ -5,11 +5,17 @@
     class="ms-2 text-caption"
     variant="tonal"
     @click="emitDownload"
-    >Tải file</v-btn
+    >{{ title || "Tải file" }}</v-btn
   >
 </template>
 <script>
 export default {
+  props: {
+    title: {
+      type: String,
+      default: "Tải file",
+    },
+  },
   methods: {
     emitDownload() {
       this.$emit("download-file"); // Phát sự kiện lên page

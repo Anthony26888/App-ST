@@ -29,6 +29,7 @@ import PageListWork from "@/pages/Page-Manufacture/Page-ListWork.vue";
 import PageAI from "@/pages/Page-AI-Chatbox/Page-AI.vue"
 import PageDetailCounting from "@/pages/Page-Manufacture/Page-Detail-Couting.vue"
 import PageDetailRW from "@/pages/Page-Manufacture/Page-DetailRW.vue"
+import PageToDo from "@/pages/Page-To-Do/Page-To-Do.vue"
 
 const routes = [
   {
@@ -190,6 +191,12 @@ const routes = [
         name: "AIChatbox",
         meta: { requiresAuth: true },
         component: PageAI,
+      },
+      {
+        path: "/Danh-sach-viec",
+        name: "ListToDo",
+        meta: { requiresAuth: true },
+        component: PageToDo,
       },
     ],
   },

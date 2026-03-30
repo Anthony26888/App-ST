@@ -13,7 +13,18 @@
             v-if="lgAndUp"
           >
             <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
-              <ButtonImportFile @import-file="Dialog = true" />
+              <v-btn
+                prepend-icon="mdi mdi-apps"
+                color="primary"
+                variant="tonal"
+                class="text-caption ms-2"
+                @click="DialogAction = true"
+                >Thao tác</v-btn
+              >
+              <ButtonImportFile
+                class="ms-2"
+                @import-file="Dialog = true"
+              />
               <ButtonImportFile
                 color="warning"
                 class="ms-2"
@@ -23,6 +34,10 @@
               <ButtonDownload @download-file="DownloadWareHouse()" />
               <ButtonHistoryExport
                 @history="DialogHistory = true"
+                v-if="LevelUser == 'Admin' || LevelUser == 'Thủ kho'"
+              />
+              <ButtonExport
+                @export="DialogExport = true"
                 v-if="LevelUser == 'Admin' || LevelUser == 'Thủ kho'"
               />
               <p class="ms-2 font-weight-thin text-subtitle-1">
@@ -121,6 +136,154 @@
       </v-card>
     </v-card-text>
   </v-card>
+
+  <BaseDialog
+    v-model="DialogAction"
+    width="700"
+    title="Thao tác kho"
+    icon="mdi-apps"
+  >
+    <div class="pa-4">
+      <!-- QUẢN LÝ SECTION -->
+      <div class="text-subtitle-2 font-weight-bold mb-3 text-grey-darken-1 d-flex align-center">
+        <v-icon icon="mdi-cog-outline" size="small" class="me-2" />
+        QUẢN LÝ LINH KIỆN
+      </div>
+      <v-row dense class="mb-6">
+        <v-col cols="12" sm="4">
+          <v-hover v-slot="{ isHovering, props }">
+            <v-card
+              v-bind="props"
+              :elevation="isHovering ? 4 : 1"
+              :class="['rounded-lg transition-swing cursor-pointer', { 'on-hover': isHovering }]"
+              variant="flat"
+              class="border"
+              height="100"
+              @click="DialogAdd = true"
+            >
+              <div class="d-flex flex-column align-center justify-center h-100 pa-2">
+                <v-avatar color="primary-lighten-5" rounded="lg" size="40" class="mb-2">
+                  <v-icon icon="mdi-plus" color="primary"></v-icon>
+                </v-avatar>
+                <span class="text-caption font-weight-medium">Thêm mới</span>
+              </div>
+            </v-card>
+          </v-hover>
+        </v-col>
+      </v-row>
+
+      <!-- NHẬP/XUẤT SECTION -->
+      <div class="text-subtitle-2 font-weight-bold mb-3 text-grey-darken-1 d-flex align-center">
+        <v-icon icon="mdi-swap-horizontal" size="small" class="me-2" />
+        NHẬP & XUẤT KHO
+      </div>
+      <v-row dense class="mb-6">
+        <v-col cols="12" sm="4">
+          <v-hover v-slot="{ isHovering, props }">
+            <v-card
+              v-bind="props"
+              :elevation="isHovering ? 4 : 1"
+              class="rounded-lg transition-swing cursor-pointer border"
+              variant="flat"
+              height="100"
+              @click="Dialog = true"
+            >
+              <div class="d-flex flex-column align-center justify-center h-100 pa-2">
+                <v-avatar color="blue-lighten-5" rounded="lg" size="40" class="mb-2">
+                  <v-icon icon="mdi-file-import-outline" color="blue"></v-icon>
+                </v-avatar>
+                <span class="text-caption font-weight-medium">Nhập file Excel</span>
+              </div>
+            </v-card>
+          </v-hover>
+        </v-col>
+        <v-col cols="12" sm="4" v-if="LevelUser == 'Admin' || LevelUser == 'Thủ kho'">
+          <v-hover v-slot="{ isHovering, props }">
+            <v-card
+              v-bind="props"
+              :elevation="isHovering ? 4 : 1"
+              class="rounded-lg transition-swing cursor-pointer border"
+              variant="flat"
+              height="100"
+              @click="DialogExport = true"
+            >
+              <div class="d-flex flex-column align-center justify-center h-100 pa-2">
+                <v-avatar color="orange-lighten-5" rounded="lg" size="40" class="mb-2">
+                  <v-icon icon="mdi-file-export-outline" color="orange"></v-icon>
+                </v-avatar>
+                <span class="text-caption font-weight-medium">Xuất file Excel</span>
+              </div>
+            </v-card>
+          </v-hover>
+        </v-col>
+        <v-col cols="12" sm="4">
+          <v-hover v-slot="{ isHovering, props }">
+            <v-card
+              v-bind="props"
+              :elevation="isHovering ? 4 : 1"
+              class="rounded-lg transition-swing cursor-pointer border"
+              variant="flat"
+              height="100"
+              @click="DialogOutput = true"
+            >
+              <div class="d-flex flex-column align-center justify-center h-100 pa-2">
+                <v-avatar color="warning-lighten-5" rounded="lg" size="40" class="mb-2">
+                  <v-icon icon="mdi-minus-box-outline" color="warning"></v-icon>
+                </v-avatar>
+                <span class="text-caption font-weight-medium">Trừ tồn kho</span>
+              </div>
+            </v-card>
+          </v-hover>
+        </v-col>
+      </v-row>
+
+      <!-- HỆ THỐNG SECTION -->
+      <div class="text-subtitle-2 font-weight-bold mb-3 text-grey-darken-1 d-flex align-center">
+        <v-icon icon="mdi-database-outline" size="small" class="me-2" />
+        TIỆN ÍCH & LỊCH SỬ
+      </div>
+      <v-row dense>
+        <v-col cols="12" sm="4">
+          <v-hover v-slot="{ isHovering, props }">
+            <v-card
+              v-bind="props"
+              :elevation="isHovering ? 4 : 1"
+              class="rounded-lg transition-swing cursor-pointer border"
+              variant="flat"
+              height="100"
+              @click="DownloadWareHouse()"
+            >
+              <div class="d-flex flex-column align-center justify-center h-100 pa-2">
+                <v-avatar color="success-lighten-5" rounded="lg" size="40" class="mb-2">
+                  <v-icon icon="mdi-download-outline" color="success"></v-icon>
+                </v-avatar>
+                <span class="text-caption font-weight-medium">Tải kho (Excel)</span>
+              </div>
+            </v-card>
+          </v-hover>
+        </v-col>
+        <v-col cols="12" sm="4" v-if="LevelUser == 'Admin' || LevelUser == 'Thủ kho'">
+          <v-hover v-slot="{ isHovering, props }">
+            <v-card
+              v-bind="props"
+              :elevation="isHovering ? 4 : 1"
+              class="rounded-lg transition-swing cursor-pointer border"
+              variant="flat"
+              height="100"
+              @click="DialogHistory = true"
+            >
+              <div class="d-flex flex-column align-center justify-center h-100 pa-2">
+                <v-avatar color="info-lighten-5" rounded="lg" size="40" class="mb-2">
+                  <v-icon icon="mdi-history" color="info"></v-icon>
+                </v-avatar>
+                <span class="text-caption font-weight-medium">Lịch sử xuất nhập</span>
+              </div>
+            </v-card>
+          </v-hover>
+        </v-col>
+      </v-row>
+    </div>
+  </BaseDialog>
 
   <BaseDialog
     v-model="Dialog"
@@ -429,10 +592,11 @@
 
   <BaseDialog
     v-model="DialogHistory"
-    width="1200"
+    max-width="1200px"
     title="Lịch sử xuất nhập linh kiện"
     icon="mdi-history"
   >
+
     <v-data-table
       :headers="HeadersHistoryLog"
       :items="warehouseLog"
@@ -457,6 +621,17 @@
       :fixed-header="true"
       height="calc(100vh - 320px)"
     >
+      <template v-slot:top>
+        <v-text-field
+          v-model="searchLog"
+          label="Tìm kiếm"
+          variant="outlined"
+          density="compact"
+          append-icon="mdi-magnify"
+          single-line
+          hide-details
+        ></v-text-field>
+      </template>
       <template v-slot:bottom>
         <div class="text-center pt-2">
           <v-pagination
@@ -512,6 +687,7 @@ import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonRemove from "@/components/Button-Remove.vue";
 import ButtonAdd from "@/components/Button-Add.vue";
 import ButtonHistoryExport from "@/components/Button-History-Export.vue";
+import ButtonExport from "@/components/Button-Export.vue";
 import ButtonSearch from "@/components/Button-Search.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
@@ -553,6 +729,7 @@ const DialogInfo = ref(false); // Product info dialog
 const DialogCaution = ref(false); // Warning notification
 const DialogLoading = ref(false); // Loading state
 const DialogHistory = ref(false); // History import, export in warehouse
+const DialogAction = ref(false); // Action dialog
 
 // ===== MESSAGE DIALOG =====
 // Message for success and error notifications
@@ -576,7 +753,7 @@ const Headers = ref([
   { key: "Output", title: "SL Xuất", width: "100px", noWrap: true },
   { key: "Inventory", title: "SL Tồn kho", width: "100px", noWrap: true },
   { key: "Location", title: "Vị trí", width: "100px", noWrap: true },
-  { key: "Customer", title: "Mã kho", width: "100px", noWrap: true },
+  { key: "Customer", title: "Khách hàng", width: "100px", noWrap: true },
   { key: "Note", title: "Ghi chú", width: "150px", noWrap: true },
   { key: "Note_Output", title: "Ghi chú xuất", width: "150px", noWrap: true },
   { key: "id", title: "Thao tác", width: "100px", noWrap: true },

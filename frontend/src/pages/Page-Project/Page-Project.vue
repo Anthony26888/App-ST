@@ -6,6 +6,12 @@
       >
     </template>
     <template v-slot:append>
+      <v-btn
+        icon="mdi-chat"
+        variant="text"
+        color="primary"
+        @click="DialogAIChat = true"
+      ></v-btn>
       <NotificationBell />
     </template>
     <v-card-text>
@@ -386,10 +392,7 @@
     <v-card-title>
       <v-row class="ms-2">
         <v-col cols="3" md="3">
-          <InputDate
-            v-model="startDateDelivery"
-            label="Từ ngày giao hàng"
-          />
+          <InputDate v-model="startDateDelivery" label="Từ ngày giao hàng" />
         </v-col>
         <v-col cols="3" md="3">
           <InputDate v-model="endDateDelivery" label="Đến ngày giao hàng" />
@@ -483,6 +486,140 @@
     </v-data-table-virtual>
   </BaseDialog>
 
+  <BaseDialog
+    v-model="DialogAIChat"
+    title="Trợ lý AI - Giao diện Giao hàng"
+    icon="mdi-robot"
+    width="100%"
+    max-width="1200"
+  >
+    <div class="chat-container">
+      <div class="chat-messages" ref="chatBody">
+        <div v-if="messages.length === 0" class="empty-chat-state d-flex flex-column align-center justify-center py-10">
+          <v-icon size="64" color="grey-lighten-2">mdi-chat-processing-outline</v-icon>
+          <div class="text-h6 text-grey-darken-1 mt-4">Chào mừng bạn đến với Trợ lý AI!</div>
+          <div class="text-body-2 text-grey">Hỏi tôi về tình trạng giao hàng, PO trễ hoặc tóm tắt khách hàng.</div>
+        </div>
+
+        <div
+          v-for="(msg, index) in messages"
+          :key="index"
+          class="message-wrapper"
+          :class="msg.role === 'user' ? 'justify-end' : 'justify-start'"
+        >
+          <div class="d-flex align-end" :class="msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'">
+            <v-avatar
+              size="36"
+              :color="msg.role === 'user' ? 'primary' : 'secondary'"
+              class="elevation-2 mx-2 mb-1"
+            >
+              <v-icon size="20" color="white">
+                {{ msg.role === 'user' ? 'mdi-account' : 'mdi-robot' }}
+              </v-icon>
+            </v-avatar>
+
+            <div
+              class="message-bubble shadow-sm"
+              :class="[
+                msg.role === 'user' ? 'user-bubble' : 'ai-bubble',
+                msg.role === 'user' ? 'bg-primary text-white' : 'bg-grey-lighten-4 text-black'
+              ]"
+            >
+              <div class="text-body-1">{{ msg.text }}</div>
+
+              <div
+                v-if="msg.meta?.intent || msg.meta?.matchedCustomer"
+                class="mt-2 pt-2 border-top-dash text-caption opacity-80"
+              >
+                <div v-if="msg.meta?.intent" class="d-flex align-center">
+                  <v-icon size="12" class="me-1">mdi-tag-outline</v-icon>
+                  Ý định: {{ msg.meta.intent.type || "-" }}
+                </div>
+                <div v-if="msg.meta?.matchedCustomer" class="d-flex align-center mt-1">
+                  <v-icon size="12" class="me-1">mdi-account-outline</v-icon>
+                  Khách hàng: {{ msg.meta.matchedCustomer }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="loading" class="message-wrapper justify-start">
+          <div class="d-flex align-end">
+            <v-avatar size="36" color="secondary" class="elevation-2 mx-2 mb-1">
+              <v-icon size="20" color="white">mdi-robot</v-icon>
+            </v-avatar>
+            <div class="message-bubble ai-bubble bg-grey-lighten-4">
+              <div class="typing-dots">
+                <span></span><span></span><span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <v-alert v-if="error" type="error" variant="tonal" class="mx-4 mt-4" border="start" density="compact">
+          {{ error }}
+        </v-alert>
+      </div>
+
+      <v-divider></v-divider>
+
+      <div class="chat-footer pa-4">
+        <div class="suggestions-container mb-3" v-if="messages.length < 5">
+          <div class="text-caption text-grey-darken-1 mb-2">Gợi ý câu hỏi:</div>
+          <div class="d-flex flex-wrap gap-2">
+            <v-chip
+              v-for="hint in ['PO nào trễ', 'Tóm tắt khách hàng...', 'Hôm nay giao gì']"
+              :key="hint"
+              size="small"
+              variant="outlined"
+              color="primary"
+              class="cursor-pointer hover-chip"
+              @click="question = hint.includes('...') ? 'Tóm tắt khách hàng' : hint"
+            >
+              {{ hint }}
+            </v-chip>
+          </div>
+        </div>
+
+        <div class="d-flex align-end">
+          <v-textarea
+            v-model="question"
+            placeholder="Nhập câu hỏi tại đây..."
+            variant="outlined"
+            rows="1"
+            auto-grow
+            hide-details
+            density="comfortable"
+            class="flex-grow-1 custom-textarea rounded-xl"
+            @keydown.enter.exact.prevent="handleSend"
+            bg-color="white"
+          >
+            <template v-slot:append-inner>
+              <v-btn
+                icon="mdi-send"
+                variant="text"
+                color="primary"
+                :loading="loading"
+                :disabled="!question.trim()"
+                @click="handleSend"
+              />
+            </template>
+          </v-textarea>
+          
+          <v-btn
+            icon="mdi-delete-sweep-outline"
+            variant="text"
+            color="grey-darken-1"
+            class="ms-2 mb-1"
+            title="Xóa chat"
+            @click="clearMessages"
+          />
+        </div>
+      </div>
+    </div>
+  </BaseDialog>
+
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
@@ -490,6 +627,8 @@
 <script setup>
 // ===== IMPORTS =====
 // Core dependencies
+import { nextTick, watch } from 'vue'
+import { useDeliveryChat } from '@/composables/Project/useAIChat'
 import axios from "axios";
 import { useRouter } from "vue-router";
 import { ref, reactive, computed } from "vue";
@@ -539,7 +678,7 @@ const DialogAdd = ref(false); // Add new item dialog
 const DialogLoading = ref(false); // Loading state
 const DialogFilterDate = ref(false); // Filter by date dialog
 const DialogFind = ref(false); // Find by date dialog
-
+const DialogAIChat = ref(false); // AI chat dialog
 // ===== MESSAGE DIALOG =====
 // Message for success and error notifications
 const MessageDialog = ref("");
@@ -589,7 +728,12 @@ const HeadersFind = ref([
     sortable: true,
     width: "150",
   },
-  { key: "DeliveryStatus", title: "Trạng thái giao hàng", sortable: true, width: "150" },
+  {
+    key: "DeliveryStatus",
+    title: "Trạng thái giao hàng",
+    sortable: true,
+    width: "150",
+  },
   { key: "id", sortable: false, title: "Thao tác" },
 ]);
 
@@ -689,7 +833,7 @@ const SaveEdit = async () => {
   try {
     const response = await axios.put(
       `${Url}/Project/Customer/Edit-Customer/${GetID.value}`,
-      formData
+      formData,
     );
     DialogLoading.value = false;
     DialogEdit.value = false;
@@ -717,7 +861,7 @@ const SaveAdd = async () => {
   try {
     const response = await axios.post(
       `${Url}/Project/Customer/Add-Customer`,
-      formData
+      formData,
     );
     DialogLoading.value = false;
     DialogAdd.value = false;
@@ -739,7 +883,7 @@ const RemoveItem = async (id) => {
   DialogLoading.value = true;
   try {
     const response = await axios.delete(
-      `${Url}/Project/Customer/Delete-Customer/${GetID.value}`
+      `${Url}/Project/Customer/Delete-Customer/${GetID.value}`,
     );
     MessageDialog.value = "Xoá dữ liệu thành công";
     Reset();
@@ -846,6 +990,38 @@ function Error() {
   DialogFailed.value = true;
   DialogLoading.value = false;
 }
+
+
+
+const question = ref('')
+const chatBody = ref(null)
+
+const {
+  loading,
+  error,
+  messages,
+  sendMessage,
+  clearMessages
+} = useDeliveryChat()
+
+async function handleSend() {
+  const text = question.value.trim()
+  if (!text || loading.value) return
+
+  question.value = ''
+  await sendMessage(text)
+}
+
+watch(
+  () => messages.value.length,
+  async () => {
+    await nextTick()
+    const el = chatBody.value?.$el || chatBody.value
+    if (el) {
+      el.scrollTop = el.scrollHeight
+    }
+  }
+)
 </script>
 <script>
 export default {
@@ -869,4 +1045,105 @@ export default {
   methods: {},
 };
 </script>
-<style scoped></style>
+<style scoped>
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 75vh;
+  background-color: #fcfcfc;
+}
+
+.chat-messages {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.message-wrapper {
+  display: flex;
+  width: 100%;
+}
+
+.message-bubble {
+  max-width: 75%;
+  padding: 12px 16px;
+  position: relative;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.user-bubble {
+  border-radius: 20px 20px 4px 20px;
+}
+
+.ai-bubble {
+  border-radius: 20px 20px 20px 4px;
+}
+
+.border-top-dash {
+  border-top: 1px dashed rgba(0, 0, 0, 0.1);
+}
+
+.text-white .border-top-dash {
+  border-top-color: rgba(255, 255, 255, 0.2);
+}
+
+.shadow-sm {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.hover-chip:hover {
+  background-color: rgb(var(--v-theme-primary)) !important;
+  color: white !important;
+  transition: all 0.3s ease;
+}
+
+.gap-2 {
+  gap: 8px;
+}
+
+/* Typing Dots Animation */
+.typing-dots {
+  display: flex;
+  padding: 4px 0;
+}
+
+.typing-dots span {
+  height: 8px;
+  width: 8px;
+  background: #999;
+  border-radius: 50%;
+  display: block;
+  margin: 0 3px;
+  animation: typing 1s infinite;
+}
+
+.typing-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0); }
+}
+
+.custom-textarea :deep(.v-field__outline) {
+  --v-field-border-opacity: 0.1;
+}
+
+.custom-textarea :deep(.v-field--focused .v-field__outline) {
+  --v-field-border-opacity: 1;
+}
+</style>

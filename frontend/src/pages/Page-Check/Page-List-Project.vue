@@ -61,7 +61,12 @@
 
   <EmptyMobile v-else />
 
-  <BaseDialog v-model="DialogAdd" width="500" title="Thêm tên dự án" icon="mdi-plus">
+  <BaseDialog
+    v-model="DialogAdd"
+    width="500"
+    title="Thêm tên dự án"
+    icon="mdi-plus"
+  >
     <InputField
       label="Nhập tên dự án"
       :rules="requiredRule"
@@ -78,12 +83,14 @@
       <ButtonSave :disabled="!FileName || !Created_at" @save="SaveAdd()" />
     </template>
   </BaseDialog>
-  <BaseDialog v-model="DialogEdit" width="500" title="Chỉnh sửa dự án" icon="mdi-update">
+  <BaseDialog
+    v-model="DialogEdit"
+    width="500"
+    title="Chỉnh sửa dự án"
+    icon="mdi-update"
+  >
     <InputField label="Tên dự án" v-model="FileName_Edit" />
-    <InputDate
-      label="Thời gian tạo"
-      v-model="Created_at_Edit"
-    />
+    <InputDate label="Thời gian tạo" v-model="Created_at_Edit" />
     <InputTextarea label="Ghi chú" v-model="Note_Edit" />
     <template #actions>
       <ButtonDelete @delete="DialogRemove = true" />
@@ -92,7 +99,12 @@
       <ButtonSave @save="SaveEdit()" />
     </template>
   </BaseDialog>
-  <BaseDialog v-model="DialogRemove" width="400" title="Xoá dữ liệu" icon="mdi-delete">
+  <BaseDialog
+    v-model="DialogRemove"
+    width="400"
+    title="Xoá dữ liệu"
+    icon="mdi-delete"
+  >
     Bạn có chắc chắn muốn xoá dự án này ?
     <template #actions>
       <ButtonCancel @cancel="DialogRemove = false" />
@@ -187,18 +199,27 @@ const GetItem = (value) => {
 
 const SaveAdd = async () => {
   DialogLoading.value = true;
-  const formData = reactive({
+
+  const formData = {
     project_name: FileName.value,
     created_at: Created_at.value,
     note: Note.value,
-  });
+  };
+
   try {
-    const response = await axios.post(`${Url}/FilterBom/Add-item`, formData);
-    console.log(response.data);
+    // 👉 1. tạo FilterBom
+    const res1 = await axios.post(`${Url}/FilterBom/Add-item`, formData);
+
+    const project_id = res1.data.id; // 👈 lấy id
+    // 👉 2. tạo SettingPCB
+    await axios.post(`${Url}/SettingPCB/Add-item`, {
+      project_id: project_id,
+    });
+
     Reset();
     MessageDialog.value = "Thêm dữ liệu dự án thành công";
   } catch (error) {
-    console.error("Error adding maintenance record:", error);
+    console.error("Error adding project:", error);
     MessageErrorDialog.value = "Lỗi thêm dữ liệu dự án";
     Error();
   } finally {
@@ -216,7 +237,7 @@ const SaveEdit = async () => {
   try {
     const response = await axios.put(
       `${Url}/FilterBom/Edit-item/${GetID.value}`,
-      formData
+      formData,
     );
     console.log(response.data);
     Reset();
@@ -234,7 +255,7 @@ const RemoveItem = async () => {
   DialogLoading.value = true;
   try {
     const response = await axios.delete(
-      `${Url}/FilterBom/Delete-item/${GetID.value}`
+      `${Url}/FilterBom/Delete-item/${GetID.value}`,
     );
     console.log(response.data.message);
     MessageDialog.value = "Xoá dữ liệu thành công";

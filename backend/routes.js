@@ -30,10 +30,10 @@ const upload = multer({
   },
 });
 
-app.post("/upload", upload.single("file"), (req, res) => {
+app.post("/api/upload", upload.single("file"), (req, res) => {
   if (!req.file) return res.status(400).send("No file uploaded.");
   const { PO, BOM, SL_Board, Creater, TimeStamp } = req.body;
-  console.log(req.file)
+  console.log(req.file);
   // Read Excel file
   const filePath = path.join(__dirname, req.file.path);
   const workbook = xlsx.readFile(filePath);
@@ -44,7 +44,7 @@ app.post("/upload", upload.single("file"), (req, res) => {
 
   // Insert data into SQLite database
   const stmt = db.prepare(
-    `INSERT INTO CheckBOM (Description, Manufacturer_1, PartNumber_1, Manufacturer_2, PartNumber_2, Manufacturer_3, PartNumber_3, So_Luong, Bom, SL_Board, PO, Du_Toan_Hao_Phi, Hao_Phi_Thuc_Te, Creater, TimeStamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '0', '0', ?, ?)`
+    `INSERT INTO CheckBOM (Description, Manufacturer_1, PartNumber_1, Manufacturer_2, PartNumber_2, Manufacturer_3, PartNumber_3, So_Luong, Bom, SL_Board, PO, Du_Toan_Hao_Phi, Hao_Phi_Thuc_Te, Creater, TimeStamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '0', '0', ?, ?)`,
   );
   data.forEach((row) => {
     stmt.run(
@@ -60,7 +60,7 @@ app.post("/upload", upload.single("file"), (req, res) => {
       SL_Board,
       PO,
       Creater,
-      TimeStamp
+      TimeStamp,
     );
   });
 
@@ -68,7 +68,6 @@ app.post("/upload", upload.single("file"), (req, res) => {
 
   res.send("File processed successfully.");
 });
-
 
 // Router delete all Inventory
 app.delete("/api/WareHouse/delete-all", async (req, res) => {
@@ -108,7 +107,6 @@ app.delete("/api/CheckBOM/delete-all", async (req, res) => {
     res.json({ message: "Item inserted successfully" });
   });
 });
-
 
 // 📥 API to Download WareHouse as XLSX
 app.get("/api/Ware-House/download", async (req, res) => {
@@ -247,7 +245,7 @@ app.get("/api/Project/download", async (req, res) => {
           sheetData.push([
             `  PONumber: ${row.PONumber}`,
             `Ngày tạo: ${row["Ngày_tạo_PO"]}`,
-            `Ngày chuyển: ${row["Ngày_chuyển_PO"]}`
+            `Ngày chuyển: ${row["Ngày_chuyển_PO"]}`,
           ]);
         }
 
@@ -256,7 +254,7 @@ app.get("/api/Project/download", async (req, res) => {
           `SL Tổng: ${row["SL_Tổng"]}`,
           `SL Chuyển: ${row["SL_Chuyển"]}`,
           `SL Nợ: ${row["SL_Nợ"]}`,
-          `Trạng thái: ${row["Trạng_thái"]}`
+          `Trạng thái: ${row["Trạng_thái"]}`,
         ]);
       });
 
@@ -275,7 +273,6 @@ app.get("/api/Project/download", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
 
 // 📥 API to Download Project detail as XLSX
 app.get("/api/Project-Detail/download/:id", async (req, res) => {
@@ -311,7 +308,11 @@ app.get("/api/Project-Detail/download/:id", async (req, res) => {
         sheetData.push(["Không có dữ liệu cho khách hàng này."]);
       } else {
         const customerName = rows[0]["Tên_khách_hàng"];
-        sheetData.push(["", "", `CHI TIẾT DỰ ÁN CỦA KHÁCH HÀNG: ${customerName.toUpperCase()}`]);
+        sheetData.push([
+          "",
+          "",
+          `CHI TIẾT DỰ ÁN CỦA KHÁCH HÀNG: ${customerName.toUpperCase()}`,
+        ]);
         sheetData.push([]);
 
         let currentPO = "";
@@ -324,7 +325,7 @@ app.get("/api/Project-Detail/download/:id", async (req, res) => {
             sheetData.push([
               `Số PO: ${row["Số_PO"]}`,
               `Ngày tạo: ${row["Ngày_tạo_PO"]}`,
-              `Ngày chuyển: ${row["Ngày_chuyển_PO"]}`
+              `Ngày chuyển: ${row["Ngày_chuyển_PO"]}`,
             ]);
           }
 
@@ -333,7 +334,7 @@ app.get("/api/Project-Detail/download/:id", async (req, res) => {
             `SL Tổng: ${row["SL_Tổng"]}`,
             `SL Chuyển: ${row["SL_Chuyển"]}`,
             `SL Nợ: ${row["SL_Nợ"]}`,
-            `Trạng thái: ${row["Trạng_thái"]}`
+            `Trạng thái: ${row["Trạng_thái"]}`,
           ]);
         });
       }
@@ -354,7 +355,6 @@ app.get("/api/Project-Detail/download/:id", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
 
 // 📥 API to Download -Order as XLSX
 app.get("/api/PickPlace/download/:id", async (req, res) => {
@@ -398,6 +398,292 @@ app.get("/api/PickPlace/download/:id", async (req, res) => {
   }
 });
 
+app.get("/api/PickPlaceTop/download/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const query = `
+                      SELECT 
+                          p.designator,
+                          b.mpn,
+                          p.layer,
+                          p.x,
+                          p.y,
+                          p.rotation 
+                      FROM Pickplace p
+                      LEFT JOIN Bom b
+                          ON TRIM(LOWER(p.designator)) = TRIM(LOWER(b.designator))
+                        AND p.project_id = b.project_id
+                      WHERE p.project_id = ?
+                        AND LOWER(TRIM(p.layer)) IN ('top', 'toplayer');`;
+
+    db.all(query, [id], (err, rows) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      // Convert data to worksheet
+      const ws = xlsx.utils.json_to_sheet(rows);
+      const wb = xlsx.utils.book_new();
+      xlsx.utils.book_append_sheet(wb, ws, `pickp&place_top`);
+
+      // Save the file temporarily
+      const filePath = path.join(__dirname, `pick&place_top.xlsx`);
+      xlsx.writeFile(wb, filePath);
+
+      // Send the file to the client
+      res.download(filePath, `pick&place_top.xlsx`, (err) => {
+        if (err) console.error("Error sending file:", err);
+        fs.unlinkSync(filePath); // Delete after sending
+      });
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/PickPlaceBottom/download/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const query = `
+                      SELECT 
+                          p.designator,
+                          b.mpn,
+                          p.layer,
+                          p.x,
+                          p.y,
+                          p.rotation 
+                      FROM Pickplace p
+                      LEFT JOIN Bom b
+                          ON TRIM(LOWER(p.designator)) = TRIM(LOWER(b.designator))
+                        AND p.project_id = b.project_id
+                      WHERE p.project_id = ?
+                        AND LOWER(TRIM(p.layer)) IN ('bottom', 'bottomlayer');`;
+
+    db.all(query, [id], (err, rows) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      // Convert data to worksheet
+      const ws = xlsx.utils.json_to_sheet(rows);
+      const wb = xlsx.utils.book_new();
+      xlsx.utils.book_append_sheet(wb, ws, `pickp&place_bottom`);
+
+      // Save the file temporarily
+      const filePath = path.join(__dirname, `pick&place_bottom.xlsx`);
+      xlsx.writeFile(wb, filePath);
+
+      // Send the file to the client
+      res.download(filePath, `pick&place_bottom.xlsx`, (err) => {
+        if (err) console.error("Error sending file:", err);
+        fs.unlinkSync(filePath); // Delete after sending
+      });
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+const ExcelJS = require("exceljs");
+
+app.get("/api/BomHighlight/download/:id", async (req, res) => {
+  const { id } = req.params;
+
+  // ===== Helper normalize =====
+  const normalize = (val) =>
+    String(val || "")
+      .replace(/\s+/g, "")
+      .toUpperCase();
+
+  // ===== Detect mount type =====
+  const detectMountType = ({
+    description,
+    packageName,
+    hasXY,
+    hasOverride,
+  }) => {
+    const desc = String(description || "").toUpperCase();
+
+    // 0. Không có description
+    if (!desc.trim()) return "UNKNOWN";
+
+    // 1. Override
+    if (hasOverride) return "REVIEW";
+
+    // 2. SMT keyword mạnh
+    if (
+      desc.includes("SMD") ||
+      desc.includes("QFN") ||
+      desc.includes("DFN") ||
+      desc.includes("BGA") ||
+      desc.includes("LGA") ||
+      desc.includes("0402") ||
+      desc.includes("0603") ||
+      desc.includes("0805") ||
+      desc.includes("1206") ||
+      desc.includes("SOT") ||
+      desc.includes("SOIC") ||
+      desc.includes("SOP")
+    )
+      return "SMT";
+
+    // 3. Package
+    if (
+      [
+        "0402",
+        "0603",
+        "0805",
+        "1206",
+        "QFN",
+        "DFN",
+        "BGA",
+        "LGA",
+        "SOT-23",
+        "SOT-223",
+        "SOP",
+        "SOIC",
+      ].includes((packageName || "").toUpperCase())
+    )
+      return "SMT";
+
+    // 4. HAND keyword
+    if (desc.includes("DIP") || desc.includes("TO-")) return "HAND";
+
+    // 5. Connector (không phải SMD)
+    if (desc.includes("CONN") && !desc.includes("SMD")) return "HAND";
+    if (desc.includes("HEADER")) return "HAND";
+    if (desc.includes("USB") && !desc.includes("SMD")) return "HAND";
+
+    // 6. Pickplace fallback
+    if (hasXY) return "SMT";
+
+    return "UNKNOWN";
+  };
+
+  // ===== Lấy PickPlace (BOTTOM) =====
+  const ppQuery = `
+    SELECT 
+      p.designator,
+      LOWER(TRIM(p.layer)) as layer,
+      p.x,
+      p.y
+    FROM Pickplace p
+    WHERE p.project_id = ?
+      AND LOWER(TRIM(p.layer)) IN ('bottom', 'bottomlayer')
+  `;
+
+  db.all(ppQuery, [id], async (err, ppRows) => {
+    if (err) return res.status(500).json(err);
+
+    // ===== Map designator -> layer + XY =====
+    const map = new Map();
+    ppRows.forEach((r) => {
+      const key = normalize(r.designator);
+      map.set(key, {
+        layer: r.layer,
+        hasXY: r.x != null && r.y != null,
+      });
+    });
+
+    // ===== Lấy BOM =====
+    const bomQuery = `
+      SELECT *
+      FROM BomHighlight
+      WHERE project_id = ?
+    `;
+
+    db.all(bomQuery, [id], async (err, bomRows) => {
+      if (err) return res.status(500).json(err);
+
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("BOM");
+
+      // ===== Header =====
+      ws.columns = [
+        { header: "Designator", key: "designator", width: 100 },
+        { header: "Description", key: "description", width: 50 },
+        { header: "Manufacture", key: "manufacture", width: 30 },
+        { header: "MPN", key: "mpn", width: 25 },
+        { header: "MPN2", key: "mpn2", width: 25 },
+        { header: "MPN3", key: "mpn3", width: 25 },
+        { header: "Quantity", key: "quantity", width: 10 },
+      ];
+
+      // ===== Fill data =====
+      bomRows.forEach((row) => {
+        const original = String(row.designator || "");
+        const parts = original.split(",").map((s) => s.trim());
+
+        const richText = [];
+
+        let hasBottom = false;
+        let hasXY = false;
+
+        parts.forEach((p, index) => {
+          const key = normalize(p);
+          const info = map.get(key);
+
+          const isBottom =
+            info?.layer === "bottom" || info?.layer === "bottomlayer";
+
+          if (isBottom) hasBottom = true;
+          if (info?.hasXY) hasXY = true;
+
+          richText.push({
+            text: p,
+            font: isBottom ? { color: { argb: "FFFF0000" }, bold: true } : {},
+          });
+
+          if (index < parts.length - 1) {
+            richText.push({ text: ", " });
+          }
+        });
+
+        // ===== Detect mount type =====
+        const mountType = detectMountType({
+          description: row.description,
+          packageName: row.package, // nếu DB có
+          hasXY,
+          hasOverride: false, // nếu có bảng override thì nối thêm
+        });
+
+        const rowExcel = ws.addRow({
+          designator: { richText },
+          description: row.description,
+          manufacture: row.manufacture,
+          mpn: row.mpn,
+          mpn2: row.mpn2,
+          mpn3: row.mpn3,
+          quantity: row.quantity,
+        });
+
+        // ===== Tô màu nền =====
+        if (mountType === "HAND" || mountType === "UNKNOWN") {
+          rowExcel.eachCell((cell) => {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFFFE4E1" }, // 🌸 ROSE
+            };
+          });
+        }
+      });
+
+      // ===== Export =====
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      );
+
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=BOM_highlight.xlsx",
+      );
+
+      await wb.xlsx.write(res);
+      res.end();
+    });
+  });
+});
+
 // Router login user
 app.post("/api/Users/login", (req, res) => {
   const { Username, Password } = req.body;
@@ -411,7 +697,7 @@ app.post("/api/Users/login", (req, res) => {
         const token = jwt.sign(
           { id: user.id, Username: user.Username },
           SECRET_KEY,
-          { expiresIn: "1h" }
+          { expiresIn: "1h" },
         );
         res.json({ message: "Đăng nhập thành công", token });
       } else {
@@ -420,7 +706,6 @@ app.post("/api/Users/login", (req, res) => {
     });
   });
 });
-
 
 // Router to get detail user
 app.get("/api/All-Users/:id", async (req, res) => {
@@ -443,7 +728,7 @@ app.get("/api/Project/Customer/Orders/Download/:id", async (req, res) => {
     // Loại bỏ hoặc thay thế các ký tự không hợp lệ trong NameExcel
     const invalidChars = /[:\\/?*[\]]/g;
     const safeNameExcel = NameExcel.replace(invalidChars, "_");
-    const query = `SELECT * FROM ProductDetails WHERE POID = ?`
+    const query = `SELECT * FROM ProductDetails WHERE POID = ?`;
     db.all(query, [id], (err, rows) => {
       if (err) {
         return res.status(500).json({ error: err.message });

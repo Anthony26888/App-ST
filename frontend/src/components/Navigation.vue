@@ -281,6 +281,13 @@ const menuItems = computed(() => [
     disabled: StatusOption_6.value,
   },
   {
+    icon: "mdi-clipboard-list-outline",
+    title: "Danh sách công việc",
+    value: "ListWork",
+    to: "/Danh-sach-viec",
+    disabled: StatusOption_11.value,
+  },
+  {
     icon: "mdi-cog-outline",
     title: "Cài đặt",
     value: "Setting",
