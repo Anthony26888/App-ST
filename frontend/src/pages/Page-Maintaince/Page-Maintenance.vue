@@ -273,15 +273,15 @@
             <template #item.Image="{ value }">
               <v-img
                 v-if="value"
-                :src="`${API_URL}${value}`"
+                :src="value"
                 width="100"
                 height="100"
                 cover
-                :lazy-src="`${API_URL}${value}`"
+                :lazy-src="value"
                 :aspect-ratio="1"
                 :eager="true"
                 :loading="true"
-                :placeholder="`${API_URL}${value}`"
+                :placeholder="value"
                 class="rounded-lg ma-2"
               />
               <v-img
