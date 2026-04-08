@@ -54,6 +54,7 @@
           <v-tab :value="1" class="text-caption">Bom và Pick & Place</v-tab>
           <v-tab :value="2" class="text-caption">Gerber</v-tab>
           <v-tab :value="3" class="text-caption">PCB & Panel</v-tab>
+          <!-- <v-tab :value="4" class="text-caption">Gerber PnP</v-tab> -->
         </v-tabs>
 
         <v-tabs-window v-model="tab">
@@ -87,14 +88,6 @@
                   >
                     <v-list-item-title class="text-caption"
                       >Pick & Place</v-list-item-title
-                    >
-                  </v-list-item>
-                  <v-list-item
-                    @click="DialogAddGerber = true"
-                    prepend-icon="mdi-plus"
-                  >
-                    <v-list-item-title class="text-caption"
-                      >Gerber</v-list-item-title
                     >
                   </v-list-item>
                 </v-list>
@@ -148,6 +141,54 @@
                   </v-list-item>
                 </v-list>
               </v-menu>
+
+              <v-menu>
+                <template v-slot:activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    prepend-icon="mdi-sort"
+                    append-icon="mdi-chevron-down"
+                    color="grey"
+                    variant="tonal"
+                    class="text-caption ms-2"
+                  >
+                    Sắp xếp
+                  </v-btn>
+                </template>
+                <v-list density="compact">
+                  <v-list-item @click="SortTop()" prepend-icon="mdi-arrow-up">
+                    <v-list-item-title class="text-caption"
+                      >Bề mặt Top</v-list-item-title
+                    >
+                  </v-list-item>
+                  <v-list-item
+                    @click="SortBottom()"
+                    prepend-icon="mdi-arrow-down"
+                  >
+                    <v-list-item-title class="text-caption"
+                      >Bề mặt Bottom</v-list-item-title
+                    >
+                  </v-list-item>
+                  <v-list-item @click="SortSMT()" prepend-icon="mdi-chip">
+                    <v-list-item-title class="text-caption"
+                      >SMT</v-list-item-title
+                    >
+                  </v-list-item>
+                  <v-list-item
+                    @click="SortHand()"
+                    prepend-icon="mdi-screwdriver"
+                  >
+                    <v-list-item-title class="text-caption"
+                      >Hàn tay</v-list-item-title
+                    >
+                  </v-list-item>
+                  <v-list-item @click="ResetSort()" prepend-icon="mdi-refresh">
+                    <v-list-item-title class="text-caption"
+                      >Tất cả</v-list-item-title
+                    >
+                  </v-list-item>
+                </v-list>
+              </v-menu>
               <v-spacer></v-spacer>
               <InputSearch v-model="searchBom" />
             </v-card-title>
@@ -191,19 +232,31 @@
                 </template>
                 <template v-slot:item.id="{ item }">
                   <div class="d-flex">
-                    <ButtonEdit @edit="GetItemEdit(item)" />
-                    <ButtonSearch @search="getAccessToken(item)" class="ms-2" />
-                    <v-btn
-                      icon="mdi-update"
-                      color="success"
-                      variant="text"
-                      @click="GetAddSize(item)"
-                    ></v-btn>
+                    <v-tooltip text="Chỉnh sửa" location="top">
+                      <template v-slot:activator="{ props }">
+                        <ButtonEdit @edit="GetItemEdit(item)" v-bind="props" />
+                      </template>
+                    </v-tooltip>
+                    <v-tooltip text="Xem linh kiện" location="top">
+                      <template v-slot:activator="{ props }">
+                        <ButtonSearch
+                          @search="getAccessToken(item)"
+                          v-bind="props"
+                          class="ms-2"
+                        />
+                      </template>
+                    </v-tooltip>
                   </div>
                 </template>
                 <template v-slot:item.mount_type="{ value }">
                   <v-chip
-                    :color="value === 'SMT' ? 'primary' : 'warning'"
+                    :color="
+                      value === 'SMT'
+                        ? 'primary'
+                        : value === 'HAND'
+                        ? 'error'
+                        : 'warning'
+                    "
                     size="small"
                     variant="tonal"
                   >
@@ -250,12 +303,22 @@
           <v-tabs-window-item :value="2">
             <v-card height="100vh" variant="text">
               <v-card-title class="d-flex align-center mt-5" height="62vh">
-                <span>So sánh Gerber và Pick & Place</span>
+                <v-btn
+                  v-bind="props"
+                  prepend-icon="mdi-import"
+                  color="primary"
+                  variant="tonal"
+                  class="text-caption"
+                  @click="DialogAddGerber = true"
+                >
+                  Nhập dữ liệu
+                </v-btn>
                 <!-- <Button-Download @click="downloadExcelPnP()"/> -->
                 <v-spacer></v-spacer>
                 <!-- Coordinate scaling controls -->
+
                 <v-btn
-                  @click="GetSettingPCB()"
+                  @click="DialogCoordinateSettings = true"
                   prepend-icon="mdi-tune"
                   variant="tonal"
                   class="me-2 ms-2 text-caption"
@@ -277,96 +340,197 @@
                   style="max-width: 160px"
                 />
               </v-card-title>
-              <v-card-text
-                class="pa-0 ma-0 overflow-hidden"
-                style="height: calc(100vh - 120px)"
-              >
-                <!-- Hiển thị SVG với overlay Pick & Place -->
-                <div
-                  v-if="svgWithPnP && overlayMode !== 'pnp'"
-                  class="gerber-svg-container-full"
-                  ref="svgContainer"
-                  @mousemove="handleMouseMoveSVG"
-                >
-                  <!-- GRID -->
-                  <div v-if="showGrid" class="coordinate-grid-overlay">
-                    <svg width="100%" height="100%">
-                      <defs>
-                        <pattern
-                          id="grid"
-                          width="20"
-                          height="20"
-                          patternUnits="userSpaceOnUse"
+              <v-row>
+                <v-col cols="6">
+                  <v-card-text
+                    class="pa-0 ma-0 overflow-hidden"
+                    style="height: calc(100vh - 120px)"
+                  >
+                    <!-- Hiển thị SVG với overlay Pick & Place -->
+
+                    <div
+                      v-if="svgWithPnP && overlayMode !== 'pnp'"
+                      class="gerber-svg-container-full"
+                      ref="svgContainer"
+                      @mousemove="handleMouseMoveSVG"
+                      style="overflow: hidden; position: relative"
+                    >
+                      <div
+                        style="
+                          position: absolute;
+                          bottom: 15px;
+                          right: 15px;
+                          z-index: 20;
+                        "
+                      >
+                        <v-btn
+                          prepend-icon="mdi-refresh"
+                          @click="resetsZoom"
+                          class="text-caption"
+                          title="Reset View (H)"
+                          color="error"
+                          variant="tonal"
                         >
-                          <path
-                            d="M 20 0 L 0 0 0 20"
-                            fill="none"
-                            stroke="#e0e0e0"
-                            stroke-width="0.5"
+                          Reset Zoom
+                        </v-btn>
+                      </div>
+                      <svg width="100" height="100" viewBox="0 0 120 120">
+                        <g class="compass-static">
+                          <line
+                            x1="50"
+                            y1="60"
+                            x2="20"
+                            y2="60"
+                            stroke="#555"
+                            stroke-width="2"
+                            marker-end="url(#arrow-gray)"
                           />
-                        </pattern>
-                      </defs>
-                      <rect width="100%" height="100%" fill="url(#grid)" />
-                    </svg>
-                  </div>
+                          <text x="5" y="64" fill="#888" font-size="10">
+                            0°
+                          </text>
 
-                  <!-- SVG -->
-                  <div
-                    ref="svgWrapper"
-                    v-html="currentSvgContent"
-                    class="svg-full-wrapper"
-                  ></div>
+                          <line
+                            x1="60"
+                            y1="50"
+                            x2="60"
+                            y2="80"
+                            stroke="#555"
+                            stroke-width="2"
+                            marker-end="url(#arrow-gray)"
+                          />
+                          <text x="55" y="95" fill="#888" font-size="10">
+                            90°
+                          </text>
 
-                  <!-- Subtle Status Bar -->
-                  <div class="gerber-status-bar d-flex align-center px-4 py-1">
-                    <div class="d-flex align-center me-4">
-                      <v-icon size="x-small" color="primary" class="me-1"
-                        >mdi-magnify-plus</v-icon
-                      >
-                      <span class="text-caption font-weight-bold"
-                        >{{ Math.round(zoomLevel * 100) }}%</span
-                      >
-                    </div>
-                    <v-divider
-                      vertical
-                      class="mx-2 my-1"
-                      style="opacity: 0.2"
-                    ></v-divider>
-                    <div class="d-flex align-center ms-2">
-                      <v-icon size="x-small" color="success" class="me-1"
-                        >mdi-axis-arrow</v-icon
-                      >
-                      <span
-                        class="text-caption font-weight-medium text-grey-darken-2"
-                      >
-                        X: <span class="text-black">{{ mouseCoords.x }}</span>
-                        <span class="ms-2">Y: </span
-                        ><span class="text-black">{{ mouseCoords.y }}</span>
-                        <span class="ms-1 text-grey">mm</span>
-                      </span>
-                    </div>
-                    <v-spacer></v-spacer>
-                    <div class="text-caption text-grey-darken-1">
-                      {{ selectedLayer }} Layer
-                    </div>
-                  </div>
-                </div>
+                          <line
+                            x1="70"
+                            y1="60"
+                            x2="100"
+                            y2="60"
+                            stroke="#555"
+                            stroke-width="2"
+                            marker-end="url(#arrow-gray)"
+                          />
+                          <text x="105" y="64" fill="#888" font-size="10">
+                            180°
+                          </text>
 
-                <v-empty-state
-                  v-if="overlayMode !== 'pnp' && !currentGerberSvg"
-                  title="Dữ liệu trống"
-                  text="Chưa có dữ liệu Gerber"
-                  icon="mdi-image-off"
-                  class="mt-10"
-                />
-              </v-card-text>
+                          <line
+                            x1="60"
+                            y1="70"
+                            x2="60"
+                            y2="40"
+                            stroke="#555"
+                            stroke-width="2"
+                            marker-end="url(#arrow-gray)"
+                          />
+                          <text x="50" y="30" fill="#888" font-size="10">
+                            270°
+                          </text>
+                        </g>
+                      </svg>
+                      <div class="rotation-value">
+                        {{ currentCompRotation }}°
+                      </div>
+                      <div v-if="showGrid" class="coordinate-grid-overlay">
+                        ...
+                      </div>
+
+                      <div
+                        ref="svgWrapper"
+                        v-html="svgWithPnP"
+                        class="svg-full-wrapper"
+                        style="width: 100%; height: 100%"
+                      ></div>
+                    </div>
+
+                    <v-empty-state
+                      v-if="overlayMode !== 'pnp' && !currentGerberSvg"
+                      title="Dữ liệu trống"
+                      text="Chưa có dữ liệu Gerber"
+                      icon="mdi-image-off"
+                      class="mt-10"
+                    />
+                  </v-card-text>
+                </v-col>
+                <v-col cols="6">
+                  <v-data-table-virtual
+                    density="comfortable"
+                    :headers="HeadersPnPGerber"
+                    :items="combinePnPGerber"
+                    :search="searchPnPGerber"
+                    class="elevation-0"
+                    :footer-props="{
+                      'items-per-page-options': [10, 20, 50, 100],
+                      'items-per-page-text': 'Số hàng mỗi trang',
+                    }"
+                    :header-props="{
+                      sortByText: 'Sắp xếp theo',
+                      sortDescText: 'Giảm dần',
+                      sortAscText: 'Tăng dần',
+                    }"
+                    :loading="DialogLoading"
+                    loading-text="Đang tải dữ liệu..."
+                    no-data-text="Không có dữ liệu"
+                    no-results-text="Không tìm thấy kết quả"
+                    :hover="true"
+                    :dense="false"
+                    :fixed-header="true"
+                    height="80vh"
+                  >
+                    <template v-slot:top>
+                      <v-toolbar
+                        flat
+                        class="d-flex align-center bg-transparent"
+                      >
+                        <InputSearch v-model="searchPnPGerber" />
+                      </v-toolbar>
+                    </template>
+
+                    <template v-slot:item.stt="{ index }">
+                      {{
+                        (pagePCBTopLayer - 1) * itemPerPCBTopLayer + index + 1
+                      }}
+                    </template>
+
+                    <template v-slot:item.x="{ item }">
+                      {{ item.x }}
+                    </template>
+                    <template v-slot:item.y="{ item }">
+                      {{ item.y }}
+                    </template>
+                    <template v-slot:item.id="{ item }">
+                      <div class="d-flex">
+                        <v-tooltip text="Xem chi tiết" location="top">
+                          <template v-slot:activator="{ props }">
+                            <v-btn
+                              v-bind="props"
+                              size="small"
+                              icon="mdi-eye"
+                              @click="GetZoomPnP(item.id)"
+                              color="primary"
+                              variant="text"
+                            ></v-btn>
+                          </template>
+                        </v-tooltip>
+
+                        <v-tooltip text="Xem chi tiết" location="top">
+                          <template v-slot:activator="{ props }">
+                            <Button-Edit @click="GetAddSize(item)" />
+                          </template>
+                        </v-tooltip>
+                      </div>
+                    </template>
+                  </v-data-table-virtual>
+                </v-col>
+              </v-row>
             </v-card>
           </v-tabs-window-item>
 
           <v-tabs-window-item :value="3">
             <v-card-title class="d-flex align-center pe-2">
               <v-btn
-                @click="GetSettingPCB()"
+                @click="DialogSettingPCB = true"
                 prepend-icon="mdi-file-document"
                 color="primary"
                 variant="tonal"
@@ -374,10 +538,7 @@
               >
                 Dữ liệu PCB & Panel
               </v-btn>
-              <Button-Download
-                @click="DownloadPCB()"
-                text="Tải file PCB"
-              />
+              <Button-Download @click="DownloadPCB()" text="Tải file PCB" />
             </v-card-title>
             <v-card-text>
               <v-row>
@@ -409,10 +570,13 @@
                     height="58vh"
                   >
                     <template v-slot:top>
-                      <v-toolbar flat class="d-flex align-center bg-transparent" >
-                        <v-toolbar-title>
+                      <v-toolbar
+                        flat
+                        class="d-flex align-center bg-transparent"
+                      >
+                        <v-toolbar-title class="text-primary font-weight-bold">
                           <v-icon
-                            color="success"
+                            color="primary"
                             icon="mdi-arrow-collapse-up"
                             size="x-small"
                             start
@@ -468,10 +632,13 @@
                     height="58vh"
                   >
                     <template v-slot:top>
-                      <v-toolbar flat class="d-flex align-center bg-transparent">
-                        <v-toolbar-title>
+                      <v-toolbar
+                        flat
+                        class="d-flex align-center bg-transparent"
+                      >
+                        <v-toolbar-title class="text-error font-weight-bold">
                           <v-icon
-                            color="success"
+                            color="error"
                             icon="mdi-arrow-collapse-down"
                             size="x-small"
                             start
@@ -483,7 +650,7 @@
                         <InputSearch v-model="searchPCBBottomLayer" />
                       </v-toolbar>
                     </template>
-                  
+
                     <template v-slot:item.stt="{ index }">
                       {{
                         (pagePCBBottomLayer - 1) * itemPerPCBBottomLayer +
@@ -569,7 +736,12 @@
     />
     <v-select
       v-model="LayerGerber"
-      :items="['Top', 'Bottom']"
+      :items="[
+        { label: 'Top', value: 'Top' },
+        { label: 'Bottom', value: 'Bottom' },
+      ]"
+      item-title="label"
+      item-value="value"
       label="Layer"
       class="mt-3"
       density="comfortable"
@@ -657,37 +829,6 @@
         @save="uploadGerber"
         :disabled="gerberFileList.length === 0"
       />
-    </template>
-  </BaseDialog>
-  <BaseDialog
-    v-model="DialogAddGerberPDF"
-    width="700"
-    title="Thêm dữ liệu Gerber PDF"
-    icon="mdi-file-pdf-box"
-  >
-    <InputFiles
-      label="Nhập file Gerber PDF (.pdf)"
-      class="mt-2"
-      v-model="FileGerberPDF"
-      accept=".pdf"
-      name="gerber-pdf"
-    />
-    <v-select
-      v-model="LayerGerberPDF"
-      :items="['Top', 'Bottom']"
-      label="Layer"
-      class="mt-3"
-      density="comfortable"
-      variant="outlined"
-      prepend-inner-icon="mdi-layers-triple"
-    />
-    <v-alert type="info" variant="tonal" class="mt-2 text-caption">
-      Upload file PDF Gerber – hệ thống sẽ tự động convert trang đầu tiên thành
-      ảnh SVG và hiển thị trong tab Gerber.
-    </v-alert>
-    <template #actions>
-      <ButtonCancel @cancel="DialogAddGerberPDF = false" />
-      <ButtonSave @save="uploadGerberPDF" />
     </template>
   </BaseDialog>
   <BaseDialog
@@ -840,10 +981,14 @@
             variant="outlined"
             step="0.01"
           />
-          <p class="font-weight-thin">Đã Offset X: {{ hintOffsetX }} mm</p>
-          <br />
           <p class="font-weight-thin">
             Tổng Offset X: {{ totalAddedX.toFixed(2) }} mm
+          </p>
+          <br />
+          <p class="font-weight-thin">
+            Đã Offset X:
+            {{ selectedLayer === "Top" ? hintOffsetX_top : hintOffsetX_bottom }}
+            mm
           </p>
         </v-col>
         <v-col>
@@ -855,10 +1000,14 @@
             variant="outlined"
             step="0.01"
           />
-          <p class="font-weight-thin">Đã Offset Y: {{ hintOffsetY }} mm</p>
-          <br />
           <p class="font-weight-thin">
             Tổng Offset Y: {{ totalAddedY.toFixed(2) }} mm
+          </p>
+          <br />
+          <p class="font-weight-thin">
+            Đã Offset Y:
+            {{ selectedLayer === "Top" ? hintOffsetY_top : hintOffsetY_bottom }}
+            mm
           </p>
         </v-col>
       </v-row>
@@ -926,6 +1075,30 @@
   </BaseDialog>
   <BaseDialog v-model="DialogSettingPCB" title="Cài đặt PCB" max-width="600px">
     <v-card-text>
+      <div class="text-body-small pa-3 text-black">Toạ độ gốc máy SMT (mm)</div>
+
+      <v-row>
+        <v-col cols="6">
+          <InputField
+            v-model.number="machineX"
+            label="Machine X"
+            type="number"
+            density="comfortable"
+            variant="outlined"
+            step="0.01"
+          />
+        </v-col>
+        <v-col cols="6">
+          <InputField
+            v-model.number="machineY"
+            label="Machine Y"
+            type="number"
+            density="comfortable"
+            variant="outlined"
+            step="0.01"
+          />
+        </v-col>
+      </v-row>
       <div class="text-body-small pa-3 text-black">
         Kích thước PCB (mm)
         <v-btn
@@ -944,7 +1117,7 @@
       <v-row>
         <v-col cols="6">
           <InputField
-            v-model.number="length"
+            v-model="length"
             label="Chiều dài L (mm)"
             type="number"
             density="comfortable"
@@ -1087,7 +1260,7 @@
 </template>
 <script setup>
 import axios from "axios";
-import { ref, watch, computed, onMounted, reactive } from "vue";
+import { ref, watch, computed, onMounted, reactive, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import { useCombineBom } from "@/composables/CheckBOM/useCombineBom";
 import { useBomHighlight } from "@/composables/CheckBOM/useBomHighlight";
@@ -1147,6 +1320,7 @@ const DialogAddPnP = ref(false);
 const DialogAddGerber = ref(false);
 const DialogAddGerberPDF = ref(false);
 const DialogSettingPCB = ref(false);
+const DialogCoordinateSettings = ref(false);
 const DialogAddSize = ref(false);
 const DialogRemove = ref(false);
 const DialogFailed = ref(false);
@@ -1164,8 +1338,6 @@ const project_name = ref(localStorage.getItem("BomName"));
 const FileBom = ref(null);
 const FilePnP = ref(null);
 const FileGerber = ref(null);
-const FileGerberPDF = ref(null);
-const LayerGerberPDF = ref("Top");
 const LayerGerber = ref("Top");
 const gerberFileList = ref([]);
 
@@ -1197,24 +1369,29 @@ const rotationAngle = ref(0);
 const svgRotation = ref(0);
 const designatorLabelAngle = ref(0);
 const componentBodyAngle = ref(0);
+const mirrorMode = ref("");
 
-const manualOffsetX = ref(0);
-const manualOffsetY = ref(0);
-const totalAddedX = ref(0);
-const totalAddedY = ref(0);
-const totalAdjustedCountX = ref(0);
-const totalAdjustedCountY = ref(0);
-const hintOffsetX = ref(0);
-const hintOffsetY = ref(0);
+const totalAddedX = ref(0.0);
+const totalAddedY = ref(0.0);
+const totalAdjustedCountX = ref(0.0);
+const totalAdjustedCountY = ref(0.0);
+const hintOffsetX_top = ref(0.0);
+const hintOffsetY_top = ref(0.0);
+const hintOffsetX_bottom = ref(0.0);
+const hintOffsetY_bottom = ref(0.0);
 
 // --- Setting PCB States ---
 const width = ref(0);
 const length = ref(0);
-const originOffsetX = ref(0);
-const originOffsetY = ref(0);
-const railOffsetX = ref(0);
-const railOffsetY = ref(0);
+const manualOffsetX = ref(0.0);
+const manualOffsetY = ref(0.0);
+const originOffsetX = ref(0.0);
+const originOffsetY = ref(0.0);
+const railOffsetX = ref(0.0);
+const railOffsetY = ref(0.0);
 const angle = ref(0);
+const machineX = ref(0.0);
+const machineY = ref(0.0);
 const rotationMode = ref("CW");
 
 // --- DigiKey API States ---
@@ -1226,15 +1403,13 @@ const ResultSearch = ref(null);
 // --- Table & Data States ---
 const Headers = [
   { title: "STT", key: "stt" },
-  { title: "Designator", key: "designator", width: "150px" },
-  { title: "MPN", key: "mpn", width: "150px" },
+  { title: "Designator", key: "designator" },
+  { title: "MPN", key: "mpn", width: "200px" },
   { title: "X (mm)", key: "x" },
   { title: "Y (mm)", key: "y" },
   { title: "Rotation", key: "rotation" },
   { title: "Layer", key: "layer" },
-  { title: "Description", key: "description_bom" },
-  { title: "Width", key: "width" },
-  { title: "Length", key: "length" },
+  { title: "Description", key: "description_bom", width: "150px" },
   { title: "Mount Type", key: "mount_type" },
   { title: "Need Review", key: "need_review" },
   { title: "Thao tác", key: "id", sortable: false },
@@ -1257,11 +1432,23 @@ const HeadersPCBBottom = [
   { title: "Rotation", key: "rotation" },
   { title: "MPN", key: "mpn", width: "150px" },
 ];
+
+const HeadersPnPGerber = [
+  { title: "STT", key: "stt" },
+  { title: "Designator", key: "designator", width: "100px" },
+  { title: "X (mm)", key: "x", width: "25px" },
+  { title: "Y (mm)", key: "y", width: "25px" },
+  { title: "Rotation", key: "rotation", width: "25px" },
+  { title: "Length (mm)", key: "length", width: "25px" },
+  { title: "Width (mm)", key: "width", width: "25px" },
+  { title: "Thao tác", key: "id", sortable: false },
+];
 const searchBom = ref("");
 const itemsPerPageBom = ref(20);
 const pageBom = ref(1);
 const searchPCBTopLayer = ref("");
 const searchPCBBottomLayer = ref("");
+const searchPnPGerber = ref("");
 const itemPerPCBTopLayer = ref(15);
 const itemPerPCBBottomLayer = ref(15);
 const pagePCBTopLayer = 1;
@@ -1383,136 +1570,174 @@ const currentSvgContent = computed(() => {
   return prepareSvg(content);
 });
 
+const combinePnPGerber = computed(() => {
+  if (selectedLayer.value === "Top") {
+    return combineBom.value.filter((item) => item.layer === "Top");
+  } else {
+    return combineBom.value.filter((item) => item.layer === "Bottom");
+  }
+});
+
+function getSvgViewBox(svgString) {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgString, "image/svg+xml");
+    const svgEl = doc.querySelector("svg");
+
+    if (!svgEl) return null;
+
+    const viewBox = svgEl.getAttribute("viewBox");
+    if (!viewBox) return null;
+
+    const [minX, minY, width, height] = viewBox.split(/[\s,]+/).map(Number);
+
+    return { minX, minY, width, height };
+  } catch (e) {
+    console.warn("getSvgViewBox error:", e);
+    return null;
+  }
+}
 // Combine Gerber + Pick&Place overlay
 const svgWithPnP = computed(() => {
   if (!currentGerberSvg.value || !filteredPnP.value) return "";
 
   let svg = currentGerberSvg.value;
-  if (!svg || typeof svg !== "string") {
-    console.warn("Không tìm thấy SVG hợp lệ trong detailGerber");
-    return "";
-  }
+  if (!svg || typeof svg !== "string") return "";
 
-  if (!currentGerberUnit.value || !filteredPnP.value) return "";
+  const unit = currentGerberUnit.value;
+  if (!unit) return "";
 
-  let unit = currentGerberUnit.value;
-  if (!unit || typeof svg !== "string") {
-    console.warn("Không tìm thấy đơn vị đo hợp lệ trong detailGerber");
-    return "";
-  }
+  const vb = getSvgViewBox(svg);
+  if (!vb) return svg;
 
-  const svgHeight = getSvgRenderedHeight(svg);
+  const isBottom = selectedLayer.value === "Bottom";
+
   let offset = [];
   if (selectedLayer.value === "Top") {
-    const offsetSettingY = detailSetting.value[0].manualOffsetY_top || 0;
-    const offsetSettingX = detailSetting.value[0].manualOffsetX_top || 0;
     offset = filteredPnP.value.map((pnp) => ({
       ...pnp,
-      y: pnp.y - offsetSettingY,
-      x: pnp.x - offsetSettingX,
+      x: Number(pnp.x) + Number(hintOffsetX_top.value),
+      y: Number(pnp.y) + Number(hintOffsetY_top.value),
     }));
   } else {
-    const offsetSettingY = detailSetting.value[0].manualOffsetY_bottom || 0;
-    const offsetSettingX = detailSetting.value[0].manualOffsetX_bottom || 0;
     offset = filteredPnP.value.map((pnp) => ({
       ...pnp,
-      y: pnp.y - offsetSettingY,
-      x: pnp.x - offsetSettingX,
+      x: Number(pnp.x) + Number(hintOffsetX_bottom.value),
+      y: Number(pnp.y) + Number(hintOffsetY_bottom.value),
     }));
   }
   const pnpMarkers = offset
-    .filter((pnp) => pnp.x !== null && pnp.y !== null && pnp.designator)
+    .filter((p) => p.x != null && p.y != null && p.designator)
     .map((pnp) => {
-      let transformedX =
-        pnp.x * coordinateScale.value + coordinateOffsetX.value;
-      let transformedY =
-        pnp.y * coordinateScale.value + coordinateOffsetY.value;
+      // =========================
+      // 1. SCALE
+      // =========================
+      let x = pnp.x * coordinateScale.value;
+      let y = pnp.y * coordinateScale.value;
 
-      const { cxT, cyT } = getTransformedCenter();
-      if (flipX.value) transformedX = 2 * cxT - transformedX;
-      if (flipY.value) transformedY = 2 * cyT - transformedY;
-      if (swapXY.value)
-        [transformedX, transformedY] = [transformedY, transformedX];
+      // =========================
+      // 2. SWAP XY
+      // =========================
+      if (swapXY.value) {
+        [x, y] = [y, x];
+      }
 
-      // Invert Y to move origin to bottom-left of SVG and apply extra Y offset (in mm)
-      // Prefer inverting around PnP bounds (handles non-zero origins); fallback to SVG height
-      {
-        const extraYOffsetUnits =
-          (unit === "mm" ? pnpYOffsetMm.value : pnpYOffsetMm.value / 25.4) *
-          coordinateScale.value;
-        if (
-          pnpBounds.value &&
-          Number.isFinite(pnpBounds.value.minY) &&
-          Number.isFinite(pnpBounds.value.maxY)
-        ) {
-          const yRawInverted =
-            pnpBounds.value.maxY + pnpBounds.value.minY - (pnp.y ?? 0);
-          transformedY =
-            yRawInverted * coordinateScale.value +
-            coordinateOffsetY.value +
-            extraYOffsetUnits;
-        } else if (svgHeight !== null) {
-          transformedY = svgHeight - transformedY + extraYOffsetUnits;
-        } else {
-          transformedY = transformedY + extraYOffsetUnits;
+      // =========================
+      // 3. APPLY VIEWBOX (🔥 FIX CHÍNH)
+      // =========================
+      let transformedX = vb.minX + x + coordinateOffsetX.value;
+
+      let transformedY = vb.minY + (vb.height - y) + coordinateOffsetY.value;
+
+      // =========================
+      // 4. MIRROR BOTTOM
+      // =========================
+      if (isBottom) {
+        if (mirrorMode.value === "x") {
+          transformedX = vb.minX + vb.width - (transformedX - vb.minX);
+        }
+
+        if (mirrorMode.value === "y") {
+          transformedY = vb.minY + vb.height - (transformedY - vb.minY);
         }
       }
 
+      // =========================
+      // 5. OFFSET Y tinh chỉnh
+      // =========================
+      const extraYOffsetUnits =
+        (unit === "mm" ? pnpYOffsetMm.value : pnpYOffsetMm.value / 25.4) *
+        coordinateScale.value;
+
+      transformedY += extraYOffsetUnits;
+
+      // =========================
+      // 6. ROTATION
+      // =========================
       const desiredRotation =
         pnp.rotation || pnp.rot || coordinateRotation.value;
-      const componentRotation = ((-desiredRotation % 360) + 360) % 360;
-      const displayRotation = ((desiredRotation % 360) + 360) % 360;
 
-      let rectWidth = (pnp.width || 0) * coordinateScale.value;
-      let rectLength = (pnp.length || 0) * coordinateScale.value;
-      if (swapXY.value) [rectWidth, rectLength] = [rectLength, rectWidth];
+      function fixRotation(r) {
+        const n = ((Number(r) % 360) + 360) % 360;
 
-      // scale theo đơn vị
-      let scale_mm_square = 0.02;
-      let scale_mm_crosshair = 50;
-      let scale_inch_square = 1; // ví dụ
-      let scale_inch_crosshair = 1; // ví dụ
+        if (n === 0) return 180;
+        if (n === 180) return 0;
 
-      let squareScale, crosshairScale;
-      if (unit === "mm") {
-        squareScale = scale_mm_square;
-        crosshairScale = scale_mm_crosshair;
-        coordinateScale.value = 1000;
-      } else {
-        squareScale = scale_inch_square;
-        crosshairScale = scale_inch_crosshair;
+        return n; // giữ nguyên 90 và 270
       }
 
+      const componentRotation = fixRotation(desiredRotation);
+
+      // =========================
+      // 7. SIZE
+      // =========================
+      let rectWidth = (pnp.width || 0) * coordinateScale.value;
+      let rectLength = (pnp.length || 0) * coordinateScale.value;
+
+      if (swapXY.value) {
+        [rectWidth, rectLength] = [rectLength, rectWidth];
+      }
+
+      const squareScale = unit === "mm" ? 0.02 : 1;
+      const crosshairScale = unit === "mm" ? 50 : 1;
+
+      // =========================
+      // 8. DRAW
+      // =========================
       let componentMarkup = "";
+
       if (rectWidth > 0 && rectLength > 0 && showComponentBoxes.value) {
         componentMarkup = `
-          <!-- Component body rectangle with rotation -->
-          <g transform="rotate(${
-            componentBodyAngle.value
-          }) scale(${squareScale})">
-            <rect
-              class="pnp-component-body"
-              x="${-(rectLength / 2)}"
-              y="${-(rectWidth / 2)}"
-              width="${rectLength}"
-              height="${rectWidth}"
-              fill="rgba(255, 179, 0, 0.4)"
-              stroke="#E65100"
-              stroke-width="3"
-            />
-          </g>
-        `;
+    <g transform="rotate(${componentBodyAngle.value}) scale(${squareScale})">
+      <rect
+        x="${-(rectLength / 2)}"
+        y="${-(rectWidth / 2)}"
+        width="${rectLength}"
+        height="${rectWidth}"
+        fill="rgba(255, 179, 0, 0.4)"
+        stroke="#E65100"
+        stroke-width="3"
+      />
+    </g>
+  `;
       }
 
       return `
-        <g transform="translate(${transformedX}, ${transformedY}) rotate(${componentRotation}) scale(${crosshairScale})" class="pnp-marker" data-designator="${pnp.designator}">
+        <g 
+          transform="translate(${transformedX}, ${transformedY}) rotate(${componentRotation}) scale(${crosshairScale})"
+          class="pnp-marker"
+          data-designator="${pnp.designator}"
+        >
           ${componentMarkup}
-          <!-- Crosshair marker -->
-          <line x1="-25" y1="0" x2="25" y2="0" stroke="red" stroke-width="1.5" opacity="0.9"/>
-          <line x1="0" y1="-25" x2="0" y2="25" stroke="red" stroke-width="1.5" opacity="0.9"/>
-          <!-- Circle around the point -->
-          <circle cx="0" cy="0" r="2" fill="none" stroke="red" stroke-width="0.8" opacity="0.8"/>
-          <!-- Designator label -->
+
+          <!-- Crosshair -->
+          <line x1="-25" y1="0" x2="25" y2="0" stroke="red"/>
+          <line x1="0" y1="-25" x2="0" y2="25" stroke="red"/>
+
+          <!-- Center -->
+          <circle cx="0" cy="0" r="2" stroke="red" fill="none"/>
+
+          <!-- Label -->
           <text
             x="6"
             y="3"
@@ -1520,9 +1745,9 @@ const svgWithPnP = computed(() => {
             fill="blue"
             font-weight="bold"
             transform="rotate(${designatorLabelAngle.value})"
-            transform-origin="6 3"
-          >${pnp.designator}</text>
-          <title>${pnp.designator}: X=${pnp.x}mm, Y=${pnp.y}mm</title>
+          >
+            ${pnp.designator}
+          </text>
         </g>
       `;
     })
@@ -1539,6 +1764,17 @@ const PCBBottomLayer = computed(() => {
   return combineBom.value.filter((item) => item.layer === "Bottom");
 });
 
+const transformedPnP = computed(() => {
+  return detailPnP.value.map((p) => transform(p)).filter(Boolean);
+});
+
+const resultTop = computed(() =>
+  transformedPnP.value.filter((p) => p.layer?.toLowerCase() === "top"),
+);
+
+const resultBottom = computed(() =>
+  transformedPnP.value.filter((p) => p.layer?.toLowerCase() === "bottom"),
+);
 // ==========================================
 // 5. LIFECYCLE HOOKS
 // ==========================================
@@ -1547,6 +1783,73 @@ onMounted(() => {
   if (coordinateScale.value) {
     coordinateScale.value /= 0.0254;
   }
+});
+
+// 7. WATCHERS
+// ==========================================
+
+// Watch for fullscreen change to reset zoom
+watch(
+  () => document.fullscreenElement,
+  () => {
+    if (!document.fullscreenElement) {
+      resetZoom();
+    }
+  },
+);
+
+// Reset zoom when container size changes
+watch(
+  svgContainer,
+  () => {
+    if (svgContainer.value) {
+      resetZoom();
+    }
+  },
+  { immediate: true },
+);
+
+watch(FileGerber, (val) => {
+  if (!val) return;
+
+  const incoming = Array.isArray(val) ? val : [val];
+  const existingNames = new Set(gerberFileList.value.map((i) => i.file.name));
+
+  incoming.forEach((file) => {
+    if (existingNames.has(file.name)) return;
+    const ext = "." + file.name.split(".").pop().toLowerCase();
+    const layer = EXT_LAYER_MAP[ext] ?? "copper_top";
+    gerberFileList.value.push({ file, layer });
+  });
+});
+
+watch(currentSvgContent, async () => {
+  await nextTick();
+  initPanZoom();
+});
+
+watch(detailSetting, (val) => {
+  if (!val.length) return;
+
+  const found = val[0];
+  hintOffsetX_top.value = Number(found.manualOffsetX_top.toFixed(2)) || 0;
+  hintOffsetY_top.value = Number(found.manualOffsetY_top.toFixed(2)) || 0;
+  hintOffsetX_bottom.value = Number(found.manualOffsetX_bottom.toFixed(2)) || 0;
+  hintOffsetY_bottom.value = Number(found.manualOffsetY_bottom.toFixed(2)) || 0;
+
+  length.value = found.length;
+  width.value = found.width;
+
+  machineX.value = found.machineX;
+  machineY.value = found.machineY;
+
+  originOffsetX.value = found.originOffsetX;
+  originOffsetY.value = found.originOffsetY;
+
+  railOffsetX.value = found.railOffsetX;
+  railOffsetY.value = found.railOffsetY;
+
+  angle.value = found.angle;
 });
 
 // ==========================================
@@ -1635,18 +1938,23 @@ const uploadGerber = async () => {
   if (gerberFileList.value.length === 0) return;
 
   DialogLoading.value = true;
+
   try {
     const formData = new FormData();
 
-    gerberFileList.value.forEach(({ file, layer }) => {
-      // Gửi kèm layer metadata qua filename hoặc field riêng
+    // 1. append file
+    gerberFileList.value.forEach(({ file }) => {
       formData.append("FileGerber", file);
-      formData.append(
-        "layers",
-        gerberFileList.value.map((i) => i.layer),
-      ); // mảng layers tương ứng
-      formData.append("layer", LayerGerber.value);
     });
+
+    // 2. append layers (JSON)
+    formData.append(
+      "layers",
+      JSON.stringify(gerberFileList.value.map((i) => i.layer)),
+    );
+
+    // 3. append Top / Bottom (string)
+    formData.append("layerGerber", LayerGerber.value);
 
     await axios.post(`${Url}/upload-gerber/${id}`, formData);
 
@@ -1662,37 +1970,6 @@ const uploadGerber = async () => {
   }
 };
 
-const uploadGerberPDF = async () => {
-  if (!FileGerberPDF.value) {
-    MessageCautionDialog.value = "Vui lòng chọn file PDF";
-    DialogCaution.value = true;
-    return;
-  }
-  DialogLoading.value = true;
-  try {
-    const formData = new FormData();
-    formData.append("FileGerberPDF", FileGerberPDF.value);
-    formData.append("layer", LayerGerberPDF.value);
-
-    await axios.post(`${Url}/upload-gerber-pdf/${id}`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-
-    DialogSuccess.value = true;
-    MessageDialog.value = `Upload Gerber PDF (${LayerGerberPDF.value}) thành công`;
-    DialogAddGerberPDF.value = false;
-    FileGerberPDF.value = null;
-    LayerGerberPDF.value = "Top";
-    DialogLoading.value = false;
-  } catch (error) {
-    console.error("Lỗi upload Gerber PDF:", error.response?.data || error);
-    DialogLoading.value = false;
-    DialogFailed.value = true;
-    MessageErrorDialog.value =
-      error.response?.data?.error || "Upload Gerber PDF thất bại";
-  }
-};
-
 // --- Data Edit/Update Handlers ---
 const GetItemEdit = (item) => {
   DialogEdit.value = true;
@@ -1702,25 +1979,6 @@ const GetItemEdit = (item) => {
   PnP_Angle_Edit.value = item.rotation;
   PnP_Type_Edit.value = item.type;
   PnP_Layer_Edit.value = item.layer;
-};
-
-const GetSettingPCB = () => {
-  DialogSettingPCB.value = true;
-  const found = detailSetting.value[0];
-  if (selectedLayer.value == "Top") {
-    hintOffsetX.value = found.manualOffsetX_top;
-    hintOffsetY.value = found.manualOffsetY_top;
-  } else {
-    hintOffsetX.value = found.manualOffsetX_bottom;
-    hintOffsetY.value = found.manualOffsetY_bottom;
-  }
-  length.value = found.length;
-  width.value = found.width;
-  angle.value = found.angle;
-  railOffsetX.value = found.railOffsetX;
-  railOffsetY.value = found.railOffsetY;
-  originOffsetX.value = found.originOffsetX;
-  originOffsetY.value = found.originOffsetY;
 };
 
 // Get information Update size
@@ -1809,14 +2067,11 @@ const SaveAddSize = async () => {
         `${Url}/Component-overrides/Add-item`,
         formData,
       );
-      console.log(response.data.message);
-
       DialogLoading.value = false;
       DialogAddSize.value = false;
       DialogSuccess.value = true;
       MessageDialog.value = "Thêm dữ liệu thành công";
     } catch (error) {
-      console.log(error);
       DialogLoading.value = false;
       DialogAddSize.value = false;
       DialogFailed.value = true;
@@ -1857,50 +2112,82 @@ const SaveEditPnP = async () => {
 
 const SaveSettingPCB = async () => {
   DialogLoading.value = true;
-  const formData = reactive({
-    manualOffsetX_top:
-      selectedLayer.value == "Top"
-        ? totalAddedX.value
-        : detailSetting.value[0].manualOffsetX_top,
-    manualOffsetY_top:
-      selectedLayer.value == "Top"
-        ? totalAddedY.value
-        : detailSetting.value[0].manualOffsetY_top,
-    manualOffsetX_bottom:
-      selectedLayer.value == "Bottom"
-        ? totalAddedX.value
-        : detailSetting.value[0].manualOffsetX_bottom,
-    manualOffsetY_bottom:
-      selectedLayer.value == "Bottom"
-        ? totalAddedY.value
-        : detailSetting.value[0].manualOffsetY_bottom,
+
+  const isTop = selectedLayer.value === "Top";
+
+  const formData = {
+    manualOffsetX_top: isTop
+      ? toNum(hintOffsetX_top.value) + toNum(totalAddedX.value)
+      : toNum(hintOffsetX_top.value),
+
+    manualOffsetY_top: isTop
+      ? toNum(hintOffsetY_top.value) + toNum(totalAddedY.value)
+      : toNum(hintOffsetY_top.value),
+
+    manualOffsetX_bottom: !isTop
+      ? toNum(hintOffsetX_bottom.value) + toNum(totalAddedX.value)
+      : toNum(hintOffsetX_bottom.value),
+
+    manualOffsetY_bottom: !isTop
+      ? toNum(hintOffsetY_bottom.value) + toNum(totalAddedY.value)
+      : toNum(hintOffsetY_bottom.value),
+
     width: width.value,
     length: length.value,
+    machineX: machineX.value,
+    machineY: machineY.value,
     originOffsetX: originOffsetX.value,
     originOffsetY: originOffsetY.value,
     railOffsetX: railOffsetX.value,
     railOffsetY: railOffsetY.value,
     angle: angle.value,
-  });
+  };
+
   try {
-    const response = await axios.put(
-      `${Url}/SettingPCB/Edit-item/${id}`,
-      formData,
-    );
-    DialogLoading.value = false;
-    DialogSettingPCB.value = false;
+    await axios.put(`${Url}/SettingPCB/Edit-item/${id}`, formData);
+
+    // 🔥 QUAN TRỌNG
+    totalAddedX.value = 0;
+    totalAddedY.value = 0;
+
     DialogSuccess.value = true;
     MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
-    run();
+    transformedPnP.value = detailPnP.value.map(transform).filter(Boolean);
   } catch (error) {
-    DialogLoading.value = false;
-    DialogSettingPCB.value = false;
     DialogFailed.value = true;
     MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
+  } finally {
+    DialogLoading.value = false;
+    DialogSettingPCB.value = false;
+    DialogCoordinateSettings.value = false;
   }
 };
 
-// Apply rotation mode
+const SortTop = () => {
+  searchBom.value = "Top";
+};
+
+const SortBottom = () => {
+  searchBom.value = "Bottom";
+};
+
+const SortSMT = () => {
+  searchBom.value = "SMT";
+};
+
+const SortHand = () => {
+  searchBom.value = "Hand";
+};
+
+const ResetSort = () => {
+  searchBom.value = "";
+};
+
+/* =======================
+   UTILS
+======================= */
+
+// Chuyển đổi giá trị sang số
 function toNum(v) {
   const n = Number(v);
   return isNaN(n) ? null : n;
@@ -1944,12 +2231,15 @@ function getCfgByLayer(layer) {
 
     rotationMode: raw.rotationMode || "CCW",
 
-    rotationOffset: pickValue(raw.rotationOffset, 0, true)
+    rotationOffset: pickValue(raw.rotationOffset, 0, true),
+
+    machineX: toNum(raw.machineX, 0),
+    machineY: toNum(raw.machineY, 0),
   };
 }
 
 /* =======================
-   TRANSFORM
+   TRANSFORM (CHUẨN)
 ======================= */
 function transform(p) {
   const cfg = getCfgByLayer(p.layer);
@@ -1958,53 +2248,56 @@ function transform(p) {
   let py = toNum(p.y);
   let pr = toNum(p.rotation);
 
-  if (px === null || py === null) {
-    console.warn("❌ Invalid XY:", p);
-    return null;
-  }
-
+  if (px === null || py === null) return null;
   if (pr === null) pr = 0;
 
-  let x = px - cfg.X0;
-  let y = py - cfg.Y0;
-  let r = normalizeRotation(pr);
+  // ======================
+  // 1. Đưa về MACHINE ORIGIN (QUAN TRỌNG)
+  // ======================
+  let x = px - cfg.X0 + cfg.machineX;
+  let y = py - cfg.Y0 + cfg.machineY;
 
-  r = normalizeRotation(r + cfg.rotationOffset);
+  let r = normalizeRotation(pr + cfg.rotationOffset);
 
-  // mirror bottom
-  if (p.layer?.toLowerCase() === "bottom") {
-    x = cfg.L - x;
-    r = -r;
-  }
-
-  // rotate
+  // ======================
+  // 2. Rotate PANEL
+  // ======================
   let x2, y2;
 
   switch (cfg.angle) {
     case 90:
       x2 = y;
-      y2 = cfg.L - x;
+      y2 = cfg.W - x;
       break;
+
     case 180:
       x2 = cfg.L - x;
       y2 = cfg.W - y;
       break;
+
     case 270:
-      x2 = cfg.W - y;
+      x2 = cfg.L - y;
       y2 = x;
       break;
+
     default:
       x2 = x;
       y2 = y;
   }
 
-  // rotation
-  let r2 =
-    cfg.rotationMode === "CCW"
-      ? r + cfg.angle
-      : r - cfg.angle;
+  let r2 = cfg.rotationMode === "CCW" ? r + cfg.angle : r - cfg.angle;
 
-  // offset
+  // ======================
+  // 3. Mirror BOTTOM
+  // ======================
+  if (p.layer?.toLowerCase() === "bottom") {
+    y2 = cfg.W - y2;
+    r2 = -r2;
+  }
+
+  // ======================
+  // 4. Offset calibration
+  // ======================
   x2 += cfg.offsetX;
   y2 += cfg.offsetY;
 
@@ -2014,33 +2307,9 @@ function transform(p) {
     ...p,
     x: Number(x2.toFixed(3)),
     y: Number(y2.toFixed(3)),
-    rotation: r2
+    rotation: r2,
   };
 }
-
-/* =======================
-   COMPUTED
-======================= */
-const transformedPnP = ref([]);
-
-watch(detailPnP, (val) => {
-  transformedPnP.value = val
-    .map(transform)
-    .filter(Boolean);
-}, { immediate: true });
-
-const resultTop = ref([]);
-const resultBottom = ref([]);
-
-watch(transformedPnP, (val) => {
-  resultTop.value = val.filter(
-    (p) => p.layer?.toLowerCase() === "top"
-  );
-
-  resultBottom.value = val.filter(
-    (p) => p.layer?.toLowerCase() === "bottom"
-  );
-}, { immediate: true });
 
 // --- Download Handlers ---
 
@@ -2166,7 +2435,7 @@ const DownloadPCB = () => {
     Y: item.y,
     Rotation: item.rotation,
     Layer: item.layer,
-    MPN: item.mpn
+    MPN: item.mpn,
   }));
 
   const wsTop = XLSX.utils.json_to_sheet(topData);
@@ -2175,12 +2444,12 @@ const DownloadPCB = () => {
 
   const bufferTop = XLSX.write(wbTop, {
     bookType: "xlsx",
-    type: "array"
+    type: "array",
   });
 
   saveAs(
     new Blob([bufferTop], { type: "application/octet-stream" }),
-    `PnP_Top_${Date.now()}.xlsx`
+    `PnP_Top_${Date.now()}.xlsx`,
   );
 
   // ===== BOTTOM =====
@@ -2191,7 +2460,7 @@ const DownloadPCB = () => {
     Y: item.y,
     Rotation: item.rotation,
     Layer: item.layer,
-    MPN: item.mpn
+    MPN: item.mpn,
   }));
 
   const wsBottom = XLSX.utils.json_to_sheet(bottomData);
@@ -2200,14 +2469,14 @@ const DownloadPCB = () => {
 
   const bufferBottom = XLSX.write(wbBottom, {
     bookType: "xlsx",
-    type: "array"
+    type: "array",
   });
 
   saveAs(
     new Blob([bufferBottom], { type: "application/octet-stream" }),
-    `PnP_Bottom_${Date.now()}.xlsx`
+    `PnP_Bottom_${Date.now()}.xlsx`,
   );
-}
+};
 // --- Coordinate Transformation Logic ---
 
 /**
@@ -2585,48 +2854,6 @@ const searchProduct = async () => {
 };
 
 // ==========================================
-// 7. WATCHERS
-// ==========================================
-
-// Watch for fullscreen change to reset zoom
-watch(
-  () => document.fullscreenElement,
-  () => {
-    if (!document.fullscreenElement) {
-      resetZoom();
-    }
-  },
-);
-
-// Reset zoom when container size changes
-watch(
-  svgContainer,
-  () => {
-    if (svgContainer.value) {
-      resetZoom();
-    }
-  },
-  { immediate: true },
-);
-
-watch(FileGerber, (val) => {
-  if (!val) return;
-
-  const incoming = Array.isArray(val) ? val : [val];
-  const existingNames = new Set(gerberFileList.value.map((i) => i.file.name));
-
-  incoming.forEach((file) => {
-    if (existingNames.has(file.name)) return;
-    const ext = "." + file.name.split(".").pop().toLowerCase();
-    const layer = EXT_LAYER_MAP[ext] ?? "copper_top";
-    gerberFileList.value.push({ file, layer });
-  });
-});
-
-watch(currentSvgContent, async () => {
-  await nextTick();
-  initPanZoom();
-});
 
 // ==========================================
 // 8. HELPER FUNCTIONS
@@ -2641,6 +2868,162 @@ const getColor = (status) => {
   }
   return {};
 };
+
+// ==================== ZOOM STATE ====================
+const currentViewBox = ref({ x: 0, y: 0, w: 0, h: 0 });
+const baseViewBox = ref({ x: 0, y: 0, w: 0, h: 0 });
+const ZOOM_IN_LEVEL = 18; // Phóng to 10 lần
+const isZooming = ref(false);
+// 1. Theo dõi khi SVG thay đổi để lấy thông số gốc
+watch(
+  () => svgWithPnP.value,
+  (newSvg) => {
+    if (!newSvg) return;
+
+    // Đợi DOM render xong v-html
+    nextTick(() => {
+      const vb = getSvgViewBox(newSvg);
+      if (vb) {
+        baseViewBox.value = {
+          x: vb.minX,
+          y: vb.minY,
+          w: vb.width,
+          h: vb.height,
+        };
+        // Khởi tạo view ban đầu là toàn bộ board
+        currentViewBox.value = { ...baseViewBox.value };
+        applyViewBox();
+      }
+    });
+  },
+);
+
+// 2. Hàm áp dụng ViewBox vào thẻ SVG thực tế
+function applyViewBox() {
+  if (!svgWrapper.value) return;
+  const svgEl = svgWrapper.value.querySelector("svg");
+  if (!svgEl) return;
+
+  const { x, y, w, h } = currentViewBox.value;
+
+  // Ép trình duyệt render lại vector dựa trên ViewBox mới
+  svgEl.setAttribute("viewBox", `${x} ${y} ${w} ${h}`);
+
+  // Quan trọng: Để SVG lấp đầy container mà không mờ
+  svgEl.style.width = "100%";
+  svgEl.style.height = "100%";
+  svgEl.setAttribute("preserveAspectRatio", "xMidYMid meet");
+}
+
+// 3. Hàm Zoom chuyên nghiệp (Animation)
+async function zoomToSvgPoint(svgX, svgY, targetZoomLevel) {
+  // targetZoomLevel ví dụ là 10 (nghĩa là soi kỹ gấp 10 lần kích thước board)
+  const targetW = baseViewBox.value.w / targetZoomLevel;
+  const targetH = baseViewBox.value.h / targetZoomLevel;
+
+  // Tính toán tọa độ X, Y để điểm svgX, svgY nằm chính giữa màn hình
+  const targetX = svgX - targetW / 2;
+  const targetY = svgY - targetH / 2;
+
+  await animateViewBox(targetX, targetY, targetW, targetH, 400);
+}
+
+function animateViewBox(toX, toY, toW, toH, duration) {
+  return new Promise((resolve) => {
+    const startX = currentViewBox.value.x;
+    const startY = currentViewBox.value.y;
+    const startW = currentViewBox.value.w;
+    const startH = currentViewBox.value.h;
+    const start = performance.now();
+
+    const ease = (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
+
+    const frame = (now) => {
+      const t = Math.min((now - start) / duration, 1);
+      const e = ease(t);
+
+      currentViewBox.value = {
+        x: startX + (toX - startX) * e,
+        y: startY + (toY - startY) * e,
+        w: startW + (toW - startW) * e,
+        h: startH + (toH - startH) * e,
+      };
+
+      applyViewBox();
+
+      if (t < 1) requestAnimationFrame(frame);
+      else resolve();
+    };
+    requestAnimationFrame(frame);
+  });
+}
+
+function highlightComponent(designator) {
+  if (!svgWrapper.value) return;
+
+  // 1. Xóa tất cả highlight cũ
+  const allMarkers = svgWrapper.value.querySelectorAll(".pnp-marker");
+  allMarkers.forEach((el) => el.classList.remove("highlighted-pnp"));
+
+  // 2. Tìm marker của linh kiện hiện tại dựa trên attribute data-designator
+  const marker = svgWrapper.value.querySelector(
+    `.pnp-marker[data-designator="${designator}"]`,
+  );
+
+  if (marker) {
+    marker.classList.add("highlighted-pnp");
+
+    // 3. Tự động xóa highlight sau 3 giây để tránh rối mắt
+    setTimeout(() => {
+      marker.classList.remove("highlighted-pnp");
+    }, 1000);
+  }
+}
+
+async function GetZoomPnP(componentId) {
+  const pnp = filteredPnP.value?.find((p) => p.id === componentId);
+  if (!pnp) return;
+
+  // Tái sử dụng logic tính toán tọa độ y hệt như trong hàm computed svgWithPnP của bạn
+  const vb = baseViewBox.value;
+  let x = pnp.x * coordinateScale.value;
+  let y = pnp.y * coordinateScale.value;
+  if (swapXY.value) [x, y] = [y, x];
+
+  let tx = vb.x + x + coordinateOffsetX.value;
+  let ty = vb.y + (vb.h - y) + coordinateOffsetY.value;
+
+  // Mirror logic cho mặt Bottom
+  if (selectedLayer.value === "Bottom") {
+    if (mirrorMode.value === "x") tx = vb.x + vb.w - (tx - vb.x);
+    if (mirrorMode.value === "y") ty = vb.y + vb.h - (ty - vb.y);
+  }
+
+  // Thực hiện zoom
+  await zoomToSvgPoint(tx, ty, ZOOM_IN_LEVEL);
+  highlightComponent(pnp.designator);
+}
+
+async function resetsZoom() {
+  if (!baseViewBox.value || baseViewBox.value.w === 0) return;
+
+  // Tính toán vị trí gốc
+  const { x, y, w, h } = baseViewBox.value;
+
+  isZooming.value = true;
+
+  // Sử dụng lại hàm animateViewBox đã viết ở trên
+  await animateViewBox(x, y, w, h, 500); // 500ms cho mượt
+
+  // Xóa tất cả highlight cũ khi reset (tùy chọn)
+  if (svgWrapper.value) {
+    svgWrapper.value
+      .querySelectorAll(".pnp-marker.highlighted-pnp")
+      .forEach((el) => el.classList.remove("highlighted-pnp"));
+  }
+
+  isZooming.value = false;
+}
 </script>
 <script>
 export default {
@@ -2904,5 +3287,84 @@ export default {
 
 .coordinate-info .transformation-info .value {
   color: #666;
+}
+
+/* Trong <style> hoặc scoped styles */
+
+/* SVG container cần overflow: hidden và position: relative */
+.gerber-svg-container-full {
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+}
+
+.gerber-svg-container-full:active {
+  cursor: grabbing;
+}
+
+/* SVG wrapper nhận transform */
+.svg-full-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform; /* GPU acceleration */
+  transition: none; /* animation được xử lý bởi JS */
+}
+
+/* Highlight khi zoom đến component */
+.pnp-marker.highlighted circle {
+  animation: pulse-ring 0.6s ease-out 3;
+  stroke: #00e5ff !important;
+  stroke-width: 2px !important;
+}
+
+.pnp-marker.highlighted line {
+  stroke: #00e5ff !important;
+}
+
+.pnp-marker.highlighted text {
+  fill: #ff6d00 !important;
+  font-size: 26px !important;
+}
+
+@keyframes pulse-ring {
+  0% {
+    r: 2;
+    opacity: 1;
+  }
+  50% {
+    r: 8;
+    opacity: 0.6;
+  }
+  100% {
+    r: 2;
+    opacity: 1;
+  }
+}
+
+/* Class này sẽ được thêm vào thẻ <g> của linh kiện */
+:deep(.pnp-marker.highlighted-pnp) {
+  filter: drop-shadow(
+    0 0 5px rgba(255, 255, 0, 0.8)
+  ); /* Tạo quầng sáng xung quanh */
+}
+
+:deep(.pnp-marker.highlighted-pnp circle) {
+  stroke: #00ff00 !important; /* Đổi màu tâm thành xanh lá */
+  stroke-width: 5px !important;
+  r: 4px !important; /* Phóng to nhẹ vòng tròn tâm */
+}
+
+:deep(.pnp-marker.highlighted-pnp line) {
+  stroke: #ffff00 !important; /* Đổi crosshair thành màu vàng */
+  stroke-width: 3px !important;
+}
+
+:deep(.pnp-marker.highlighted-pnp text) {
+  fill: #ffffff !important;
+  paint-order: stroke;
+  stroke: #000000;
+  stroke-width: 4px; /* Tạo viền đen cho chữ để dễ đọc trên mọi nền */
 }
 </style>

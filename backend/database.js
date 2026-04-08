@@ -458,6 +458,8 @@ db.serialize(() => {
       manualOffsetY_bottom REAL,
       width REAL,
       length REAL,
+      machineX REAL,
+      machineY REAL,
       originOffsetX REAL,
       originOffsetY REAL,
       railOffsetX REAL,

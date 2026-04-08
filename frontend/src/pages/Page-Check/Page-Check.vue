@@ -313,7 +313,6 @@ const Proccess = () => {
 function generateHeaders(bomData) {
   if (bomData && bomData.length > 0) {
     const firstItemKeys = Object.keys(bomData[0]);
-    console.log("Generating headers from keys:", firstItemKeys);
     // Remove the last 5 headers
     const filteredKeys = firstItemKeys.slice(0, -11);
     Headers.value = filteredKeys.map((key) => ({
@@ -322,7 +321,6 @@ function generateHeaders(bomData) {
       sortable: true,
     }));
   } else {
-    console.log("No data to generate headers, clearing headers.");
     Headers.value = [];
   }
 }
@@ -423,7 +421,6 @@ const SaveTable = async () => {
 
   try {
     const response = await axios.post(`${Url}/ListPO/upload-new-PO`, formData);
-    console.log(response);
     
     // Send email first
     try {

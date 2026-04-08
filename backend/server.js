@@ -161,12 +161,14 @@ const upload = multer({
       ".csv",
       ".gtp",
       ".gbp",
+      ".gko",
+      ".cam",
     ];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowedExt.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error("Chỉ chấp nhận file xlsx, gerber, csv"));
+      cb(new Error("Chỉ chấp nhận file xlsx, gerber"));
     }
   },
 });
@@ -5505,7 +5507,7 @@ app.post("/api/FilterBom/Add-item", function (req, res) {
         message: "Filter Bom received",
         id: insertedId, // 👈 trả về id
       });
-    }
+    },
   );
 });
 
@@ -5576,13 +5578,15 @@ app.post("/api/SettingPCB/Add-item", (req, res) => {
         manualOffsetY_bottom,
         width,
         length,
+        machineX,
+        machineY,
         originOffsetX,
         originOffsetY,
         railOffsetX,
         railOffsetY,
         angle
      )
-     VALUES (?, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0)`,
+     VALUES (?, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0)`,
     [project_id],
     (err) => {
       if (err) {
@@ -5596,7 +5600,7 @@ app.post("/api/SettingPCB/Add-item", (req, res) => {
       io.emit("SettingPCBUpdate");
 
       res.json({ message: "SettingPCB created" });
-    }
+    },
   );
 });
 
@@ -5610,6 +5614,8 @@ app.put("/api/SettingPCB/Edit-item/:id", (req, res) => {
     manualOffsetY_bottom,
     width,
     length,
+    machineX,
+    machineY,
     originOffsetX,
     originOffsetY,
     railOffsetX,
@@ -5625,6 +5631,8 @@ app.put("/api/SettingPCB/Edit-item/:id", (req, res) => {
       manualOffsetY_bottom = ?,
       width = ?,
       length = ?,
+      machineX = ?,
+      machineY = ?,
       originOffsetX = ?,
       originOffsetY = ?,
       railOffsetX = ?,
@@ -5638,6 +5646,8 @@ app.put("/api/SettingPCB/Edit-item/:id", (req, res) => {
       manualOffsetY_bottom,
       width,
       length,
+      machineX,
+      machineY,
       originOffsetX,
       originOffsetY,
       railOffsetX,
@@ -5889,7 +5899,7 @@ function detectFormat(fileContent) {
 //     converter.on("data", (d) => (svgData += d.toString()));
 //     converter.on("end", () => {
 //       db.run(
-//         `INSERT INTO GerberData (layer, svg, filename, project_id, unit, format) 
+//         `INSERT INTO GerberData (layer, svg, filename, project_id, unit, format)
 //          VALUES (?, ?, ?, ?, ?, ?)`,
 //         [
 //           layer,
@@ -5936,14 +5946,14 @@ function detectFormat(fileContent) {
 
 // ─── Layer color map ──────────────────────────────────────────────────────────
 const LAYER_COLORS = {
-  copper_top:        "#cc0000",
-  copper_bottom:     "#0000cc",
-  soldermask_top:    "#00aa4488",
+  copper_top: "#cc0000",
+  copper_bottom: "#0000cc",
+  soldermask_top: "#00aa4488",
   soldermask_bottom: "#00aa4488",
-  silkscreen_top:    "#ffffff",
+  silkscreen_top: "#ffffff",
   silkscreen_bottom: "#ffff00",
-  board_outline:     "#ffaa00",
-  drill:             "#888888",
+  board_outline: "#ffaa00",
+  drill: "#888888",
 };
 
 // ─── Layer stack order (bottom → top) ────────────────────────────────────────
@@ -6006,16 +6016,16 @@ function processGerberFile(file, layerOverride = null) {
 
     try {
       const fileContent = fs.readFileSync(filePath, "utf8");
-      const layer  = layerOverride ?? detectLayer(fileName);
-      const unit   = detectUnit(fileContent);
+      const layer = layerOverride ?? detectLayer(fileName);
+      const unit = detectUnit(fileContent);
       const format = detectFormat(fileContent);
 
       const fileStream = fs.createReadStream(filePath);
-      const converter  = gerberToSvg(fileStream);
+      const converter = gerberToSvg(fileStream);
 
       let svgData = "";
-      converter.on("data",  (chunk) => (svgData += chunk.toString()));
-      converter.on("end",   () => {
+      converter.on("data", (chunk) => (svgData += chunk.toString()));
+      converter.on("end", () => {
         cleanup();
         resolve({ layer, svg: svgData, fileName, unit, format });
       });
@@ -6041,17 +6051,17 @@ function mergeLayersToSvg(layerResults) {
 
   // Lấy viewBox từ SVG hợp lệ đầu tiên
   let viewBox = "0 0 100 100";
-  let width   = null;
-  let height  = null;
+  let width = null;
+  let height = null;
 
   for (const { svg } of sorted) {
     const vbMatch = svg.match(/viewBox=["']([^"']+)["']/);
-    const wMatch  = svg.match(/\bwidth=["']([^"']+)["']/);
-    const hMatch  = svg.match(/\bheight=["']([^"']+)["']/);
+    const wMatch = svg.match(/\bwidth=["']([^"']+)["']/);
+    const hMatch = svg.match(/\bheight=["']([^"']+)["']/);
     if (vbMatch) {
       viewBox = vbMatch[1];
-      width   = wMatch?.[1]  ?? null;
-      height  = hMatch?.[1]  ?? null;
+      width = wMatch?.[1] ?? null;
+      height = hMatch?.[1] ?? null;
       break;
     }
   }
@@ -6059,49 +6069,52 @@ function mergeLayersToSvg(layerResults) {
   // Build <g> group cho từng layer
   const groups = sorted.map(({ layer, svg }) => {
     const bodyMatch = svg.match(/<svg[^>]*>([\s\S]*?)<\/svg>/i);
-    const body      = bodyMatch ? bodyMatch[1] : svg;
+    const body = bodyMatch ? bodyMatch[1] : svg;
 
     // Tách <defs> ra khỏi body để đặt lên đầu merged SVG
     const defsMatch = body.match(/(<defs[^>]*>[\s\S]*?<\/defs>)/i);
-    const defs      = defsMatch ? defsMatch[1] : "";
-    const content   = body.replace(/<defs[^>]*>[\s\S]*?<\/defs>/gi, "").trim();
+    const defs = defsMatch ? defsMatch[1] : "";
+    const content = body.replace(/<defs[^>]*>[\s\S]*?<\/defs>/gi, "").trim();
 
     const color = LAYER_COLORS[layer] ?? "#888888";
 
     return {
       defs,
       group: `
-  <!-- ═══ Layer: ${layer} ═══ -->
-  <g id="layer-${layer}"
-     data-layer="${layer}"
-     fill="${color}"
-     stroke="${color}"
-     opacity="1">
-    ${content}
-  </g>`,
-    };
+        <!-- ═══ Layer: ${layer} ═══ -->
+        <g id="layer-${layer}"
+          data-layer="${layer}"
+          fill="${color}"
+          stroke="${color}"
+          opacity="1">
+          ${content}
+        </g>`,
+      };
   });
 
-  const allDefs    = groups.map((g) => g.defs).filter(Boolean).join("\n  ");
-  const allGroups  = groups.map((g) => g.group).join("\n");
+  const allDefs = groups
+    .map((g) => g.defs)
+    .filter(Boolean)
+    .join("\n  ");
+  const allGroups = groups.map((g) => g.group).join("\n");
   const layerNames = sorted.map((r) => r.layer).join(",");
-  const fileNames  = sorted.map((r) => r.fileName).join(", ");
+  const fileNames = sorted.map((r) => r.fileName).join(", ");
 
-  const widthAttr  = width  ? ` width="${width}"`   : "";
+  const widthAttr = width ? ` width="${width}"` : "";
   const heightAttr = height ? ` height="${height}"` : "";
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg"
-     xmlns:xlink="http://www.w3.org/1999/xlink"
-     viewBox="${viewBox}"${widthAttr}${heightAttr}
-     data-layers="${layerNames}">
-  <desc>Merged Gerber: ${fileNames}</desc>
-  <defs>
-    ${allDefs}
-  </defs>
-${allGroups}
-</svg>`;
-}
+    <svg xmlns="http://www.w3.org/2000/svg"
+        xmlns:xlink="http://www.w3.org/1999/xlink"
+        viewBox="${viewBox}"${widthAttr}${heightAttr}
+        data-layers="${layerNames}">
+      <desc>Merged Gerber: ${fileNames}</desc>
+      <defs>
+        ${allDefs}
+      </defs>
+    ${allGroups}
+    </svg>`;
+  }
 
 // ─── POST /api/upload-gerber/:id ──────────────────────────────────────────────
 app.post(
@@ -6109,33 +6122,34 @@ app.post(
   upload.array("FileGerber"),
   async (req, res) => {
     const projectId = req.params.id;
-    const files     = req.files;
-    const layer     = req.body.layer;
-
+    const files = req.files;
+    const layerGerber = req.body.layerGerber;
     // ── Validate ──────────────────────────────────────────────────────────────
     if (!files || files.length === 0) {
       return res.status(400).json({ error: "Không có file nào được upload" });
     }
 
     // layers[] từ frontend (tương ứng thứ tự files[])
-    const rawLayers    = req.body.layers ?? [];
+    const rawLayers = req.body.layers ? JSON.parse(req.body.layers) : [];
+
     const layerOverrides = Array.isArray(rawLayers) ? rawLayers : [rawLayers];
 
     try {
       // ── Xử lý song song tất cả file ──────────────────────────────────────
       const layerResults = await Promise.all(
         files.map((file, i) =>
-          processGerberFile(file, layerOverrides[i] || null)
-        )
+          processGerberFile(file, layerOverrides[i] || null),
+        ),
       );
 
       // ── Merge tất cả SVG thành 1 ─────────────────────────────────────────
       const mergedSvg = mergeLayersToSvg(layerResults);
 
       // ── Metadata tổng hợp ─────────────────────────────────────────────────
-      const mergedUnit    = layerResults.find((r) => r.unit !== "unknown")?.unit ?? "unknown";
-      const mergedFormat  = layerResults.map((r) => ({
-        layer:  r.layer,
+      const mergedUnit =
+        layerResults.find((r) => r.unit !== "unknown")?.unit ?? "unknown";
+      const mergedFormat = layerResults.map((r) => ({
+        layer: r.layer,
         format: r.format,
       }));
       const mergedFileNames = layerResults.map((r) => r.fileName).join(",");
@@ -6145,7 +6159,7 @@ app.post(
         `INSERT INTO GerberData (layer, svg, filename, project_id, unit, format)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [
-          layer,
+          layerGerber,
           mergedSvg,
           mergedFileNames,
           projectId,
@@ -6160,26 +6174,26 @@ app.post(
 
           // ── Emit socket events ──────────────────────────────────────────
           const responsePayload = {
-            id:         this.lastID,
-            layer:      "merged",
-            unit:       mergedUnit,
-            format:     mergedFormat,
-            svg:        mergedSvg,
-            layers:     layerResults.map((r) => ({
-              layer:    r.layer,
+            id: this.lastID,
+            layer: layerGerber,
+            unit: mergedUnit,
+            format: mergedFormat,
+            svg: mergedSvg,
+            layers: layerResults.map((r) => ({
+              layer: r.layer,
               fileName: r.fileName,
-              unit:     r.unit,
-              format:   r.format,
+              unit: "inch",
+              format: r.format,
             })),
           };
 
-          io.emit("gerber_uploaded",   responsePayload);
-          io.emit("CombineBomUpdate",  { project_id: projectId });
-          io.emit("GerberFileUpdate",  { project_id: projectId });
+          io.emit("gerber_uploaded", responsePayload);
+          io.emit("CombineBomUpdate", { project_id: projectId });
+          io.emit("GerberFileUpdate", { project_id: projectId });
           io.emit("PnPFileUpdate");
 
           return res.status(201).json(responsePayload);
-        }
+        },
       );
     } catch (e) {
       console.error("Upload error:", e.message);
@@ -6191,128 +6205,9 @@ app.post(
 
       return res.status(500).json({ error: e.message });
     }
-  }
-);
-
-// Upload Gerber PDF - Convert PDF page to SVG
-app.post(
-  "/api/upload-gerber-pdf/:id",
-  uploadPDF.single("FileGerberPDF"),
-  async (req, res) => {
-    const projectId = req.params.id;
-    const layer = req.body.layer || "Top";
-
-    if (!req.file) {
-      return res.status(400).json({ error: "Không có file PDF" });
-    }
-
-    const fs = require("fs");
-    const { createCanvas } = require("canvas");
-    const filePath = req.file.path;
-
-    try {
-      // 👉 load pdfjs (Node)
-      const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
-
-      const pdfData = new Uint8Array(fs.readFileSync(filePath));
-
-      const pdfDoc = await pdfjsLib.getDocument({
-        data: pdfData,
-        disableWorker: true,
-      }).promise;
-
-      const page = await pdfDoc.getPage(1);
-
-      // 🔥 scale cao để giữ nét Gerber
-      const scale = 3.0;
-      const viewport = page.getViewport({ scale });
-
-      const w = Math.ceil(viewport.width);
-      const h = Math.ceil(viewport.height);
-
-      // 👉 render canvas
-      const canvas = createCanvas(w, h);
-      const ctx = canvas.getContext("2d");
-
-      // nền tối để thấy nét trắng
-      ctx.fillStyle = "#000";
-      ctx.fillRect(0, 0, w, h);
-
-      await page.render({
-        canvasContext: ctx,
-        viewport: viewport,
-      }).promise;
-
-      // 👉 dùng PNG (KHÔNG dùng JPEG)
-      const imgDataUrl = canvas.toDataURL("image/png");
-
-      // 👉 convert inch (chuẩn PDF: 72dpi)
-      const wInch = w / 72;
-      const hInch = h / 72;
-
-      // ✅ SVG CHUẨN (KHÔNG lỗi hiển thị)
-      const finalSvg = `
-<svg xmlns="http://www.w3.org/2000/svg"
-     width="${wInch}in"
-     height="${hInch}in"
-     viewBox="0 0 ${w} ${h}">
-     
-  <image href="${imgDataUrl}"
-         x="0"
-         y="0"
-         width="${w}"
-         height="${h}" />
-</svg>`;
-
-      // 👉 format Gerber
-      const formatObj = {
-        suppression: "trailing",
-        x_int: 2,
-        x_dec: 5,
-        y_int: 2,
-        y_dec: 5,
-      };
-
-      const formatStr = JSON.stringify(formatObj);
-
-      // 👉 lưu DB
-      db.run(
-        `INSERT INTO GerberData (layer, svg, filename, project_id, unit, format) 
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [layer, finalSvg, req.file.originalname, projectId, "inch", formatStr],
-        function (err) {
-          if (err) {
-            console.error("DB error:", err.message);
-            return res.status(500).json({ error: err.message });
-          }
-
-          // 👉 realtime update
-          io.emit("gerber_uploaded", {
-            id: this.lastID,
-            layer,
-            unit: "inch",
-            format: formatStr,
-            svg: finalSvg,
-          });
-
-          io.emit("GerberFileUpdate", { project_id: projectId });
-
-          res.json({
-            id: this.lastID,
-            message: "Upload PDF thành công",
-          });
-        },
-      );
-
-      // 👉 cleanup
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    } catch (err) {
-      console.error("Lỗi convert PDF:", err.message);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      res.status(500).json({ error: err.message });
-    }
   },
 );
+
 // Put value in table Pick Place table
 app.put("/api/Pickplace/Edit-item/:id", (req, res) => {
   const { id } = req.params;
@@ -6374,7 +6269,6 @@ app.put("/api/PickPlace/Update-item", (req, res) => {
     });
   });
 });
-
 
 // Post item in Component overrides
 app.post("/api/Component-overrides/Add-item", (req, res) => {

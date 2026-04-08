@@ -79,6 +79,7 @@
 <script setup>
 import axios from "axios";
 import { ref, watch } from "vue";
+import { useRouter } from "vue-router";
 import { useDetailBom } from "@/composables/CheckBOM/useDetailBom";
 import ButtonBack from "@/components/Button-Back.vue";
 import InputSearch from "@/components/Input-Search.vue";
@@ -89,6 +90,7 @@ import ButtonRemove from "@/components/Button-Remove.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import Loading from "@/components/Loading.vue";
 import ButtonSave from "@/components/Button-Save.vue";
+import ButtonEye from "@/components/Button-Eye.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import InputField from "@/components/Input-Field.vue";
 import BaseDialog from "@/components/BaseDialog.vue";
@@ -105,6 +107,9 @@ const MessageErrorDialog = ref("");
 const PO_Edit = ref("");
 const Bom_Edit = ref("");
 const Quantity_Edit = ref("");
+
+const router = useRouter();
+
 function GetItem(value) {
   GetID.value = value;
   DialogEdit.value = true;
