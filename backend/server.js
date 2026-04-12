@@ -143,6 +143,36 @@ const storage = multer.diskStorage({
   },
 });
 
+const storageMachine = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/machine"); // tạo sẵn folder này
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, Date.now() + ext);
+  },
+});
+
+const storagePnP = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/pickplace"); // folder to save images
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = `${file.originalname}`;
+    cb(null, uniqueSuffix);
+  },
+});
+
+const storageGerber = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/gerber"); // folder to save images
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = `${file.originalname}`;
+    cb(null, uniqueSuffix);
+  },
+});
+
 const upload = multer({
   storage: storage,
   limits: {
@@ -163,6 +193,10 @@ const upload = multer({
       ".gbp",
       ".gko",
       ".cam",
+      ".gto",
+      ".gbo",
+      ".gbs",
+
     ];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowedExt.includes(ext)) {
@@ -173,39 +207,37 @@ const upload = multer({
   },
 });
 
-// Multer storage dành riêng cho PDF
-const storagePDF = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = "uploads/pdf";
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
+const uploadPnP = multer({
+  storage: storagePnP,
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB
   },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}_${file.originalname}`);
-  },
-});
-
-const uploadPDF = multer({
-  storage: storagePDF,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
   fileFilter: (req, file, cb) => {
-    if (path.extname(file.originalname).toLowerCase() === ".pdf") {
+    const allowedExt = [
+      ".xlsx",
+    ];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedExt.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error("Chỉ chấp nhận file PDF"));
+      cb(new Error("Chỉ chấp nhận file xlsx, gerber"));
     }
   },
 });
 
-const storageMachine = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/machine"); // tạo sẵn folder này
+const uploadGerber = multer({
+  storage: storagePnP,
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB
   },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, Date.now() + ext);
+  fileFilter: (req, file, cb) => {
+    cb(null, true); // chấp nhận mọi file
   },
 });
+      
+
+
+
 
 // chỉ cho phép png/jpg
 const fileFilterMachine = (req, file, cb) => {
@@ -219,12 +251,12 @@ const fileFilterMachine = (req, file, cb) => {
   if (allowed.includes(file.mimetype)) cb(null, true);
   else cb(new Error("Chỉ cho phép PNG, JPG, WEBP, HEIC"));
 };
-
 const uploadMachine = multer({
   storage: storageMachine,
   fileFilter: fileFilterMachine,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
+
 
 const userProjects = new Map();
 // Khi client kết nối
@@ -5671,7 +5703,7 @@ app.put("/api/SettingPCB/Edit-item/:id", (req, res) => {
 // Router post item in Bom table
 app.post(
   "/api/upload-bom/:project_id",
-  upload.single("FileBom"),
+  uploadPnP.single("FileBom"),
   (req, res) => {
     const projectId = req.params.project_id;
     const filePath = path.join(__dirname, req.file.path);
@@ -5764,7 +5796,7 @@ const XLSX = require("xlsx");
 // Router post item in Pick & Place table
 app.post(
   "/api/upload-pickplace/:id",
-  upload.single("FilePnP"),
+  uploadPnP.single("FilePnP"),
   async (req, res) => {
     const { id } = req.params;
 
@@ -5879,70 +5911,70 @@ function detectFormat(fileContent) {
 }
 
 // Upload Gerber
-// app.post("/api/upload-gerber/:id", upload.single("FileGerber"), (req, res) => {
-//   const projectId = req.params.id;
-//   const filePath = req.file.path;
-//   const fileName = req.file.originalname;
-//   const layer = detectLayer(fileName);
+app.post("/api/upload-working-gerber/:id", uploadGerber.single("FileGerber"), (req, res) => {
+  const projectId = req.params.id;
+  const filePath = req.file.path;
+  const fileName = req.file.originalname;
+  const layer = detectLayer(fileName);
 
-//   try {
-//     // Đọc nội dung file text để detect unit + format
-//     const fileContent = fs.readFileSync(filePath, "utf8");
-//     const unit = detectUnit(fileContent);
-//     const format = detectFormat(fileContent);
+  try {
+    // Đọc nội dung file text để detect unit + format
+    const fileContent = fs.readFileSync(filePath, "utf8");
+    const unit = detectUnit(fileContent);
+    const format = detectFormat(fileContent);
 
-//     // Convert sang SVG
-//     const fileStream = fs.createReadStream(filePath);
-//     const converter = gerberToSvg(fileStream);
+    // Convert sang SVG
+    const fileStream = fs.createReadStream(filePath);
+    const converter = gerberToSvg(fileStream);
 
-//     let svgData = "";
-//     converter.on("data", (d) => (svgData += d.toString()));
-//     converter.on("end", () => {
-//       db.run(
-//         `INSERT INTO GerberData (layer, svg, filename, project_id, unit, format)
-//          VALUES (?, ?, ?, ?, ?, ?)`,
-//         [
-//           layer,
-//           svgData,
-//           fileName,
-//           projectId,
-//           unit,
-//           format ? JSON.stringify(format) : null,
-//         ],
-//         function (err) {
-//           if (err) {
-//             console.error("DB insert error:", err.message);
-//             return res.status(500).json({ error: err.message });
-//           }
+    let svgData = "";
+    converter.on("data", (d) => (svgData += d.toString()));
+    converter.on("end", () => {
+      db.run(
+        `INSERT INTO WorkingGerberData (layer, svg, filename, project_id, unit, format)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          layer,
+          svgData,
+          fileName,
+          projectId,
+          unit,
+          format ? JSON.stringify(format) : null,
+        ],
+        function (err) {
+          if (err) {
+            console.error("DB insert error:", err.message);
+            return res.status(500).json({ error: err.message });
+          }
 
-//           io.emit("gerber_uploaded", {
-//             id: this.lastID,
-//             layer,
-//             unit,
-//             format,
-//             svg: svgData,
-//           });
-//           io.emit("CombineBomUpdate", { project_id: projectId });
-//           io.emit("GerberFileUpdate", { project_id: projectId });
-//           io.emit("PnPFileUpdate");
-//           res.json({ id: this.lastID, layer, unit, format });
-//         },
-//       );
+          io.emit("gerber_uploaded", {
+            id: this.lastID,
+            layer,
+            unit,
+            format,
+            svg: svgData,
+          });
+          io.emit("CombineBomUpdate", { project_id: projectId });
+          io.emit("GerberFileUpdate", { project_id: projectId });
+          io.emit("PnPFileUpdate");
+          res.json({ id: this.lastID, layer, unit, format });
+        },
+      );
 
-//       fs.unlinkSync(filePath); // Xóa file upload sau khi xử lý
-//     });
+      fs.unlinkSync(filePath); // Xóa file upload sau khi xử lý
+    });
 
-//     converter.on("error", (err) => {
-//       console.error("Gerber convert error:", err.message);
-//       res.status(500).json({ error: "Failed to convert Gerber to SVG" });
-//       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-//     });
-//   } catch (e) {
-//     console.error("Upload error:", e.message);
-//     res.status(500).json({ error: e.message });
-//     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-//   }
-// });
+    converter.on("error", (err) => {
+      console.error("Gerber convert error:", err.message);
+      res.status(500).json({ error: "Failed to convert Gerber to SVG" });
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    });
+  } catch (e) {
+    console.error("Upload error:", e.message);
+    res.status(500).json({ error: e.message });
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  }
+});
 
 // ─── Layer color map ──────────────────────────────────────────────────────────
 const LAYER_COLORS = {
@@ -6119,7 +6151,7 @@ function mergeLayersToSvg(layerResults) {
 // ─── POST /api/upload-gerber/:id ──────────────────────────────────────────────
 app.post(
   "/api/upload-gerber/:id",
-  upload.array("FileGerber"),
+  uploadGerber.array("FileGerber"),
   async (req, res) => {
     const projectId = req.params.id;
     const files = req.files;

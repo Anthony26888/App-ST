@@ -609,7 +609,7 @@ import ButtonRemove from "@/components/Button-Remove.vue";
 // ===== STATE MANAGEMENT =====
 // API Configuration
 const Url = import.meta.env.VITE_API_URL;
-const API_URL = import.meta.env.VITE_SOCKET_URL;
+const API_URL = import.meta.env.VITE_SOCKET_URL || "https://api.erpst.io.vn";
 // Router
 const router = useRouter();
 const { mdAndDown, lgAndUp } = useDisplay();

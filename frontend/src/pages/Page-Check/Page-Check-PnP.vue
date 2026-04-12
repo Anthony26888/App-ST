@@ -169,19 +169,6 @@
                       >Bề mặt Bottom</v-list-item-title
                     >
                   </v-list-item>
-                  <v-list-item @click="SortSMT()" prepend-icon="mdi-chip">
-                    <v-list-item-title class="text-caption"
-                      >SMT</v-list-item-title
-                    >
-                  </v-list-item>
-                  <v-list-item
-                    @click="SortHand()"
-                    prepend-icon="mdi-screwdriver"
-                  >
-                    <v-list-item-title class="text-caption"
-                      >Hàn tay</v-list-item-title
-                    >
-                  </v-list-item>
                   <v-list-item @click="ResetSort()" prepend-icon="mdi-refresh">
                     <v-list-item-title class="text-caption"
                       >Tất cả</v-list-item-title
@@ -358,7 +345,7 @@
                       <div
                         style="
                           position: absolute;
-                          bottom: 15px;
+                          top: 15px;
                           right: 15px;
                           z-index: 20;
                         "
@@ -484,6 +471,35 @@
                         class="d-flex align-center bg-transparent"
                       >
                         <InputSearch v-model="searchPnPGerber" />
+
+                        <v-divider vertical class="mx-3" inset></v-divider>
+
+                        <v-btn
+                          icon="mdi-chevron-left"
+                          variant="tonal"
+                          class="me-2"
+                          color="primary"
+                          @click="navigatePnP('prev')"
+                          :disabled="!combinePnPGerber.length"
+                          title="Linh kiện trước"
+                        ></v-btn>
+
+                        <span
+                          class="text-caption font-weight-bold"
+                          style="min-width: 60px text-align: center"
+                        >
+                          {{ currentIndex + 1 }} / {{ combinePnPGerber.length }}
+                        </span>
+
+                        <v-btn
+                          icon="mdi-chevron-right"
+                          variant="tonal"
+                          class="ms-2"
+                          color="primary"
+                          @click="navigatePnP('next')"
+                          :disabled="!combinePnPGerber.length"
+                          title="Linh kiện tiếp theo"
+                        ></v-btn>
                       </v-toolbar>
                     </template>
 
@@ -813,14 +829,6 @@
           </tr>
         </tbody>
       </v-table>
-    </div>
-
-    <!-- Note -->
-    <div class="d-flex mt-3">
-      <p class="text-bold text-warning">Lưu ý:</p>
-      <p class="font-weight-light ms-2">
-        Cần chuyển đổi đơn vị file Gerber .gtp, .gbp là inch
-      </p>
     </div>
 
     <template #actions>
@@ -1318,7 +1326,7 @@ const DialogEdit = ref(false);
 const DialogAddBom = ref(false);
 const DialogAddPnP = ref(false);
 const DialogAddGerber = ref(false);
-const DialogAddGerberPDF = ref(false);
+const DialogAddWG = ref(false);
 const DialogSettingPCB = ref(false);
 const DialogCoordinateSettings = ref(false);
 const DialogAddSize = ref(false);
@@ -1410,8 +1418,6 @@ const Headers = [
   { title: "Rotation", key: "rotation" },
   { title: "Layer", key: "layer" },
   { title: "Description", key: "description_bom", width: "150px" },
-  { title: "Mount Type", key: "mount_type" },
-  { title: "Need Review", key: "need_review" },
   { title: "Thao tác", key: "id", sortable: false },
 ];
 
@@ -1421,7 +1427,6 @@ const HeadersPCBTop = [
   { title: "X (mm)", key: "x" },
   { title: "Y (mm)", key: "y" },
   { title: "Rotation", key: "rotation" },
-  { title: "MPN", key: "mpn", width: "150px" },
 ];
 
 const HeadersPCBBottom = [
@@ -1430,7 +1435,6 @@ const HeadersPCBBottom = [
   { title: "X (mm)", key: "x" },
   { title: "Y (mm)", key: "y" },
   { title: "Rotation", key: "rotation" },
-  { title: "MPN", key: "mpn", width: "150px" },
 ];
 
 const HeadersPnPGerber = [
@@ -1474,19 +1478,31 @@ const PnP_Layer_Edit = ref("");
 
 const filteredPnP = computed(() => {
   const list = detailPnP.value || [];
-  return list.filter(
-    (p) => (p.layer || "Top") === selectedLayer.value && p.type === "SMT",
-  );
+  return list.filter((p) => {
+    // Nếu đang chọn mặt Top, chấp nhận cả "Top" và "TopLayer"
+    if (selectedLayer.value === "Top") {
+      return p.layer === "Top" || p.layer === "TopLayer";
+    }
+    // Nếu đang chọn mặt Bottom, chấp nhận cả "Bottom" và "BottomLayer"
+    if (selectedLayer.value === "Bottom") {
+      return p.layer === "Bottom" || p.layer === "BottomLayer";
+    }
+    return false;
+  });
 });
 
 const topLayerCount = computed(() => {
   if (!combineBom.value) return 0;
-  return combineBom.value.filter((item) => item.layer === "Top").length;
+  return combineBom.value.filter(
+    (item) => item.layer === "Top" || item.layer === "TopLayer",
+  ).length;
 });
 
 const bottomLayerCount = computed(() => {
   if (!combineBom.value) return 0;
-  return combineBom.value.filter((item) => item.layer === "Bottom").length;
+  return combineBom.value.filter(
+    (item) => item.layer === "Bottom" || item.layer === "BottomLayer",
+  ).length;
 });
 
 const componentsWithSize = computed(() => {
@@ -1572,9 +1588,13 @@ const currentSvgContent = computed(() => {
 
 const combinePnPGerber = computed(() => {
   if (selectedLayer.value === "Top") {
-    return combineBom.value.filter((item) => item.layer === "Top");
+    return combineBom.value.filter(
+      (item) => item.layer === "Top" || item.layer === "TopLayer",
+    );
   } else {
-    return combineBom.value.filter((item) => item.layer === "Bottom");
+    return combineBom.value.filter(
+      (item) => item.layer === "Bottom" || item.layer === "BottomLayer",
+    );
   }
 });
 
@@ -1597,171 +1617,150 @@ function getSvgViewBox(svgString) {
     return null;
   }
 }
+
+function getComponentTransform(pnp, vb, svgString) {
+  // 1. Tính autoFactor (tỷ lệ mm sang đơn vị ViewBox)
+  const heightMatch = svgString.match(/height=["']([\d.]+)(mm|in|inch)?["']/);
+  let factor = 1;
+  if (heightMatch) {
+    const val = parseFloat(heightMatch[1]);
+    const unit = heightMatch[2] || "mm";
+    factor = unit === "mm" ? vb.height / val : vb.height / (val * 25.4);
+  }
+
+  const isBottom = selectedLayer.value === "Bottom";
+
+  // 2. Lấy Hint Offset từ UI
+  const hX = isBottom
+    ? Number(hintOffsetX_bottom.value)
+    : Number(hintOffsetX_top.value);
+  const hY = isBottom
+    ? Number(hintOffsetY_bottom.value)
+    : Number(hintOffsetY_top.value);
+
+  // 3. Scale tọa độ PnP
+  let x = (Number(pnp.x) + hX) * factor;
+  let y = (Number(pnp.y) + hY) * factor;
+  if (swapXY.value) [x, y] = [y, x];
+
+  // 4. Chuyển sang hệ tọa độ SVG (Lật trục Y)
+  let tx = vb.minX + x + Number(coordinateOffsetX.value);
+  let ty = vb.minY + vb.height - y - Number(coordinateOffsetY.value);
+
+  // 5. Mirror nếu là mặt Bottom
+  if (isBottom) {
+    tx = vb.minX * 2 + vb.width - tx;
+  }
+
+  return { tx, ty, factor };
+}
+
 // Combine Gerber + Pick&Place overlay
 const svgWithPnP = computed(() => {
   if (!currentGerberSvg.value || !filteredPnP.value) return "";
-
   let svg = currentGerberSvg.value;
-  if (!svg || typeof svg !== "string") return "";
-
-  const unit = currentGerberUnit.value;
-  if (!unit) return "";
-
   const vb = getSvgViewBox(svg);
   if (!vb) return svg;
 
   const isBottom = selectedLayer.value === "Bottom";
 
-  let offset = [];
-  if (selectedLayer.value === "Top") {
-    offset = filteredPnP.value.map((pnp) => ({
-      ...pnp,
-      x: Number(pnp.x) + Number(hintOffsetX_top.value),
-      y: Number(pnp.y) + Number(hintOffsetY_top.value),
-    }));
-  } else {
-    offset = filteredPnP.value.map((pnp) => ({
-      ...pnp,
-      x: Number(pnp.x) + Number(hintOffsetX_bottom.value),
-      y: Number(pnp.y) + Number(hintOffsetY_bottom.value),
-    }));
-  }
-  const pnpMarkers = offset
+  const pnpMarkers = filteredPnP.value
     .filter((p) => p.x != null && p.y != null && p.designator)
     .map((pnp) => {
-      // =========================
-      // 1. SCALE
-      // =========================
-      let x = pnp.x * coordinateScale.value;
-      let y = pnp.y * coordinateScale.value;
+      const { tx, ty, factor } = getComponentTransform(pnp, vb, svg);
 
-      // =========================
-      // 2. SWAP XY
-      // =========================
-      if (swapXY.value) {
-        [x, y] = [y, x];
-      }
+      // ===== Rotation =====
+      const pnpRot = Number(pnp.rotation || pnp.rot || 0);
+      const uiRot = Number(coordinateRotation.value || 0);
+      let componentRotation = (180 - (pnpRot + uiRot)) % 360;
+      if (componentRotation < 0) componentRotation += 360;
 
-      // =========================
-      // 3. APPLY VIEWBOX (🔥 FIX CHÍNH)
-      // =========================
-      let transformedX = vb.minX + x + coordinateOffsetX.value;
-
-      let transformedY = vb.minY + (vb.height - y) + coordinateOffsetY.value;
-
-      // =========================
-      // 4. MIRROR BOTTOM
-      // =========================
+      // ===== Flip X nếu Bottom =====
+      let finalTx = tx;
+      let flipTransform = "";
       if (isBottom) {
-        if (mirrorMode.value === "x") {
-          transformedX = vb.minX + vb.width - (transformedX - vb.minX);
-        }
-
-        if (mirrorMode.value === "y") {
-          transformedY = vb.minY + vb.height - (transformedY - vb.minY);
-        }
+        finalTx = vb.minX + vb.width - tx;
+        flipTransform = "scale(-1,1)";
       }
 
-      // =========================
-      // 5. OFFSET Y tinh chỉnh
-      // =========================
-      const extraYOffsetUnits =
-        (unit === "mm" ? pnpYOffsetMm.value : pnpYOffsetMm.value / 25.4) *
-        coordinateScale.value;
+      // ===== Size component =====
+      let rectW = (pnp.width || 0) * factor;
+      let rectL = (pnp.length || 0) * factor;
+      if (swapXY.value) [rectW, rectL] = [rectL, rectW];
 
-      transformedY += extraYOffsetUnits;
+      // ===== Style mặc định =====
+      const strokeMain = factor * 0.4; // Tăng độ đậm mặc định theo ý bạn
+      const maxDim = Math.max(rectW, rectL);
+      const anchorSize = maxDim / 2 + factor * 0.2; // Dài vượt khung
+      const fontSize = Math.max(factor * 0.5, 5);
 
-      // =========================
-      // 6. ROTATION
-      // =========================
-      const desiredRotation =
-        pnp.rotation || pnp.rot || coordinateRotation.value;
+      const componentMarkup =
+        rectW > 0 && rectL > 0 && showComponentBoxes.value
+          ? `<rect 
+              x="${-rectL / 2}" y="${-rectW / 2}" 
+              width="${rectL}" height="${rectW}" 
+              fill="rgba(255, 179, 0, 0.2)" 
+              stroke="#E65100" 
+              stroke-width="${factor * 0.1}"
+              rx="${factor * 0.05}"
+            />
+            <path d="M ${rectL / 2 + factor * 0.2},0 
+                     L ${rectL / 2 - factor * 0.2},${-factor * 0.2} 
+                     L ${rectL / 2 - factor * 0.2},${factor * 0.2} Z" 
+                  fill="#E65100" />`
+          : "";
 
-      function fixRotation(r) {
-        const n = ((Number(r) % 360) + 360) % 360;
+      const textFlip = isBottom ? "scale(-1,1)" : "";
 
-        if (n === 0) return 180;
-        if (n === 180) return 0;
-
-        return n; // giữ nguyên 90 và 270
-      }
-
-      const componentRotation = fixRotation(desiredRotation);
-
-      // =========================
-      // 7. SIZE
-      // =========================
-      let rectWidth = (pnp.width || 0) * coordinateScale.value;
-      let rectLength = (pnp.length || 0) * coordinateScale.value;
-
-      if (swapXY.value) {
-        [rectWidth, rectLength] = [rectLength, rectWidth];
-      }
-
-      const squareScale = unit === "mm" ? 0.02 : 1;
-      const crosshairScale = unit === "mm" ? 50 : 1;
-
-      // =========================
-      // 8. DRAW
-      // =========================
-      let componentMarkup = "";
-
-      if (rectWidth > 0 && rectLength > 0 && showComponentBoxes.value) {
-        componentMarkup = `
-    <g transform="rotate(${componentBodyAngle.value}) scale(${squareScale})">
-      <rect
-        x="${-(rectLength / 2)}"
-        y="${-(rectWidth / 2)}"
-        width="${rectLength}"
-        height="${rectWidth}"
-        fill="rgba(255, 179, 0, 0.4)"
-        stroke="#E65100"
-        stroke-width="3"
-      />
-    </g>
-  `;
-      }
-
+      // QUAN TRỌNG: Thêm data-designator vào thẻ <g> để hàm highlight tìm được
       return `
         <g 
-          transform="translate(${transformedX}, ${transformedY}) rotate(${componentRotation}) scale(${crosshairScale})"
-          class="pnp-marker"
+          transform="translate(${finalTx}, ${ty}) ${flipTransform} rotate(${componentRotation})" 
+          class="pnp-marker" 
           data-designator="${pnp.designator}"
         >
           ${componentMarkup}
 
-          <!-- Crosshair -->
-          <line x1="-25" y1="0" x2="25" y2="0" stroke="red"/>
-          <line x1="0" y1="-25" x2="0" y2="25" stroke="red"/>
+          <g class="crosshair-group" stroke="#D32F2F" stroke-width="${strokeMain}" stroke-linecap="square">
+            <line x1="-${anchorSize}" y1="0" x2="${anchorSize}" y2="0" />
+            <line x1="0" y1="-${anchorSize}" x2="0" y2="${anchorSize}" />
+          </g>
 
-          <!-- Center -->
-          <circle cx="0" cy="0" r="2" stroke="red" fill="none"/>
-
-          <!-- Label -->
           <text
-            x="6"
-            y="3"
-            font-size="23"
+            x="${factor * 0.5}" 
+            y="${-factor * 0.5}"
+            font-size="${fontSize}"
             fill="blue"
             font-weight="bold"
-            transform="rotate(${designatorLabelAngle.value})"
+            style="
+              paint-order: stroke;
+              stroke: white;
+              stroke-width: ${fontSize * 0.2}px;
+              user-select: none;
+            "
+            transform="${textFlip} rotate(${-componentRotation})"
           >
             ${pnp.designator}
           </text>
-        </g>
-      `;
+        </g>`;
     })
     .join("");
 
-  return svg.replace("</svg>", `${pnpMarkers}</svg>`);
+  return svg
+    .replace("<svg", `<svg style="background: #FFFFFF;"`)
+    .replace("</svg>", `<g id="pnp-overlay">${pnpMarkers}</g></svg>`);
 });
 
 const PCBTopLayer = computed(() => {
-  return combineBom.value.filter((item) => item.layer === "Top");
+  return combineBom.value.filter(
+    (item) => item.layer === "Top" || item.layer === "TopLayer",
+  );
 });
 
 const PCBBottomLayer = computed(() => {
-  return combineBom.value.filter((item) => item.layer === "Bottom");
+  return combineBom.value.filter(
+    (item) => item.layer === "Bottom" || item.layer === "BottomLayer",
+  );
 });
 
 const transformedPnP = computed(() => {
@@ -1769,11 +1768,18 @@ const transformedPnP = computed(() => {
 });
 
 const resultTop = computed(() =>
-  transformedPnP.value.filter((p) => p.layer?.toLowerCase() === "top"),
+  transformedPnP.value.filter(
+    (p) =>
+      p.layer?.toLowerCase() === "top" || p.layer?.toLowerCase() === "toplayer",
+  ),
 );
 
 const resultBottom = computed(() =>
-  transformedPnP.value.filter((p) => p.layer?.toLowerCase() === "bottom"),
+  transformedPnP.value.filter(
+    (p) =>
+      p.layer?.toLowerCase() === "bottom" ||
+      p.layer?.toLowerCase() === "bottomlayer",
+  ),
 );
 // ==========================================
 // 5. LIFECYCLE HOOKS
@@ -2872,7 +2878,7 @@ const getColor = (status) => {
 // ==================== ZOOM STATE ====================
 const currentViewBox = ref({ x: 0, y: 0, w: 0, h: 0 });
 const baseViewBox = ref({ x: 0, y: 0, w: 0, h: 0 });
-const ZOOM_IN_LEVEL = 18; // Phóng to 10 lần
+const ZOOM_IN_LEVEL = 7; // Phóng to 10 lần
 const isZooming = ref(false);
 // 1. Theo dõi khi SVG thay đổi để lấy thông số gốc
 watch(
@@ -2982,24 +2988,20 @@ function highlightComponent(designator) {
 
 async function GetZoomPnP(componentId) {
   const pnp = filteredPnP.value?.find((p) => p.id === componentId);
-  if (!pnp) return;
+  if (!pnp || !baseViewBox.value || baseViewBox.value.w === 0) return;
 
-  // Tái sử dụng logic tính toán tọa độ y hệt như trong hàm computed svgWithPnP của bạn
-  const vb = baseViewBox.value;
-  let x = pnp.x * coordinateScale.value;
-  let y = pnp.y * coordinateScale.value;
-  if (swapXY.value) [x, y] = [y, x];
+  // ViewBox format chuẩn
+  const vb = {
+    minX: baseViewBox.value.x,
+    minY: baseViewBox.value.y,
+    width: baseViewBox.value.w,
+    height: baseViewBox.value.h,
+  };
 
-  let tx = vb.x + x + coordinateOffsetX.value;
-  let ty = vb.y + (vb.h - y) + coordinateOffsetY.value;
+  // Lấy tọa độ tx, ty từ cùng một công thức với hàm vẽ
+  const { tx, ty } = getComponentTransform(pnp, vb, currentGerberSvg.value);
 
-  // Mirror logic cho mặt Bottom
-  if (selectedLayer.value === "Bottom") {
-    if (mirrorMode.value === "x") tx = vb.x + vb.w - (tx - vb.x);
-    if (mirrorMode.value === "y") ty = vb.y + vb.h - (ty - vb.y);
-  }
-
-  // Thực hiện zoom
+  // Thực hiện Zoom
   await zoomToSvgPoint(tx, ty, ZOOM_IN_LEVEL);
   highlightComponent(pnp.designator);
 }
@@ -3023,6 +3025,40 @@ async function resetsZoom() {
   }
 
   isZooming.value = false;
+}
+
+const currentIndex = ref(-1);
+
+function navigatePnP(direction) {
+  if (!combinePnPGerber.value.length) return;
+
+  if (direction === "next") {
+    currentIndex.value =
+      (currentIndex.value + 1) % combinePnPGerber.value.length;
+  } else {
+    currentIndex.value =
+      (currentIndex.value - 1 + combinePnPGerber.value.length) %
+      combinePnPGerber.value.length;
+  }
+
+  const targetItem = combinePnPGerber.value[currentIndex.value];
+  if (targetItem) {
+    // Gọi hàm zoom hiện tại của bạn
+    GetZoomPnP(targetItem.id);
+    // Kích hoạt hiệu ứng highlight (hàm đã viết ở các bước trước)
+    highlightComponent(targetItem.designator);
+  }
+}
+
+// Cập nhật lại currentIndex khi người dùng click trực tiếp vào icon mắt trên bảng
+function handleManualZoom(id) {
+  currentIndex.value = combinePnPGerber.value.findIndex(
+    (item) => item.id === id,
+  );
+  GetZoomPnP(id);
+  // Tìm item để lấy designator cho highlight
+  const item = combinePnPGerber.value[currentIndex.value];
+  if (item) highlightComponent(item.designator);
 }
 </script>
 <script>
@@ -3366,5 +3402,17 @@ export default {
   paint-order: stroke;
   stroke: #000000;
   stroke-width: 4px; /* Tạo viền đen cho chữ để dễ đọc trên mọi nền */
+}
+
+.altium-style text {
+  dominant-baseline: middle;
+  text-anchor: start;
+  pointer-events: none;
+}
+.pnp-marker {
+  transition: transform 0.1s ease-out;
+}
+.pnp-marker:hover {
+  filter: brightness(1.2);
 }
 </style>

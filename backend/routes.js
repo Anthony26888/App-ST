@@ -493,78 +493,11 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
       .replace(/\s+/g, "")
       .toUpperCase();
 
-  // ===== Detect mount type =====
-  const detectMountType = ({
-    description,
-    packageName,
-    hasXY,
-    hasOverride,
-  }) => {
-    const desc = String(description || "").toUpperCase();
-
-    // 0. Không có description
-    if (!desc.trim()) return "UNKNOWN";
-
-    // 1. Override
-    if (hasOverride) return "REVIEW";
-
-    // 2. SMT keyword mạnh
-    if (
-      desc.includes("SMD") ||
-      desc.includes("QFN") ||
-      desc.includes("DFN") ||
-      desc.includes("BGA") ||
-      desc.includes("LGA") ||
-      desc.includes("0402") ||
-      desc.includes("0603") ||
-      desc.includes("0805") ||
-      desc.includes("1206") ||
-      desc.includes("SOT") ||
-      desc.includes("SOIC") ||
-      desc.includes("SOP")
-    )
-      return "SMT";
-
-    // 3. Package
-    if (
-      [
-        "0402",
-        "0603",
-        "0805",
-        "1206",
-        "QFN",
-        "DFN",
-        "BGA",
-        "LGA",
-        "SOT-23",
-        "SOT-223",
-        "SOP",
-        "SOIC",
-      ].includes((packageName || "").toUpperCase())
-    )
-      return "SMT";
-
-    // 4. HAND keyword
-    if (desc.includes("DIP") || desc.includes("TO-")) return "HAND";
-
-    // 5. Connector (không phải SMD)
-    if (desc.includes("CONN") && !desc.includes("SMD")) return "HAND";
-    if (desc.includes("HEADER")) return "HAND";
-    if (desc.includes("USB") && !desc.includes("SMD")) return "HAND";
-
-    // 6. Pickplace fallback
-    if (hasXY) return "SMT";
-
-    return "UNKNOWN";
-  };
-
   // ===== Lấy PickPlace (BOTTOM) =====
   const ppQuery = `
     SELECT 
       p.designator,
-      LOWER(TRIM(p.layer)) as layer,
-      p.x,
-      p.y
+      LOWER(TRIM(p.layer)) as layer
     FROM Pickplace p
     WHERE p.project_id = ?
       AND LOWER(TRIM(p.layer)) IN ('bottom', 'bottomlayer')
@@ -573,22 +506,15 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
   db.all(ppQuery, [id], async (err, ppRows) => {
     if (err) return res.status(500).json(err);
 
-    // ===== Map designator -> layer + XY =====
+    // Map designator -> isBottom
     const map = new Map();
     ppRows.forEach((r) => {
       const key = normalize(r.designator);
-      map.set(key, {
-        layer: r.layer,
-        hasXY: r.x != null && r.y != null,
-      });
+      map.set(key, true);
     });
 
     // ===== Lấy BOM =====
-    const bomQuery = `
-      SELECT *
-      FROM BomHighlight
-      WHERE project_id = ?
-    `;
+    const bomQuery = `SELECT * FROM BomHighlight WHERE project_id = ?`;
 
     db.all(bomQuery, [id], async (err, bomRows) => {
       if (err) return res.status(500).json(err);
@@ -596,56 +522,43 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
       const wb = new ExcelJS.Workbook();
       const ws = wb.addWorksheet("BOM");
 
-      // ===== Header =====
+      // ===== Định nghĩa Columns (Thêm STT) =====
       ws.columns = [
-        { header: "Designator", key: "designator", width: 100 },
+        { header: "STT", key: "stt", width: 8 },
+        { header: "Designator", key: "designator", width: 40 },
         { header: "Description", key: "description", width: 50 },
         { header: "Manufacture", key: "manufacture", width: 30 },
         { header: "MPN", key: "mpn", width: 25 },
         { header: "MPN2", key: "mpn2", width: 25 },
         { header: "MPN3", key: "mpn3", width: 25 },
-        { header: "Quantity", key: "quantity", width: 10 },
+        { header: "Quantity", key: "quantity", width: 12 },
       ];
 
       // ===== Fill data =====
-      bomRows.forEach((row) => {
+      bomRows.forEach((row, rowIndex) => {
         const original = String(row.designator || "");
         const parts = original.split(",").map((s) => s.trim());
-
         const richText = [];
-
-        let hasBottom = false;
-        let hasXY = false;
 
         parts.forEach((p, index) => {
           const key = normalize(p);
-          const info = map.get(key);
-
-          const isBottom =
-            info?.layer === "bottom" || info?.layer === "bottomlayer";
-
-          if (isBottom) hasBottom = true;
-          if (info?.hasXY) hasXY = true;
+          const isBottom = map.has(key);
 
           richText.push({
             text: p,
-            font: isBottom ? { color: { argb: "FFFF0000" }, bold: true } : {},
+            font: {
+              name: "Times New Roman",
+              ...(isBottom ? { color: { argb: "FFFF0000" }, bold: true } : {}),
+            },
           });
 
           if (index < parts.length - 1) {
-            richText.push({ text: ", " });
+            richText.push({ text: ", ", font: { name: "Times New Roman" } });
           }
         });
 
-        // ===== Detect mount type =====
-        const mountType = detectMountType({
-          description: row.description,
-          packageName: row.package, // nếu DB có
-          hasXY,
-          hasOverride: false, // nếu có bảng override thì nối thêm
-        });
-
-        const rowExcel = ws.addRow({
+        const newRow = ws.addRow({
+          stt: rowIndex + 1,
           designator: { richText },
           description: row.description,
           manufacture: row.manufacture,
@@ -655,16 +568,42 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
           quantity: row.quantity,
         });
 
-        // ===== Tô màu nền =====
-        if (mountType === "HAND" || mountType === "UNKNOWN") {
-          rowExcel.eachCell((cell) => {
-            cell.fill = {
-              type: "pattern",
-              pattern: "solid",
-              fgColor: { argb: "FFFFE4E1" }, // 🌸 ROSE
-            };
-          });
-        }
+        // Áp dụng font Times New Roman cho toàn bộ row
+        newRow.eachCell((cell) => {
+          if (!cell.font || !cell.font.richText) {
+            cell.font = { name: "Times New Roman", size: 11 };
+          }
+        });
+      });
+
+      // ===== Định dạng Header (Dòng 1) =====
+      const headerRow = ws.getRow(1);
+      headerRow.eachCell((cell) => {
+        cell.font = { name: "Times New Roman", bold: true };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFD3D3D3" }, // Màu xám (Light Gray)
+        };
+        cell.alignment = { vertical: "middle", horizontal: "center" };
+        cell.border = {
+          top: { style: "thin" },
+          left: { style: "thin" },
+          bottom: { style: "thin" },
+          right: { style: "thin" },
+        };
+      });
+
+      // ===== Thêm Border cho toàn bộ dữ liệu (Tạo hiệu ứng Table) =====
+      ws.eachRow((row, rowNumber) => {
+        row.eachCell((cell) => {
+          cell.border = {
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" },
+          };
+        });
       });
 
       // ===== Export =====
@@ -672,7 +611,6 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
         "Content-Type",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       );
-
       res.setHeader(
         "Content-Disposition",
         "attachment; filename=BOM_highlight.xlsx",
