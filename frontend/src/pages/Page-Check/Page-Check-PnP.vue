@@ -259,7 +259,7 @@
                 <template v-slot:item.layer="{ value }">
                   <v-chip
                     :color="
-                      value === 'Top' || value === 'top' || value === 'TopLayer'
+                      value === 'Top' || value === 'top' || value === 'TopLayer' || value === 'toplayer' || value === 'Top Layer' || value === 'top layer' || value === 'TOP' || value === 'TOPLAYER' || value === 'TOP LAYER'
                         ? 'success'
                         : 'error'
                     "
@@ -1297,6 +1297,7 @@ const { bomHighlight } = useBomHighlight(id);
 const { detailPnP } = usePnPFile(id);
 const { detailGerber } = useGerberFile(id);
 const { detailSetting } = useSettingPCB(id);
+console.log(combineBom)
 
 // ==========================================
 // 3. STATE MANAGEMENT
@@ -1399,6 +1400,7 @@ const Headers = [
   { title: "Rotation", key: "rotation" },
   { title: "Layer", key: "layer" },
   { title: "Description", key: "description_bom", width: "150px" },
+  { title: "Note", key: "note", width: "150px" },
   { title: "Thao tác", key: "id", sortable: false },
 ];
 

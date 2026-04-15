@@ -408,7 +408,8 @@ app.get("/api/PickPlaceTop/download/:id", async (req, res) => {
                           p.layer,
                           p.x,
                           p.y,
-                          p.rotation 
+                          p.rotation,
+                          b.note 
                       FROM Pickplace p
                       LEFT JOIN Bom b
                           ON TRIM(LOWER(p.designator)) = TRIM(LOWER(b.designator))
@@ -450,7 +451,8 @@ app.get("/api/PickPlaceBottom/download/:id", async (req, res) => {
                           p.layer,
                           p.x,
                           p.y,
-                          p.rotation 
+                          p.rotation,
+                          b.note 
                       FROM Pickplace p
                       LEFT JOIN Bom b
                           ON TRIM(LOWER(p.designator)) = TRIM(LOWER(b.designator))
@@ -487,17 +489,11 @@ const ExcelJS = require("exceljs");
 app.get("/api/BomHighlight/download/:id", async (req, res) => {
   const { id } = req.params;
 
-  // ===== Helper normalize =====
   const normalize = (val) =>
-    String(val || "")
-      .replace(/\s+/g, "")
-      .toUpperCase();
+    String(val || "").replace(/\s+/g, "").toUpperCase();
 
-  // ===== Lấy PickPlace (BOTTOM) =====
   const ppQuery = `
-    SELECT 
-      p.designator,
-      LOWER(TRIM(p.layer)) as layer
+    SELECT p.designator, LOWER(TRIM(p.layer)) as layer
     FROM Pickplace p
     WHERE p.project_id = ?
       AND LOWER(TRIM(p.layer)) IN ('bottom', 'bottomlayer')
@@ -506,14 +502,9 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
   db.all(ppQuery, [id], async (err, ppRows) => {
     if (err) return res.status(500).json(err);
 
-    // Map designator -> isBottom
     const map = new Map();
-    ppRows.forEach((r) => {
-      const key = normalize(r.designator);
-      map.set(key, true);
-    });
+    ppRows.forEach((r) => map.set(normalize(r.designator), true));
 
-    // ===== Lấy BOM =====
     const bomQuery = `SELECT * FROM BomHighlight WHERE project_id = ?`;
 
     db.all(bomQuery, [id], async (err, bomRows) => {
@@ -522,7 +513,7 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
       const wb = new ExcelJS.Workbook();
       const ws = wb.addWorksheet("BOM");
 
-      // ===== Định nghĩa Columns (Thêm STT) =====
+      // Cập nhật số lượng cột là 9 (Thêm Note)
       ws.columns = [
         { header: "STT", key: "stt", width: 8 },
         { header: "Designator", key: "designator", width: 40 },
@@ -532,9 +523,9 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
         { header: "MPN2", key: "mpn2", width: 25 },
         { header: "MPN3", key: "mpn3", width: 25 },
         { header: "Quantity", key: "quantity", width: 12 },
+        { header: "Note", key: "note", width: 25 },
       ];
 
-      // ===== Fill data =====
       bomRows.forEach((row, rowIndex) => {
         const original = String(row.designator || "");
         const parts = original.split(",").map((s) => s.trim());
@@ -543,7 +534,6 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
         parts.forEach((p, index) => {
           const key = normalize(p);
           const isBottom = map.has(key);
-
           richText.push({
             text: p,
             font: {
@@ -551,12 +541,12 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
               ...(isBottom ? { color: { argb: "FFFF0000" }, bold: true } : {}),
             },
           });
-
           if (index < parts.length - 1) {
             richText.push({ text: ", ", font: { name: "Times New Roman" } });
           }
         });
 
+        // Thêm row vào sheet
         const newRow = ws.addRow({
           stt: rowIndex + 1,
           designator: { richText },
@@ -566,24 +556,47 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
           mpn2: row.mpn2,
           mpn3: row.mpn3,
           quantity: row.quantity,
+          note: row.note, // Đảm bảo gán giá trị note ở đây
         });
 
-        // Áp dụng font Times New Roman cho toàn bộ row
-        newRow.eachCell((cell) => {
+        // 👉 KIỂM TRA ĐIỀU KIỆN CỘT NOTE
+        const hasNote = row.note && String(row.note).trim().length > 0;
+
+        // Định dạng toàn bộ ô trong hàng (từ cột 1 đến 9)
+        for (let i = 1; i <= 9; i++) {
+          const cell = newRow.getCell(i);
+          
+          // Vẽ Border & Font
+          cell.border = {
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" },
+          };
           if (!cell.font || !cell.font.richText) {
             cell.font = { name: "Times New Roman", size: 11 };
           }
-        });
+
+          // 👉 TÔ MÀU ROSE NẾU CÓ NOTE
+          if (hasNote) {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFFFC0CB" }, // Màu Rose/Pink
+            };
+          }
+        }
       });
 
       // ===== Định dạng Header (Dòng 1) =====
       const headerRow = ws.getRow(1);
-      headerRow.eachCell((cell) => {
+      for (let i = 1; i <= 9; i++) {
+        const cell = headerRow.getCell(i);
         cell.font = { name: "Times New Roman", bold: true };
         cell.fill = {
           type: "pattern",
           pattern: "solid",
-          fgColor: { argb: "FFD3D3D3" }, // Màu xám (Light Gray)
+          fgColor: { argb: "FFD3D3D3" },
         };
         cell.alignment = { vertical: "middle", horizontal: "center" };
         cell.border = {
@@ -592,30 +605,11 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
           bottom: { style: "thin" },
           right: { style: "thin" },
         };
-      });
+      }
 
-      // ===== Thêm Border cho toàn bộ dữ liệu (Tạo hiệu ứng Table) =====
-      ws.eachRow((row, rowNumber) => {
-        row.eachCell((cell) => {
-          cell.border = {
-            top: { style: "thin" },
-            left: { style: "thin" },
-            bottom: { style: "thin" },
-            right: { style: "thin" },
-          };
-        });
-      });
-
-      // ===== Export =====
-      res.setHeader(
-        "Content-Type",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      );
-      res.setHeader(
-        "Content-Disposition",
-        "attachment; filename=BOM_highlight.xlsx",
-      );
-
+      // Export file
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=BOM_highlight.xlsx");
       await wb.xlsx.write(res);
       res.end();
     });

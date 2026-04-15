@@ -1908,7 +1908,7 @@ io.on("connection", (socket) => {
                         p.layer,
                         b.mpn,
                         b.description AS description_bom,
-
+                        b.note,
                         COALESCE(o.width, pm.width)  AS width,
                         COALESCE(o.length, pm.length) AS length,
                         pm.package AS package,
@@ -2105,7 +2105,7 @@ io.on("connection", (socket) => {
                           COALESCE(o.width, pm.width)  AS width,
                           COALESCE(o.length, pm.length) AS length,   -- sửa theo field của bạn
                           COALESCE(o.package, pm.package) AS package,
-
+                          b.note,
                           CASE
                               WHEN o.mpn IS NOT NULL THEN 'override'
                               WHEN pm.package IS NOT NULL THEN 'package_map'
@@ -5741,7 +5741,7 @@ app.post(
             let mpnValue = row.MPN || row.Comment || "";
 
             // replace , → .
-            mpnValue = String(mpnValue).replace(/,/g, ".");
+            mpnValue = String(mpnValue).replace(/\s+/g, "").replace(/,/g, ".");
 
             stmtBom.run(
               row.Description || "",
@@ -5749,7 +5749,7 @@ app.post(
               ref,
               1,
               projectId,
-              row.note || "",
+              row.note || row.Note || row.notes || row.Notes || "",
             );
 
             insertedRefs.add(ref);
@@ -5768,7 +5768,7 @@ app.post(
           row["Reference(s)"] || row.Designator || "" || row.designator,
           row.Quantity || row.Qty || row.qty || row.QTY || 1,
           projectId,
-          row.Note || row.note || "",
+          row.Note || row.note || "" || row.Notes || row.notes,
         );
       });
 
