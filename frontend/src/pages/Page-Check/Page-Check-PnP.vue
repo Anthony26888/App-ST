@@ -1782,6 +1782,10 @@ const resultTop = computed(() =>
       p.layer === "top" ||
       p.layer === "toplayer" ||
       p.layer === "TOPLAYER" ||
+      p.layer === "TOP" ||
+      p.layer === "Top" ||
+      p.layer === "TopLayer" ||
+      p.layer === "TOPLAYER" ||
       p.layer === "TOP",
   ),
 );
@@ -1791,6 +1795,10 @@ const resultBottom = computed(() =>
     (p) =>
       p.layer === "bottom" ||
       p.layer === "bottomlayer" ||
+      p.layer === "BOTTOMLAYER" ||
+      p.layer === "BOTTOM" ||
+      p.layer === "Bottom" ||
+      p.layer === "BottomLayer" ||
       p.layer === "BOTTOMLAYER" ||
       p.layer === "BOTTOM",
   ),
