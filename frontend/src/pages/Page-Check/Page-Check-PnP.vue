@@ -259,7 +259,15 @@
                 <template v-slot:item.layer="{ value }">
                   <v-chip
                     :color="
-                      value === 'Top' || value === 'top' || value === 'TopLayer' || value === 'toplayer' || value === 'Top Layer' || value === 'top layer' || value === 'TOP' || value === 'TOPLAYER' || value === 'TOP LAYER'
+                      value === 'Top' ||
+                      value === 'top' ||
+                      value === 'TopLayer' ||
+                      value === 'toplayer' ||
+                      value === 'Top Layer' ||
+                      value === 'top layer' ||
+                      value === 'TOP' ||
+                      value === 'TOPLAYER' ||
+                      value === 'TOP LAYER'
                         ? 'success'
                         : 'error'
                     "
@@ -324,7 +332,7 @@
                 <!-- Layer select -->
                 <v-select
                   v-model="selectedLayer"
-                  :items="['Top', 'Bottom']"
+                  :items="['Top', 'Bottom', 'WG Top', 'WG Bottom']"
                   label="Layer"
                   class="me-4"
                   density="comfortable"
@@ -599,7 +607,7 @@
                     :hover="true"
                     :dense="false"
                     :fixed-header="true"
-                    height="56vh"
+                    height="58vh"
                   >
                     <template v-slot:top>
                       <v-toolbar
@@ -1265,14 +1273,14 @@ const id = route.params.id;
 // --- Gerber Layer Options & Extension Map ---
 /** Danh sách layer Gerber với màu sắc đặc trưng, dùng trong dialog upload */
 const layerOptions = [
-  { label: "Copper Top",       value: "copper_top",       color: "#cc0000" },
-  { label: "Copper Bottom",    value: "copper_bottom",    color: "#0000cc" },
-  { label: "Soldermask Top",   value: "soldermask_top",   color: "#00aa44" },
-  { label: "Soldermask Bottom",value: "soldermask_bottom",color: "#00aa44" },
-  { label: "Silkscreen Top",   value: "silkscreen_top",   color: "#ffffff" },
-  { label: "Silkscreen Bottom",value: "silkscreen_bottom",color: "#ffff00" },
-  { label: "Board Outline",    value: "board_outline",    color: "#ffaa00" },
-  { label: "Drill",            value: "drill",            color: "#888888" },
+  { label: "Copper Top", value: "copper_top", color: "#cc0000" },
+  { label: "Copper Bottom", value: "copper_bottom", color: "#0000cc" },
+  { label: "Soldermask Top", value: "soldermask_top", color: "#00aa44" },
+  { label: "Soldermask Bottom", value: "soldermask_bottom", color: "#00aa44" },
+  { label: "Silkscreen Top", value: "silkscreen_top", color: "#ffffff" },
+  { label: "Silkscreen Bottom", value: "silkscreen_bottom", color: "#ffff00" },
+  { label: "Board Outline", value: "board_outline", color: "#ffaa00" },
+  { label: "Drill", value: "drill", color: "#888888" },
 ];
 
 /** Map từ extension file Gerber sang loại layer mặc định */
@@ -1297,7 +1305,6 @@ const { bomHighlight } = useBomHighlight(id);
 const { detailPnP } = usePnPFile(id);
 const { detailGerber } = useGerberFile(id);
 const { detailSetting } = useSettingPCB(id);
-console.log(combineBom)
 
 // ==========================================
 // 3. STATE MANAGEMENT
@@ -1484,11 +1491,21 @@ const filteredPnP = computed(() => {
   return list.filter((p) => {
     // Nếu đang chọn mặt Top, chấp nhận cả "Top" và "TopLayer"
     if (selectedLayer.value === "Top") {
-      return p.layer === "Top" || p.layer === "TopLayer";
+      return (
+        p.layer === "Top" ||
+        p.layer === "TopLayer" ||
+        p.layer === "TOP" ||
+        p.layer === "TOPLAYER"
+      );
     }
     // Nếu đang chọn mặt Bottom, chấp nhận cả "Bottom" và "BottomLayer"
     if (selectedLayer.value === "Bottom") {
-      return p.layer === "Bottom" || p.layer === "BottomLayer";
+      return (
+        p.layer === "Bottom" ||
+        p.layer === "BottomLayer" ||
+        p.layer === "BOTTOM" ||
+        p.layer === "BOTTOMLAYER"
+      );
     }
     return false;
   });
@@ -1657,7 +1674,6 @@ function getComponentTransform(pnp, vb, svgString) {
 
   return { tx, ty, factor };
 }
-
 // Combine Gerber + Pick&Place overlay
 const svgWithPnP = computed(() => {
   if (!currentGerberSvg.value || !filteredPnP.value) return "";
@@ -1678,12 +1694,16 @@ const svgWithPnP = computed(() => {
       let componentRotation = (180 - (pnpRot + uiRot)) % 360;
       if (componentRotation < 0) componentRotation += 360;
 
-      // ===== Flip X nếu Bottom =====
+      // ===== Xử lý Flip X (Mirror ngang) cho mặt Bottom =====
       let finalTx = tx;
+      let finalTy = ty;
       let flipTransform = "";
+
       if (isBottom) {
-        finalTx = vb.minX + vb.width - tx;
-        flipTransform = "scale(-1,1)";
+        // Công thức đối xứng X chuẩn: (X_min + X_max) - X_hientai
+        finalTx = vb.minX + vb.width + vb.minX - tx;
+        // Lật ngược marker bên trong để text/hình chữ nhật không bị ngược theo board
+        flipTransform = "scale(-1, 1)";
       }
 
       // ===== Size component =====
@@ -1691,10 +1711,9 @@ const svgWithPnP = computed(() => {
       let rectL = (pnp.length || 0) * factor;
       if (swapXY.value) [rectW, rectL] = [rectL, rectW];
 
-      // ===== Style mặc định =====
-      const strokeMain = factor * 0.4; // Tăng độ đậm mặc định theo ý bạn
+      const strokeMain = factor * 0.4;
       const maxDim = Math.max(rectW, rectL);
-      const anchorSize = maxDim / 2 + factor * 0.2; // Dài vượt khung
+      const anchorSize = maxDim / 2 + factor * 0.2;
       const fontSize = Math.max(factor * 0.5, 5);
 
       const componentMarkup =
@@ -1706,41 +1725,29 @@ const svgWithPnP = computed(() => {
               stroke="#E65100" 
               stroke-width="${factor * 0.1}"
               rx="${factor * 0.05}"
-            />
-            <path d="M ${rectL / 2 + factor * 0.2},0 
-                     L ${rectL / 2 - factor * 0.2},${-factor * 0.2} 
-                     L ${rectL / 2 - factor * 0.2},${factor * 0.2} Z" 
-                  fill="#E65100" />`
+            />`
           : "";
 
-      const textFlip = isBottom ? "scale(-1,1)" : "";
+      // Text lật lại nếu board bị flip để dễ đọc
+      const textFlip = isBottom ? "scale(-1, 1)" : "";
 
-      // QUAN TRỌNG: Thêm data-designator vào thẻ <g> để hàm highlight tìm được
       return `
         <g 
-          transform="translate(${finalTx}, ${ty}) ${flipTransform} rotate(${componentRotation})" 
+          transform="translate(${finalTx}, ${finalTy}) ${flipTransform} rotate(${componentRotation})" 
           class="pnp-marker" 
           data-designator="${pnp.designator}"
         >
           ${componentMarkup}
-
-          <g class="crosshair-group" stroke="#D32F2F" stroke-width="${strokeMain}" stroke-linecap="square">
+          <g class="crosshair-group" stroke="#D32F2F" stroke-width="${strokeMain}">
             <line x1="-${anchorSize}" y1="0" x2="${anchorSize}" y2="0" />
             <line x1="0" y1="-${anchorSize}" x2="0" y2="${anchorSize}" />
           </g>
-
           <text
-            x="${factor * 0.5}" 
-            y="${-factor * 0.5}"
-            font-size="${fontSize}"
-            fill="blue"
-            font-weight="bold"
-            style="
-              paint-order: stroke;
-              stroke: white;
-              stroke-width: ${fontSize * 0.2}px;
-              user-select: none;
-            "
+            x="${factor * 0.5}" y="${-factor * 0.5}"
+            font-size="${fontSize}" fill="blue" font-weight="bold"
+            style="paint-order: stroke; stroke: white; stroke-width: ${
+              fontSize * 0.2
+            }px; user-select: none;"
             transform="${textFlip} rotate(${-componentRotation})"
           >
             ${pnp.designator}
@@ -1753,7 +1760,6 @@ const svgWithPnP = computed(() => {
     .replace("<svg", `<svg style="background: #FFFFFF;"`)
     .replace("</svg>", `<g id="pnp-overlay">${pnpMarkers}</g></svg>`);
 });
-
 const PCBTopLayer = computed(() => {
   return combineBom.value.filter(
     (item) => item.layer === "Top" || item.layer === "TopLayer",
@@ -1773,15 +1779,20 @@ const transformedPnP = computed(() => {
 const resultTop = computed(() =>
   transformedPnP.value.filter(
     (p) =>
-      p.layer?.toLowerCase() === "top" || p.layer?.toLowerCase() === "toplayer",
+      p.layer === "top" ||
+      p.layer === "toplayer" ||
+      p.layer === "TOPLAYER" ||
+      p.layer === "TOP",
   ),
 );
 
 const resultBottom = computed(() =>
   transformedPnP.value.filter(
     (p) =>
-      p.layer?.toLowerCase() === "bottom" ||
-      p.layer?.toLowerCase() === "bottomlayer",
+      p.layer === "bottom" ||
+      p.layer === "bottomlayer" ||
+      p.layer === "BOTTOMLAYER" ||
+      p.layer === "BOTTOM",
   ),
 );
 // ==========================================
@@ -2822,7 +2833,10 @@ function handleWheelZoom(event) {
   const MIN_W = baseViewBox.value.w / 50;
   const MAX_W = baseViewBox.value.w * 5;
 
-  const newW = Math.min(Math.max(currentViewBox.value.w * factor, MIN_W), MAX_W);
+  const newW = Math.min(
+    Math.max(currentViewBox.value.w * factor, MIN_W),
+    MAX_W,
+  );
   const newH = currentViewBox.value.h * (newW / currentViewBox.value.w);
 
   // Chuyển vị trí con trỏ sang tọa độ SVG viewBox
@@ -3067,7 +3081,12 @@ watch(
     nextTick(() => {
       const vb = getSvgViewBox(newSvg);
       if (vb) {
-        baseViewBox.value = { x: vb.minX, y: vb.minY, w: vb.width, h: vb.height };
+        baseViewBox.value = {
+          x: vb.minX,
+          y: vb.minY,
+          w: vb.width,
+          h: vb.height,
+        };
         currentViewBox.value = { ...baseViewBox.value };
         applyViewBox();
       }
@@ -3102,11 +3121,9 @@ function applyViewBox() {
  * @param {number} targetZoomLevel - Mức zoom (7 = phóng to 7× board)
  */
 async function zoomToSvgPoint(svgX, svgY, targetZoomLevel) {
-  // targetZoomLevel ví dụ là 10 (nghĩa là soi kỹ gấp 10 lần kích thước board)
   const targetW = baseViewBox.value.w / targetZoomLevel;
   const targetH = baseViewBox.value.h / targetZoomLevel;
 
-  // Tính toán tọa độ X, Y để điểm svgX, svgY nằm chính giữa màn hình
   const targetX = svgX - targetW / 2;
   const targetY = svgY - targetH / 2;
 
@@ -3185,7 +3202,7 @@ async function GetZoomPnP(componentId) {
   const pnp = filteredPnP.value?.find((p) => p.id === componentId);
   if (!pnp || !baseViewBox.value || baseViewBox.value.w === 0) return;
 
-  // ViewBox format chuẩn
+  // ViewBox hiện tại của board
   const vb = {
     minX: baseViewBox.value.x,
     minY: baseViewBox.value.y,
@@ -3193,37 +3210,29 @@ async function GetZoomPnP(componentId) {
     height: baseViewBox.value.h,
   };
 
-  // Lấy tọa độ tx, ty từ cùng một công thức với hàm vẽ
-  const { tx, ty } = getComponentTransform(pnp, vb, currentGerberSvg.value);
+  // 1. Lấy tọa độ thô (thường là tọa độ mặt Top)
+  let { tx, ty } = getComponentTransform(pnp, vb, currentGerberSvg.value);
 
-  // Thực hiện Zoom
-  await zoomToSvgPoint(tx, ty, ZOOM_IN_LEVEL);
+  // 2. Đồng bộ FlipX cho mặt Bottom
+  const isBottom = selectedLayer.value === "Bottom";
+  if (isBottom) {
+    // Phải dùng đúng công thức đối xứng với hàm vẽ ở trên
+    tx = vb.minX + vb.width + vb.minX - tx;
+  }
+
+  // 3. Thực hiện Zoom đến điểm (tx, ty) đã tính toán
+  // ZOOM_IN_LEVEL ví dụ là 8 hoặc 10 tùy độ soi kỹ
+  await zoomToSvgPoint(tx, ty, 10);
   highlightComponent(pnp.designator);
 }
-
 /**
  * Đặt lại zoom về toàn bộ board với animation mượt mà
  * Xóa tất cả highlight khi reset
  */
 async function resetsZoom() {
   if (!baseViewBox.value || baseViewBox.value.w === 0) return;
-
-  // Tính toán vị trí gốc
   const { x, y, w, h } = baseViewBox.value;
-
-  isZooming.value = true;
-
-  // Sử dụng lại hàm animateViewBox đã viết ở trên
-  await animateViewBox(x, y, w, h, 500); // 500ms cho mượt
-
-  // Xóa tất cả highlight cũ khi reset (tùy chọn)
-  if (svgWrapper.value) {
-    svgWrapper.value
-      .querySelectorAll(".pnp-marker.highlighted-pnp")
-      .forEach((el) => el.classList.remove("highlighted-pnp"));
-  }
-
-  isZooming.value = false;
+  await animateViewBox(x, y, w, h, 500);
 }
 
 /**
