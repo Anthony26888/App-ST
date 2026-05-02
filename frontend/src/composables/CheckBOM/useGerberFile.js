@@ -26,5 +26,9 @@ export function useGerberFile(id) {
     if (socket) socket.disconnect();
   });
 
-  return { detailGerber, detailGerberError };
+  const deleteGerberFile = (id) => {
+    socket.emit("deleteGerberFile", id);
+  };
+
+  return { detailGerber, detailGerberError, deleteGerberFile };
 }

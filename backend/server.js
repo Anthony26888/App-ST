@@ -2060,6 +2060,17 @@ io.on("connection", (socket) => {
         });
       });
     }),
+    socket.on("deleteGerberFile", async (id) => {
+      try {
+        const query = `DELETE FROM GerberData WHERE id = ?`;
+        db.run(query, [id], function (err) {
+          if (err) return socket.emit("GerberFileError", err);
+          socket.emit("GerberFileUpdate");
+        });
+      } catch (error) {
+        socket.emit("GerberFileError", error);
+      }
+    }),
     socket.on("getGerberFile", async (id) => {
       try {
         const query = `SELECT DISTINCT  *
@@ -5609,16 +5620,12 @@ app.post("/api/SettingPCB/Add-item", (req, res) => {
         manualOffsetX_bottom,
         manualOffsetY_bottom,
         width,
-        length,
-        machineX,
-        machineY,
-        originOffsetX,
-        originOffsetY,
-        railOffsetX,
-        railOffsetY,
+        height,
+        edgeX,
+        edgeY,
         angle
      )
-     VALUES (?, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0)`,
+     VALUES (?, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)`,
     [project_id],
     (err) => {
       if (err) {
@@ -5645,13 +5652,9 @@ app.put("/api/SettingPCB/Edit-item/:id", (req, res) => {
     manualOffsetX_bottom,
     manualOffsetY_bottom,
     width,
-    length,
-    machineX,
-    machineY,
-    originOffsetX,
-    originOffsetY,
-    railOffsetX,
-    railOffsetY,
+    height,
+    edgeX,
+    edgeY,
     angle,
   } = req.body;
   db.run(
@@ -5662,13 +5665,9 @@ app.put("/api/SettingPCB/Edit-item/:id", (req, res) => {
       manualOffsetX_bottom = ?,
       manualOffsetY_bottom = ?,
       width = ?,
-      length = ?,
-      machineX = ?,
-      machineY = ?,
-      originOffsetX = ?,
-      originOffsetY = ?,
-      railOffsetX = ?,
-      railOffsetY = ?,
+      height = ?,
+      edgeX = ?,
+      edgeY = ?,
       angle = ?
     WHERE project_id = ?`,
     [
@@ -5677,13 +5676,9 @@ app.put("/api/SettingPCB/Edit-item/:id", (req, res) => {
       manualOffsetX_bottom,
       manualOffsetY_bottom,
       width,
-      length,
-      machineX,
-      machineY,
-      originOffsetX,
-      originOffsetY,
-      railOffsetX,
-      railOffsetY,
+      height,
+      edgeX,
+      edgeY,
       angle,
       id,
     ],
@@ -5826,10 +5821,10 @@ app.post(
 
         uniqueRows.push({
           designator,
-          layer: row.Side || row.Layer || "",
-          posX: parseFloat(row.PosX || 0),
-          posY: parseFloat(row.PosY || 0),
-          rotation: parseFloat(row.Rotation || 0),
+          layer: row.Side || row.Layer || "" || row.side || row.layer,
+          posX: parseFloat(row.PosX || 0 || row.posx || row.X || row.x),
+          posY: parseFloat(row.PosY || 0 || row.posy || row.Y || row.y),
+          rotation: parseFloat(row.Rotation || 0 || row.rotation || row.R || row.r),
           project_id: id,
           note: row.note || "",
         });
@@ -5930,6 +5925,12 @@ app.post("/api/upload-working-gerber/:id", uploadGerber.single("FileGerber"), (r
     let svgData = "";
     converter.on("data", (d) => (svgData += d.toString()));
     converter.on("end", () => {
+      // Fix màu: thay currentColor bằng màu layer thực
+      const layerColor = LAYER_COLORS[layer] ?? "#cc0000";
+      svgData = svgData
+        .replace(/\bfill="currentColor"/gi, `fill="${layerColor}"`)
+        .replace(/\bstroke="currentColor"/gi, `stroke="${layerColor}"`);
+
       db.run(
         `INSERT INTO WorkingGerberData (layer, svg, filename, project_id, unit, format)
          VALUES (?, ?, ?, ?, ?, ?)`,
@@ -6081,21 +6082,37 @@ function mergeLayersToSvg(layerResults) {
     return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
   });
 
-  // Lấy viewBox từ SVG hợp lệ đầu tiên
-  let viewBox = "0 0 100 100";
-  let width = null;
-  let height = null;
+  // 1. Calculate a Unified ViewBox covering ALL layers
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  let hasValidViewBox = false;
 
   for (const { svg } of sorted) {
     const vbMatch = svg.match(/viewBox=["']([^"']+)["']/);
-    const wMatch = svg.match(/\bwidth=["']([^"']+)["']/);
-    const hMatch = svg.match(/\bheight=["']([^"']+)["']/);
     if (vbMatch) {
-      viewBox = vbMatch[1];
-      width = wMatch?.[1] ?? null;
-      height = hMatch?.[1] ?? null;
-      break;
+      const [vx, vy, vw, vh] = vbMatch[1].trim().split(/[\s,]+/).map(Number);
+      if (!isNaN(vx) && !isNaN(vy) && !isNaN(vw) && !isNaN(vh)) {
+        minX = Math.min(minX, vx);
+        minY = Math.min(minY, vy);
+        maxX = Math.max(maxX, vx + vw);
+        maxY = Math.max(maxY, vy + vh);
+        hasValidViewBox = true;
+      }
     }
+  }
+
+  const finalViewBox = hasValidViewBox 
+    ? `${minX} ${minY} ${maxX - minX} ${maxY - minY}`
+    : "0 0 100 100";
+
+  // Lấy width/height từ lớp đầu tiên để giữ tỉ lệ (hoặc null)
+  let width = null;
+  let height = null;
+  const firstWithVb = sorted.find(s => s.svg.includes("viewBox"));
+  if (firstWithVb) {
+    const wMatch = firstWithVb.svg.match(/\bwidth=["']([^"']+)["']/);
+    const hMatch = firstWithVb.svg.match(/\bheight=["']([^"']+)["']/);
+    width = wMatch?.[1] ?? null;
+    height = hMatch?.[1] ?? null;
   }
 
   // Build <g> group cho từng layer
@@ -6106,9 +6123,16 @@ function mergeLayersToSvg(layerResults) {
     // Tách <defs> ra khỏi body để đặt lên đầu merged SVG
     const defsMatch = body.match(/(<defs[^>]*>[\s\S]*?<\/defs>)/i);
     const defs = defsMatch ? defsMatch[1] : "";
-    const content = body.replace(/<defs[^>]*>[\s\S]*?<\/defs>/gi, "").trim();
+    let content = body.replace(/<defs[^>]*>[\s\S]*?<\/defs>/gi, "").trim();
 
     const color = LAYER_COLORS[layer] ?? "#888888";
+
+    // Fix màu: gerber-to-svg render fill/stroke="currentColor"
+    // currentColor inherit CSS color (đen/trắng) chứ KHÔNG phải fill của <g> cha
+    // → thay trực tiếp bằng màu layer để hiển thị đúng màu
+    content = content
+      .replace(/\bfill="currentColor"/gi, `fill="${color}"`)
+      .replace(/\bstroke="currentColor"/gi, `stroke="${color}"`);
 
     return {
       defs,
@@ -6138,7 +6162,7 @@ function mergeLayersToSvg(layerResults) {
   return `<?xml version="1.0" encoding="UTF-8"?>
     <svg xmlns="http://www.w3.org/2000/svg"
         xmlns:xlink="http://www.w3.org/1999/xlink"
-        viewBox="${viewBox}"${widthAttr}${heightAttr}
+        viewBox="${finalViewBox}"${widthAttr}${heightAttr}
         data-layers="${layerNames}">
       <desc>Merged Gerber: ${fileNames}</desc>
       <defs>
@@ -6195,7 +6219,7 @@ app.post(
           mergedSvg,
           mergedFileNames,
           projectId,
-          mergedUnit,
+          "mm",
           JSON.stringify(mergedFormat),
         ],
         function (err) {
@@ -6270,37 +6294,34 @@ app.put("/api/Pickplace/Edit-item/:id", (req, res) => {
 });
 
 // Put item in PickPlace table
-app.put("/api/PickPlace/Update-item", (req, res) => {
-  const updates = req.body; // Mảng [{id, project_id, x, y}, ...]
+app.put("/api/PickPlace/Edit-offset/:id", (req, res) => {
+  const { id } = req.params;
+  const { offsetX, offsetY } = req.body;
 
-  if (!Array.isArray(updates) || updates.length === 0) {
-    return res.status(400).json({ error: "Dữ liệu không hợp lệ" });
-  }
+  const ox = Number(offsetX) || 0;
+  const oy = Number(offsetY) || 0;
 
-  // Chuẩn bị statement
-  const stmt = db.prepare(`
+  const query = `
     UPDATE Pickplace
-    SET x = ?, y = ?
-    WHERE id = ? AND project_id = ?
-  `);
+    SET x = x + ?, y = y + ?
+    WHERE project_id = ?
+  `;
 
-  db.serialize(() => {
-    updates.forEach((item) => {
-      stmt.run(item.x, item.y, item.id, item.project_id);
-    });
+  db.run(query, [ox, oy, id], function (err) {
+    if (err) {
+      return res.status(500).json({ error: "Update failed" });
+    }
 
-    stmt.finalize((err) => {
-      if (err) {
-        console.error("Update error:", err);
-        return res.status(500).json({ error: "Lỗi khi update" });
-      }
-      res.json({
-        message: "Update Pickplace thành công",
-        count: updates.length,
-      });
+    res.json({
+      success: true,
+      updatedRows: this.changes,
     });
+    io.emit("CombineBomUpdate");
+    io.emit("PnPFileUpdate");
+    io.emit("SettingSVGUpdate");
   });
 });
+  
 
 // Post item in Component overrides
 app.post("/api/Component-overrides/Add-item", (req, res) => {

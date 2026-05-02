@@ -457,14 +457,10 @@ db.serialize(() => {
       manualOffsetX_bottom REAL,
       manualOffsetY_bottom REAL,
       width REAL,
-      length REAL,
-      machineX REAL,
-      machineY REAL,
-      originOffsetX REAL,
-      originOffsetY REAL,
-      railOffsetX REAL,
-      railOffsetY REAL,
+      height REAL,
       angle INTEGER,
+      edgeX REAL,
+      edgeY REAL,
       project_id INTEGER NOT NULL,
       FOREIGN KEY (project_id) REFERENCES FilterBom(id) ON DELETE CASCADE
     )

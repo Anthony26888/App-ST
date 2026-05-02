@@ -513,92 +513,73 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
       const wb = new ExcelJS.Workbook();
       const ws = wb.addWorksheet("BOM");
 
-      // Cập nhật số lượng cột là 9 (Thêm Note)
-      ws.columns = [
+      // ===== CHECK MPN2 / MPN3 =====
+      const hasMPN2 = bomRows.some(
+        (r) => r.mpn2 && String(r.mpn2).trim() !== ""
+      );
+      const hasMPN3 = bomRows.some(
+        (r) => r.mpn3 && String(r.mpn3).trim() !== ""
+      );
+
+      // ===== BUILD COLUMNS =====
+      const columns = [
         { header: "STT", key: "stt", width: 8 },
         { header: "Designator", key: "designator", width: 40 },
         { header: "Description", key: "description", width: 50 },
         { header: "Manufacture", key: "manufacture", width: 30 },
         { header: "MPN", key: "mpn", width: 25 },
-        { header: "MPN2", key: "mpn2", width: 25 },
-        { header: "MPN3", key: "mpn3", width: 25 },
-        { header: "Quantity", key: "quantity", width: 12 },
-        { header: "Note", key: "note", width: 25 },
       ];
 
-      bomRows.forEach((row, rowIndex) => {
-        const original = String(row.designator || "");
-        const parts = original.split(",").map((s) => s.trim());
-        const richText = [];
+      if (hasMPN2) {
+        columns.push({ header: "MPN2", key: "mpn2", width: 25 });
+      }
 
-        parts.forEach((p, index) => {
-          const key = normalize(p);
-          const isBottom = map.has(key);
-          richText.push({
-            text: p,
-            font: {
-              name: "Times New Roman",
-              ...(isBottom ? { color: { argb: "FFFF0000" }, bold: true } : {}),
-            },
-          });
-          if (index < parts.length - 1) {
-            richText.push({ text: ", ", font: { name: "Times New Roman" } });
-          }
-        });
+      if (hasMPN3) {
+        columns.push({ header: "MPN3", key: "mpn3", width: 25 });
+      }
 
-        // Thêm row vào sheet
-        const newRow = ws.addRow({
-          stt: rowIndex + 1,
-          designator: { richText },
-          description: row.description,
-          manufacture: row.manufacture,
-          mpn: row.mpn,
-          mpn2: row.mpn2,
-          mpn3: row.mpn3,
-          quantity: row.quantity,
-          note: row.note, // Đảm bảo gán giá trị note ở đây
-        });
+      columns.push(
+        { header: "QTY", key: "quantity", width: 12 },
+        { header: "Note", key: "note", width: 25 }
+      );
 
-        // 👉 KIỂM TRA ĐIỀU KIỆN CỘT NOTE
-        const hasNote = row.note && String(row.note).trim().length > 0;
+      // ===== QUAN TRỌNG: SET COLUMNS TRƯỚC =====
+      ws.columns = columns;
 
-        // Định dạng toàn bộ ô trong hàng (từ cột 1 đến 9)
-        for (let i = 1; i <= 9; i++) {
-          const cell = newRow.getCell(i);
-          
-          // Vẽ Border & Font
-          cell.border = {
-            top: { style: "thin" },
-            left: { style: "thin" },
-            bottom: { style: "thin" },
-            right: { style: "thin" },
-          };
-          if (!cell.font || !cell.font.richText) {
-            cell.font = { name: "Times New Roman", size: 11 };
-          }
+      // ===== TITLE =====
+      const title = req.query.title || "BOM HIGHLIGHT";
+      ws.insertRow(1, [title]);
 
-          // 👉 TÔ MÀU ROSE NẾU CÓ NOTE
-          if (hasNote) {
-            cell.fill = {
-              type: "pattern",
-              pattern: "solid",
-              fgColor: { argb: "FFFFC0CB" }, // Màu Rose/Pink
-            };
-          }
-        }
-      });
+      ws.mergeCells(1, 1, 1, columns.length);
 
-      // ===== Định dạng Header (Dòng 1) =====
-      const headerRow = ws.getRow(1);
-      for (let i = 1; i <= 9; i++) {
+      const titleCell = ws.getCell("A1");
+      titleCell.font = {
+        name: "Times New Roman",
+        size: 24,
+        bold: true,
+      };
+      titleCell.alignment = {
+        vertical: "middle",
+        horizontal: "center",
+      };
+      ws.getRow(1).height = 35;
+
+      // ===== FORMAT HEADER (ROW 2) =====
+      const headerRow = ws.getRow(2);
+
+      for (let i = 1; i <= columns.length; i++) {
         const cell = headerRow.getCell(i);
+
         cell.font = { name: "Times New Roman", bold: true };
         cell.fill = {
           type: "pattern",
           pattern: "solid",
           fgColor: { argb: "FFD3D3D3" },
         };
-        cell.alignment = { vertical: "middle", horizontal: "center" };
+        cell.alignment = {
+          vertical: "middle",
+          horizontal: "center",
+        };
         cell.border = {
           top: { style: "thin" },
           left: { style: "thin" },
@@ -607,9 +588,85 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
         };
       }
 
-      // Export file
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.setHeader("Content-Disposition", "attachment; filename=BOM_highlight.xlsx");
+      // ===== DATA =====
+      bomRows.forEach((row, rowIndex) => {
+        const original = String(row.designator || "");
+        const parts = original.split(",").map((s) => s.trim());
+        const richText = [];
+
+        parts.forEach((p, index) => {
+          const key = normalize(p);
+          const isBottom = map.has(key);
+
+          richText.push({
+            text: p,
+            font: {
+              name: "Times New Roman",
+              ...(isBottom
+                ? { color: { argb: "FFFF0000" }, bold: true }
+                : {}),
+            },
+          });
+
+          if (index < parts.length - 1) {
+            richText.push({
+              text: ", ",
+              font: { name: "Times New Roman" },
+            });
+          }
+        });
+
+        const rowData = {
+          stt: rowIndex + 1,
+          designator: { richText },
+          description: row.description,
+          manufacture: row.manufacture,
+          mpn: row.mpn,
+          quantity: row.quantity,
+          note: row.note,
+        };
+
+        if (hasMPN2) rowData.mpn2 = row.mpn2;
+        if (hasMPN3) rowData.mpn3 = row.mpn3;
+
+        const newRow = ws.addRow(rowData);
+
+        const hasNote = row.note && String(row.note).trim().length > 0;
+
+        for (let i = 1; i <= columns.length; i++) {
+          const cell = newRow.getCell(i);
+
+          cell.border = {
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" },
+          };
+
+          if (!cell.font || !cell.font.richText) {
+            cell.font = { name: "Times New Roman", size: 11 };
+          }
+
+          if (hasNote) {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFFFFF00" },
+            };
+          }
+        }
+      });
+
+      // ===== EXPORT =====
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=BOM_highlight.xlsx"
+      );
+
       await wb.xlsx.write(res);
       res.end();
     });
