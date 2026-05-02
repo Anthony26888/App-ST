@@ -316,7 +316,7 @@
                 </v-btn>
                 <v-btn
                   v-bind="props"
-                  prepend-icon="mdi-pencil"
+                  prepend-icon="mdi-file-document-multiple-outline"
                   color="warning"
                   variant="tonal"
                   class="text-caption ms-2"
@@ -539,14 +539,6 @@
                             >
                               <v-list-item-title class="text-caption"
                                 >Chỉnh sửa</v-list-item-title
-                              >
-                            </v-list-item>
-                            <v-list-item
-                              @click="DownloadPnPTop()"
-                              prepend-icon="mdi-download"
-                            >
-                              <v-list-item-title class="text-caption"
-                                >Tải file Top</v-list-item-title
                               >
                             </v-list-item>
                             <v-list-item
@@ -877,8 +869,14 @@
       disabled
     />
     <InputField label="Loại | Package" v-model="Package_Add_Size" />
-    <InputField label="Chiều dài | Length (mm)" v-model="Length_Add_Size" />
-    <InputField label="Chiều rộng | Width (mm)" v-model="Width_Add_Size" />
+    <v-row>
+      <v-col cols="6">
+        <InputField label="Chiều dài | Length (mm)" v-model="Length_Add_Size" />
+      </v-col>
+      <v-col cols="6">
+        <InputField label="Chiều rộng | Width (mm)" v-model="Width_Add_Size" />
+      </v-col>
+    </v-row>
     <template #actions>
       <ButtonCancel @cancel="DialogAddSize = false" />
       <ButtonSave @save="SaveAddSize()" />
@@ -1330,7 +1328,7 @@
     v-model="DialogEditGerber"
     width="600"
     title="Danh sách file Gerber"
-    icon="mdi-pencil"
+    icon="mdi-file-document-multiple-outline"
   >
     <v-card-text>
       <v-list density="compact" v-if="detailGerber && detailGerber.length > 0">

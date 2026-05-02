@@ -521,12 +521,11 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
         (r) => r.mpn3 && String(r.mpn3).trim() !== ""
       );
 
-      // ===== BUILD COLUMNS =====
+      // ===== BUILD COLUMNS (ĐÃ BỎ Manufacture) =====
       const columns = [
         { header: "STT", key: "stt", width: 8 },
         { header: "Designator", key: "designator", width: 40 },
         { header: "Description", key: "description", width: 50 },
-        { header: "Manufacture", key: "manufacture", width: 30 },
         { header: "MPN", key: "mpn", width: 25 },
       ];
 
@@ -543,7 +542,7 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
         { header: "Note", key: "note", width: 25 }
       );
 
-      // ===== QUAN TRỌNG: SET COLUMNS TRƯỚC =====
+      // ===== SET COLUMNS =====
       ws.columns = columns;
 
       // ===== TITLE =====
@@ -564,7 +563,7 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
       };
       ws.getRow(1).height = 35;
 
-      // ===== FORMAT HEADER (ROW 2) =====
+      // ===== HEADER FORMAT =====
       const headerRow = ws.getRow(2);
 
       for (let i = 1; i <= columns.length; i++) {
@@ -620,7 +619,6 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
           stt: rowIndex + 1,
           designator: { richText },
           description: row.description,
-          manufacture: row.manufacture,
           mpn: row.mpn,
           quantity: row.quantity,
           note: row.note,
