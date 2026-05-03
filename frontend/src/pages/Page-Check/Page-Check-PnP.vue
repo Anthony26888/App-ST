@@ -1002,7 +1002,7 @@
   >
     <div class="bg-blue-lighten-5 pa-3 rounded-lg mb-4 border-s-lg border-blue">
       <p class="text-caption font-weight-bold text-blue-darken-2 mb-2">
-        1. Kích thước PCB thực tế (Bắt buộc để căn chỉnh chính xác):
+        1. Kích thước Panel thực tế:
       </p>
       <v-row density="compact">
         <v-col cols="6">
@@ -1031,7 +1031,37 @@
     </div>
 
     <p class="text-caption text-grey mb-2">
-      2. Điều chỉnh tọa độ thủ công (mm):
+      2. Điều chỉnh thủ công SVG (mm):
+    </p>
+
+    <div class="ga-2">
+      <v-row>
+        <v-col>
+          <InputField
+            v-model.number="manualOffsetGerberX"
+            label="Điều chỉnh X (mm)"
+            type="number"
+            density="comfortable"
+            variant="outlined"
+            step="0.01"
+          />
+        </v-col>
+        <v-col>
+          <InputField
+            v-model.number="manualOffsetGerberY"
+            label="Điều chỉnh Y (mm)"
+            type="number"
+            density="comfortable"
+            variant="outlined"
+            step="0.01"
+          />
+        </v-col>
+      </v-row>
+    </div>
+
+
+    <p class="text-caption text-grey mb-2">
+      3. Điều chỉnh tọa độ thủ công (mm):
     </p>
 
     <div class="ga-2">
@@ -1122,17 +1152,18 @@
       </v-btn>
     </div>
 
+    
     <v-divider class="my-3" />
-    <p class="text-caption text-grey mb-2">3. Căn chỉnh thông minh & Tỉ lệ:</p>
+    <p class="text-caption text-grey mb-2">4. Căn chỉnh thông minh & Tỉ lệ:</p>
 
-    <v-checkbox
+    <!-- <v-checkbox
       v-model="useStandardScale"
       label="Sử dụng tỉ lệ chuẩn (1 mil = 1 unit)"
       density="compact"
       hide-details
       color="primary"
       class="mb-2"
-    />
+    /> -->
 
     <div class="d-flex flex-wrap ga-2">
       <v-btn
@@ -1240,7 +1271,7 @@
       </v-row>
 
       <div class="text-body-small pa-3 text-black">
-        Toạ độ mới mặt Bottom (mm)
+        Khoảng cách pitch mặt Bottom (mm)
         <v-btn
           variant="text"
           size="small"
@@ -1249,7 +1280,7 @@
           prepend-icon="mdi-information-variant-circle"
         >
           <v-tooltip activator="parent" location="end"
-            >Lấy toạ độ mới mặt Bottom PCB</v-tooltip
+            >Lấy khoảng cách pitch của tâm 2 linh kiện (Mặt Bottom)</v-tooltip
           >
         </v-btn>
       </div>
@@ -1258,7 +1289,7 @@
         <v-col cols="6">
           <InputField
             v-model="edgeX"
-            label="Toạ độ X mới Bottom"
+            label="Khoảng cách pitch trục X"
             type="number"
             density="comfortable"
             variant="outlined"
@@ -1268,7 +1299,7 @@
         <v-col cols="6">
           <InputField
             v-model.number="edgeY"
-            label="Toạ độ Y mới Bottom"
+            label="Khoảng cách pitch trục Y"
             type="number"
             density="comfortable"
             variant="outlined"
@@ -1296,7 +1327,7 @@
           <InputSelect
             v-model.number="angle"
             label="Góc xoay (độ)"
-            :items="[0, 90, 180]"
+            :items="[0, 90, -90, 180]"
             density="comfortable"
             variant="outlined"
             step="0.01"
@@ -1597,9 +1628,12 @@ const width = ref(0);
 const height = ref(0);
 const manualOffsetX = ref(0.0);
 const manualOffsetY = ref(0.0);
+const manualOffsetGerberX = ref(0.0);
+const manualOffsetGerberY = ref(0.0);
 const angle = ref(0);
 const edgeX = ref(0);
 const edgeY = ref(0);
+
 
 // --- DigiKey API States ---
 const GetDigikey = ref("");
@@ -1878,31 +1912,43 @@ function getSvgViewBox(svgString) {
 }
 
 function getComponentTransform(pnp, vb, isBottom, scaleValue) {
-  // 1. Quy đổi mọi thứ sang đơn vị SVG bằng scaleValue (thường là 39.37 cho 1000 DPI)
-  let mmToSvgFactor = scaleValue || 1;
-  
-  const hX = isBottom ? Number(hintOffsetX_bottom.value || 0) : Number(hintOffsetX_top.value || 0);
-  const hY = isBottom ? Number(hintOffsetY_bottom.value || 0) : Number(hintOffsetY_top.value || 0);
+  const factor = scaleValue || 1;
 
-  // Tọa độ PnP (mm) + Offset (mm) -> Chuyển sang đơn vị SVG
-  let x = (Number(pnp.x) + hX) * mmToSvgFactor;
-  let y = (Number(pnp.y) + hY) * mmToSvgFactor;
+  const hX = isBottom
+    ? Number(hintOffsetX_bottom.value || 0)
+    : Number(hintOffsetX_top.value || 0);
+
+  const hY = isBottom
+    ? Number(hintOffsetY_bottom.value || 0)
+    : Number(hintOffsetY_top.value || 0);
+
+  let x = (Number(pnp.x) + hX) * factor;
+  let y = (Number(pnp.y) + hY) * factor;
 
   if (swapXY.value) [x, y] = [y, x];
 
-  // 3. ĐỊNH VỊ: Cộng thêm vb.minX và điều chỉnh ty theo ViewBox
-  // Lưu ý: Gerber Origin thường ở dưới cùng bên trái (Y hướng lên)
-  // SVG Origin ở trên cùng bên trái (Y hướng xuống)
-  let tx = vb.minX + x + (Number(coordinateOffsetX.value || 0) * mmToSvgFactor);
-  let ty = (vb.minY + vb.height) - y - (Number(coordinateOffsetY.value || 0) * mmToSvgFactor);
+  // 🔥 MIRROR X cho bottom (QUAN TRỌNG NHẤT)
 
-  return { tx, ty, factor: mmToSvgFactor };
+
+  let tx =
+    vb.minX +
+    x +
+    Number(coordinateOffsetX.value || 0) * factor;
+
+  let ty =
+    vb.minY +
+    vb.height -
+    y -
+    Number(coordinateOffsetY.value || 0) * factor;
+
+  return { tx, ty, factor };
 }
 
 // Combine Gerber + Pick&Place overlay
 const svgWithPnP = computed(() => {
   if (!currentGerberSvg.value || !filteredPnP.value) return "";
   let svg = currentGerberSvg.value;
+
   const vb = getSvgViewBox(svg);
   if (!vb) return svg;
 
@@ -1910,40 +1956,57 @@ const svgWithPnP = computed(() => {
     .toLowerCase()
     .includes("bottom");
 
-  // OFFSET mm
-  const OFFSET_X = 0;
+  // ===== OFFSET (mm) =====
+  const OFFSET_X = 0.08;
+  const OFFSET_Y = -0.07;
 
   const pnpMarkers = filteredPnP.value
     .filter((p) => p.x != null && p.y != null && p.designator)
     .map((pnp) => {
-      const { tx, ty, factor } = getComponentTransform(pnp, vb, isBottom, coordinateScale.value);
+      // ===== Transform (đã bao gồm mirror nếu bottom) =====
+      const { tx, ty, factor } = getComponentTransform(
+        pnp,
+        vb,
+        isBottom,
+        coordinateScale.value
+      );
 
       // ===== Rotation =====
       const pnpRot = Number(pnp.rotation || pnp.rot || 0);
       const uiRot = Number(coordinateRotation.value || 0);
-      let displayRotation = (180 - (pnpRot + uiRot)) % 360;
-      if (isBottom) displayRotation = (pnpRot - uiRot) % 360;
+
+      let displayRotation;
+
+      if (isBottom) {
+        // 🔥 FIX: mirror rotation đúng bản chất
+        displayRotation = (180 - pnpRot - uiRot) % 360;
+      } else {
+        displayRotation = (180 - pnpRot + uiRot) % 360;
+      }
+
       if (displayRotation < 0) displayRotation += 360;
 
+      // ===== Base position =====
       let finalTx = tx;
       let finalTy = ty;
 
-      // ===== Apply OFFSET (đơn vị mm) =====
-      const offsetApplied = (isBottom ? -OFFSET_X : OFFSET_X) * factor;
-      finalTx += offsetApplied;
+      // ===== OFFSET (QUAN TRỌNG: KHÔNG đảo dấu nữa) =====
+      const offsetXApplied = OFFSET_X * factor;
+      const offsetYApplied = OFFSET_Y * factor;
 
-      // ===== Kích thước (Tính bằng mm) =====
+      finalTx += offsetXApplied;
+      finalTy += offsetYApplied;
+
+      // ===== Kích thước =====
       let rectW = (pnp.width || 0) * factor;
       let rectL = (pnp.length || 0) * factor;
       if (swapXY.value) [rectW, rectL] = [rectL, rectW];
 
-      // Điều chỉnh các kích thước hiển thị theo hệ mm
-      // Nếu factor = 1, stroke sẽ là 0.1mm (rất mảnh và đẹp)
       const strokeMain = factor * 0.1;
       const anchorSize = Math.max(rectW, rectL) / 2 + factor * 0.5;
-      const fontSize = factor * 0.2; // Text cao khoảng 1.2mm
+      const fontSize = factor * 0.2;
 
-      // ===== Arrow (mm) =====
+      // ===== Arrow =====
       const arrowSize = factor * 0.1;
       const arrowOffset = anchorSize + factor * 0.1;
 
@@ -1956,11 +2019,14 @@ const svgWithPnP = computed(() => {
           transform="translate(${arrowOffset}, 0)" 
         />`;
 
+      // ===== Component box =====
       const componentMarkup =
         rectW > 0 && rectL > 0 && showComponentBoxes.value
           ? `<rect 
-              x="${-rectL / 2}" y="${-rectW / 2}" 
-              width="${rectL}" height="${rectW}" 
+              x="${-rectL / 2}" 
+              y="${-rectW / 2}" 
+              width="${rectL}" 
+              height="${rectW}" 
               fill="rgba(255, 179, 0, 0.2)" 
               stroke="#E65100" 
               stroke-width="${factor * 0.05}"
@@ -1968,6 +2034,7 @@ const svgWithPnP = computed(() => {
             />`
           : "";
 
+      // ===== Text flip (mirror chữ cho bottom) =====
       const textFlip = isBottom ? "scale(-1, 1)" : "";
 
       return `
@@ -1979,17 +2046,27 @@ const svgWithPnP = computed(() => {
           ${componentMarkup}
           ${arrowMarkup}
 
-          <g class="crosshair-group" stroke="#D32F2F" stroke-width="${strokeMain}">
+          <g 
+            class="crosshair-group" 
+            stroke="#D32F2F" 
+            stroke-width="${strokeMain}"
+          >
             <line x1="-${anchorSize}" y1="0" x2="${anchorSize}" y2="0" />
             <line x1="0" y1="-${anchorSize}" x2="0" y2="${anchorSize}" />
           </g>
           
           <text
-            x="${factor * 0.1}" y="${-factor * 0.1}"
-            font-size="${fontSize}" fill="blue" font-weight="bold"
-            style="paint-order: stroke; stroke: white; stroke-width: ${
-              fontSize * 0.1
-            }px; user-select: none;"
+            x="${factor * 0.1}" 
+            y="${-factor * 0.1}"
+            font-size="${fontSize}" 
+            fill="blue" 
+            font-weight="bold"
+            style="
+              paint-order: stroke; 
+              stroke: white; 
+              stroke-width: ${fontSize * 0.1}px; 
+              user-select: none;
+            "
             transform="${textFlip} rotate(${-displayRotation})"
           >
             ${pnp.designator}
@@ -2114,6 +2191,8 @@ watch(detailSetting, (val) => {
   hintOffsetY_top.value = Number(found.manualOffsetY_top.toFixed(2)) || 0;
   hintOffsetX_bottom.value = Number(found.manualOffsetX_bottom.toFixed(2)) || 0;
   hintOffsetY_bottom.value = Number(found.manualOffsetY_bottom.toFixed(2)) || 0;
+  manualOffsetGerberX.value = Number(found.manualOffsetGerberX.toFixed(2)) || 0;
+  manualOffsetGerberY.value = Number(found.manualOffsetGerberY.toFixed(2)) || 0;
 
   width.value = found.width || 0;
   height.value = found.height || 0;
@@ -2441,6 +2520,9 @@ const SaveSettingPCB = async () => {
       ? toNum(hintOffsetY_bottom.value) + toNum(totalAddedY.value)
       : toNum(hintOffsetY_bottom.value),
 
+    manualOffsetGerberX: toNum(manualOffsetGerberX.value),
+    manualOffsetGerberY: toNum(manualOffsetGerberY.value),
+
     width: width.value,
     height: height.value,
     edgeX: edgeX.value,
@@ -2576,14 +2658,20 @@ function transform(p) {
         break;
 
       case 90:
-        x2 = -y;
+        x2 = H - y;
         y2 = x;
+        r2 = normalizeRotation(r + angle.value);
+        break;
+      
+      case -90:
+        x2 = y;
+        y2 = W-x;
         r2 = normalizeRotation(r + angle.value);
         break;
 
       case 180:
-        x2 = W - x;
-        y2 = H - y;
+        x2 = H - x;
+        y2 = W - y;
         r2 = normalizeRotation(r + angle.value);
         break;
     }
@@ -2599,8 +2687,14 @@ function transform(p) {
         break;
 
       case 90:
-        x2 = -(y + edgeYv);
+        x2 = - (y + edgeYv);
         y2 = -(W - edgeXv - x); // = x
+        r2 = normalizeRotation(r - angle.value);
+        break;
+
+      case -90:
+        x2 = - (y + edgeYv);
+        y2 = -x;
         r2 = normalizeRotation(r - angle.value);
         break;
 
@@ -3647,10 +3741,15 @@ async function GetZoomPnP(componentId) {
     coordinateScale.value,
   );
 
-  // 2. Đồng bộ OFFSET (phải khớp với svgWithPnP)
-  const OFFSET_X = 0; 
-  const offsetApplied = (isBottom ? -OFFSET_X : OFFSET_X) * factor;
-  tx += offsetApplied;
+  // 2. Đồng bộ OFFSET (phải khớp với svgWithPnP dùng manualOffsetGerberX/Y)
+  const OFF_X = -manualOffsetGerberX.value;
+  const OFF_Y = -manualOffsetGerberY.value;
+
+  const offsetXApplied = (isBottom ? -OFF_X : OFF_X) * factor;
+  const offsetYApplied = OFF_Y * factor;
+
+  tx += offsetXApplied;
+  ty += offsetYApplied;
 
   // 3. Thực hiện Zoom đến điểm (tx, ty) đã tính toán
   // ZOOM_IN_LEVEL ví dụ là 8 hoặc 10 tùy độ soi kỹ

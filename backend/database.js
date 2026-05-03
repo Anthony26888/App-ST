@@ -456,6 +456,8 @@ db.serialize(() => {
       manualOffsetY_top REAL,
       manualOffsetX_bottom REAL,
       manualOffsetY_bottom REAL,
+      manualOffsetGerberX REAL,
+      manualOffsetGerberY REAL,
       width REAL,
       height REAL,
       angle INTEGER,
