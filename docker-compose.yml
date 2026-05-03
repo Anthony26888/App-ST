@@ -1,4 +1,4 @@
-version: "3.8"
+# version: "3.8"
 
 services:
   frontend:
@@ -31,37 +31,14 @@ services:
     environment:
       - NODE_ENV=development
       - TZ=Asia/Ho_Chi_Minh
-      - OLLAMA_API_URL=http://ollama:11434 # ✅ THÊM - Ollama service
     env_file:
       - ./.env
     volumes:
       - ./backend:/app
       - /app/node_modules
-    depends_on:
-      - ollama # ✅ THÊM - Chờ Ollama khởi động
     networks:
       - app-network
     restart: always
-
-  # ✅ THÊM SERVICE OLLAMA
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama_service
-    ports:
-      - "11434:11434"
-    environment:
-      - OLLAMA_HOST=0.0.0.0:11434
-    volumes:
-      - ollama-data:/root/.ollama # ✅ Persist model data
-    networks:
-      - app-network
-    restart: always
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
   cloudflared:
     image: cloudflare/cloudflared:latest
@@ -73,14 +50,9 @@ services:
     depends_on:
       - frontend
       - backend
-      - ollama # ✅ THÊM - Chờ Ollama sẵn sàng
     networks:
       - app-network
 
 networks:
   app-network:
     driver: bridge
-
-# ✅ THÊM - Volume cho Ollama models
-volumes:
-  ollama-data:
