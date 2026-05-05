@@ -57,7 +57,7 @@
     <v-card-text>
       <v-card variant="elevated" elevation="0" class="rounded-xl border">
         <v-tabs v-model="tab" align-tabs="center" color="deep-orange">
-          <v-tab :value="1" class="text-caption">Bom và Pick & Place</v-tab>
+          <v-tab :value="1" class="text-caption">Pick & Place</v-tab>
           <v-tab :value="2" class="text-caption">Gerber</v-tab>
           <v-tab :value="3" class="text-caption">Tính toán PnP</v-tab>
           <!-- <v-tab :value="4" class="text-caption">Gerber PnP</v-tab> -->
@@ -113,14 +113,6 @@
                   </v-btn>
                 </template>
                 <v-list density="compact">
-                  <v-list-item
-                    @click="DownloadPnP()"
-                    prepend-icon="mdi-download"
-                  >
-                    <v-list-item-title class="text-caption"
-                      >Tải file PnP</v-list-item-title
-                    >
-                  </v-list-item>
                   <v-list-item
                     @click="DownloadPnPBottom()"
                     prepend-icon="mdi-download"
@@ -1327,7 +1319,7 @@
           <InputSelect
             v-model.number="angle"
             label="Góc xoay (độ)"
-            :items="[0, 90, -90, 180]"
+            :items="[0, 90, 180]"
             density="comfortable"
             variant="outlined"
             step="0.01"
@@ -1650,7 +1642,7 @@ const Headers = [
   { title: "Y (mm)", key: "y" },
   { title: "Rotation", key: "rotation" },
   { title: "Layer", key: "layer" },
-  // { title: "Mount Type", key: "mount_type" },
+  // { title: "Type", key: "type" },
   { title: "Description", key: "description_bom", width: "150px" },
   { title: "Note", key: "note", width: "150px" },
   { title: "Thao tác", key: "id", sortable: false },
@@ -1957,8 +1949,8 @@ const svgWithPnP = computed(() => {
     .includes("bottom");
 
   // ===== OFFSET (mm) =====
-  const OFFSET_X = 0.08;
-  const OFFSET_Y = -0.07;
+  const OFFSET_X = manualOffsetGerberX.value;
+  const OFFSET_Y = manualOffsetGerberY.value;
 
   const pnpMarkers = filteredPnP.value
     .filter((p) => p.x != null && p.y != null && p.designator)
@@ -2662,16 +2654,10 @@ function transform(p) {
         y2 = x;
         r2 = normalizeRotation(r + angle.value);
         break;
-      
-      case -90:
-        x2 = y;
-        y2 = W-x;
-        r2 = normalizeRotation(r + angle.value);
-        break;
 
       case 180:
-        x2 = H - x;
-        y2 = W - y;
+        x2 = W - x;
+        y2 = H - y;
         r2 = normalizeRotation(r + angle.value);
         break;
     }
@@ -2681,26 +2667,20 @@ function transform(p) {
 
     switch (angle.value) {
       case 0:
-        x2 = W - edgeXv - x;
+        x2 = -(W - edgeXv - x);
         y2 = y + edgeYv;
         r2 = normalizeRotation(r - angle.value);
         break;
 
       case 90:
-        x2 = - (y + edgeYv);
-        y2 = -(W - edgeXv - x); // = x
-        r2 = normalizeRotation(r - angle.value);
-        break;
-
-      case -90:
-        x2 = - (y + edgeYv);
-        y2 = -x;
+        x2 = -(y + edgeYv);
+        y2 = W-xm; // = x
         r2 = normalizeRotation(r - angle.value);
         break;
 
       case 180:
-        x2 = W - edgeXv - x; // = x
-        y2 = -(y + edgeYv);
+        x2 = (edgeXv + xm); // = x
+        y2 = H-(y + edgeYv);
         r2 = normalizeRotation(r - angle.value);
         break;
     }
@@ -2861,11 +2841,11 @@ const DownloadPCB = () => {
   const topData = resultTop.value.map((item, index) => ({
     STT: index + 1,
     Designator: item.designator,
+    MPN: item.mpn,
     X: item.x,
     Y: item.y,
     Rotation: item.rotation,
-    Layer: item.layer,
-    MPN: item.mpn,
+
   }));
 
   const wsTop = XLSX.utils.json_to_sheet(topData);
@@ -2886,11 +2866,10 @@ const DownloadPCB = () => {
   const bottomData = resultBottom.value.map((item, index) => ({
     STT: index + 1,
     Designator: item.designator,
+    MPN: item.mpn,
     X: item.x,
     Y: item.y,
     Rotation: item.rotation,
-    Layer: item.layer,
-    MPN: item.mpn,
   }));
 
   const wsBottom = XLSX.utils.json_to_sheet(bottomData);

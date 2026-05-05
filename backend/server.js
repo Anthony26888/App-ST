@@ -1906,6 +1906,7 @@ io.on("connection", (socket) => {
                         ROUND(p.y, 2) AS y,
                         p.rotation, 
                         p.layer,
+                        p.type,
                         b.mpn,
                         b.description AS description_bom,
                         b.note,
@@ -1918,63 +1919,7 @@ io.on("connection", (socket) => {
                             WHEN o.mpn IS NOT NULL THEN 'override'
                             WHEN pm.package IS NOT NULL THEN 'package_map'
                             ELSE 'missing'
-                        END AS source,
-
-                        -- 🔥 MOUNT TYPE (CHUẨN)
-                        CASE
-                            -- 0. Không có description
-                            WHEN b.description IS NULL OR TRIM(b.description) = '' THEN 'UNKNOWN'
-
-                            -- 1. Override
-                            WHEN o.mpn IS NOT NULL THEN 'REVIEW'
-
-                            -- 2. SMT keyword mạnh (ƯU TIÊN CAO NHẤT)
-                            WHEN UPPER(b.description) LIKE '%SMD%' THEN 'SMT'
-                            WHEN UPPER(b.description) LIKE '%QFN%' THEN 'SMT'
-                            WHEN UPPER(b.description) LIKE '%DFN%' THEN 'SMT'
-                            WHEN UPPER(b.description) LIKE '%BGA%' THEN 'SMT'
-                            WHEN UPPER(b.description) LIKE '%LGA%' THEN 'SMT'
-                            WHEN UPPER(b.description) LIKE '%0402%' THEN 'SMT'
-                            WHEN UPPER(b.description) LIKE '%0603%' THEN 'SMT'
-                            WHEN UPPER(b.description) LIKE '%0805%' THEN 'SMT'
-                            WHEN UPPER(b.description) LIKE '%1206%' THEN 'SMT'
-                            WHEN UPPER(b.description) LIKE '%SOT%' THEN 'SMT'
-                            WHEN UPPER(b.description) LIKE '%SOIC%' THEN 'SMT'
-                            WHEN UPPER(b.description) LIKE '%SOP%' THEN 'SMT'
-
-                            -- 3. Package từ Components
-                            WHEN pm.package IN (
-                                '0402','0603','0805','1206',
-                                'QFN','DFN','BGA','LGA',
-                                'SOT-23','SOT-223','SOP','SOIC'
-                            ) THEN 'SMT'
-
-                            -- 4. THT keyword
-                            WHEN UPPER(b.description) LIKE '%DIP%' THEN 'HAND'
-                            WHEN UPPER(b.description) LIKE '%TO-%' THEN 'HAND'
-
-                            -- 5. Connector (KHÔNG phải SMD)
-                            WHEN UPPER(b.description) LIKE '%CONN%' 
-                                AND UPPER(b.description) NOT LIKE '%SMD%' THEN 'HAND'
-
-                            WHEN UPPER(b.description) LIKE '%HEADER%' THEN 'HAND'
-                            WHEN UPPER(b.description) LIKE '%USB%' 
-                                AND UPPER(b.description) NOT LIKE '%SMD%' THEN 'HAND'
-
-                            -- 6. Pickplace fallback
-                            WHEN p.x IS NOT NULL AND p.y IS NOT NULL THEN 'SMT'
-
-                            -- 7. Default
-                            ELSE 'UNKNOWN'
-                        END AS mount_type,
-
-                        -- 🔥 NEED REVIEW
-                        CASE
-                            WHEN b.description IS NULL OR TRIM(b.description) = '' THEN 1
-                            WHEN o.mpn IS NOT NULL THEN 1
-                            WHEN pm.package IS NULL THEN 1
-                            ELSE 0
-                        END AS need_review
+                        END AS source
 
                     FROM Pickplace p
 

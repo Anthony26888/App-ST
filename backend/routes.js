@@ -493,7 +493,7 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
     String(val || "").replace(/\s+/g, "").toUpperCase();
 
   const ppQuery = `
-    SELECT p.designator, LOWER(TRIM(p.layer)) as layer
+    SELECT p.designator, LOWER(TRIM(p.layer)) as layer, type
     FROM Pickplace p
     WHERE p.project_id = ?
       AND LOWER(TRIM(p.layer)) IN ('bottom', 'bottomlayer')
