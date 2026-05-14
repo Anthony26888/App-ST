@@ -361,112 +361,147 @@
                   >
                     <!-- Hiển thị SVG với overlay Pick & Place -->
 
+                    <div
+                      v-if="currentGerberSvg && overlayMode !== 'pnp'"
+                      class="gerber-svg-container-full"
+                      ref="svgContainer"
+                      @mousemove="handleDragMove"
+                      @mousedown="handleDragStart"
+                      @mouseup="handleDragEnd"
+                      @mouseleave="handleDragEnd"
+                      @wheel.prevent="handleWheelZoom"
+                      :data-zoom-low="zoomLevel < 2"
+                      :class="{ 'is-dragging': isDragging }"
+                      :style="{
+                        overflow: 'hidden',
+                        position: 'relative',
+                        cursor: isDragging ? 'grabbing' : 'grab',
+                        userSelect: 'none',
+                        height: '100%',
+                        background: 'white',
+                      }"
+                    >
                       <div
-                        v-if="currentGerberSvg && overlayMode !== 'pnp'"
-                        class="gerber-svg-container-full"
-                        ref="svgContainer"
-                        @mousemove="handleDragMove"
-                        @mousedown="handleDragStart"
-                        @mouseup="handleDragEnd"
-                        @mouseleave="handleDragEnd"
-                        @wheel.prevent="handleWheelZoom"
-                        :data-zoom-low="zoomLevel < 2"
-                        :class="{ 'is-dragging': isDragging }"
-                        :style="{
-                          overflow: 'hidden',
-                          position: 'relative',
-                          cursor: isDragging ? 'grabbing' : 'grab',
-                          userSelect: 'none',
-                          height: '100%',
-                          background: 'white'
-                        }"
+                        style="
+                          position: absolute;
+                          top: 15px;
+                          right: 15px;
+                          z-index: 20;
+                        "
                       >
-                        <div
-                          style="
-                            position: absolute;
-                            top: 15px;
-                            right: 15px;
-                            z-index: 20;
-                          "
+                        <v-btn
+                          prepend-icon="mdi-refresh"
+                          @click="resetsZoom"
+                          class="text-caption"
+                          title="Reset View (H)"
+                          color="error"
+                          variant="tonal"
                         >
-                          <v-btn
-                            prepend-icon="mdi-refresh"
-                            @click="resetsZoom"
-                            class="text-caption"
-                            title="Reset View (H)"
-                            color="error"
-                            variant="tonal"
-                          >
-                            Reset Zoom
-                          </v-btn>
-                        </div>
-
-                        <!-- Lớp Gerber (Canvas - Chuyên nghiệp & Mượt) -->
-                        <canvas
-                          ref="gerberCanvas"
-                          style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"
-                          :style="layerTransformStyle"
-                        ></canvas>
-
-                        <!-- Lớp PnP (SVG Overlay - Tương tác) -->
-                        <svg
-                          ref="svgWrapper"
-                          id="gerber-svg"
-                          class="svg-full-wrapper"
-                          style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"
-                          :style="layerTransformStyle"
-                        >
-                          <g class="pnp-markers-layer"
-                            v-memo="[pnpMarkersArray, allActiveHighlights]"
-                            :transform="pnpGroupFlipTransform"
-                          >
-                            <g 
-                              v-for="marker in pnpMarkersArray" 
-                              :key="marker.designator"
-                              class="pnp-marker"
-                              :data-designator="marker.designator"
-                              :transform="marker.transform"
-                              style="pointer-events: auto;"
-                              @click="handleMarkerClick(marker)"
-                            >
-                              <rect 
-                                class="pnp-highlight-frame"
-                                :x="-marker.rectL / 2 || -10" 
-                                :y="-marker.rectW / 2 || -10"
-                                :width="marker.rectL || 20" 
-                                :height="marker.rectW || 20" 
-                                fill="rgba(0, 128, 0, 1)"
-                                stroke="rgba(0, 128, 0, 1)"
-                                :stroke-width="marker.strokeMain * 0.5"
-                                style="display: none;"
-                              />
-                              <polygon 
-                                points="0,0 -4, -2 -4, 2" 
-                                fill="#D32F2F" 
-                                :transform="`translate(${marker.anchorSize + 1}, 0) scale(${marker.strokeMain * 0.5})`" 
-                              />
-
-                              <g class="crosshair-group pnp-crosshair" stroke="#D32F2F" :stroke-width="marker.strokeMain">
-                                <line :x1="-marker.anchorSize" y1="0" :x2="marker.anchorSize" y2="0" />
-                                <line x1="0" :y1="-marker.anchorSize" x2="0" :y2="marker.anchorSize" />
-                              </g>
-                              <text
-                                class="pnp-label"
-                                :x="marker.strokeMain" 
-                                :y="-marker.strokeMain"
-                                :font-size="marker.fontSize" 
-                                fill="blue" 
-                                font-weight="bold"
-                                style="paint-order: stroke; stroke: white; user-select: none;"
-                                :stroke-width="marker.fontSize * 0.1 + 'px'"
-                                :transform="marker.textTransform"
-                              >
-                                {{ marker.designator }}
-                              </text>
-                            </g>
-                          </g>
-                        </svg>
+                          Reset Zoom
+                        </v-btn>
                       </div>
+
+                      <!-- Lớp Gerber (Canvas - Chuyên nghiệp & Mượt) -->
+                      <canvas
+                        ref="gerberCanvas"
+                        style="
+                          position: absolute;
+                          top: 0;
+                          left: 0;
+                          width: 100%;
+                          height: 100%;
+                          pointer-events: none;
+                        "
+                        :style="layerTransformStyle"
+                      ></canvas>
+
+                      <!-- Lớp PnP (SVG Overlay - Tương tác) -->
+                      <svg
+                        ref="svgWrapper"
+                        id="gerber-svg"
+                        class="svg-full-wrapper"
+                        style="
+                          position: absolute;
+                          top: 0;
+                          left: 0;
+                          width: 100%;
+                          height: 100%;
+                          pointer-events: none;
+                        "
+                        :style="layerTransformStyle"
+                      >
+                        <g
+                          class="pnp-markers-layer"
+                          v-memo="[pnpMarkersArray, allActiveHighlights]"
+                          :transform="pnpGroupFlipTransform"
+                        >
+                          <g
+                            v-for="marker in pnpMarkersArray"
+                            :key="marker.designator"
+                            class="pnp-marker"
+                            :data-designator="marker.designator"
+                            :transform="marker.transform"
+                            style="pointer-events: auto"
+                            @click="handleMarkerClick(marker)"
+                          >
+                            <rect
+                              class="pnp-highlight-frame"
+                              :x="-marker.rectL / 2 || -20"
+                              :y="-marker.rectW / 2 || -20"
+                              :width="marker.rectL || 40"
+                              :height="marker.rectW || 40"
+                              fill="red"
+                              stroke="red"
+                              :stroke-width="marker.strokeMain * 0.5"
+                              style="display: none"
+                            />
+                            <polygon
+                              points="0,0 -4, -2 -4, 2"
+                              fill="#D32F2F"
+                              :transform="`translate(${
+                                marker.anchorSize + 1
+                              }, 0) scale(${marker.strokeMain * 0.5})`"
+                            />
+
+                            <g
+                              class="crosshair-group pnp-crosshair"
+                              stroke="#D32F2F"
+                              :stroke-width="marker.strokeMain"
+                            >
+                              <line
+                                :x1="-marker.anchorSize"
+                                y1="0"
+                                :x2="marker.anchorSize"
+                                y2="0"
+                              />
+                              <line
+                                x1="0"
+                                :y1="-marker.anchorSize"
+                                x2="0"
+                                :y2="marker.anchorSize"
+                              />
+                            </g>
+                            <text
+                              class="pnp-label"
+                              :x="marker.strokeMain"
+                              :y="-marker.strokeMain"
+                              :font-size="marker.fontSize"
+                              fill="blue"
+                              font-weight="bold"
+                              style="
+                                paint-order: stroke;
+                                stroke: white;
+                                user-select: none;
+                              "
+                              :stroke-width="marker.fontSize * 0.1 + 'px'"
+                              :transform="marker.textTransform"
+                            >
+                              {{ marker.designator }}
+                            </text>
+                          </g>
+                        </g>
+                      </svg>
+                    </div>
 
                     <v-empty-state
                       v-if="overlayMode !== 'pnp' && !currentGerberSvg"
@@ -810,109 +845,145 @@
                     class="pa-0 ma-0 overflow-hidden"
                     style="height: 56vh"
                   >
+                    <div
+                      v-if="currentGerberSvg"
+                      class="gerber-svg-container-full"
+                      ref="svgContainer"
+                      @mousemove="handleDragMove"
+                      @mousedown="handleDragStart"
+                      @mouseup="handleDragEnd"
+                      @mouseleave="handleDragEnd"
+                      @wheel.prevent="handleWheelZoom"
+                      :data-zoom-low="zoomLevel < 2"
+                      :class="{ 'is-dragging': isDragging }"
+                      :style="{
+                        overflow: 'hidden',
+                        position: 'relative',
+                        cursor: isDragging ? 'grabbing' : 'grab',
+                        userSelect: 'none',
+                        height: '100%',
+                        background: 'white',
+                      }"
+                    >
                       <div
-                        v-if="currentGerberSvg"
-                        class="gerber-svg-container-full"
-                        ref="svgContainer"
-                        @mousemove="handleDragMove"
-                        @mousedown="handleDragStart"
-                        @mouseup="handleDragEnd"
-                        @mouseleave="handleDragEnd"
-                        @wheel.prevent="handleWheelZoom"
-                        :data-zoom-low="zoomLevel < 2"
-                        :class="{ 'is-dragging': isDragging }"
-                        :style="{
-                          overflow: 'hidden',
-                          position: 'relative',
-                          cursor: isDragging ? 'grabbing' : 'grab',
-                          userSelect: 'none',
-                          height: '100%',
-                          background: 'white'
-                        }"
+                        style="
+                          position: absolute;
+                          top: 15px;
+                          right: 15px;
+                          z-index: 20;
+                        "
                       >
-                        <div
-                          style="
-                            position: absolute;
-                            top: 15px;
-                            right: 15px;
-                            z-index: 20;
-                          "
+                        <v-btn
+                          prepend-icon="mdi-refresh"
+                          @click="resetsZoom"
+                          class="text-caption"
+                          color="error"
+                          variant="tonal"
                         >
-                          <v-btn
-                            prepend-icon="mdi-refresh"
-                            @click="resetsZoom"
-                            class="text-caption"
-                            color="error"
-                            variant="tonal"
-                          >
-                            Reset Zoom
-                          </v-btn>
-                        </div>
-
-                        <!-- Lớp Gerber (Canvas) -->
-                        <canvas
-                          ref="gerberCanvas"
-                          style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"
-                          :style="layerTransformStyle"
-                        ></canvas>
-
-                        <!-- Lớp PnP (SVG Overlay) -->
-                        <svg
-                          ref="svgWrapper"
-                          id="gerber-svg"
-                          class="svg-full-wrapper"
-                          style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"
-                          :style="layerTransformStyle"
-                        >
-                          <g class="pnp-markers-layer"
-                            v-memo="[pnpMarkersArray, allActiveHighlights]"
-                            :transform="pnpGroupFlipTransform"
-                          >
-                            <g 
-                              v-for="marker in pnpMarkersArray" 
-                              :key="marker.designator"
-                              class="pnp-marker"
-                              :data-designator="marker.designator"
-                              :transform="marker.transform"
-                              style="pointer-events: auto;"
-                              @click="handleMarkerClick(marker)"
-                            >
-                              <rect 
-                                class="pnp-highlight-frame"
-                                :x="-marker.rectL / 2" 
-                                :y="-marker.rectW / 2"
-                                :width="marker.rectL" 
-                                :height="marker.rectW" 
-                                fill="rgba(0, 128, 0, 0.4)"
-                                stroke="rgba(0, 128, 0, 1)"
-                                :stroke-width="marker.strokeMain * 0.5"
-                              />
-                               <polygon 
-                                points="0,0 -8, -4 -8, 4" 
-                                fill="#D32F2F" 
-                                :transform="`translate(${marker.anchorSize + 1}, 0) scale(${marker.strokeMain * 0.5})`" 
-                              />
-                              <g class="crosshair-group pnp-crosshair" stroke="#D32F2F" :stroke-width="marker.strokeMain">
-                                <line :x1="-marker.anchorSize" y1="0" :x2="marker.anchorSize" y2="0" />
-                                <line x1="0" :y1="-marker.anchorSize" x2="0" :y2="marker.anchorSize" />
-                              </g>
-                              <text
-                                class="pnp-label"
-                                :x="marker.strokeMain" 
-                                :y="-marker.strokeMain"
-                                :font-size="marker.fontSize" 
-                                fill="blue" 
-                                font-weight="bold"
-                                style="paint-order: stroke; stroke: white; user-select: none;"
-                                :stroke-width="marker.fontSize * 0.1 + 'px'"
-                                :transform="marker.textTransform"
-                              >
-                                {{ marker.designator }}
-                              </text>
-                            </g>
-                          </g>
-                        </svg>
+                          Reset Zoom
+                        </v-btn>
                       </div>
+
+                      <!-- Lớp Gerber (Canvas) -->
+                      <canvas
+                        ref="gerberCanvas"
+                        style="
+                          position: absolute;
+                          top: 0;
+                          left: 0;
+                          width: 100%;
+                          height: 100%;
+                          pointer-events: none;
+                        "
+                        :style="layerTransformStyle"
+                      ></canvas>
+
+                      <!-- Lớp PnP (SVG Overlay) -->
+                      <svg
+                        ref="svgWrapper"
+                        id="gerber-svg"
+                        class="svg-full-wrapper"
+                        style="
+                          position: absolute;
+                          top: 0;
+                          left: 0;
+                          width: 100%;
+                          height: 100%;
+                          pointer-events: none;
+                        "
+                        :style="layerTransformStyle"
+                      >
+                        <g
+                          class="pnp-markers-layer"
+                          v-memo="[pnpMarkersArray, allActiveHighlights]"
+                          :transform="pnpGroupFlipTransform"
+                        >
+                          <g
+                            v-for="marker in pnpMarkersArray"
+                            :key="marker.designator"
+                            class="pnp-marker"
+                            :data-designator="marker.designator"
+                            :transform="marker.transform"
+                            style="pointer-events: auto"
+                            @click="handleMarkerClick(marker)"
+                          >
+                            <rect
+                              class="pnp-highlight-frame"
+                              :x="-marker.rectL / 2"
+                              :y="-marker.rectW / 2"
+                              :width="marker.rectL"
+                              :height="marker.rectW"
+                              fill="rgba(0, 128, 0, 0.4)"
+                              stroke="rgba(0, 128, 0, 1)"
+                              :stroke-width="marker.strokeMain * 0.5"
+                              style="display: none"
+                            />
+                            <polygon
+                              points="0,0 -8, -4 -8, 4"
+                              fill="#D32F2F"
+                              :transform="`translate(${
+                                marker.anchorSize + 1
+                              }, 0) scale(${marker.strokeMain * 0.5})`"
+                            />
+                            <g
+                              class="crosshair-group pnp-crosshair"
+                              stroke="#D32F2F"
+                              :stroke-width="marker.strokeMain"
+                            >
+                              <line
+                                :x1="-marker.anchorSize"
+                                y1="0"
+                                :x2="marker.anchorSize"
+                                y2="0"
+                              />
+                              <line
+                                x1="0"
+                                :y1="-marker.anchorSize"
+                                x2="0"
+                                :y2="marker.anchorSize"
+                              />
+                            </g>
+                            <text
+                              class="pnp-label"
+                              :x="marker.strokeMain"
+                              :y="-marker.strokeMain"
+                              :font-size="marker.fontSize"
+                              fill="blue"
+                              font-weight="bold"
+                              style="
+                                paint-order: stroke;
+                                stroke: white;
+                                user-select: none;
+                              "
+                              :stroke-width="marker.fontSize * 0.1 + 'px'"
+                              :transform="marker.textTransform"
+                            >
+                              {{ marker.designator }}
+                            </text>
+                          </g>
+                        </g>
+                      </svg>
+                    </div>
                     <v-empty-state
                       v-else
                       title="Dữ liệu trống"
@@ -1908,8 +1979,8 @@ const selectedPnPGerber = ref([]);
 const selectedPnPGrouped = ref([]);
 const temporaryHighlights = ref(new Set());
 
-let _gerberImage = null;       // Image object cache cho Gerber
-let _gerberImageW = 0;          // Kích thước ảnh thực tế (px) sau khi render
+let _gerberImage = null; // Image object cache cho Gerber
+let _gerberImageW = 0; // Kích thước ảnh thực tế (px) sau khi render
 let _gerberImageH = 0;
 let _isGerberImageLoaded = false;
 let _resizeObserver = null;
@@ -1996,10 +2067,10 @@ const HeadersPCBBottom = [
 
 const HeadersPnPGerber = [
   { title: "STT", key: "stt" },
-  { title: "Designator", key: "designator", width: "100px" },
-  { title: "X (mm)", key: "x", width: "25px" },
-  { title: "Y (mm)", key: "y", width: "25px" },
-  { title: "Rotation", key: "rotation", width: "25px" },
+  { title: "Designator", key: "designator", width: "50px" },
+  { title: "X (mm)", key: "x", width: "50px" },
+  { title: "Y (mm)", key: "y", width: "50px" },
+  { title: "Rotation", key: "rotation", width: "50px" },
   // { title: "Length (mm)", key: "length", width: "25px" },
   // { title: "Width (mm)", key: "width", width: "25px" },
   { title: "Thao tác", key: "id", sortable: false },
@@ -2295,7 +2366,7 @@ const transformedPnP = computed(() => {
 // --- PnP Markers Array for SVG Overlay ---
 const pnpMarkersArray = computed(() => {
   if (!currentGerberSvg.value || !filteredPnP.value) return [];
-  
+
   const vb = getSvgViewBox(currentGerberSvg.value);
   if (!vb) return [];
 
@@ -2328,8 +2399,8 @@ const pnpMarkersArray = computed(() => {
       }
       if (displayRotation < 0) displayRotation += 360;
 
-      let finalTx = tx + (OFFSET_X * factor);
-      let finalTy = ty + (OFFSET_Y * factor);
+      let finalTx = tx + OFFSET_X * factor;
+      let finalTy = ty + OFFSET_Y * factor;
 
       let rectW = (pnp.width || 0) * factor;
       let rectL = (pnp.length || 0) * factor;
@@ -2345,22 +2416,27 @@ const pnpMarkersArray = computed(() => {
         id: pnp.id,
         designator: pnp.designator,
         transform: `translate(${finalTx}, ${finalTy}) rotate(${displayRotation})`,
-        textTransform: `rotate(${-displayRotation})` + (isBottom ? ` scale(-1, 1)` : ""),
+        textTransform:
+          `rotate(${-displayRotation})` + (isBottom ? ` scale(-1, 1)` : ""),
         rectW,
         rectL,
         strokeMain,
         anchorSize,
-        fontSize
+        fontSize,
       };
     });
 });
 
 const isBottomLayerActive = computed(() => {
-  return String(selectedLayer.value || "").toLowerCase().includes("bottom");
+  return String(selectedLayer.value || "")
+    .toLowerCase()
+    .includes("bottom");
 });
 
 const layerTransformStyle = computed(() => {
-  return isBottomLayerActive.value ? { transform: 'scaleX(-1)', transformOrigin: 'center center' } : {};
+  return isBottomLayerActive.value
+    ? { transform: "scaleX(-1)", transformOrigin: "center center" }
+    : {};
 });
 
 /**
@@ -2449,8 +2525,8 @@ watch(detailSetting, (val) => {
   hintOffsetY_top.value = Number(found.manualOffsetY_top.toFixed(2)) || 0;
   hintOffsetX_bottom.value = Number(found.manualOffsetX_bottom.toFixed(2)) || 0;
   hintOffsetY_bottom.value = Number(found.manualOffsetY_bottom.toFixed(2)) || 0;
-  manualOffsetGerberX.value = Number(found.manualOffsetGerberX.toFixed(2)) || 0;
-  manualOffsetGerberY.value = Number(found.manualOffsetGerberY.toFixed(2)) || 0;
+  manualOffsetGerberX.value = Number(found.manualOffsetGerberX) || 0;
+  manualOffsetGerberY.value = Number(found.manualOffsetGerberY) || 0;
 
   width.value = found.width || 0;
   height.value = found.height || 0;
@@ -2938,8 +3014,8 @@ function transform(p) {
         break;
 
       case 90:
-        x2 = -(y + edgeYv);
-        y2 = W - xm; // = x
+        x2 = -(H - (y + edgeYv));
+        y2 = -xm; // = x
         r2 = normalizeRotation(r - angle.value);
         break;
 
@@ -3815,7 +3891,7 @@ watch(
 // Theo dõi khi user chuyển sang tab Gerber hoặc Check MPN
 // để khởi tạo viewer nếu data đã sẵn sàng nhưng DOM mới vừa mount
 watch(tab, (newTab) => {
-  if ((newTab === 2 || newTab === 4) && currentGerberSvg.value) {
+  if ((newTab === 3 || newTab === 4) && currentGerberSvg.value) {
     // Đợi DOM của tab window item render xong
     nextTick(() => {
       initGerberViewer(currentGerberSvg.value);
@@ -3911,7 +3987,10 @@ function prepareGerberImage(svgString) {
 
   let processedSvg = svgString;
   if (!processedSvg.includes("http://www.w3.org/2000/svg")) {
-    processedSvg = processedSvg.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+    processedSvg = processedSvg.replace(
+      "<svg",
+      '<svg xmlns="http://www.w3.org/2000/svg"',
+    );
   }
 
   // Dùng kích thước cố định hợp lý (MAX 4096px) thay vì viewBox width/height
@@ -3927,15 +4006,17 @@ function prepareGerberImage(svgString) {
     // Ghi đè width/height tường minh (loại bỏ giá trị cũ nếu có)
     processedSvg = processedSvg.replace(/<svg([^>]*)>/, (match, attrs) => {
       const cleaned = attrs
-        .replace(/\s+width="[^"]*"/g, '')
-        .replace(/\s+height="[^"]*"/g, '');
+        .replace(/\s+width="[^"]*"/g, "")
+        .replace(/\s+height="[^"]*"/g, "");
       return `<svg${cleaned} width="${imgW}" height="${imgH}">`;
     });
   }
 
   _isGerberImageLoaded = false;
   const img = new Image();
-  const svgBlob = new Blob([processedSvg], { type: "image/svg+xml;charset=utf-8" });
+  const svgBlob = new Blob([processedSvg], {
+    type: "image/svg+xml;charset=utf-8",
+  });
   const url = URL.createObjectURL(svgBlob);
 
   img.onload = () => {
@@ -4287,7 +4368,7 @@ function navigatePnP(direction) {
       (currentIndex.value - 1 + combinePnPGerber.value.length) %
       combinePnPGerber.value.length;
   }
-  
+
   const targetItem = combinePnPGerber.value[currentIndex.value];
   if (targetItem) {
     GetZoomPnP(targetItem.id);
@@ -4300,7 +4381,9 @@ function navigatePnP(direction) {
  */
 function handleMarkerClick(marker) {
   // Đồng bộ index và highlight
-  currentIndex.value = combinePnPGerber.value.findIndex(item => item.id === marker.id);
+  currentIndex.value = combinePnPGerber.value.findIndex(
+    (item) => item.id === marker.id,
+  );
   highlightComponent(marker.designator);
   // Zoom nhẹ vào linh kiện nếu chưa zoom
   if (zoomLevel.value < 4) {
