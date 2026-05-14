@@ -672,9 +672,9 @@ const itemsPerPage = ref(15);
 
 // Table headers configuration
 const Headers = [
-  { title: "Ảnh", key: "Image", width: "150" },
-  { title: "Mã thiết bị", key: "MachineCode", width: "200" },
+  // { title: "Ảnh", key: "Image", width: "150" },
   { title: "Tên thiết bị", key: "TenThietBi", width: "250" },
+  { title: "Mã thiết bị", key: "MachineCode", width: "200" },
   { title: "Loại thiết bị", key: "LoaiThietBi" },
   { title: "Nhà sản xuất", key: "NhaSanXuat" },
   { title: "Ngày mua", key: "NgayMuaConvert" },

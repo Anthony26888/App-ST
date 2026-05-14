@@ -156,12 +156,12 @@ const routes = [
         meta: { requiresAuth: true },
         component: PageDetailManufacture,
       },
-      {
-        path: "/San-xuat/SMT/:id",
-        name: "DetailSMT",
-        meta: { requiresAuth: true },
-        component: PageDetailSMT,
-      },
+      // {
+      //   path: "/San-xuat/SMT/:id",
+      //   name: "DetailSMT",
+      //   meta: { requiresAuth: true },
+      //   component: PageDetailSMT,
+      // },
       {
         path: "/San-xuat/RW/:id",
         name: "DetailRW",

@@ -10,18 +10,20 @@ import {
   Chart,
   BarController,
   BarElement,
+  LineController,
+  LineElement,
+  PointElement,
   CategoryScale,
   LinearScale,
   Tooltip,
   Legend,
   Title,
-  LineElement,
-  PointElement
 } from "chart.js";
 
 Chart.register(
   BarController,
   BarElement,
+  LineController,
   LineElement,
   PointElement,
   CategoryScale,
@@ -36,19 +38,30 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
-  passData: {
+
+  // Cột TOP
+  passDataTop: {
     type: Array,
     default: () => [],
   },
-  failData: {
+
+  // Cột BOTTOM
+  passDataBottom: {
     type: Array,
     default: () => [],
   },
-  // *** Đã thêm: Dữ liệu Kế hoạch (Planned Data) ***
+
+  passDataOneSide: {
+    type: Array,
+    default: () => [],
+  },
+
+  // Line kế hoạch
   planData: {
     type: Array,
     default: () => [],
   },
+
   title: {
     type: String,
     default: "Kết quả sản xuất theo ngày",
@@ -61,7 +74,7 @@ let chartInstance = null;
 const renderChart = () => {
   if (!chartCanvas.value) return;
 
-  // Hủy biểu đồ hiện tại nếu có
+  // destroy old chart
   if (chartInstance) {
     chartInstance.destroy();
     chartInstance = null;
@@ -70,96 +83,152 @@ const renderChart = () => {
   const ctx = chartCanvas.value.getContext("2d");
 
   chartInstance = new Chart(ctx, {
-    // *** Loại Biểu đồ Gốc là bar ***
-    type: "bar", 
+    type: "bar",
+
     data: {
       labels: props.labels || [],
+
       datasets: [
+        // ===== TOP =====
+        {
+          label: "Pass Top",
+          data: props.passDataTop || [],
+          backgroundColor: "rgba(33, 150, 243, 0.8)", // Xanh dương
+          borderColor: "rgba(33, 150, 243, 1)",
+          borderWidth: 1,
+          maxBarThickness: 50,
+        },
+
+        // ===== BOTTOM =====
+        {
+          label: "Pass Bottom",
+          data: props.passDataBottom || [],
+          backgroundColor: "rgba(229, 57, 53, 0.8)", // Đỏ
+          borderColor: "rgba(229, 57, 53, 1)",
+          borderWidth: 1,
+          maxBarThickness: 50,
+        },
+
+        // ===== ONE SIDE =====
         {
           label: "Pass",
-          data: props.passData || [],
-          backgroundColor: "rgba(0, 200, 83, 0.8)", // Xanh lá
-          stack: "stack1",
-          maxBarThickness: 80,
+          data: props.passDataOneSide || [],
+          borderColor: "rgba(0, 200, 83, 1)", // Xanh lá
+          backgroundColor: "rgba(0, 200, 83, 1)",
+          borderWidth: 1,
+          maxBarThickness: 50,
         },
-        {
-          label: "Fail",
-          data: props.failData || [],
-          backgroundColor: "rgba(229, 57, 53, 0.8)", // Đỏ
-          stack: "stack1",
-          maxBarThickness: 80,
-        },
-        // *** Đã thêm: Dataset Kế hoạch dưới dạng Line ***
+
+        // ===== PLAN LINE =====
         {
           label: "Kế hoạch",
           data: props.planData || [],
-          type: "line", // Thay đổi loại thành 'line'
-          borderColor: "rgba(33, 150, 243, 1)", // Xanh dương (Blue)
-          backgroundColor: "rgba(33, 150, 243, 0.2)", // Background nhạt hơn
-          pointBackgroundColor: "rgba(33, 150, 243, 1)",
-          fill: false, // Không tô màu dưới đường
-          tension: 0.3, // Độ cong của đường
-          stack: "stack2", // TẮT stacked bằng cách dùng stack khác
-          yAxisID: 'y', // Đảm bảo sử dụng trục Y chính
+          type: "line",
+
+          
+          backgroundColor: "rgba(255, 165, 0, 0.8)", // Cam
+          borderColor: "rgba(255, 165, 0, 1)",
+          pointRadius: 4,
+
+          borderWidth: 3,
+          fill: false,
+          tension: 0.3,
+
+          yAxisID: "y",
         },
       ],
     },
+
     options: {
       responsive: true,
       maintainAspectRatio: false,
+
+      interaction: {
+        mode: "index",
+        intersect: false,
+      },
+
       plugins: {
         title: {
           display: true,
           text: props.title,
-          font: { size: 18 },
+          font: {
+            size: 18,
+          },
         },
-        legend: { position: "bottom" },
+
+        legend: {
+          position: "bottom",
+        },
+
         tooltip: {
-             mode: 'index',
-             intersect: false,
-        }
+          mode: "index",
+          intersect: false,
+        },
       },
+
       scales: {
         x: {
-          stacked: true, // Cột vẫn xếp chồng
+          stacked: false,
+
           title: {
             display: true,
             text: "Ngày sản xuất",
           },
+
+          grid: {
+            display: false,
+          },
         },
+
         y: {
-          id: 'y',
-          stacked: true, // Cột vẫn xếp chồng
           beginAtZero: true,
+          stacked: false,
+
           title: {
             display: true,
             text: "Số lượng sản phẩm",
           },
         },
       },
+
       elements: {
         bar: {
           barPercentage: 0.6,
-          categoryPercentage: 0.8,
+          categoryPercentage: 0.7,
         },
       },
     },
   });
 };
 
-// Watch for prop changes and update chart
+// ===== WATCH UPDATE =====
 watch(
-  () => [props.labels, props.passData, props.failData, props.planData, props.title], // Thêm plannedData và title vào watch
+  () => [
+    props.labels,
+    props.passDataTop,
+    props.passDataBottom,
+    props.planData,
+    props.title,
+  ],
   () => {
     if (chartInstance) {
-      // Cập nhật dữ liệu
       chartInstance.data.labels = props.labels || [];
-      chartInstance.data.datasets[0].data = props.passData || [];
-      chartInstance.data.datasets[1].data = props.failData || [];
-      chartInstance.data.datasets[2].data = props.planData || []; // Cập nhật dữ liệu Kế hoạch
-      
-      // Cập nhật tiêu đề (title)
-      chartInstance.options.plugins.title.text = props.title;
+
+      chartInstance.data.datasets[0].data =
+        props.passDataTop || [];
+
+      chartInstance.data.datasets[1].data =
+        props.passDataBottom || [];
+
+      chartInstance.data.datasets[2].data =
+        props.passDataOneSide || [];
+
+      chartInstance.data.datasets[3].data =
+        props.planData || [];
+
+      chartInstance.options.plugins.title.text =
+        props.title;
 
       chartInstance.update();
     } else {
@@ -169,10 +238,12 @@ watch(
   { deep: true }
 );
 
+// ===== MOUNT =====
 onMounted(() => {
   renderChart();
 });
 
+// ===== UNMOUNT =====
 onUnmounted(() => {
   if (chartInstance) {
     chartInstance.destroy();

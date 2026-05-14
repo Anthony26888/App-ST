@@ -1,6 +1,6 @@
 <template>
   <v-card
-    class="process-card text-center pa-3"
+    class="process-card text-center pa-5"
     :class="{ 
       'bottleneck-shadow': isBottleneck, 
       'selected-border': isSelected 
@@ -23,13 +23,6 @@
     <v-card-title v-else class="text-subtitle-1 font-weight-bold pa-1 process-card-title">{{
       title
     }}</v-card-title>
-
-    <v-divider class="my-1"></v-divider>
-
-    <div :class="['text-h5', 'font-weight-medium', `text-success`]">
-      {{ pass }}
-    </div>
-    <div class="text-caption text-medium-emphasis text-error">Fail: {{ fail }}</div>
   </v-card>
 </template>
 

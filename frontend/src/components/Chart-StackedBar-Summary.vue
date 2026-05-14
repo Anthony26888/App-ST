@@ -1,5 +1,5 @@
 <template>
-  <div style="height: 350px">
+  <div style="height: 450px">
     <canvas ref="chartCanvas"></canvas>
   </div>
 </template>
@@ -38,6 +38,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  planData: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const chartCanvas = ref(null);
@@ -72,6 +76,18 @@ const renderChart = () => {
           backgroundColor: "rgba(229, 57, 53, 0.8)",
           stack: "stack1",
           maxBarThickness: 80,
+        },
+        {
+          label: "Kế hoạch",
+          data: props.planData || [],
+          type: "line", // Thay đổi loại thành 'line'
+          borderColor: "rgba(33, 150, 243, 1)", // Xanh dương (Blue)
+          backgroundColor: "rgba(33, 150, 243, 0.2)", // Background nhạt hơn
+          pointBackgroundColor: "rgba(33, 150, 243, 1)",
+          fill: false, // Không tô màu dưới đường
+          tension: 0.3, // Độ cong của đường
+          stack: "stack2", // TẮT stacked bằng cách dùng stack khác
+          yAxisID: 'y', // Đảm bảo sử dụng trục Y chính
         },
       ],
     },
@@ -121,6 +137,7 @@ watch(
       chartInstance.data.labels = props.labels || [];
       chartInstance.data.datasets[0].data = props.passData || [];
       chartInstance.data.datasets[1].data = props.failData || [];
+      chartInstance.data.datasets[2].data = props.planData || [];
       chartInstance.update();
     } else {
       renderChart();

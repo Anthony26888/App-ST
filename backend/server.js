@@ -1118,6 +1118,7 @@ io.on("connection", (socket) => {
                             Status_Fixed,
                             RWID,
                             GroupFail,
+                            Quantity,
                             strftime('%d-%m-%Y %H:%M:%S', TimestampRW, 'unixepoch', 'localtime') AS TimestampRW,
                             Note,
                             strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch', 'localtime') AS Timestamp
@@ -1226,15 +1227,8 @@ io.on("connection", (socket) => {
                         a.PONumber,
                         a.Time_Plan,
                         a.CycleTime_Plan,
-                        COALESCE(b.fail_count, 0) AS GroupFail,
-                        
-                        -- Quantity_Real (tính dựa trên Line_SMT)
-                        CASE 
-                          WHEN a.Line_SMT = 'Line 1' THEN c.Quantity * COALESCE(d.source_2_count, 0)
-                          WHEN a.Line_SMT = 'Line 2' THEN c.Quantity * COALESCE(d.source_4_count, 0)
-                          ELSE COALESCE(b.pass_count, 0)
-                        END AS Quantity_Real,
-
+                        COALESCE(b.fail_count, 0) AS GroupFail,    
+                        b.pass_count AS Quantity_Real,
                         COALESCE(b.fail_count, 0) AS Quantity_Error,
                         COALESCE(b.rw_count, 0) AS Quantity_RW,
                         COUNT(DISTINCT b.HistoryID) AS Total_Summary_ID,
@@ -1287,27 +1281,6 @@ io.on("connection", (socket) => {
                       GROUP BY a.id, a.Line_SMT
 
                       ORDER BY a.Created_At DESC;
-
-
-                      -- ============================================
-                      -- TỐI ƯU: THÊM CÁC INDEX SAU
-                      -- ============================================
-
-                      -- Index cho Summary
-                      CREATE INDEX IF NOT EXISTS idx_summary_created_at ON Summary(Created_At);
-                      CREATE INDEX IF NOT EXISTS idx_summary_planid ON Summary(PlanID);
-                      CREATE INDEX IF NOT EXISTS idx_summary_line_smt ON Summary(Line_SMT);
-
-                      -- Index cho ManufactureCounting
-                      CREATE INDEX IF NOT EXISTS idx_counting_historyid ON ManufactureCounting(HistoryID);
-                      CREATE INDEX IF NOT EXISTS idx_counting_status ON ManufactureCounting(Status);
-                      CREATE INDEX IF NOT EXISTS idx_counting_timestamprw ON ManufactureCounting(TimestampRW);
-
-                      -- Index cho ManufactureSMT
-                      CREATE INDEX IF NOT EXISTS idx_smt_historyid ON ManufactureSMT(HistoryID);
-                      CREATE INDEX IF NOT EXISTS idx_smt_source ON ManufactureSMT(Source);
-
-                      -- Index cho PlanManufacture
                       CREATE INDEX IF NOT EXISTS idx_plan_id ON PlanManufacture(id);`;
         db.all(query, [endDay], (err, rows) => {
           if (err) return socket.emit("SummaryError", err);
@@ -1420,7 +1393,11 @@ io.on("connection", (socket) => {
                         ELSE (
                             -- Các loại khác -> PASS
                             COALESCE((
-                                SELECT SUM(CASE WHEN m.Status = 'pass' THEN 1 ELSE 0 END)
+                                SELECT 
+                                  CASE 
+                                    WHEN m.Status = 'pass' THEN SUM(m.Quantity) 
+                                    ELSE 0
+                                  END
                                 FROM ManufactureCounting m
                                 WHERE m.HistoryID IN (
                                     SELECT id FROM Summary 
@@ -1429,26 +1406,6 @@ io.on("connection", (socket) => {
                             ), 0)
                         )
                     END AS Quantity_Pass,
-
-                    -- FAIL
-                    COALESCE((
-                        SELECT SUM(CASE WHEN m.Status = 'fail' THEN 1 ELSE 0 END)
-                        FROM ManufactureCounting m 
-                        WHERE m.HistoryID IN (
-                            SELECT id FROM Summary 
-                            WHERE PlanID = a.PlanID AND Type = a.Type AND Surface = a.Surface
-                        )
-                    ), 0) AS Quantity_Fail,
-
-                    -- RW
-                    COALESCE((
-                        SELECT SUM(CASE WHEN m.TimestampRW IS NOT NULL AND m.TimestampRW <> '' THEN 1 ELSE 0 END)
-                        FROM ManufactureCounting m 
-                        WHERE m.HistoryID IN (
-                            SELECT id FROM Summary 
-                            WHERE PlanID = a.PlanID AND Type = a.Type AND Surface = a.Surface
-                        )
-                    ), 0) AS Quantity_RW,
 
                     -- Tổng số SummaryID
                     COUNT(DISTINCT a.id) AS Total_Summary_ID,
@@ -1679,10 +1636,22 @@ io.on("connection", (socket) => {
         const query = `WITH CountingData AS (
                         SELECT 
                           HistoryID,
-                          SUM(CASE WHEN Status = 'pass' THEN 1 ELSE 0 END) AS pass_count,
-                          SUM(CASE WHEN Status = 'fail' THEN 1 ELSE 0 END) AS fail_count,
-                          SUM(CASE WHEN RWID = 'Done' THEN 1 ELSE 0 END) AS fixed_done_count,
-                          SUM(CASE WHEN TimestampRW IS NOT NULL AND TimestampRW <> '' THEN 1 ELSE 0 END) AS rw_count
+                          CASE
+                            WHEN Status = 'pass' OR Status_Fixed = 'pass' 
+                            THEN SUM(Quantity) ELSE 0 
+                          END AS pass_count,
+                          CASE
+                            WHEN Status = 'fail' AND Status_Fixed = 'fail' 
+                            THEN SUM(Quantity) ELSE 0 
+                          END AS fail_count,
+                          CASE
+                            WHEN RWID = 'Done' AND Status_Fixed = 'pass' 
+                            THEN SUM(Quantity) ELSE 0 
+                          END AS fixed_done_count,
+                          CASE
+                            WHEN TimestampRW IS NOT NULL AND TimestampRW <> '' 
+                            THEN SUM(Quantity) ELSE 0 
+                          END AS rw_count
                         FROM ManufactureCounting
                         GROUP BY HistoryID
                       ),
@@ -1714,12 +1683,7 @@ io.on("connection", (socket) => {
                         a.Surface,
                         a.Note,
 
-                        -- Quantity_Real (tính dựa trên Line_SMT)
-                        CASE 
-                          WHEN a.Line_SMT = 'Line 1' THEN c.Quantity * COALESCE(d.source_2_count, 0)
-                          WHEN a.Line_SMT = 'Line 2' THEN c.Quantity * COALESCE(d.source_4_count, 0)
-                          ELSE COALESCE(b.pass_count, 0)
-                        END AS Quantity_Real,
+                        COALESCE(b.pass_count, 0) AS Quantity_Real,
 
                         -- Quantity_Error
                         COALESCE(b.fail_count, 0) AS Quantity_Error,
@@ -1728,23 +1692,7 @@ io.on("connection", (socket) => {
                         COALESCE(b.fixed_done_count, 0) AS Quantity_Fixed_Done,
 
                         -- Percent (dựa trên Line_SMT)
-                        CASE
-                          WHEN a.Line_SMT = 'Line 1' THEN 
-                            ROUND(
-                              (c.Quantity * COALESCE(d.source_2_count, 0) * 100.0) / NULLIF(a.Quantity_Plan, 0.0), 
-                              1
-                            )
-                          WHEN a.Line_SMT = 'Line 2' THEN  
-                            ROUND(
-                              (c.Quantity * COALESCE(d.source_4_count, 0) * 100.0) / NULLIF(a.Quantity_Plan, 0.0), 
-                              1
-                            )
-                          ELSE 
-                            ROUND(
-                              (COALESCE(b.pass_count, 0) + COALESCE(b.fail_count, 0)) * 100.0 / NULLIF(a.Quantity_Plan, 0.0), 
-                              1
-                            )
-                        END AS Percent,
+                        (COALESCE(b.pass_count, 0) + COALESCE(b.fail_count, 0)) * 100.0 / NULLIF(a.Quantity_Plan, 0.0) AS Percent,
 
                         -- TimestampRW
                         COALESCE(b.rw_count, 0) AS TimestampRW,
@@ -1772,29 +1720,6 @@ io.on("connection", (socket) => {
                         a.Created_At
 
                       ORDER BY a.Created_At DESC;
-
-
-                      -- ============================================
-                      -- TỐI ƯU: THÊM CÁC INDEX SAU
-                      -- ============================================
-
-                      -- Index cho Summary
-                      CREATE INDEX IF NOT EXISTS idx_summary_planid ON Summary(PlanID);
-                      CREATE INDEX IF NOT EXISTS idx_summary_id ON Summary(id);
-                      CREATE INDEX IF NOT EXISTS idx_summary_line_smt ON Summary(Line_SMT);
-
-                      -- Index cho ManufactureCounting
-                      CREATE INDEX IF NOT EXISTS idx_counting_historyid ON ManufactureCounting(HistoryID);
-                      CREATE INDEX IF NOT EXISTS idx_counting_status ON ManufactureCounting(Status);
-                      CREATE INDEX IF NOT EXISTS idx_counting_rwid ON ManufactureCounting(RWID);
-                      CREATE INDEX IF NOT EXISTS idx_counting_timestamprw ON ManufactureCounting(TimestampRW);
-
-                      -- Index cho ManufactureSMT
-                      CREATE INDEX IF NOT EXISTS idx_smt_historyid ON ManufactureSMT(HistoryID);
-                      CREATE INDEX IF NOT EXISTS idx_smt_source ON ManufactureSMT(Source);
-
-                      -- Index cho PlanManufacture
-                      CREATE INDEX IF NOT EXISTS idx_plan_id ON PlanManufacture(id);
                       `;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("HistoryError", err);
@@ -1807,36 +1732,6 @@ io.on("connection", (socket) => {
     socket.on("getHistoryPart", async (id) => {
       try {
         const query = `
-                      SELECT *
-                      FROM (
-                      SELECT 
-                          a.id,
-                          a.PlanID,
-                          CASE 
-                            WHEN a.PartNumber = 1 THEN b.Category
-                            ELSE a.PartNumber
-                          END AS PartNumber,
-                          a.HistoryID,						  
-                          CASE 
-                              WHEN a.Source = 'source_1' THEN 'Máy printer G5'
-                              WHEN a.Source = 'source_2' THEN 'Máy gắp linh kiện Juki'
-                              WHEN a.Source = 'source_3' THEN 'Máy gắp linh kiện Topaz'
-                              ELSE 'Máy gắp linh kiện Yamaha'
-                          END AS Source,
-                          CASE 
-                              WHEN a.Status = 'ok' THEN 'pass'
-                              ELSE 'fail'
-                          END AS Status,
-                          strftime('%d-%m-%Y %H:%M:%S', a.Timestamp, 'unixepoch', 'localtime') AS Timestamp,
-                          a.Note AS Note,
-                          a.RWID,
-                          a.TimestampRW
-                      FROM ManufactureSMT a
-                      LEFT JOIN Summary b ON a.HistoryID = b.id
-                      WHERE a.PlanID = ?
-
-                      UNION ALL
-
                       SELECT 
                           c.id,
                           c.PlanID,
@@ -1844,15 +1739,15 @@ io.on("connection", (socket) => {
 						              c.HistoryID,
                           c.Type AS Source,
                           c.Status,
-                          strftime('%d-%m-%Y %H:%M:%S', c.Timestamp, 'unixepoch', 'localtime') AS Timestamp,
+                          strftime('%d-%m-%Y', c.Timestamp, 'unixepoch', 'localtime') AS Timestamp,
                           c.Note AS Note,
                           c.RWID,
-                          strftime('%d-%m-%Y %H:%M:%S', c.TimestampRW, 'unixepoch', 'localtime') AS TimestampRW
+                          c.Quantity,
+                          c.Surface,
+                          strftime('%d-%m-%Y', c.TimestampRW, 'unixepoch', 'localtime') AS TimestampRW
                       FROM ManufactureCounting c
-                      WHERE c.PlanID = ?
-                  )
-                  ORDER BY Timestamp DESC;`;
-        db.all(query, [id, id], (err, rows) => {
+                      WHERE c.PlanID = ?`;
+        db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("HistoryPartError", err);
           socket.emit("HistoryPartData", rows);
         });
@@ -5043,49 +4938,50 @@ app.post("/api/ManufactureCounting", (req, res) => {
     PlanID,
     Type,
     Quantity,
+    Surface,
   } = req.body;
 
   Quantity = Number(Quantity) || 1;
+
   const Timestamp = Math.floor(Date.now() / 1000);
 
-  db.serialize(() => {
-    // BẮT BUỘC: transaction
-    db.run("BEGIN TRANSACTION");
-
-    const stmt = db.prepare(
-      `INSERT INTO ManufactureCounting 
-        (PartNumber, HistoryID, Timestamp, Status, GroupFail, Note, PlanID, Type)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    );
-
-    for (let i = 0; i < Quantity; i++) {
-      const finalPartNumber =
-        !PartNumber || String(PartNumber).trim() === ""
-          ? nanoid(10)
-          : PartNumber;
-
-      stmt.run([
-        finalPartNumber,
-        HistoryID,
-        Timestamp,
-        Status,
-        GroupFail,
-        Note,
-        PlanID,
-        Type,
-      ]);
-    }
-
-    stmt.finalize();
-
-    // COMMIT là lúc transaction hoàn tất
-    db.run("COMMIT", (err) => {
+  db.run(
+    `INSERT INTO ManufactureCounting
+    (
+      PartNumber,
+      HistoryID,
+      Timestamp,
+      Status,
+      GroupFail,
+      Note,
+      PlanID,
+      Type,
+      Quantity,
+      Surface
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      PartNumber,
+      HistoryID,
+      Timestamp,
+      Status,
+      GroupFail,
+      Note,
+      PlanID,
+      Type,
+      Quantity,
+      Surface
+    ],
+    (err) => {
       if (err) {
-        console.error("COMMIT ERROR:", err);
-        return res.status(500).json({ error: "Database commit error" });
+        console.error("Database error:", err);
+
+        return res.status(500).json({
+          error: "Database error",
+          details: err.message,
+        });
       }
 
-      // Emit realtime 1 lần duy nhất
       io.emit("UpdateManufactureCounting");
       io.emit("UpdateManufactureFail");
       io.emit("UpdateHistoryFiltered", { PlanID, Type });
@@ -5099,12 +4995,9 @@ app.post("/api/ManufactureCounting", (req, res) => {
       io.emit("ActivedUpdate");
       io.emit("updateDetailProjectPO");
 
-      return res.json({
-        message: `Đã nhập ${Quantity} sản phẩm`,
-        Quantity,
-      });
-    });
-  });
+      res.json({ message: "Summary received" });
+    },
+  );
 });
 
 // Update value status fixed in ManufactureCounting table

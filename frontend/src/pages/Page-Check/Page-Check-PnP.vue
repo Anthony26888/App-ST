@@ -58,9 +58,9 @@
       <v-card variant="elevated" elevation="0" class="rounded-xl border">
         <v-tabs v-model="tab" align-tabs="center" color="deep-orange">
           <v-tab :value="1" class="text-caption">Pick & Place</v-tab>
-          <v-tab :value="2" class="text-caption">Gerber</v-tab>
-          <v-tab :value="3" class="text-caption">Tính toán PnP</v-tab>
-          <!-- <v-tab :value="4" class="text-caption">Gerber PnP</v-tab> -->
+          <v-tab :value="2" class="text-caption">Tính toán PnP</v-tab>
+          <v-tab :value="3" class="text-caption">Gerber</v-tab>
+          <v-tab :value="4" class="text-caption">Check MPN</v-tab>
         </v-tabs>
 
         <v-tabs-window v-model="tab">
@@ -293,7 +293,7 @@
               </v-data-table>
             </v-card-text>
           </v-tabs-window-item>
-          <v-tabs-window-item :value="2">
+          <v-tabs-window-item :value="3">
             <v-card height="calc(100vh - 280px)" variant="text">
               <v-card-title class="d-flex align-center mt-5">
                 <v-btn
@@ -361,49 +361,112 @@
                   >
                     <!-- Hiển thị SVG với overlay Pick & Place -->
 
-                    <div
-                      v-if="svgWithPnP && overlayMode !== 'pnp'"
-                      class="gerber-svg-container-full"
-                      ref="svgContainer"
-                      @mousemove="handleDragMove"
-                      @mousedown="handleDragStart"
-                      @mouseup="handleDragEnd"
-                      @mouseleave="handleDragEnd"
-                      @wheel.prevent="handleWheelZoom"
-                      :style="{
-                        overflow: 'hidden',
-                        position: 'relative',
-                        cursor: isDragging ? 'grabbing' : 'grab',
-                        userSelect: 'none',
-                      }"
-                    >
                       <div
-                        style="
-                          position: absolute;
-                          top: 15px;
-                          right: 15px;
-                          z-index: 20;
-                        "
+                        v-if="currentGerberSvg && overlayMode !== 'pnp'"
+                        class="gerber-svg-container-full"
+                        ref="svgContainer"
+                        @mousemove="handleDragMove"
+                        @mousedown="handleDragStart"
+                        @mouseup="handleDragEnd"
+                        @mouseleave="handleDragEnd"
+                        @wheel.prevent="handleWheelZoom"
+                        :data-zoom-low="zoomLevel < 2"
+                        :class="{ 'is-dragging': isDragging }"
+                        :style="{
+                          overflow: 'hidden',
+                          position: 'relative',
+                          cursor: isDragging ? 'grabbing' : 'grab',
+                          userSelect: 'none',
+                          height: '100%',
+                          background: 'white'
+                        }"
                       >
-                        <v-btn
-                          prepend-icon="mdi-refresh"
-                          @click="resetsZoom"
-                          class="text-caption"
-                          title="Reset View (H)"
-                          color="error"
-                          variant="tonal"
+                        <div
+                          style="
+                            position: absolute;
+                            top: 15px;
+                            right: 15px;
+                            z-index: 20;
+                          "
                         >
-                          Reset Zoom
-                        </v-btn>
-                      </div>
+                          <v-btn
+                            prepend-icon="mdi-refresh"
+                            @click="resetsZoom"
+                            class="text-caption"
+                            title="Reset View (H)"
+                            color="error"
+                            variant="tonal"
+                          >
+                            Reset Zoom
+                          </v-btn>
+                        </div>
 
-                      <div
-                        ref="svgWrapper"
-                        v-html="svgWithPnP"
-                        class="svg-full-wrapper"
-                        style="width: 100%; height: 100%; pointer-events: none"
-                      ></div>
-                    </div>
+                        <!-- Lớp Gerber (Canvas - Chuyên nghiệp & Mượt) -->
+                        <canvas
+                          ref="gerberCanvas"
+                          style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"
+                          :style="layerTransformStyle"
+                        ></canvas>
+
+                        <!-- Lớp PnP (SVG Overlay - Tương tác) -->
+                        <svg
+                          ref="svgWrapper"
+                          id="gerber-svg"
+                          class="svg-full-wrapper"
+                          style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"
+                          :style="layerTransformStyle"
+                        >
+                          <g class="pnp-markers-layer"
+                            v-memo="[pnpMarkersArray, allActiveHighlights]"
+                            :transform="pnpGroupFlipTransform"
+                          >
+                            <g 
+                              v-for="marker in pnpMarkersArray" 
+                              :key="marker.designator"
+                              class="pnp-marker"
+                              :data-designator="marker.designator"
+                              :transform="marker.transform"
+                              style="pointer-events: auto;"
+                              @click="handleMarkerClick(marker)"
+                            >
+                              <rect 
+                                class="pnp-highlight-frame"
+                                :x="-marker.rectL / 2 || -10" 
+                                :y="-marker.rectW / 2 || -10"
+                                :width="marker.rectL || 20" 
+                                :height="marker.rectW || 20" 
+                                fill="rgba(0, 128, 0, 1)"
+                                stroke="rgba(0, 128, 0, 1)"
+                                :stroke-width="marker.strokeMain * 0.5"
+                                style="display: none;"
+                              />
+                              <polygon 
+                                points="0,0 -4, -2 -4, 2" 
+                                fill="#D32F2F" 
+                                :transform="`translate(${marker.anchorSize + 1}, 0) scale(${marker.strokeMain * 0.5})`" 
+                              />
+
+                              <g class="crosshair-group pnp-crosshair" stroke="#D32F2F" :stroke-width="marker.strokeMain">
+                                <line :x1="-marker.anchorSize" y1="0" :x2="marker.anchorSize" y2="0" />
+                                <line x1="0" :y1="-marker.anchorSize" x2="0" :y2="marker.anchorSize" />
+                              </g>
+                              <text
+                                class="pnp-label"
+                                :x="marker.strokeMain" 
+                                :y="-marker.strokeMain"
+                                :font-size="marker.fontSize" 
+                                fill="blue" 
+                                font-weight="bold"
+                                style="paint-order: stroke; stroke: white; user-select: none;"
+                                :stroke-width="marker.fontSize * 0.1 + 'px'"
+                                :transform="marker.textTransform"
+                              >
+                                {{ marker.designator }}
+                              </text>
+                            </g>
+                          </g>
+                        </svg>
+                      </div>
 
                     <v-empty-state
                       v-if="overlayMode !== 'pnp' && !currentGerberSvg"
@@ -420,6 +483,8 @@
                     :headers="HeadersPnPGerber"
                     :items="combinePnPGerber"
                     :search="searchPnPGerber"
+                    v-model="selectedPnPGerber"
+                    item-value="id"
                     class="elevation-0"
                     :footer-props="{
                       'items-per-page-options': [10, 20, 50, 100],
@@ -438,7 +503,36 @@
                     :dense="false"
                     :fixed-header="true"
                     height="56vh"
+                    show-select
                   >
+                    <template
+                      v-slot:header.data-table-select="{
+                        allSelected,
+                        selectAll,
+                        someSelected,
+                      }"
+                    >
+                      <v-checkbox-btn
+                        :indeterminate="someSelected && !allSelected"
+                        :model-value="allSelected"
+                        color="primary"
+                        @update:model-value="selectAll(!allSelected)"
+                      ></v-checkbox-btn>
+                    </template>
+
+                    <template
+                      v-slot:item.data-table-select="{
+                        internalItem,
+                        isSelected,
+                        toggleSelect,
+                      }"
+                    >
+                      <v-checkbox-btn
+                        :model-value="isSelected(internalItem)"
+                        color="primary"
+                        @update:model-value="toggleSelect(internalItem)"
+                      ></v-checkbox-btn>
+                    </template>
                     <template v-slot:top>
                       <v-toolbar
                         flat
@@ -551,7 +645,7 @@
             </v-card>
           </v-tabs-window-item>
 
-          <v-tabs-window-item :value="3">
+          <v-tabs-window-item :value="2">
             <v-card-title class="d-flex align-center pe-2">
               <v-btn
                 @click="DialogSettingPCB = true"
@@ -693,6 +787,237 @@
                 </v-col>
               </v-row>
             </v-card-text>
+          </v-tabs-window-item>
+
+          <v-tabs-window-item :value="4">
+            <v-card height="calc(100vh - 280px)" variant="text">
+              <v-card-title class="d-flex align-center mt-5">
+                <v-spacer></v-spacer>
+                <v-select
+                  v-model="selectedLayer"
+                  :items="['Top', 'Bottom']"
+                  label="Layer"
+                  class="me-4"
+                  density="comfortable"
+                  variant="outlined"
+                  hide-details
+                  style="max-width: 160px"
+                />
+              </v-card-title>
+              <v-row>
+                <v-col cols="7">
+                  <v-card-text
+                    class="pa-0 ma-0 overflow-hidden"
+                    style="height: 56vh"
+                  >
+                      <div
+                        v-if="currentGerberSvg"
+                        class="gerber-svg-container-full"
+                        ref="svgContainer"
+                        @mousemove="handleDragMove"
+                        @mousedown="handleDragStart"
+                        @mouseup="handleDragEnd"
+                        @mouseleave="handleDragEnd"
+                        @wheel.prevent="handleWheelZoom"
+                        :data-zoom-low="zoomLevel < 2"
+                        :class="{ 'is-dragging': isDragging }"
+                        :style="{
+                          overflow: 'hidden',
+                          position: 'relative',
+                          cursor: isDragging ? 'grabbing' : 'grab',
+                          userSelect: 'none',
+                          height: '100%',
+                          background: 'white'
+                        }"
+                      >
+                        <div
+                          style="
+                            position: absolute;
+                            top: 15px;
+                            right: 15px;
+                            z-index: 20;
+                          "
+                        >
+                          <v-btn
+                            prepend-icon="mdi-refresh"
+                            @click="resetsZoom"
+                            class="text-caption"
+                            color="error"
+                            variant="tonal"
+                          >
+                            Reset Zoom
+                          </v-btn>
+                        </div>
+
+                        <!-- Lớp Gerber (Canvas) -->
+                        <canvas
+                          ref="gerberCanvas"
+                          style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"
+                          :style="layerTransformStyle"
+                        ></canvas>
+
+                        <!-- Lớp PnP (SVG Overlay) -->
+                        <svg
+                          ref="svgWrapper"
+                          id="gerber-svg"
+                          class="svg-full-wrapper"
+                          style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"
+                          :style="layerTransformStyle"
+                        >
+                          <g class="pnp-markers-layer"
+                            v-memo="[pnpMarkersArray, allActiveHighlights]"
+                            :transform="pnpGroupFlipTransform"
+                          >
+                            <g 
+                              v-for="marker in pnpMarkersArray" 
+                              :key="marker.designator"
+                              class="pnp-marker"
+                              :data-designator="marker.designator"
+                              :transform="marker.transform"
+                              style="pointer-events: auto;"
+                              @click="handleMarkerClick(marker)"
+                            >
+                              <rect 
+                                class="pnp-highlight-frame"
+                                :x="-marker.rectL / 2" 
+                                :y="-marker.rectW / 2"
+                                :width="marker.rectL" 
+                                :height="marker.rectW" 
+                                fill="rgba(0, 128, 0, 0.4)"
+                                stroke="rgba(0, 128, 0, 1)"
+                                :stroke-width="marker.strokeMain * 0.5"
+                              />
+                               <polygon 
+                                points="0,0 -8, -4 -8, 4" 
+                                fill="#D32F2F" 
+                                :transform="`translate(${marker.anchorSize + 1}, 0) scale(${marker.strokeMain * 0.5})`" 
+                              />
+                              <g class="crosshair-group pnp-crosshair" stroke="#D32F2F" :stroke-width="marker.strokeMain">
+                                <line :x1="-marker.anchorSize" y1="0" :x2="marker.anchorSize" y2="0" />
+                                <line x1="0" :y1="-marker.anchorSize" x2="0" :y2="marker.anchorSize" />
+                              </g>
+                              <text
+                                class="pnp-label"
+                                :x="marker.strokeMain" 
+                                :y="-marker.strokeMain"
+                                :font-size="marker.fontSize" 
+                                fill="blue" 
+                                font-weight="bold"
+                                style="paint-order: stroke; stroke: white; user-select: none;"
+                                :stroke-width="marker.fontSize * 0.1 + 'px'"
+                                :transform="marker.textTransform"
+                              >
+                                {{ marker.designator }}
+                              </text>
+                            </g>
+                          </g>
+                        </svg>
+                      </div>
+                    <v-empty-state
+                      v-else
+                      title="Dữ liệu trống"
+                      text="Chưa có dữ liệu Gerber"
+                      icon="mdi-image-off"
+                      class="mt-10"
+                    />
+                  </v-card-text>
+                </v-col>
+                <v-col cols="5">
+                  <v-data-table-virtual
+                    density="comfortable"
+                    :headers="HeadersPnPGrouped"
+                    :items="combinePnPGerberGrouped"
+                    :search="searchPnPGrouped"
+                    v-model="selectedPnPGrouped"
+                    item-value="id"
+                    class="elevation-0"
+                    :loading="DialogLoading"
+                    loading-text="Đang tải dữ liệu..."
+                    no-data-text="Không có dữ liệu"
+                    no-results-text="Không tìm thấy kết quả"
+                    :hover="true"
+                    :fixed-header="true"
+                    height="56vh"
+                    show-select
+                  >
+                    <template
+                      v-slot:header.data-table-select="{
+                        allSelected,
+                        selectAll,
+                        someSelected,
+                      }"
+                    >
+                      <v-checkbox-btn
+                        :indeterminate="someSelected && !allSelected"
+                        :model-value="allSelected"
+                        color="primary"
+                        @update:model-value="selectAll(!allSelected)"
+                      ></v-checkbox-btn>
+                    </template>
+
+                    <template
+                      v-slot:item.data-table-select="{
+                        internalItem,
+                        isSelected,
+                        toggleSelect,
+                      }"
+                    >
+                      <v-checkbox-btn
+                        :model-value="isSelected(internalItem)"
+                        color="primary"
+                        @update:model-value="toggleSelect(internalItem)"
+                      ></v-checkbox-btn>
+                    </template>
+                    <template v-slot:top>
+                      <v-toolbar
+                        flat
+                        class="d-flex align-center bg-transparent"
+                      >
+                        <InputSearch v-model="searchPnPGrouped" />
+                        <v-spacer></v-spacer>
+                        <v-chip class="ma-2" color="primary" variant="tonal">
+                          Tổng cộng: {{ combinePnPGerberGrouped.length }} loại
+                          MPN
+                        </v-chip>
+                      </v-toolbar>
+                    </template>
+
+                    <template v-slot:item.designators="{ value }">
+                      <div
+                        class="text-caption text-truncate"
+                        style="max-width: 180px"
+                      >
+                        {{ value.join(", ") }}
+                      </div>
+                    </template>
+
+                    <template v-slot:item.coordinates="{ value }">
+                      <div
+                        class="text-caption text-truncate"
+                        style="max-width: 180px"
+                      >
+                        {{ value.join("; ") }}
+                      </div>
+                    </template>
+
+                    <template v-slot:item.id="{ item }">
+                      <v-tooltip text="Hiển thị tất cả" location="top">
+                        <template v-slot:activator="{ props }">
+                          <v-btn
+                            v-bind="props"
+                            size="small"
+                            icon="mdi-image-multiple"
+                            @click="GetZoomGroup(item)"
+                            color="success"
+                            variant="text"
+                          ></v-btn>
+                        </template>
+                      </v-tooltip>
+                    </template>
+                  </v-data-table-virtual>
+                </v-col>
+              </v-row>
+            </v-card>
           </v-tabs-window-item>
         </v-tabs-window>
       </v-card>
@@ -1022,9 +1347,7 @@
       </v-row>
     </div>
 
-    <p class="text-caption text-grey mb-2">
-      2. Điều chỉnh thủ công SVG (mm):
-    </p>
+    <p class="text-caption text-grey mb-2">2. Điều chỉnh thủ công SVG (mm):</p>
 
     <div class="ga-2">
       <v-row>
@@ -1050,7 +1373,6 @@
         </v-col>
       </v-row>
     </div>
-
 
     <p class="text-caption text-grey mb-2">
       3. Điều chỉnh tọa độ thủ công (mm):
@@ -1144,7 +1466,6 @@
       </v-btn>
     </div>
 
-    
     <v-divider class="my-3" />
     <p class="text-caption text-grey mb-2">4. Căn chỉnh thông minh & Tỉ lệ:</p>
 
@@ -1362,7 +1683,9 @@
           :subtitle="`Bề mặt: ${item.layer} | Đơn vị: ${item.unit}`"
         >
           <template v-slot:prepend>
-            <v-icon :color="LAYER_COLORS[item.layer] || 'grey'">mdi-file-outline</v-icon>
+            <v-icon :color="LAYER_COLORS[item.layer] || 'grey'"
+              >mdi-file-outline</v-icon
+            >
           </template>
           <template v-slot:append>
             <v-btn
@@ -1416,7 +1739,6 @@ import CardStatistic from "@/components/Card-Statistic.vue";
 import BaseDialog from "@/components/BaseDialog.vue";
 
 import ExcelJS from "exceljs";
-import svgPanZoom from "svg-pan-zoom";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 //
@@ -1577,11 +1899,20 @@ const titleBomhighlight = ref("");
 // --- Gerber & SVG View States ---
 const overlayMode = ref("both"); // 'both', 'gerber', 'pnp'
 const svgContainer = ref(null);
+const gerberCanvas = ref(null); // Ref Cho Canvas
 const zoomLevel = ref(1);
 const mouseCoords = reactive({ x: 0, y: 0 });
 const svgWrapper = ref(null);
-const panZoomInstance = ref(null);
 const selectedLayer = ref("Top");
+const selectedPnPGerber = ref([]);
+const selectedPnPGrouped = ref([]);
+const temporaryHighlights = ref(new Set());
+
+let _gerberImage = null;       // Image object cache cho Gerber
+let _gerberImageW = 0;          // Kích thước ảnh thực tế (px) sau khi render
+let _gerberImageH = 0;
+let _isGerberImageLoaded = false;
+let _resizeObserver = null;
 
 // --- Coordinate & Transformation States ---
 const coordinateScale = ref(1);
@@ -1626,7 +1957,6 @@ const angle = ref(0);
 const edgeX = ref(0);
 const edgeY = ref(0);
 
-
 // --- DigiKey API States ---
 const GetDigikey = ref("");
 const accessToken = ref(null);
@@ -1670,8 +2000,16 @@ const HeadersPnPGerber = [
   { title: "X (mm)", key: "x", width: "25px" },
   { title: "Y (mm)", key: "y", width: "25px" },
   { title: "Rotation", key: "rotation", width: "25px" },
-  { title: "Length (mm)", key: "length", width: "25px" },
-  { title: "Width (mm)", key: "width", width: "25px" },
+  // { title: "Length (mm)", key: "length", width: "25px" },
+  // { title: "Width (mm)", key: "width", width: "25px" },
+  { title: "Thao tác", key: "id", sortable: false },
+];
+
+const HeadersPnPGrouped = [
+  { title: "MPN", key: "mpn", width: "150px" },
+  { title: "Số lượng", key: "quantity", width: "80px" },
+  { title: "Designator", key: "designators", width: "200px" },
+  // { title: "Tọa độ (X, Y)", key: "coordinates", width: "200px" },
   { title: "Thao tác", key: "id", sortable: false },
 ];
 const searchBom = ref("");
@@ -1680,6 +2018,7 @@ const pageBom = ref(1);
 const searchPCBTopLayer = ref("");
 const searchPCBBottomLayer = ref("");
 const searchPnPGerber = ref("");
+const searchPnPGrouped = ref(""); // New
 const itemPerPCBTopLayer = ref(15);
 const itemPerPCBBottomLayer = ref(15);
 const pagePCBTopLayer = 1;
@@ -1838,19 +2177,7 @@ const currentGerberUnit = computed(() => {
   return "";
 });
 
-const currentSvgContent = computed(() => {
-  let content = "";
-  if (overlayMode.value === "both") {
-    content = svgWithPnP.value;
-  } else if (overlayMode.value === "gerber") {
-    content = currentGerberSvg.value || "";
-  }
-
-  if (!content) return "";
-
-  // Inject ID and Viewport for svg-pan-zoom
-  return prepareSvg(content);
-});
+// Legacy currentSvgContent removed
 
 const combinePnPGerber = computed(() => {
   if (selectedLayer.value === "Top") {
@@ -1883,6 +2210,31 @@ const combinePnPGerber = computed(() => {
   }
 });
 
+const combinePnPGerberGrouped = computed(() => {
+  const baseList = combinePnPGerber.value || [];
+  const groups = {};
+  baseList.forEach((item) => {
+    const key = item.mpn || item.ManufacturerPartNumber || "Unknown";
+    if (!groups[key]) {
+      groups[key] = {
+        mpn: key,
+        quantity: 0,
+        designators: [],
+        items: [],
+        layer: item.layer,
+        id: key, // Use MPN as ID for table
+      };
+    }
+    groups[key].quantity++;
+    groups[key].designators.push(item.designator);
+    groups[key].coordinates = groups[key].coordinates || [];
+    groups[key].coordinates.push(`(${item.x}, ${item.y})`);
+    groups[key].items.push(item);
+  });
+
+  return Object.values(groups);
+});
+
 function getSvgViewBox(svgString) {
   try {
     const parser = new DOMParser();
@@ -1894,7 +2246,16 @@ function getSvgViewBox(svgString) {
     const viewBox = svgEl.getAttribute("viewBox");
     if (!viewBox) return null;
 
-    const [minX, minY, width, height] = viewBox.split(/[\s,]+/).map(Number);
+    const parts = viewBox
+      .split(/[\s,]+/)
+      .filter((s) => s.length > 0)
+      .map(Number);
+    if (parts.length < 4 || parts.some((n) => isNaN(n))) {
+      console.warn("Invalid viewBox format detected:", viewBox);
+      return null;
+    }
+
+    const [minX, minY, width, height] = parts;
 
     return { minX, minY, width, height };
   } catch (e) {
@@ -1919,77 +2280,57 @@ function getComponentTransform(pnp, vb, isBottom, scaleValue) {
 
   if (swapXY.value) [x, y] = [y, x];
 
-  // 🔥 MIRROR X cho bottom (QUAN TRỌNG NHẤT)
-
-
-  let tx =
-    vb.minX +
-    x +
-    Number(coordinateOffsetX.value || 0) * factor;
+  let tx = vb.minX + x + Number(coordinateOffsetX.value || 0) * factor;
 
   let ty =
-    vb.minY +
-    vb.height -
-    y -
-    Number(coordinateOffsetY.value || 0) * factor;
+    vb.minY + vb.height - y - Number(coordinateOffsetY.value || 0) * factor;
 
   return { tx, ty, factor };
 }
 
-// Combine Gerber + Pick&Place overlay
-const svgWithPnP = computed(() => {
-  if (!currentGerberSvg.value || !filteredPnP.value) return "";
-  let svg = currentGerberSvg.value;
+const transformedPnP = computed(() => {
+  return detailPnP.value.map((p) => transform(p)).filter(Boolean);
+});
 
-  const vb = getSvgViewBox(svg);
-  if (!vb) return svg;
+// --- PnP Markers Array for SVG Overlay ---
+const pnpMarkersArray = computed(() => {
+  if (!currentGerberSvg.value || !filteredPnP.value) return [];
+  
+  const vb = getSvgViewBox(currentGerberSvg.value);
+  if (!vb) return [];
 
   const isBottom = String(selectedLayer.value || "")
     .toLowerCase()
     .includes("bottom");
 
-  // ===== OFFSET (mm) =====
   const OFFSET_X = manualOffsetGerberX.value;
   const OFFSET_Y = manualOffsetGerberY.value;
 
-  const pnpMarkers = filteredPnP.value
+  return filteredPnP.value
     .filter((p) => p.x != null && p.y != null && p.designator)
     .map((pnp) => {
-      // ===== Transform (đã bao gồm mirror nếu bottom) =====
       const { tx, ty, factor } = getComponentTransform(
         pnp,
         vb,
         isBottom,
-        coordinateScale.value
+        coordinateScale.value,
       );
 
-      // ===== Rotation =====
       const pnpRot = Number(pnp.rotation || pnp.rot || 0);
       const uiRot = Number(coordinateRotation.value || 0);
 
       let displayRotation;
-
       if (isBottom) {
-        // 🔥 FIX: mirror rotation đúng bản chất
-        displayRotation = (180 - pnpRot - uiRot) % 360;
+        // Khi group đã flip-X, chỉ cần negate pnpRot để hướng đúng
+        displayRotation = (pnpRot + uiRot) % 360;
       } else {
         displayRotation = (180 - pnpRot + uiRot) % 360;
       }
-
       if (displayRotation < 0) displayRotation += 360;
 
-      // ===== Base position =====
-      let finalTx = tx;
-      let finalTy = ty;
+      let finalTx = tx + (OFFSET_X * factor);
+      let finalTy = ty + (OFFSET_Y * factor);
 
-      // ===== OFFSET (QUAN TRỌNG: KHÔNG đảo dấu nữa) =====
-      const offsetXApplied = OFFSET_X * factor;
-      const offsetYApplied = OFFSET_Y * factor;
-
-      finalTx += offsetXApplied;
-      finalTy += offsetYApplied;
-
-      // ===== Kích thước =====
       let rectW = (pnp.width || 0) * factor;
       let rectL = (pnp.length || 0) * factor;
       if (swapXY.value) [rectW, rectL] = [rectL, rectW];
@@ -1997,129 +2338,57 @@ const svgWithPnP = computed(() => {
       const strokeMain = factor * 0.1;
       const anchorSize = Math.max(rectW, rectL) / 2 + factor * 0.5;
       const fontSize = factor * 0.2;
+      // textFlip được xử lý bởi pnpGroupFlipTransform ở SVG group level
+      // Không cần scale(-1,1) riêng lẻ trên từng text
 
-      // ===== Arrow =====
-      const arrowSize = factor * 0.1;
-      const arrowOffset = anchorSize + factor * 0.1;
-
-      const arrowMarkup = `
-        <polygon 
-          points="0,0 -${arrowSize},${-arrowSize / 2} -${arrowSize},${
-        arrowSize / 2
-      }" 
-          fill="#D32F2F" 
-          transform="translate(${arrowOffset}, 0)" 
-        />`;
-
-      // ===== Component box =====
-      const componentMarkup =
-        rectW > 0 && rectL > 0 && showComponentBoxes.value
-          ? `<rect 
-              x="${-rectL / 2}" 
-              y="${-rectW / 2}" 
-              width="${rectL}" 
-              height="${rectW}" 
-              fill="rgba(255, 179, 0, 0.2)" 
-              stroke="#E65100" 
-              stroke-width="${factor * 0.05}"
-              rx="${factor * 0.1}"
-            />`
-          : "";
-
-      // ===== Text flip (mirror chữ cho bottom) =====
-      const textFlip = isBottom ? "scale(-1, 1)" : "";
-
-      return `
-        <g 
-          transform="translate(${finalTx}, ${finalTy}) rotate(${displayRotation})"
-          class="pnp-marker"
-          data-designator="${pnp.designator}"
-        >
-          ${componentMarkup}
-          ${arrowMarkup}
-
-          <g 
-            class="crosshair-group" 
-            stroke="#D32F2F" 
-            stroke-width="${strokeMain}"
-          >
-            <line x1="-${anchorSize}" y1="0" x2="${anchorSize}" y2="0" />
-            <line x1="0" y1="-${anchorSize}" x2="0" y2="${anchorSize}" />
-          </g>
-          
-          <text
-            x="${factor * 0.1}" 
-            y="${-factor * 0.1}"
-            font-size="${fontSize}" 
-            fill="blue" 
-            font-weight="bold"
-            style="
-              paint-order: stroke; 
-              stroke: white; 
-              stroke-width: ${fontSize * 0.1}px; 
-              user-select: none;
-            "
-            transform="${textFlip} rotate(${-displayRotation})"
-          >
-            ${pnp.designator}
-          </text>
-        </g>`;
-    })
-    .join("");
-
-  return svg
-    .replace("<svg", `<svg style="background: #FFFFFF;"`)
-    .replace("</svg>", `<g id="pnp-overlay">${pnpMarkers}</g></svg>`);
-});
-const PCBTopLayer = computed(() => {
-  return combineBom.value.filter(
-    (item) =>
-      item.layer === "Top" ||
-      item.layer === "TopLayer" ||
-      item.layer === "TOP" ||
-      item.layer === "TOPLAYER",
-  );
+      return {
+        id: pnp.id,
+        designator: pnp.designator,
+        transform: `translate(${finalTx}, ${finalTy}) rotate(${displayRotation})`,
+        textTransform: `rotate(${-displayRotation})` + (isBottom ? ` scale(-1, 1)` : ""),
+        rectW,
+        rectL,
+        strokeMain,
+        anchorSize,
+        fontSize
+      };
+    });
 });
 
-const PCBBottomLayer = computed(() => {
-  return combineBom.value.filter(
-    (item) =>
-      item.layer === "Bottom" ||
-      item.layer === "BottomLayer" ||
-      item.layer === "BOTTOM" ||
-      item.layer === "BOTTOMLAYER",
-  );
+const isBottomLayerActive = computed(() => {
+  return String(selectedLayer.value || "").toLowerCase().includes("bottom");
 });
 
-const transformedPnP = computed(() => {
-  return detailPnP.value.map((p) => transform(p)).filter(Boolean);
+const layerTransformStyle = computed(() => {
+  return isBottomLayerActive.value ? { transform: 'scaleX(-1)', transformOrigin: 'center center' } : {};
 });
+
+/**
+ * Transform flip-X cho SVG overlay đã được thay thế bằng CSS `layerTransformStyle`.
+ */
+const pnpGroupFlipTransform = computed(() => {
+  return "";
+});
+
+const normalizeLayers = (layer) =>
+  String(layer || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "");
 
 const resultTop = computed(() =>
   transformedPnP.value.filter(
     (p) =>
-      p.layer === "top" ||
-      p.layer === "toplayer" ||
-      p.layer === "TOPLAYER" ||
-      p.layer === "TOP" ||
-      p.layer === "Top" ||
-      p.layer === "TopLayer" ||
-      p.layer === "TOPLAYER" ||
-      p.layer === "TOP",
+      normalizeLayers(p.layer) === "toplayer" ||
+      normalizeLayers(p.layer) === "top",
   ),
 );
 
 const resultBottom = computed(() =>
   transformedPnP.value.filter(
     (p) =>
-      p.layer === "bottom" ||
-      p.layer === "bottomlayer" ||
-      p.layer === "BOTTOMLAYER" ||
-      p.layer === "BOTTOM" ||
-      p.layer === "Bottom" ||
-      p.layer === "BottomLayer" ||
-      p.layer === "BOTTOMLAYER" ||
-      p.layer === "BOTTOM",
+      normalizeLayers(p.layer) === "bottomlayer" ||
+      normalizeLayers(p.layer) === "bottom",
   ),
 );
 // ==========================================
@@ -2140,7 +2409,7 @@ watch(
   () => document.fullscreenElement,
   () => {
     if (!document.fullscreenElement) {
-      resetZoom();
+      resetsZoom();
     }
   },
 );
@@ -2150,7 +2419,7 @@ watch(
   svgContainer,
   () => {
     if (svgContainer.value) {
-      resetZoom();
+      resetsZoom();
     }
   },
   { immediate: true },
@@ -2170,10 +2439,7 @@ watch(FileGerber, (val) => {
   });
 });
 
-watch(currentSvgContent, async () => {
-  await nextTick();
-  initPanZoom();
-});
+// Watch currentSvgContent is legacy, no longer needed with Canvas architecture
 
 watch(detailSetting, (val) => {
   if (!val.length) return;
@@ -2366,7 +2632,6 @@ const SaveAddSize = async () => {
       DialogSuccess.value = true;
       MessageDialog.value = "Thêm dữ liệu thành công";
     } catch (error) {
-      console.log(error);
       DialogLoading.value = false;
       DialogAddSize.value = false;
       DialogFailed.value = true;
@@ -2674,13 +2939,13 @@ function transform(p) {
 
       case 90:
         x2 = -(y + edgeYv);
-        y2 = W-xm; // = x
+        y2 = W - xm; // = x
         r2 = normalizeRotation(r - angle.value);
         break;
 
       case 180:
-        x2 = (edgeXv + xm); // = x
-        y2 = H-(y + edgeYv);
+        x2 = edgeXv + xm; // = x
+        y2 = H - (y + edgeYv);
         r2 = normalizeRotation(r - angle.value);
         break;
     }
@@ -2845,7 +3110,6 @@ const DownloadPCB = () => {
     X: item.x,
     Y: item.y,
     Rotation: item.rotation,
-
   }));
 
   const wsTop = XLSX.utils.json_to_sheet(topData);
@@ -3159,7 +3423,7 @@ const resetCoordinates = () => {
   coordinateOffsetX.value = 0;
   coordinateOffsetY.value = 0;
   coordinateRotation.value = 0;
-  resetPanAndZoom();
+  resetsZoom();
 };
 
 /**
@@ -3259,7 +3523,7 @@ const handleMouseMoveSVG = (event) => {
 let _cachedSvgEl = null;
 function getCachedSvgEl() {
   if (!_cachedSvgEl || !_cachedSvgEl.isConnected) {
-    _cachedSvgEl = svgWrapper.value?.querySelector("svg") ?? null;
+    _cachedSvgEl = svgWrapper.value;
   }
   return _cachedSvgEl;
 }
@@ -3304,7 +3568,10 @@ function handleWheelZoom(event) {
 
   // Chuyển vị trí con trỏ sang tọa độ SVG viewBox (dùng cached rect)
   const rect = getCachedRect(svgEl);
-  const ratioX = (event.clientX - rect.left) / rect.width;
+  let ratioX = (event.clientX - rect.left) / rect.width;
+  if (isBottomLayerActive.value) {
+    ratioX = 1 - ratioX;
+  }
   const ratioY = (event.clientY - rect.top) / rect.height;
 
   // Tính tọa độ SVG tại vị trí con trỏ TRƯỚC khi zoom
@@ -3316,6 +3583,11 @@ function handleWheelZoom(event) {
   _currentViewBox.y = svgCursorY - ratioY * newH;
   _currentViewBox.w = newW;
   _currentViewBox.h = newH;
+
+  // Cập nhật zoomLevel ref để trigger LOD CSS
+  if (baseViewBox.value.w > 0) {
+    zoomLevel.value = baseViewBox.value.w / newW;
+  }
 
   applyViewBox();
 }
@@ -3355,8 +3627,9 @@ function handleDragMove(event) {
     const scaleX = _dragStartVB.w / _dragRect.width;
     const scaleY = _dragStartVB.h / _dragRect.height;
 
-    const dx = (event.clientX - _dragStartX) * scaleX;
-    const dy = (event.clientY - _dragStartY) * scaleY;
+    let dxScreen = (event.clientX - _dragStartX) * scaleX;
+    let dx = isBottomLayerActive.value ? -dxScreen : dxScreen;
+    let dy = (event.clientY - _dragStartY) * scaleY;
 
     _currentViewBox.x = _dragStartVB.x - dx;
     _currentViewBox.y = _dragStartVB.y - dy;
@@ -3372,71 +3645,7 @@ function handleDragEnd() {
   _mouseMoveRAF = null;
 }
 
-/** Đặt lại pan và zoom SVG về trạng thái fit-center ban đầu */
-const resetPanAndZoom = () => {
-  if (panZoomInstance.value) {
-    panZoomInstance.value.reset();
-    panZoomInstance.value.fit();
-    panZoomInstance.value.center();
-  }
-  zoomLevel.value = 1;
-};
-
-/** Alias để đặt lại zoom (dùng trong event handlers) */
-const resetZoom = () => {
-  resetPanAndZoom();
-};
-
-/**
- * Chuẩn bị chuỗi SVG: thêm id="gerber-svg" và class="viewport" nếu chưa có
- * Cần thiết để thư viện svg-pan-zoom hoạt động đúng
- * @param {string} svgString - Nội dung SVG gốc
- * @returns {string} SVG đã được chỉnh sửa
- */
-function prepareSvg(svgString) {
-  if (!svgString) return "";
-  let svg = svgString;
-  if (!svg.includes('id="gerber-svg"')) {
-    svg = svg.replace("<svg", '<svg id="gerber-svg"');
-  }
-  if (!svg.includes('class="viewport"')) {
-    svg = svg.replace(/<svg[^>]*>/, (match) => {
-      return match + '<g class="viewport">';
-    });
-    svg = svg.replace("</svg>", "</g></svg>");
-  }
-  return svg;
-}
-
-/**
- * Khởi tạo svg-pan-zoom cho viewer Gerber
- * Hủy instance cũ trước khi tạo mới để tránh memory leak
- */
-function initPanZoom() {
-  nextTick(() => {
-    const svgElement = document.getElementById("gerber-svg");
-    if (!svgElement) return;
-    if (panZoomInstance.value) {
-      panZoomInstance.value.destroy();
-    }
-
-    panZoomInstance.value = svgPanZoom(svgElement, {
-      zoomEnabled: false, // Tắt zoom của lib – dùng hệ thống viewBox thủ công
-      panEnabled: false, // Tắt pan của lib – dùng drag handler thủ công
-      controlIconsEnabled: false,
-      fit: true,
-      center: true,
-      minZoom: 0.1,
-      maxZoom: 50,
-      mouseWheelZoomEnabled: false, // Quan trọng: tắt để tránh conflict với handleWheelZoom
-      preventMouseEventsDefault: false,
-      viewportSelector: ".viewport",
-      onZoom: (scale) => {
-        zoomLevel.value = scale;
-      },
-    });
-  });
-}
+// Legacy svgPanZoom functions removed
 
 // ==========================================
 // 7.8 DIGIKEY API
@@ -3548,47 +3757,230 @@ const getColor = (status) => {
 // 9. SVG ZOOM & COMPONENT NAVIGATION
 // ==========================================
 
-// Theo dõi khi SVG thay đổi để khởi tạo baseViewBox ban đầu
+/**
+ * Khởi tạo Gerber Viewer: parse viewBox, setup Canvas, fit view, load image.
+ * Gọi khi SVG data thay đổi HOẶC khi user chuyển sang tab chứa viewer.
+ */
+function initGerberViewer(svgString) {
+  if (!svgString) return;
+  _cachedSvgEl = null;
+  _cachedRect = null;
+
+  const vb = getSvgViewBox(svgString);
+  if (!vb) return;
+
+  baseViewBox.value = {
+    x: vb.minX,
+    y: vb.minY,
+    w: vb.width,
+    h: vb.height,
+  };
+
+  setupSvgStaticAttributes();
+
+  const container = svgContainer.value;
+  const rect = container ? container.getBoundingClientRect() : null;
+
+  // Luôn bắt đầu với Fit-to-Board (viewport = toàn bộ board)
+  // KHÔNG dùng Zoom-1 (px = SVG unit) vì Gerber SVG không dùng hệ đơn vị pixel
+  _currentViewBox.x = vb.minX;
+  _currentViewBox.y = vb.minY;
+  _currentViewBox.w = vb.width;
+  _currentViewBox.h = vb.height;
+
+  currentViewBox.value = { ..._currentViewBox };
+
+  prepareGerberImage(svgString);
+  applyViewBox();
+  initResizeObserver();
+}
+
+// Theo dõi khi SVG data thay đổi
 watch(
-  () => svgWithPnP.value,
+  () => currentGerberSvg.value,
   (newSvg) => {
     if (!newSvg) return;
-    // Invalidate cache khi SVG thay đổi
-    _cachedSvgEl = null;
-    _cachedRect = null;
+    // nextTick để đảm bảo DOM đã render (nếu tab đang active)
     nextTick(() => {
-      const vb = getSvgViewBox(newSvg);
-      if (vb) {
-        baseViewBox.value = {
-          x: vb.minX,
-          y: vb.minY,
-          w: vb.width,
-          h: vb.height,
-        };
-        // Đồng bộ cả 2: plain object (hot path) và ref (template binding)
-        _currentViewBox.x = vb.minX;
-        _currentViewBox.y = vb.minY;
-        _currentViewBox.w = vb.width;
-        _currentViewBox.h = vb.height;
-        currentViewBox.value = { ..._currentViewBox };
-        applyViewBox();
+      if (svgContainer.value) {
+        // Tab Gerber đang active → init luôn
+        initGerberViewer(newSvg);
       }
+      // Nếu container chưa có (user đang ở tab khác),
+      // watch(tab) bên dưới sẽ gọi initGerberViewer khi user chuyển sang
     });
   },
 );
+
+// Theo dõi khi user chuyển sang tab Gerber hoặc Check MPN
+// để khởi tạo viewer nếu data đã sẵn sàng nhưng DOM mới vừa mount
+watch(tab, (newTab) => {
+  if ((newTab === 2 || newTab === 4) && currentGerberSvg.value) {
+    // Đợi DOM của tab window item render xong
+    nextTick(() => {
+      initGerberViewer(currentGerberSvg.value);
+    });
+  }
+});
+
+/**
+ * Theo dõi kích thước container để cập nhật độ phân giải Canvas
+ */
+function initResizeObserver() {
+  if (_resizeObserver) _resizeObserver.disconnect();
+  const container = svgContainer.value;
+  if (!container) return;
+
+  _resizeObserver = new ResizeObserver(() => {
+    setupSvgStaticAttributes();
+    drawGerberOnCanvas();
+  });
+  _resizeObserver.observe(container);
+}
 
 /**
  * Áp dụng _currentViewBox lên SVG DOM trực tiếp (không throttle, không Vue)
  * Dùng cho animation để không bị drop frame
  */
+/**
+ * Áp dụng _currentViewBox lên SVG và Canvas trực tiếp
+ */
 function applyViewBoxDirect() {
   const svgEl = getCachedSvgEl();
-  if (!svgEl) return;
+  const canvasEl = gerberCanvas.value;
+  if (!svgEl || !canvasEl) return;
+
   const { x, y, w, h } = _currentViewBox;
+  if (isNaN(x) || isNaN(y) || isNaN(w) || isNaN(h)) return;
+
+  // 1. Cập nhật viewBox cho SVG (Markers)
   svgEl.setAttribute("viewBox", `${x} ${y} ${w} ${h}`);
-  svgEl.style.width = "100%";
-  svgEl.style.height = "100%";
-  svgEl.setAttribute("preserveAspectRatio", "xMidYMid meet");
+
+  // 2. Vẽ lại Canvas (Gerber)
+  drawGerberOnCanvas();
+}
+
+/**
+ * Vẽ ảnh Gerber đã cache lên Canvas dựa trên _currentViewBox
+ */
+function drawGerberOnCanvas() {
+  const canvas = gerberCanvas.value;
+  if (!canvas || !_gerberImage || !_isGerberImageLoaded) return;
+
+  const bvb = baseViewBox.value;
+  const cvb = _currentViewBox;
+  if (!bvb || bvb.w === 0 || bvb.h === 0 || cvb.w === 0 || cvb.h === 0) return;
+  if (!_gerberImageW || !_gerberImageH) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = canvas.width / dpr;
+  const cssH = canvas.height / dpr;
+
+  const ctx = canvas.getContext("2d");
+
+  // Reset về physical px để clear đúng toàn bộ canvas
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // Scale DPR để draw trong CSS coordinate space (sắc nét trên màn Retina)
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // Map currentViewBox (SVG units) → source region trong image pixels
+  // Chuẩn hóa qua baseViewBox để không phụ thuộc vào đơn vị SVG (mils/mm/...)
+  const srcX = ((cvb.x - bvb.x) / bvb.w) * _gerberImageW;
+  const srcY = ((cvb.y - bvb.y) / bvb.h) * _gerberImageH;
+  const srcW = (cvb.w / bvb.w) * _gerberImageW;
+  const srcH = (cvb.h / bvb.h) * _gerberImageH;
+
+  // Lớp vẽ Gerber lên canvas. Viewport đã được chuẩn hóa bởi `cvb`.
+  // Flip-X cho mặt Bottom đã được xử lý bằng CSS via `layerTransformStyle`.
+
+  ctx.drawImage(_gerberImage, srcX, srcY, srcW, srcH, 0, 0, cssW, cssH);
+}
+
+/**
+ * Chuyển đổi SVG String sang Image object để cache
+ */
+function prepareGerberImage(svgString) {
+  if (!svgString) {
+    _gerberImage = null;
+    _gerberImageW = 0;
+    _gerberImageH = 0;
+    _isGerberImageLoaded = false;
+    return;
+  }
+
+  let processedSvg = svgString;
+  if (!processedSvg.includes("http://www.w3.org/2000/svg")) {
+    processedSvg = processedSvg.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+  }
+
+  // Dùng kích thước cố định hợp lý (MAX 4096px) thay vì viewBox width/height
+  // Tránh browser từ chối render ảnh quá lớn (vd: Gerber mils = 100000px)
+  const vb = getSvgViewBox(processedSvg);
+  if (vb && vb.width > 0 && vb.height > 0) {
+    const MAX_DIM = 4096;
+    const aspect = vb.width / vb.height;
+    const imgW = aspect >= 1 ? MAX_DIM : Math.round(MAX_DIM * aspect);
+    const imgH = aspect >= 1 ? Math.round(MAX_DIM / aspect) : MAX_DIM;
+    _gerberImageW = imgW;
+    _gerberImageH = imgH;
+    // Ghi đè width/height tường minh (loại bỏ giá trị cũ nếu có)
+    processedSvg = processedSvg.replace(/<svg([^>]*)>/, (match, attrs) => {
+      const cleaned = attrs
+        .replace(/\s+width="[^"]*"/g, '')
+        .replace(/\s+height="[^"]*"/g, '');
+      return `<svg${cleaned} width="${imgW}" height="${imgH}">`;
+    });
+  }
+
+  _isGerberImageLoaded = false;
+  const img = new Image();
+  const svgBlob = new Blob([processedSvg], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(svgBlob);
+
+  img.onload = () => {
+    _gerberImage = img;
+    _isGerberImageLoaded = true;
+    URL.revokeObjectURL(url);
+    drawGerberOnCanvas();
+  };
+  img.onerror = (err) => {
+    console.error("Lỗi khi load Gerber Image sang Canvas:", err);
+    URL.revokeObjectURL(url);
+    _isGerberImageLoaded = false;
+    _gerberImageW = 0;
+    _gerberImageH = 0;
+  };
+  img.src = url;
+}
+
+/**
+ * Thiết lập các thuộc tính tĩnh cho SVG một lần duy nhất
+ */
+function setupSvgStaticAttributes() {
+  const svgEl = getCachedSvgEl();
+  if (svgEl) {
+    svgEl.style.width = "100%";
+    svgEl.style.height = "100%";
+    svgEl.setAttribute("preserveAspectRatio", "none");
+    // Dùng 'none' để canvas và SVG overlay dùng cùng scale X/Y
+    // Nếu dùng 'xMidYMid meet': SVG letterbox nhưng canvas stretch → lệch không đều!
+  }
+
+  const canvas = gerberCanvas.value;
+  const container = svgContainer.value;
+  if (canvas && container) {
+    const rect = container.getBoundingClientRect();
+    if (rect.width === 0) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    // KHÔNG setTransform ở đây — drawGerberOnCanvas tự xử lý DPR
+    // Tránh conflict giữa ctx transform cũ và drawImage coords mới
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = true; // Cho Gerber SVG scale mượt
+  }
 }
 
 /**
@@ -3649,6 +4041,11 @@ function animateViewBox(toX, toY, toW, toH, duration) {
       _currentViewBox.w = startW + (toW - startW) * e;
       _currentViewBox.h = startH + (toH - startH) * e;
 
+      // Cập nhật zoom-level để trigger LOD CSS
+      if (baseViewBox.value.w > 0) {
+        zoomLevel.value = baseViewBox.value.w / _currentViewBox.w;
+      }
+
       applyViewBoxDirect(); // Thao tác DOM trực tiếp, không qua Vue
 
       if (t < 1) requestAnimationFrame(frame);
@@ -3665,32 +4062,85 @@ function animateViewBox(toX, toY, toW, toH, duration) {
  */
 let highlightTimer = null;
 function highlightComponent(designator) {
-  if (!svgWrapper.value) return;
+  highlightComponents([designator]);
+}
 
-  // 1. Xóa tất cả highlight cũ và timer cũ
+/**
+ * Hiệu ứng highlight cho danh sách linh kiện trên viewer
+ * @param {string[]} designators - Danh sách mã designator
+ */
+function highlightComponents(designators) {
+  // Cập nhật temporaryHighlights để watcher tự động kích hoạt applySelectionHighlights
+  temporaryHighlights.value = new Set(designators);
+
+  // Xóa timer cũ nếu có
   if (highlightTimer) {
     clearTimeout(highlightTimer);
     highlightTimer = null;
   }
 
-  const allMarkers = svgWrapper.value.querySelectorAll(".pnp-marker");
-  allMarkers.forEach((el) => el.classList.remove("highlighted-pnp"));
-
-  // 2. Tìm marker của linh kiện hiện tại dựa trên attribute data-designator
-  const marker = svgWrapper.value.querySelector(
-    `.pnp-marker[data-designator="${designator}"]`,
-  );
-
-  if (marker) {
-    marker.classList.add("highlighted-pnp");
-
-    // 3. Tự động xóa highlight sau 2 giây để người dùng kịp quan sát
-    highlightTimer = setTimeout(() => {
-      marker.classList.remove("highlighted-pnp");
-      highlightTimer = null;
-    }, 2000);
-  }
+  // Tự động xóa highlight tạm thời sau 3 giây
+  highlightTimer = setTimeout(() => {
+    temporaryHighlights.value = new Set();
+    highlightTimer = null;
+  }, 3000);
 }
+
+/**
+ * Tổng hợp tất cả các designator cần highlight (từ selection + temporary)
+ */
+const allActiveHighlights = computed(() => {
+  const highlights = new Set();
+
+  // 1. Phác thảo từ selection bảng individual
+  selectedPnPGerber.value.forEach((id) => {
+    const item = combinePnPGerber.value.find((i) => i.id === id);
+    if (item && item.designator) highlights.add(item.designator);
+  });
+
+  // 2. Phác thảo từ selection bảng grouped
+  selectedPnPGrouped.value.forEach((groupId) => {
+    const group = combinePnPGerberGrouped.value.find((g) => g.id === groupId);
+    if (group && group.designators) {
+      group.designators.forEach((d) => highlights.add(d));
+    }
+  });
+
+  // 3. Phác thảo từ temporary highlights (zoom/search)
+  temporaryHighlights.value.forEach((d) => highlights.add(d));
+
+  return highlights;
+});
+
+/**
+ * Áp dụng class highlight vào DOM SVG một cách trực tiếp để tối ưu hiệu năng
+ */
+function applySelectionHighlights() {
+  if (!svgWrapper.value) return;
+
+  const markers = svgWrapper.value.querySelectorAll(".pnp-marker");
+  const activeSet = allActiveHighlights.value;
+
+  markers.forEach((marker) => {
+    const designator = marker.getAttribute("data-designator");
+    if (activeSet.has(designator)) {
+      marker.classList.add("highlighted-pnp");
+    } else {
+      marker.classList.remove("highlighted-pnp");
+    }
+  });
+}
+
+// Watchers để cập nhật highlight
+watch(allActiveHighlights, () => {
+  applySelectionHighlights();
+});
+
+watch(pnpMarkersArray, () => {
+  nextTick(() => {
+    applySelectionHighlights();
+  });
+});
 
 /**
  * Zoom SVG đến vị trí linh kiện theo ID và highlight linh kiện đó
@@ -3698,7 +4148,22 @@ function highlightComponent(designator) {
  */
 async function GetZoomPnP(componentId) {
   const pnp = filteredPnP.value?.find((p) => p.id === componentId);
-  if (!pnp || !baseViewBox.value || baseViewBox.value.w === 0) return;
+  if (
+    !pnp ||
+    !baseViewBox.value ||
+    isNaN(baseViewBox.value.w) ||
+    baseViewBox.value.w === 0
+  )
+    return;
+
+  // Kiểm tra tọa độ pnp có hợp lệ không
+  if (isNaN(Number(pnp.x)) || isNaN(Number(pnp.y))) {
+    console.warn("Linh kiện có tọa độ không hợp lệ:", pnp.designator, {
+      x: pnp.x,
+      y: pnp.y,
+    });
+    return;
+  }
 
   // ViewBox hiện tại của board
   const vb = {
@@ -3721,30 +4186,89 @@ async function GetZoomPnP(componentId) {
   );
 
   // 2. Đồng bộ OFFSET (phải khớp với svgWithPnP dùng manualOffsetGerberX/Y)
-  const OFF_X = -manualOffsetGerberX.value;
-  const OFF_Y = -manualOffsetGerberY.value;
+  const OFFSET_X = manualOffsetGerberX.value;
+  const OFFSET_Y = manualOffsetGerberY.value;
 
-  const offsetXApplied = (isBottom ? -OFF_X : OFF_X) * factor;
-  const offsetYApplied = OFF_Y * factor;
-
-  tx += offsetXApplied;
-  ty += offsetYApplied;
+  tx += OFFSET_X * factor;
+  ty += OFFSET_Y * factor;
 
   // 3. Thực hiện Zoom đến điểm (tx, ty) đã tính toán
   // ZOOM_IN_LEVEL ví dụ là 8 hoặc 10 tùy độ soi kỹ
-  await zoomToSvgPoint(tx, ty, 10);
+  await zoomToSvgPoint(tx, ty, 3);
   highlightComponent(pnp.designator);
+}
+
+/**
+ * Zoom đến nhóm linh kiện (cùng MPN)
+ * @param {Object} group - Đối tượng nhóm từ combinePnPGerberGrouped
+ */
+async function GetZoomGroup(group) {
+  if (!group || !group.items || group.items.length === 0) return;
+  if (!baseViewBox.value || baseViewBox.value.w === 0) return;
+
+  const vb = {
+    minX: baseViewBox.value.x,
+    minY: baseViewBox.value.y,
+    width: baseViewBox.value.w,
+    height: baseViewBox.value.h,
+  };
+
+  const isBottom = String(selectedLayer.value || "")
+    .toLowerCase()
+    .includes("bottom");
+
+  let minX = Infinity,
+    maxX = -Infinity,
+    minY = Infinity,
+    maxY = -Infinity;
+
+  group.items.forEach((item) => {
+    let { tx, ty, factor } = getComponentTransform(
+      item,
+      vb,
+      isBottom,
+      coordinateScale.value,
+    );
+
+    const OFFSET_X = manualOffsetGerberX.value;
+    const OFFSET_Y = manualOffsetGerberY.value;
+
+    tx += OFFSET_X * factor;
+    ty += OFFSET_Y * factor;
+
+    if (tx < minX) minX = tx;
+    if (tx > maxX) maxX = tx;
+    if (ty < minY) minY = ty;
+    if (ty > maxY) maxY = ty;
+  });
+
+  // Tính toán vùng bao (bounding box) với lề (margin)
+  const width = maxX - minX;
+  const height = maxY - minY;
+  const margin = Math.max(width, height, 50) * 0.3; // 30% margin
+
+  const targetW = Math.max(width + margin * 2, baseViewBox.value.w / 10);
+  const targetH = Math.max(height + margin * 2, baseViewBox.value.h / 10);
+  const targetX = minX + width / 2 - targetW / 2;
+  const targetY = minY + height / 2 - targetH / 2;
+
+  await animateViewBox(targetX, targetY, targetW, targetH, 500);
+  highlightComponents(group.designators);
 }
 /**
  * Đặt lại zoom về toàn bộ board với animation mượt mà
  * Xóa tất cả highlight khi reset
  */
+/**
+ * Đặt lại zoom về trạng thái mặc định (Zoom 1.0)
+ * Nếu đã đang ở Zoom 1.0, thực hiện Fit to Screen
+ */
 async function resetsZoom() {
   if (!baseViewBox.value || baseViewBox.value.w === 0) return;
-  const { x, y, w, h } = baseViewBox.value;
-  // Cập nhật _currentViewBox trước khi animate để đừng điểm xuất phát chính xác
-  // (do animation bắt đầu từ _currentViewBox)
-  await animateViewBox(x, y, w, h, 500);
+  const vb = baseViewBox.value;
+  // Luôn về Fit-to-Board (toàn bộ board)
+  // Không dùng 'Zoom 1.0 = CSS px' vì viewBox là SVG units, không phải pixels
+  await animateViewBox(vb.x, vb.y, vb.w, vb.h, 350);
 }
 
 /**
@@ -3763,13 +4287,24 @@ function navigatePnP(direction) {
       (currentIndex.value - 1 + combinePnPGerber.value.length) %
       combinePnPGerber.value.length;
   }
-
+  
   const targetItem = combinePnPGerber.value[currentIndex.value];
   if (targetItem) {
-    // Gọi hàm zoom hiện tại của bạn
     GetZoomPnP(targetItem.id);
-    // Kích hoạt hiệu ứng highlight (hàm đã viết ở các bước trước)
     highlightComponent(targetItem.designator);
+  }
+}
+
+/**
+ * Xử lý click vào marker trên viewer
+ */
+function handleMarkerClick(marker) {
+  // Đồng bộ index và highlight
+  currentIndex.value = combinePnPGerber.value.findIndex(item => item.id === marker.id);
+  highlightComponent(marker.designator);
+  // Zoom nhẹ vào linh kiện nếu chưa zoom
+  if (zoomLevel.value < 4) {
+    GetZoomPnP(marker.id);
   }
 }
 
@@ -3805,7 +4340,7 @@ export default {
 .gerber-container {
   width: 100%;
   height: 100%;
-  background: #f9f9f9;
+  background: white;
 }
 
 .gerber-overlay-container {
@@ -3838,9 +4373,11 @@ export default {
   height: 100% !important;
   display: block;
   color: inherit;
-  /* crispEdges cải thiện hiệu năng khi có rất nhiều đường thẳng – phù hợp Gerber */
-  shape-rendering: crispEdges;
+  /* optimizeSpeed giúp render nhanh hơn khi có hàng nghìn paths */
+  shape-rendering: optimizeSpeed;
   text-rendering: optimizeSpeed;
+  /* Hardware acceleration */
+  will-change: viewBox;
 }
 
 .gerber-status-bar {
@@ -3982,6 +4519,34 @@ export default {
   opacity: 0.9;
 }
 
+/* Level of Detail (LOD) optimizations */
+
+/* Khi zoom < 2: Ẩn text và arrow để giảm gánh nặng render */
+.gerber-svg-container-full[data-zoom-low="true"] :deep(.pnp-label),
+.gerber-svg-container-full[data-zoom-low="true"] :deep(polygon) {
+  display: none !important;
+}
+
+/* Khi zoom < 2: Đơn giản hóa crosshair */
+.gerber-svg-container-full[data-zoom-low="true"] :deep(.pnp-crosshair line) {
+  stroke-width: 0.5px;
+  stroke: #ff5252;
+}
+
+/* Layering optimization */
+.gerber-svg-container-full :deep(svg) {
+  contain: paint layout;
+}
+
+/* Disable expensive filters during dragging */
+.gerber-svg-container-full.is-dragging :deep(.pnp-marker) {
+  pointer-events: none !important;
+}
+
+.gerber-svg-container-full.is-dragging :deep(.pnp-marker:hover) {
+  filter: none !important;
+}
+
 /* Coordinate row hover effect */
 .coordinate-row:hover {
   background-color: #f5f5f5;
@@ -4118,35 +4683,30 @@ export default {
 
 /* Class highlights linh kiện khi focus */
 :deep(.pnp-marker.highlighted-pnp) {
-  filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.9));
-  z-index: 999 !important;
+  filter: drop-shadow(0 0 15px green);
+  z-index: 9999 !important;
 }
 
-:deep(.pnp-marker.highlighted-pnp rect) {
-  fill: rgba(0, 255, 255, 0.4) !important;
-  stroke: #00b8d4 !important;
-  stroke-width: 3px !important;
-  animation: pulse-highlight 0.5s ease-in-out infinite;
+:deep(.pnp-marker.highlighted-pnp .pnp-highlight-frame) {
+  display: block !important;
 }
 
-:deep(.pnp-marker.highlighted-pnp polygon) {
-  fill: #ffd600 !important;
-  stroke: #ff6d00 !important;
-  stroke-width: 1px !important;
+:deep(.pnp-marker.highlighted-pnp .crosshair-group) {
+  stroke: red !important; /* Làm sáng dấu thập trên nền đỏ */
+  stroke-width: 4px !important;
 }
 
 :deep(.pnp-marker.highlighted-pnp line) {
-  stroke: #00e5ff !important;
-  stroke-width: 2px !important;
+  stroke: red !important;
 }
 
 :deep(.pnp-marker.highlighted-pnp text) {
-  fill: #ff3d00 !important;
+  fill: red !important;
   font-weight: 900 !important;
   paint-order: stroke;
-  stroke: #ffffff;
-  stroke-width: 5px;
-  font-size: 1.1em !important;
+  stroke: red;
+  stroke-width: 8px;
+  font-size: 1.3em !important;
 }
 
 .altium-style text {

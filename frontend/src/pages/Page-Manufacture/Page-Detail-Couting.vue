@@ -30,7 +30,7 @@
       <v-card-text>
         <!-- Production Statistics Cards -->
         <v-row class="mb-4">
-          <v-col cols="12" sm="3">
+          <v-col cols="12" sm="4">
             <CardStatistic
               title="Đầu vào"
               :value="totalInput"
@@ -39,7 +39,7 @@
               subtitle="Tổng số lượng đầu vào"
             />
           </v-col>
-          <v-col cols="12" sm="3">
+          <v-col cols="12" sm="4">
             <CardStatistic
               title="Đầu ra"
               :value="totalOutput"
@@ -64,7 +64,32 @@
               </template>
             </CardStatistic>
           </v-col>
-          <v-col cols="12" sm="3">
+          <v-col cols="12" sm="4">
+            <CardStatistic
+              title="Còn lại"
+              :value="totalInput - totalOutput"
+              icon="mdi-check-circle"
+              color="warning"
+            >
+              <template #value-append>
+                <div class="text-h6 font-weight-medium text-warning mb-1">
+                  {{ PercentRemaining }}%
+                </div>
+              </template>
+              <template #bottom>
+                <v-progress-linear
+                  v-model="PercentRemaining"
+                  height="8"
+                  color="warning"
+                  rounded
+                  class="mt-4"
+                  bg-color="warning"
+                  bg-opacity="0.2"
+                ></v-progress-linear>
+              </template>
+            </CardStatistic>
+          </v-col>
+          <!-- <v-col cols="12" sm="3">
             <CardStatistic
               title="Lỗi"
               :value="totalErrors"
@@ -113,344 +138,256 @@
                 ></v-progress-linear>
               </template>
             </CardStatistic>
-          </v-col>
+          </v-col> -->
         </v-row>
 
-        <!-- Input Section -->
-        <v-card
-          class="mb-4 rounded-xl border"
-          variant="elevated"
-          elevation="0"
-          v-if="lgAndUp"
-        >
-          <v-card-text>
-            <v-row dense>
-              <v-col cols="12" md="5">
-                <InputField
-                  label="Nhập mã sản phẩm"
-                  v-model="Input"
-                  @keydown.enter="submitBarcode"
-                  ref="barcodeInput"
-                  autofocus
-                  hide-details
-                  variant="outlined"
-                  density="comfortable"
-                />
-              </v-col>
-              <v-col cols="12" md="5">
-                <InputSelect
-                  label="Phân loại lỗi"
-                  :items="[
-                    'Lỗi hàn',
-                    'Lỗi linh kiện',
-                    'Lỗi ngoại quan',
-                    'Lỗi chức năng',
-                    'Lỗi lắp ráp cơ khí',
-                    'Lỗi quy trình / Vận hành',
-                    'Lỗi không xác định',
-                  ]"
-                  multiple
-                  chips
-                  v-model="Group_Fail"
-                  hide-details
-                  variant="outlined"
-                  density="comfortable"
-                  placeholder="Chọn 1 hoặc nhiều loại lỗi"
-                />
-              </v-col>
-              <v-col cols="2">
-                <InputField
-                  label="Số lượng sản phẩm"
-                  type="number"
-                  v-model="Quantity_Add"
-                  hide-details
-                  variant="outlined"
-                  density="comfortable"
-                  placeholder="VD: 5"
-                />
-              </v-col>
-
-              <v-col cols="12" class="mt-4">
-                <InputTextarea
-                  label="Ghi chú lỗi chi tiết"
-                  v-model="ErrorLog"
-                  rows="2"
-                  hint="Mô tả chi tiết lỗi (ví dụ: Vết xước 2cm ở mặt trước)."
-                  variant="outlined"
-                ></InputTextarea>
-              </v-col>
-            </v-row>
-            <ButtonSave
-              @keydown.enter="submitBarcode"
-              @click="submitBarcode"
-              autoforcus
-            />
-          </v-card-text>
-        </v-card>
+        <ButtonAdd @click="DialogAdd = true" />
 
         <!-- Table -->
-        <v-card class="mt-4 rounded-xl border" variant="elevated" elevation="0">
-          <v-card-title class="d-flex align-center">
-            <span class="text-h6" v-if="lgAndUp">Bảng chi tiết sản xuất</span>
-            <!-- Filter Select -->
-            <v-select
-              v-if="lgAndUp"
-              v-model="selectedFilter"
-              :items="filterOptions"
-              item-title="label"
-              item-value="value"
-              label="Lọc theo trạng thái"
-              variant="outlined"
-              density="compact"
-              prepend-inner-icon="mdi-filter"
-              :color="getFilterColor(selectedFilter)"
-              @update:model-value="handleFilterChange"
-              class="ml-3 mt-5"
-              style="min-width: 150px; max-width: 180px"
-            >
-              <template v-slot:item="{ item, props }">
-                <v-list-item v-bind="props">
-                  <template v-slot:prepend>
-                    <v-icon
-                      :icon="item.raw.icon"
-                      :color="getFilterColor(item.raw.value)"
-                      size="small"
-                    ></v-icon>
-                  </template>
-                </v-list-item>
-              </template>
-            </v-select>
-            <v-spacer v-if="lgAndUp"></v-spacer>
-            <InputSearch
-              v-if="lgAndUp"
-              v-model="searchText"
-              placeholder="Tìm kiếm..."
-            />
-          </v-card-title>
-          <v-data-table
-            v-if="lgAndUp"
-            :headers="Headers"
-            :items="filteredManufactureCounting"
-            :search="combinedSearch"
-            v-model:page="page"
-            v-model:items-per-page="itemsPerPage"
-            class="elevation-1 mt-4 rounded-xl"
-            :footer-props="{
-              'items-per-page-options': [10, 20, 50, 100],
-              'items-per-page-text': 'Số hàng mỗi trang',
-            }"
-            :header-props="{
-              sortByText: 'Sắp xếp theo',
-              sortDescText: 'Giảm dần',
-              sortAscText: 'Tăng dần',
-            }"
-            :loading="DialogLoading"
-            loading-text="Đang tải dữ liệu..."
-            no-data-text="Không có dữ liệu"
-            no-results-text="Không tìm thấy kết quả"
-            :hover="true"
-            :dense="false"
-            :fixed-header="true"
-            height="53vh"
-          >
-            <template v-slot:item.stt="{ index }">
-              {{ (page - 1) * itemsPerPage + index + 1 }}
-            </template>
-            <template #[`item.Status`]="{ item }">
-              <v-chip
-                :color="
-                  item.Status === 'fail'
-                    ? 'warning'
-                    : item.Status === 'fixed'
-                    ? 'info'
-                    : 'success'
-                "
-                size="small"
-                variant="tonal"
-              >
-                {{
-                  item.Status === "fail"
-                    ? "Fail"
-                    : item.Status === "fixed"
-                    ? "Fixed"
-                    : "Pass"
-                }}
-              </v-chip>
-              <v-chip
-                color="info"
-                class="ms-2"
-                v-if="item.Status_Fixed === 'fixed'"
-                size="small"
-                variant="tonal"
-                >Fixed</v-chip
-              >
-            </template>
-            <template #item.RWID="{ item }">
-              <v-chip
-                color="success"
-                class="ms-2"
-                v-if="item.RWID === 'Done'"
-                size="small"
-                variant="tonal"
-              >
-                <v-icon>mdi-check</v-icon>
-              </v-chip>
-            </template>
-            <template #item.TimestampRW="{ item }">
-              <div class="text-primary">{{ item.TimestampRW }}</div>
-            </template>
-            <template #item.Note="{ item }">
-              <div style="white-space: pre-line" class="text-error">
-                {{ item.Note }}
-              </div>
-            </template>
-            <template #item.id="{ item }">
-              <v-btn
-                v-if="item.Status === 'fail'"
-                size="small"
-                color="success"
-                variant="tonal"
-                class="ml-2 text-caption"
-                @click="GetItem(item)"
-                prepend-icon="mdi-check"
-              >
-                Kiểm tra
-              </v-btn>
-              <v-btn
-                size="small"
-                variant="text"
-                color="error"
-                icon="mdi-trash-can"
-                @click="GetItemHistory(item)"
-              ></v-btn>
-            </template>
-            <template #[`bottom`]>
-              <div class="text-center pt-2">
-                <v-pagination
-                  v-model="page"
-                  :length="
-                    Math.ceil(
-                      (filteredManufactureCounting?.length || 0) / itemsPerPage
-                    )
-                  "
-                ></v-pagination>
-              </div>
-            </template>
-          </v-data-table>
 
-          <v-data-table
-            v-else
-            :headers="Headers"
-            :items="filteredManufactureCounting"
-            :search="combinedSearch"
-            v-model:page="page"
-            v-model:items-per-page="itemsPerPage"
-            class="elevation-1 mt-4 rounded-xl"
-            :footer-props="{
-              'items-per-page-options': [10, 20, 50, 100],
-              'items-per-page-text': 'Số hàng mỗi trang',
-            }"
-            :header-props="{
-              sortByText: 'Sắp xếp theo',
-              sortDescText: 'Giảm dần',
-              sortAscText: 'Tăng dần',
-            }"
-            :loading="DialogLoading"
-            loading-text="Đang tải dữ liệu..."
-            no-data-text="Không có dữ liệu"
-            no-results-text="Không tìm thấy kết quả"
-            :hover="true"
-            :dense="false"
-            :fixed-header="true"
-            height="53vh"
-          >
-            <template v-slot:item.stt="{ index }">
-              {{ (page - 1) * itemsPerPage + index + 1 }}
-            </template>
-            <template #[`item.Status`]="{ item }">
-              <v-chip
-                :color="
-                  item.Status === 'fail'
-                    ? 'warning'
-                    : item.Status === 'fixed'
-                    ? 'info'
-                    : 'success'
-                "
-                size="small"
-                variant="tonal"
+        <v-row>
+          <v-col cols="6">
+            <v-card
+              class="mt-4 rounded-xl border"
+              variant="elevated"
+              elevation="0"
+            >
+              <v-card-title class="d-flex align-center">
+                <!-- Filter Select -->
+                <v-select
+                  v-model="selectedFilter"
+                  :items="filterOptions"
+                  item-title="label"
+                  item-value="value"
+                  label="Lọc theo trạng thái"
+                  variant="outlined"
+                  density="compact"
+                  prepend-inner-icon="mdi-filter"
+                  :color="getFilterColor(selectedFilter)"
+                  @update:model-value="handleFilterChange"
+                  class="ml-3 mt-5"
+                  style="min-width: 150px; max-width: 180px"
+                >
+                  <template v-slot:item="{ item, props }">
+                    <v-list-item v-bind="props">
+                      <template v-slot:prepend>
+                        <v-icon
+                          :icon="item.raw.icon"
+                          :color="getFilterColor(item.raw.value)"
+                          size="small"
+                        ></v-icon>
+                      </template>
+                    </v-list-item>
+                  </template>
+                </v-select>
+                <v-spacer v-if="lgAndUp"></v-spacer>
+                <InputSearch
+                  v-if="lgAndUp"
+                  v-model="searchText"
+                  placeholder="Tìm kiếm..."
+                />
+              </v-card-title>
+              <v-data-table
+                :headers="Headers"
+                :items="filteredManufactureCounting"
+                :search="combinedSearch"
+                v-model:page="page"
+                v-model:items-per-page="itemsPerPage"
+                class="elevation-1 mt-4 rounded-xl"
+                :footer-props="{
+                  'items-per-page-options': [10, 20, 50, 100],
+                  'items-per-page-text': 'Số hàng mỗi trang',
+                }"
+                :header-props="{
+                  sortByText: 'Sắp xếp theo',
+                  sortDescText: 'Giảm dần',
+                  sortAscText: 'Tăng dần',
+                }"
+                :loading="DialogLoading"
+                loading-text="Đang tải dữ liệu..."
+                no-data-text="Không có dữ liệu"
+                no-results-text="Không tìm thấy kết quả"
+                :hover="true"
+                :dense="false"
+                :fixed-header="true"
+                height="calc(100vh - 590px)"
               >
-                {{
-                  item.Status === "fail"
-                    ? "Fail"
-                    : item.Status === "fixed"
-                    ? "Fixed"
-                    : "Pass"
-                }}
-              </v-chip>
-              <v-chip
-                color="info"
-                class="ms-2"
-                v-if="item.Status_Fixed === 'fixed'"
-                size="small"
-                variant="tonal"
-                >Fixed</v-chip
-              >
-            </template>
-            <template #item.RWID="{ item }">
-              <v-chip
-                color="success"
-                class="ms-2"
-                v-if="item.RWID === 'Done'"
-                size="small"
-                variant="tonal"
-              >
-                <v-icon>mdi-check</v-icon>
-              </v-chip>
-            </template>
-            <template #item.TimestampRW="{ item }">
-              <div class="text-primary">{{ item.TimestampRW }}</div>
-            </template>
-            <template #item.Note="{ item }">
-              <div style="white-space: pre-line" class="text-error">
-                {{ item.Note }}
+                <template v-slot:item.stt="{ index }">
+                  {{ (page - 1) * itemsPerPage + index + 1 }}
+                </template>
+                <template #[`item.Status`]="{ item }">
+                  <v-chip
+                    :color="
+                      item.Status === 'fail'
+                        ? 'warning'
+                        : item.Status === 'fixed'
+                        ? 'info'
+                        : 'success'
+                    "
+                    size="small"
+                    variant="tonal"
+                  >
+                    {{
+                      item.Status === "fail"
+                        ? "Fail"
+                        : item.Status === "fixed"
+                        ? "Fixed"
+                        : "Pass"
+                    }}
+                  </v-chip>
+                  <v-chip
+                    color="info"
+                    class="ms-2"
+                    v-if="item.Status_Fixed === 'fixed'"
+                    size="small"
+                    variant="tonal"
+                    >Fixed</v-chip
+                  >
+                </template>
+                <template #item.RWID="{ item }">
+                  <v-chip
+                    color="success"
+                    class="ms-2"
+                    v-if="item.RWID === 'Done'"
+                    size="small"
+                    variant="tonal"
+                  >
+                    <v-icon>mdi-check</v-icon>
+                  </v-chip>
+                </template>
+                <template #item.TimestampRW="{ item }">
+                  <div class="text-primary">{{ item.TimestampRW }}</div>
+                </template>
+                <template #item.Note="{ item }">
+                  <div style="white-space: pre-line" class="text-error">
+                    {{ item.Note }}
+                  </div>
+                </template>
+                <template #item.id="{ item }">
+                  <v-btn
+                    v-if="item.Status === 'fail'"
+                    size="small"
+                    color="success"
+                    variant="tonal"
+                    class="ml-2 text-caption"
+                    @click="GetItem(item)"
+                    prepend-icon="mdi-check"
+                  >
+                    Kiểm tra
+                  </v-btn>
+                  <v-btn
+                    size="small"
+                    variant="text"
+                    color="error"
+                    icon="mdi-trash-can"
+                    @click="GetItemHistory(item)"
+                  ></v-btn>
+                </template>
+                <template #[`bottom`]>
+                  <div class="text-center pt-2">
+                    <v-pagination
+                      v-model="page"
+                      :length="
+                        Math.ceil(
+                          (filteredManufactureCounting?.length || 0) /
+                            itemsPerPage,
+                        )
+                      "
+                    ></v-pagination>
+                  </div>
+                </template>
+              </v-data-table>
+            </v-card>
+          </v-col>
+          <v-col cols="6">
+            <v-card
+              class="mt-4 rounded-xl border pa-4"
+              variant="elevated"
+              elevation="0"
+              height="calc(100vh - 410px)"
+            >
+
+              <div style="position: relative; height: 550px">
+                <Bar :data="chartData" :options="chartOptions" />
               </div>
-            </template>
-            <template #item.id="{ item }">
-              <v-btn
-                v-if="item.Status === 'fail'"
-                size="small"
-                color="success"
-                variant="tonal"
-                class="ml-2 text-caption"
-                @click="GetItem(item)"
-                prepend-icon="mdi-check"
-              >
-                Kiểm tra
-              </v-btn>
-              <v-btn
-                size="small"
-                variant="text"
-                color="error"
-                icon="mdi-trash-can"
-                @click="GetItemHistory(item)"
-              ></v-btn>
-            </template>
-            <template #[`bottom`]>
-              <div class="text-center pt-2">
-                <v-pagination
-                  v-model="page"
-                  :length="
-                    Math.ceil(
-                      (filteredManufactureCounting?.length || 0) / itemsPerPage
-                    )
-                  "
-                ></v-pagination>
-              </div>
-            </template>
-          </v-data-table>
-        </v-card>
+            </v-card>
+          </v-col>
+        </v-row>
       </v-card-text>
     </v-card>
+    <BaseDialog
+      v-model="DialogAdd"
+      icon="mdi-plus"
+      title="Thêm sản phẩm"
+      max-width="1000"
+    >
+      <template v-slot:actions>
+        <ButtonCancel @cancel="DialogAdd = false" />
+        <ButtonSave
+          @keydown.enter="submitBarcode"
+          @click="submitBarcode"
+          autoforcus
+        />
+      </template>
+      <v-card-text>
+        <v-row dense>
+          <v-col cols="12" md="5">
+            <InputField
+              label="Nhập mã sản phẩm"
+              v-model="Input"
+              @keydown.enter="submitBarcode"
+              ref="barcodeInput"
+              autofocus
+              hide-details
+              variant="outlined"
+              density="comfortable"
+            />
+          </v-col>
+          <v-col cols="12" md="5">
+            <InputSelect
+              label="Phân loại lỗi"
+              :items="[
+                'Lỗi hàn',
+                'Lỗi linh kiện',
+                'Lỗi ngoại quan',
+                'Lỗi chức năng',
+                'Lỗi lắp ráp cơ khí',
+                'Lỗi quy trình / Vận hành',
+                'Lỗi không xác định',
+              ]"
+              multiple
+              chips
+              v-model="Group_Fail"
+              hide-details
+              variant="outlined"
+              density="comfortable"
+              placeholder="Chọn 1 hoặc nhiều loại lỗi"
+            />
+          </v-col>
+          <v-col cols="2">
+            <InputField
+              label="Số lượng sản phẩm"
+              type="number"
+              v-model="Quantity_Add"
+              hide-details
+              variant="outlined"
+              density="comfortable"
+              placeholder="VD: 5"
+            />
+          </v-col>
+
+          <v-col cols="12" class="mt-4">
+            <InputTextarea
+              label="Ghi chú lỗi chi tiết"
+              v-model="ErrorLog"
+              rows="2"
+              hint="Mô tả chi tiết lỗi (ví dụ: Vết xước 2cm ở mặt trước)."
+              variant="outlined"
+            ></InputTextarea>
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </BaseDialog>
     <!-- Dialog xác nhận sửa sản phẩm -->
     <BaseDialog
       v-model="DialogFixed"
@@ -479,16 +416,9 @@
       </template>
     </BaseDialog>
 
-    <SnackbarSuccess
-      :model-value="DialogSuccess"
-      @update:model-value="DialogSuccess = $event"
-      :message="MessageDialog"
-    />
-    <SnackbarFailed
-      :model-value="DialogFailed"
-      @update:model-value="DialogFailed = $event"
-      :message="MessageErrorDialog"
-    />
+    <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
+    <SnackbarCaution v-model="DialogCaution" :message="MessageCautionDialog" />
+    <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
     <Loading v-model="DialogLoading" />
   </div>
 </template>
@@ -499,6 +429,26 @@
 import { ref, watch, reactive, computed } from "vue";
 import { useRoute } from "vue-router";
 import { useDisplay } from "vuetify";
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+} from "chart.js";
+
+import { Bar } from "vue-chartjs";
+
+ChartJS.register(
+  Title,
+  Tooltip,
+  Legend,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+);
 // External libraries
 import axios from "axios";
 
@@ -528,11 +478,8 @@ const Headers = [
   { title: "STT", key: "stt" },
   { title: "Mã sản phẩm", key: "PartNumber", sortable: true },
   { title: "Trạng thái", key: "Status", sortable: true },
-  { title: "Loại lỗi", key: "GroupFail", sortable: true },
-  { title: "Ghi chú lỗi", key: "Note", sortable: true },
+  { title: "Số lượng", key: "Quantity", sortable: true },
   { title: "Thời gian", key: "Timestamp", sortable: true },
-  { title: "RW đã sửa", key: "RWID", sortable: true },
-  { title: "Thời gian RW", key: "TimestampRW", sortable: true },
   { title: "Thao tác", key: "id" },
 ];
 
@@ -550,6 +497,7 @@ const DialogFixed = ref(false);
 const DialogSuccess = ref(false);
 const DialogFailed = ref(false);
 const DialogRemoveHistory = ref(false);
+const DialogAdd = ref(false);
 const MessageErrorDialog = ref("");
 const MessageDialog = ref("");
 
@@ -570,16 +518,115 @@ const totalFixed = ref(0);
 const Quantity_Add = ref(0);
 
 const PercentOutput = computed(() =>
-  Number.parseFloat((totalOutput.value * 100) / totalInput.value).toFixed(1)
+  Number.parseFloat((totalOutput.value * 100) / totalInput.value).toFixed(1),
 );
 
 const PercentError = computed(() =>
-  Number.parseFloat((totalErrors.value * 100) / totalInput.value).toFixed(1)
+  Number.parseFloat((totalErrors.value * 100) / totalInput.value).toFixed(1),
 );
 
 const PercentFixed = computed(() =>
-  Number.parseFloat((totalFixed.value * 100) / totalInput.value).toFixed(1)
+  Number.parseFloat((totalFixed.value * 100) / totalInput.value).toFixed(1),
 );
+
+const PercentRemaining = computed(() =>
+  Number.parseFloat(
+    ((totalInput.value - totalOutput.value) * 100) / totalInput.value,
+  ).toFixed(1),
+);
+
+const chartData = computed(() => {
+  const grouped = {};
+
+  filteredManufactureCounting.value.forEach((item) => {
+    if (!item.Timestamp) return;
+
+    // Timestamp format: 07-05-2026 16:13:33
+    // Lấy phần ngày
+    const date = item.Timestamp.split(" ")[0];
+
+    if (!grouped[date]) {
+      grouped[date] = {
+        pass: 0,
+        fail: 0,
+        fixed: 0,
+      };
+    }
+
+    if (item.Status === "pass") {
+      grouped[date].pass += Number(item.Quantity || 1);
+    }
+
+    if (item.Status === "fail") {
+      grouped[date].fail += Number(item.Quantity || 1);
+    }
+
+    if (item.Status === "fixed") {
+      grouped[date].fixed += Number(item.Quantity || 1);
+    }
+  });
+
+  // Sort theo ngày
+  const labels = Object.keys(grouped).sort((a, b) => {
+    const [da, ma, ya] = a.split("-");
+    const [db, mb, yb] = b.split("-");
+
+    return new Date(`${ya}-${ma}-${da}`) - new Date(`${yb}-${mb}-${db}`);
+  });
+
+  return {
+    labels,
+
+    datasets: [
+      {
+        label: "Pass",
+        data: labels.map((d) => grouped[d].pass),
+        backgroundColor: "#4CAF50",
+        borderRadius: 6,
+      },
+      {
+        label: "Fail",
+        data: labels.map((d) => grouped[d].fail),
+        backgroundColor: "#FF9800",
+        borderRadius: 6,
+      },
+      {
+        label: "Fixed",
+        data: labels.map((d) => grouped[d].fixed),
+        backgroundColor: "#2196F3",
+        borderRadius: 6,
+      },
+    ],
+  };
+});
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+
+  plugins: {
+    legend: {
+      position: "top",
+    },
+
+    title: {
+      display: true,
+      text: "Biểu đồ theo dõi sản xuất",
+    },
+  },
+
+  scales: {
+    x: {
+      ticks: {
+        maxRotation: 0,
+        minRotation: 0,
+      },
+    },
+
+    y: {
+      beginAtZero: true,
+    },
+  },
+};
 
 // Production Info
 const NameManufacture = ref("");
@@ -588,6 +635,7 @@ const Name_Category = ref("");
 const PlanID = ref("");
 const Type_Manufacture = ref("");
 const Quantity_Counting = ref(1);
+const Surface = ref("");
 
 // ===== User Information =====
 const LevelUser = localStorage.getItem("LevelUser");
@@ -619,7 +667,7 @@ watch(
     // Convert id to number for comparison since it's coming from route params
     const numericId = Number(id);
     const foundHistory = newData.value.find(
-      (item) => Number(item.id) === numericId
+      (item) => Number(item.id) === numericId,
     );
 
     if (foundHistory) {
@@ -629,6 +677,7 @@ watch(
       PlanID.value = foundHistory.PlanID ?? "";
       totalInput.value = foundHistory.Quantity_Plan ?? 0;
       Type_Manufacture.value = foundHistory.Type ?? "";
+      Surface.value = foundHistory.Surface ?? "";
     } else {
       // Set default values if no match found
       Name_Order.value = "";
@@ -636,9 +685,10 @@ watch(
       Name_Category.value = "";
       PlanID.value = "";
       Type_Manufacture.value = "";
+      Surface.value = "";
     }
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
 
 // Watch for changes in manufactureAOI to calculate total output
@@ -659,16 +709,17 @@ watch(
 
     // Calculate totals using the array data
     totalErrors.value = newData.value.filter(
-      (item) => item?.Status === "fail"
+      (item) => item?.Status === "fail",
     ).length;
     totalFixed.value = newData.value.filter(
-      (item) => item?.Status_Fixed === "fixed"
+      (item) => item?.Status_Fixed === "fixed",
     ).length;
-    totalOutput.value = newData.value.filter(
-      (item) => item?.Status === "pass"
-    ).length;
+    totalOutput.value = newData.value.reduce(
+      (sum, item) => sum + (Number(item.Quantity) || 0),
+      0,
+    );
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
 
 // ===== Methods =====
@@ -697,6 +748,7 @@ const submitBarcode = async () => {
     PlanID: PlanID.value,
     Type: Type_Manufacture.value,
     Quantity: Quantity_Add.value || 1,
+    Surface: Surface.value,
   });
 
   try {
@@ -709,6 +761,7 @@ const submitBarcode = async () => {
     Group_Fail.value = []; // Cần reset mảng phân loại lỗi
     Quantity_Add.value = 1;
     DialogSuccess.value = true;
+    DialogAdd.value = false;
     MessageDialog.value = "Sản phẩm đã được nhập thành công";
   } catch (error) {
     DialogLoading.value = false;
@@ -742,7 +795,7 @@ const markAsFixed = async () => {
   try {
     const response = await axios.put(
       `${Url}/ManufactureCounting/Edit-status-fixed/${GetID.value}`,
-      formData
+      formData,
     );
     // Refresh the data after successful update
     DialogFixed.value = false;
@@ -764,7 +817,7 @@ const RemoveItemHistory = async () => {
   DialogLoading.value = true;
   try {
     const response = await axios.delete(
-      `${Url}/ManufactureCounting/Delete-item-history/${GetID.value}?PlanID=${PlanID.value}&Type=${Type_Manufacture.value}`
+      `${Url}/ManufactureCounting/Delete-item-history/${GetID.value}?PlanID=${PlanID.value}&Type=${Type_Manufacture.value}`,
     );
     DialogSuccess.value = true;
     DialogLoading.value = false;
@@ -810,10 +863,10 @@ const filteredManufactureCounting = computed(() => {
       (item) =>
         item.PartNumber?.toLowerCase().includes(searchLower) ||
         item.Note?.toLowerCase().includes(searchLower) ||
-        item.Timestamp?.toLowerCase().includes(searchLower)
+        item.Timestamp?.toLowerCase().includes(searchLower),
     );
   }
-
+  console.log(filtered);
   return filtered;
 });
 
