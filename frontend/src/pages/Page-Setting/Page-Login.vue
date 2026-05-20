@@ -211,6 +211,7 @@ const login = async () => {
   try {
     const res = await axios.post(`${Url}/Users/login`, formData);
     localStorage.setItem("token", res.data.token);
+    localStorage.setItem("User", Username.value);
     if (rememberMe.value) {
       localStorage.setItem("rememberedUser", Username.value);
     }

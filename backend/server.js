@@ -1839,6 +1839,32 @@ io.on("connection", (socket) => {
         socket.emit("CombineBomError", error);
       }
     }),
+    socket.on("getRawBomHighlight", async (id) => {
+      try {
+        const query = `SELECT 
+                          B.id,
+                          B.description,
+                          B.mpn,
+                          CASE 
+                              WHEN M.mount_type IS NOT NULL THEN M.mount_type
+                              ELSE B.type
+                          END AS type,
+                          B.designator,
+                          B.quantity,
+                          B.project_id,
+                          B.note
+                      FROM BomHighlight B
+                      LEFT JOIN MPNMountType M
+                          ON TRIM(LOWER(B.mpn)) = TRIM(LOWER(M.mpn))
+                      WHERE B.project_id = ?;`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("RawBomHighlightError", err);
+          socket.emit("RawBomHighlightData", rows);
+        });
+      } catch (error) {
+        socket.emit("RawBomHighlightError", error);
+      }
+    }),
     socket.on("getBomHighlight", (project_id) => {
       const ppQuery = `
         SELECT designator, LOWER(TRIM(layer)) as layer
@@ -5353,7 +5379,7 @@ app.delete("/api/Summary/Delete-item/:id", async (req, res) => {
 
 // Post value in table Summary
 app.post("/api/FilterBom/Add-item", function (req, res) {
-  const { project_name, created_at, note } = req.body;
+  const { project_name, created_by, created_at, note } = req.body;
 
   let Timestamps = null;
   if (created_at) {
@@ -5368,9 +5394,9 @@ app.post("/api/FilterBom/Add-item", function (req, res) {
   }
 
   db.run(
-    `INSERT INTO FilterBom (project_name, created_at, note)
-     VALUES (?, ?, ?)`,
-    [project_name, Timestamps, note],
+    `INSERT INTO FilterBom (project_name, created_by, created_at, note)
+     VALUES (?, ?, ?, ?)`,
+    [project_name, created_by, Timestamps, note],
     function (err) {
       if (err) {
         console.error("Database error:", err);
@@ -5543,7 +5569,7 @@ app.put("/api/SettingPCB/Edit-item/:id", (req, res) => {
 app.post(
   "/api/upload-bom/:project_id",
   uploadPnP.single("FileBom"),
-  (req, res) => {
+  async (req, res) => {
     const projectId = req.params.project_id;
     const filePath = path.join(__dirname, req.file.path);
 
@@ -5552,83 +5578,110 @@ app.post(
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = xlsx.utils.sheet_to_json(sheet);
 
-      // 👉 stmt BOM (clean data)
-      const stmtBom = db.prepare(`
-        INSERT INTO Bom (description, mpn, designator, quantity, project_id, note)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `);
+      db.serialize(() => {
+        const stmtBom = db.prepare(`
+          INSERT INTO Bom (description, mpn, designator, quantity, project_id, note)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `);
 
-      // 👉 stmt BOM Highlight (raw data)
-      const stmtHighlight = db.prepare(`
-        INSERT INTO BomHighlight (description, mpn, mpn2, mpn3, manufacture, designator, quantity, project_id, note)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
+        const stmtHighlight = db.prepare(`
+          INSERT INTO BomHighlight (description, mpn, mpn2, mpn3, type, designator, quantity, project_id, note)
+          VALUES (?, ?, ?, ?, 'SMT', ?, ?, ?, ?)
+        `);
 
-      const insertedRefs = new Set();
+        const insertedRefs = new Set();
 
-      rows.forEach((row) => {
-        /** =========================
-         * 🔹 LOGIC 1: BOM (tách + remove duplicate)
-         ========================= */
-        const refs = String(row["Reference(s)"] || row["Designator"] || "")
-          .split(",")
-          .map((r) => r.trim())
-          .filter((r) => r.length > 0);
+        rows.forEach((row) => {
+          const refs = String(
+            row["Reference(s)"] || row["Designator"] || ""
+          )
+            .split(",")
+            .map((r) => r.trim())
+            .filter((r) => r.length > 0);
 
-        refs.forEach((ref) => {
-          if (!insertedRefs.has(ref)) {
-            let mpnValue = row.MPN || row.Comment || "";
+          refs.forEach((ref) => {
+            if (!insertedRefs.has(ref)) {
+              let mpnValue = row.MPN || row.Comment || "";
 
-            // replace , → .
-            mpnValue = String(mpnValue).replace(/\s+/g, "").replace(/,/g, ".");
+              mpnValue = String(mpnValue)
+                .replace(/\s+/g, "")
+                .replace(/,/g, ".");
 
-            stmtBom.run(
-              row.Description || "",
-              mpnValue,
-              ref,
+              stmtBom.run(
+                row.Description || "",
+                mpnValue,
+                ref,
+                1,
+                projectId,
+                row.note || row.Note || row.notes || row.Notes || ""
+              );
+
+              insertedRefs.add(ref);
+            }
+          });
+
+          stmtHighlight.run(
+            row.Description || row.description || "",
+            row.MPN || row.mpn || "",
+            row.MPN2 || row.mpn2 || "",
+            row.MPN3 || row.mpn3 || "",
+            row["Reference(s)"] ||
+              row.Designator ||
+              row.designator ||
+              "",
+            row.Quantity ||
+              row.Qty ||
+              row.qty ||
+              row.QTY ||
               1,
-              projectId,
-              row.note || row.Note || row.notes || row.Notes || "",
-            );
-
-            insertedRefs.add(ref);
-          }
+            projectId,
+            row.Note ||
+              row.note ||
+              row.Notes ||
+              row.notes ||
+              ""
+          );
         });
 
-        /** =========================
-         * 🔹 LOGIC 2: BOM Highlight (raw giữ nguyên)
-         ========================= */
-        stmtHighlight.run(
-          row.Description || "" || row.description,
-          row.MPN || "" || row.mpn,
-          row.MPN2 || "" || row.mpn2,
-          row.MPN3 || "" || row.mpn3,
-          row.Manufacture || "" || row.manufacture,
-          row["Reference(s)"] || row.Designator || "" || row.designator,
-          row.Quantity || row.Qty || row.qty || row.QTY || 1,
-          projectId,
-          row.Note || row.note || "" || row.Notes || row.notes,
-        );
-      });
+        stmtBom.finalize((err) => {
+          if (err) {
+            console.error(err);
+            return res.status(500).json({
+              error: "Finalize BOM lỗi",
+            });
+          }
 
-      stmtBom.finalize();
-      stmtHighlight.finalize();
+          stmtHighlight.finalize((err2) => {
+            if (err2) {
+              console.error(err2);
+              return res.status(500).json({
+                error: "Finalize Highlight lỗi",
+              });
+            }
 
-      // emit riêng để frontend biết update gì
-      io.emit("CombineBomUpdate");
-      io.emit("BomHighlightUpdate");
+            // 👉 CHỈ emit khi DB ghi xong
+            io.emit("CombineBomUpdate");
+            io.emit("BomHighlightUpdate");
+            io.emit("RawBomHighlightUpdate");
+            io.emit("BomRawHighlightUpdate");
 
-      fs.unlinkSync(filePath);
+            fs.unlinkSync(filePath);
 
-      res.json({
-        message: "Upload BOM + Highlight thành công",
-        totalRows: rows.length,
+            // 👉 CHỈ response khi mọi thứ hoàn tất
+            res.json({
+              message: "Upload BOM + Highlight thành công",
+              totalRows: rows.length,
+            });
+          });
+        });
       });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ error: "Lỗi xử lý file BOM" });
+      res.status(500).json({
+        error: "Lỗi xử lý file BOM",
+      });
     }
-  },
+  }
 );
 const XLSX = require("xlsx");
 
@@ -6134,6 +6187,120 @@ app.put("/api/Pickplace/Edit-item/:id", (req, res) => {
       io.emit("SettingSVGUpdate");
       res.json({ message: "Summary received" });
     },
+  );
+});
+
+// Put value in table BomHighlight table
+app.put("/api/BomHighlight/Edit-type/:id", (req, res) => {
+  const { id } = req.params;
+  const { type } = req.body;
+  db.run(
+    `UPDATE BomHighlight 
+    SET type = ?
+    WHERE id = ?`,
+    [type, id],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("CombineBomUpdate");
+      io.emit("PnPFileUpdate");
+      io.emit("SettingSVGUpdate");
+      io.emit("RawBomHighlightUpdate");
+      io.emit("MPNMountTypeUpdate");
+      res.json({ message: "Summary received" });
+    },
+  );
+});
+
+// Delete all item in BomHighlight table
+app.delete("/api/BomHighlight/Delete-item/:id", (req, res) => {
+  const { id } = req.params;
+  db.run(
+    `DELETE FROM BomHighlight WHERE project_id = ?`,
+    [id],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("CombineBomUpdate");
+      io.emit("RawBomHighlightUpdate");
+      res.json({ message: "Summary received" });
+    }
+  );
+});
+
+// Delete all item in PickPlace table
+app.delete("/api/PickPlace/Delete-item/:id", (req, res) => {
+  const { id } = req.params;
+  db.run(
+    `DELETE FROM Pickplace WHERE project_id = ?`,
+    [id],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("CombineBomUpdate");
+      io.emit("PnPFileUpdate");
+      io.emit("SettingSVGUpdate");
+      res.json({ message: "Summary received" });
+    }
+  );
+});
+
+// Post item in MPNMountType table
+app.post("/api/MPNMountType/Add-item", (req, res) => {
+  const { mpn, mount_type, description, project_id, created_by } = req.body;
+  db.run(
+    `INSERT INTO MPNMountType (mpn, mount_type, description, project_id, created_by)
+     VALUES (?, ?, ?, ?, ?)`,
+    [mpn, mount_type, description, project_id, created_by],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("MPNMountTypeUpdate");
+      io.emit("RawBomHighlightUpdate");
+      io.emit("CombineBomUpdate");
+      io.emit("PnPFileUpdate");
+      io.emit("SettingSVGUpdate");
+      res.json({ message: "Summary received" });
+    },
+  );
+});
+
+// Delete item in MPNMountType table
+app.delete("/api/MPNMountType/Delete-item/:mpn", (req, res) => {
+  const { mpn } = req.params;
+  db.run(
+    `DELETE FROM MPNMountType WHERE mpn = ?`,
+    [mpn],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("MPNMountTypeUpdate");
+      io.emit("RawBomHighlightUpdate");
+      io.emit("CombineBomUpdate");
+      io.emit("PnPFileUpdate");
+      io.emit("SettingSVGUpdate");
+      res.json({ message: "Summary received" });
+    }
   );
 });
 

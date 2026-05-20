@@ -486,42 +486,269 @@ app.get("/api/PickPlaceBottom/download/:id", async (req, res) => {
 
 const ExcelJS = require("exceljs");
 
-app.get("/api/BomHighlight/download/:id", async (req, res) => {
+// app.get("/api/BomHighlight/download/:id", async (req, res) => {
+//   const { id } = req.params;
+
+//   const normalize = (val) =>
+//     String(val || "").replace(/\s+/g, "").toUpperCase();
+
+//   const ppQuery = `
+//     SELECT p.designator, LOWER(TRIM(p.layer)) as layer, type
+//     FROM Pickplace p
+//     WHERE p.project_id = ?
+//       AND LOWER(TRIM(p.layer)) IN ('bottom', 'bottomlayer')
+//   `;
+
+//   db.all(ppQuery, [id], async (err, ppRows) => {
+//     if (err) return res.status(500).json(err);
+
+//     const map = new Map();
+//     ppRows.forEach((r) => map.set(normalize(r.designator), true));
+
+//     const bomQuery = `SELECT * FROM BomHighlight WHERE project_id = ?`;
+
+//     db.all(bomQuery, [id], async (err, bomRows) => {
+//       if (err) return res.status(500).json(err);
+
+//       const wb = new ExcelJS.Workbook();
+//       const ws = wb.addWorksheet("BOM");
+
+//       // ===== CHECK MPN2 / MPN3 =====
+//       const hasMPN2 = bomRows.some(
+//         (r) => r.mpn2 && String(r.mpn2).trim() !== ""
+//       );
+//       const hasMPN3 = bomRows.some(
+//         (r) => r.mpn3 && String(r.mpn3).trim() !== ""
+//       );
+
+//       // ===== BUILD COLUMNS (ĐÃ BỎ Manufacture) =====
+//       const columns = [
+//         { header: "STT", key: "stt", width: 8 },
+//         { header: "Designator", key: "designator", width: 40 },
+//         { header: "Description", key: "description", width: 50 },
+//         { header: "MPN", key: "mpn", width: 25 },
+//       ];
+
+//       if (hasMPN2) {
+//         columns.push({ header: "MPN2", key: "mpn2", width: 25 });
+//       }
+
+//       if (hasMPN3) {
+//         columns.push({ header: "MPN3", key: "mpn3", width: 25 });
+//       }
+
+//       columns.push(
+//         { header: "QTY", key: "quantity", width: 12 },
+//         { header: "Note", key: "note", width: 25 }
+//       );
+
+//       // ===== SET COLUMNS =====
+//       ws.columns = columns;
+
+//       // ===== TITLE =====
+//       const title = req.query.title || "BOM HIGHLIGHT";
+//       ws.insertRow(1, [title]);
+
+//       ws.mergeCells(1, 1, 1, columns.length);
+
+//       const titleCell = ws.getCell("A1");
+//       titleCell.font = {
+//         name: "Times New Roman",
+//         size: 24,
+//         bold: true,
+//       };
+//       titleCell.alignment = {
+//         vertical: "middle",
+//         horizontal: "center",
+//       };
+//       ws.getRow(1).height = 35;
+
+//       // ===== HEADER FORMAT =====
+//       const headerRow = ws.getRow(2);
+
+//       for (let i = 1; i <= columns.length; i++) {
+//         const cell = headerRow.getCell(i);
+
+//         cell.font = { name: "Times New Roman", bold: true };
+//         cell.fill = {
+//           type: "pattern",
+//           pattern: "solid",
+//           fgColor: { argb: "FFD3D3D3" },
+//         };
+//         cell.alignment = {
+//           vertical: "middle",
+//           horizontal: "center",
+//         };
+//         cell.border = {
+//           top: { style: "thin" },
+//           left: { style: "thin" },
+//           bottom: { style: "thin" },
+//           right: { style: "thin" },
+//         };
+//       }
+
+//       // ===== DATA =====
+//       bomRows.forEach((row, rowIndex) => {
+//         const original = String(row.designator || "");
+//         const parts = original.split(",").map((s) => s.trim());
+//         const richText = [];
+
+//         parts.forEach((p, index) => {
+//           const key = normalize(p);
+//           const isBottom = map.has(key);
+
+//           richText.push({
+//             text: p,
+//             font: {
+//               name: "Times New Roman",
+//               ...(isBottom
+//                 ? { color: { argb: "FFFF0000" }, bold: true }
+//                 : {}),
+//             },
+//           });
+
+//           if (index < parts.length - 1) {
+//             richText.push({
+//               text: ", ",
+//               font: { name: "Times New Roman" },
+//             });
+//           }
+//         });
+
+//         const rowData = {
+//           stt: rowIndex + 1,
+//           designator: { richText },
+//           description: row.description,
+//           mpn: row.mpn,
+//           quantity: row.quantity,
+//           note: row.note,
+//         };
+
+//         if (hasMPN2) rowData.mpn2 = row.mpn2;
+//         if (hasMPN3) rowData.mpn3 = row.mpn3;
+
+//         const newRow = ws.addRow(rowData);
+
+//         const hasNote = row.note && String(row.note).trim().length > 0;
+
+//         for (let i = 1; i <= columns.length; i++) {
+//           const cell = newRow.getCell(i);
+
+//           cell.border = {
+//             top: { style: "thin" },
+//             left: { style: "thin" },
+//             bottom: { style: "thin" },
+//             right: { style: "thin" },
+//           };
+
+//           if (!cell.font || !cell.font.richText) {
+//             cell.font = { name: "Times New Roman", size: 11 };
+//           }
+
+//           if (hasNote) {
+//             cell.fill = {
+//               type: "pattern",
+//               pattern: "solid",
+//               fgColor: { argb: "FFFFFF00" },
+//             };
+//           }
+//         }
+//       });
+
+//       // ===== EXPORT =====
+//       res.setHeader(
+//         "Content-Type",
+//         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+//       );
+//       res.setHeader(
+//         "Content-Disposition",
+//         "attachment; filename=BOM_highlight.xlsx"
+//       );
+
+//       await wb.xlsx.write(res);
+//       res.end();
+//     });
+//   });
+// });
+
+ app.get("/api/BomHighlight/download/:id", async (req, res) => {
   const { id } = req.params;
 
+  // ===== NORMALIZE =====
   const normalize = (val) =>
-    String(val || "").replace(/\s+/g, "").toUpperCase();
+    String(val || "")
+      .replace(/\s+/g, "")
+      .toUpperCase();
 
+  // ===== REMOVE VIETNAMESE TONES =====
+  const removeVietnameseTones = (str) => {
+    return String(str || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/Đ/g, "D")
+      .trim()
+      .toLowerCase();
+  };
+
+  // ===== PICKPLACE QUERY =====
   const ppQuery = `
-    SELECT p.designator, LOWER(TRIM(p.layer)) as layer, type
+    SELECT p.designator, LOWER(TRIM(p.layer)) as layer
     FROM Pickplace p
     WHERE p.project_id = ?
       AND LOWER(TRIM(p.layer)) IN ('bottom', 'bottomlayer')
   `;
 
   db.all(ppQuery, [id], async (err, ppRows) => {
-    if (err) return res.status(500).json(err);
+    if (err) {
+      return res.status(500).json(err);
+    }
 
     const map = new Map();
-    ppRows.forEach((r) => map.set(normalize(r.designator), true));
 
-    const bomQuery = `SELECT * FROM BomHighlight WHERE project_id = ?`;
+    ppRows.forEach((r) => {
+      map.set(normalize(r.designator), true);
+    });
+
+    // ===== BOM QUERY =====
+    const bomQuery = `
+                      SELECT 
+                          B.id,
+                          B.description,
+                          B.mpn,
+                          CASE 
+                              WHEN M.mount_type IS NOT NULL THEN M.mount_type
+                              ELSE B.type
+                          END AS type,
+                          B.designator,
+                          B.quantity,
+                          B.project_id,
+                          B.note
+                      FROM BomHighlight B
+                      LEFT JOIN MPNMountType M
+                          ON TRIM(LOWER(B.mpn)) = TRIM(LOWER(M.mpn))
+                      WHERE B.project_id = ?
+    `;
 
     db.all(bomQuery, [id], async (err, bomRows) => {
-      if (err) return res.status(500).json(err);
+      if (err) {
+        return res.status(500).json(err);
+      }
 
       const wb = new ExcelJS.Workbook();
+
       const ws = wb.addWorksheet("BOM");
 
-      // ===== CHECK MPN2 / MPN3 =====
+      // ===== CHECK OPTIONAL COLUMNS =====
       const hasMPN2 = bomRows.some(
         (r) => r.mpn2 && String(r.mpn2).trim() !== ""
       );
+
       const hasMPN3 = bomRows.some(
         (r) => r.mpn3 && String(r.mpn3).trim() !== ""
       );
 
-      // ===== BUILD COLUMNS (ĐÃ BỎ Manufacture) =====
+      // ===== BUILD COLUMNS =====
       const columns = [
         { header: "STT", key: "stt", width: 8 },
         { header: "Designator", key: "designator", width: 40 },
@@ -530,11 +757,19 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
       ];
 
       if (hasMPN2) {
-        columns.push({ header: "MPN2", key: "mpn2", width: 25 });
+        columns.push({
+          header: "MPN2",
+          key: "mpn2",
+          width: 25,
+        });
       }
 
       if (hasMPN3) {
-        columns.push({ header: "MPN3", key: "mpn3", width: 25 });
+        columns.push({
+          header: "MPN3",
+          key: "mpn3",
+          width: 25,
+        });
       }
 
       columns.push(
@@ -547,38 +782,50 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
 
       // ===== TITLE =====
       const title = req.query.title || "BOM HIGHLIGHT";
+
       ws.insertRow(1, [title]);
 
       ws.mergeCells(1, 1, 1, columns.length);
 
       const titleCell = ws.getCell("A1");
+
       titleCell.font = {
         name: "Times New Roman",
         size: 24,
         bold: true,
       };
+
       titleCell.alignment = {
         vertical: "middle",
         horizontal: "center",
       };
+
       ws.getRow(1).height = 35;
 
-      // ===== HEADER FORMAT =====
+      // ===== HEADER =====
       const headerRow = ws.getRow(2);
 
       for (let i = 1; i <= columns.length; i++) {
         const cell = headerRow.getCell(i);
 
-        cell.font = { name: "Times New Roman", bold: true };
+        cell.font = {
+          name: "Times New Roman",
+          bold: true,
+        };
+
         cell.fill = {
           type: "pattern",
           pattern: "solid",
-          fgColor: { argb: "FFD3D3D3" },
+          fgColor: {
+            argb: "FFD3D3D3",
+          },
         };
+
         cell.alignment = {
           vertical: "middle",
           horizontal: "center",
         };
+
         cell.border = {
           top: { style: "thin" },
           left: { style: "thin" },
@@ -590,19 +837,30 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
       // ===== DATA =====
       bomRows.forEach((row, rowIndex) => {
         const original = String(row.designator || "");
-        const parts = original.split(",").map((s) => s.trim());
+
+        const parts = original
+          .split(",")
+          .map((s) => s.trim());
+
         const richText = [];
 
         parts.forEach((p, index) => {
           const key = normalize(p);
+
           const isBottom = map.has(key);
 
           richText.push({
             text: p,
             font: {
               name: "Times New Roman",
+
               ...(isBottom
-                ? { color: { argb: "FFFF0000" }, bold: true }
+                ? {
+                    color: {
+                      argb: "FFFF0000",
+                    },
+                    bold: true,
+                  }
                 : {}),
             },
           });
@@ -610,11 +868,14 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
           if (index < parts.length - 1) {
             richText.push({
               text: ", ",
-              font: { name: "Times New Roman" },
+              font: {
+                name: "Times New Roman",
+              },
             });
           }
         });
 
+        // ===== ROW DATA =====
         const rowData = {
           stt: rowIndex + 1,
           designator: { richText },
@@ -624,16 +885,26 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
           note: row.note,
         };
 
-        if (hasMPN2) rowData.mpn2 = row.mpn2;
-        if (hasMPN3) rowData.mpn3 = row.mpn3;
+        if (hasMPN2) {
+          rowData.mpn2 = row.mpn2;
+        }
+
+        if (hasMPN3) {
+          rowData.mpn3 = row.mpn3;
+        }
 
         const newRow = ws.addRow(rowData);
 
-        const hasNote = row.note && String(row.note).trim().length > 0;
+        // ===== NORMALIZE VALUES =====
+        const noteValue = removeVietnameseTones(row.note);
 
+        const typeValue = removeVietnameseTones(row.type);
+
+        // ===== APPLY STYLE =====
         for (let i = 1; i <= columns.length; i++) {
           const cell = newRow.getCell(i);
 
+          // BORDER
           cell.border = {
             top: { style: "thin" },
             left: { style: "thin" },
@@ -641,15 +912,51 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
             right: { style: "thin" },
           };
 
+          // FONT
           if (!cell.font || !cell.font.richText) {
-            cell.font = { name: "Times New Roman", size: 11 };
+            cell.font = {
+              name: "Times New Roman",
+              size: 11,
+            };
           }
 
-          if (hasNote) {
+          // ALIGNMENT
+          cell.alignment = {
+            vertical: "middle",
+          };
+
+          // ===== COLOR RULE =====
+
+          // DNP => Neutral
+          if (noteValue === "dnp") {
             cell.fill = {
               type: "pattern",
               pattern: "solid",
-              fgColor: { argb: "FFFFFF00" },
+              fgColor: {
+                argb: "FFFFEB9C",
+              },
+            };
+          }
+
+          // Hàn tay => Bad
+          else if (typeValue === "han tay") {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: {
+                argb: "FFFFC7CE",
+              },
+            };
+          }
+
+          // Gắp tay => Good
+          else if (typeValue === "gap tay") {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: {
+                argb: "FFC6EFCE",
+              },
             };
           }
         }
@@ -660,12 +967,14 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
         "Content-Type",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
       );
+
       res.setHeader(
         "Content-Disposition",
         "attachment; filename=BOM_highlight.xlsx"
       );
 
       await wb.xlsx.write(res);
+
       res.end();
     });
   });

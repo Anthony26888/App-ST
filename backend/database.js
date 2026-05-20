@@ -433,12 +433,22 @@ db.serialize(() => {
       mpn TEXT,
       mpn2 TEXT,
       mpn3 TEXT,
-      manufacture TEXT,
+      type TEXT,
       designator TEXT,
       quantity INTEGER,
       project_id INTERGER,
       note TEXT,
       FOREIGN KEY (project_id) REFERENCES FilterBom(id) ON DELETE CASCADE
+    )
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS MPNMountType (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      mpn TEXT,
+      mount_type TEXT,
+      description TEXT,
+      project_id INTERGER,
+      created_by TEXT
     )
   `);
   db.run(`

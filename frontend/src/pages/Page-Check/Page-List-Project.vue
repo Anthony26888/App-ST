@@ -173,6 +173,7 @@ const requiredRule = [(v) => !!v || "Dữ liệu này không được bỏ trố
 // Table status
 const Headers = [
   { key: "project_name", title: "Tên dự án" },
+  { key: "created_by", title: "Người tạo" },
   { key: "Created_at_unixepoch", title: "Ngày tạo" },
   { key: "note", title: "Ghi chú" },
   { key: "id", title: "Thao tác" },
@@ -202,6 +203,7 @@ const SaveAdd = async () => {
 
   const formData = {
     project_name: FileName.value,
+    created_by: localStorage.getItem("User"),
     created_at: Created_at.value,
     note: Note.value,
   };
