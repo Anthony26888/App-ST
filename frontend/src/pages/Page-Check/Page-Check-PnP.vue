@@ -1958,43 +1958,70 @@
     </template>
   </BaseDialog>
   <BaseDialog
-    v-model="DialogEditType"
-    width="700"
-    title="Cập nhật loại linh kiện"
-    icon="mdi-update"
-  >
-    <InputSelect
-      label="Loại linh kiện phù hợp"
-      v-model="MPN_Type_Edit"
-      :items="['SMT', 'Hàn tay', 'Gắp tay']"
-    />
-    <v-row>
-      <v-col cols="8">
-        <InputFiles
-          v-model="MPN_Image_Edit"
-          label="Hình ảnh linh kiện"
-          :multiple="false"
-          :accept="'.jpg,.jpeg,.png'"
-          prepend-icon="mdi-camera"
-        />
-      </v-col>
-      <v-col cols="4">
+  v-model="DialogEditType"
+  width="700"
+  title="Cập nhật loại linh kiện"
+  icon="mdi-update"
+>
+  <InputSelect
+    label="Loại linh kiện phù hợp"
+    v-model="MPN_Type_Edit"
+    :items="['SMT', 'Hàn tay', 'Gắp tay']"
+  />
+
+  <v-row>
+    <v-col cols="8">
+      <InputFiles
+        v-model="MPN_Image_Edit"
+        label="Hình ảnh linh kiện"
+        :multiple="false"
+        :accept="'.jpg,.jpeg,.png'"
+        prepend-icon="mdi-camera"
+      />
+    </v-col>
+
+    <v-col cols="4" class="d-flex justify-center align-center">
+      <div class="position-relative">
+        <!-- IMAGE -->
         <v-img
           v-if="MPN_Image_Edit"
           :src="Url + '/' + MPN_Image_Edit"
           alt="Hình ảnh linh kiện"
-          width="100px"
-          height="100px"
-        ></v-img>
-        <div v-else class="text-center pa-5 text-grey">Không có hình ảnh</div>
-      </v-col>
-    </v-row>
+          width="110"
+          height="110"
+          cover
+          class="rounded-lg border"
+        />
 
-    <template #actions>
-      <ButtonCancel @cancel="DialogEditType = false" />
-      <ButtonSave @save="SaveEditType()" />
-    </template>
-  </BaseDialog>
+        <!-- DELETE BUTTON -->
+        <v-btn
+          v-if="MPN_Image_Edit"
+          icon
+          size="x-small"
+          color="red"
+          class="delete-image-btn"
+          @click="DialogRemoveImage = true"
+        >
+          <v-icon size="18">mdi-close</v-icon>
+        </v-btn>
+
+        <!-- EMPTY -->
+        <div
+          v-if="!MPN_Image_Edit"
+          class="d-flex align-center justify-center text-grey border rounded-lg"
+          style="width: 110px; height: 110px"
+        >
+          Không có ảnh
+        </div>
+      </div>
+    </v-col>
+  </v-row>
+
+  <template #actions>
+    <ButtonCancel @cancel="DialogEditType = false" />
+    <ButtonSave @save="SaveEditType()" />
+  </template>
+</BaseDialog>
   <BaseDialog
     v-model="DialogDeleteBomHighlight"
     width="600"
@@ -2017,6 +2044,18 @@
     <template #actions>
       <ButtonCancel @cancel="DialogDeletePickPlace = false" />
       <ButtonDelete @delete="DeleteAllPickPlace()" />
+    </template>
+  </BaseDialog>
+  <BaseDialog
+    v-model="DialogRemoveImage"
+    width="600"
+    title="Xoá hình ảnh"
+    icon="mdi-delete"
+  >
+    <v-card-text> Bạn có chắc xoá hình ảnh này? </v-card-text>
+    <template #actions>
+      <ButtonCancel @cancel="DialogRemoveImage = false" />
+      <ButtonDelete @delete="RemoveImage()" />
     </template>
   </BaseDialog>
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
@@ -2245,6 +2284,7 @@ const DialogSuccess = ref(false);
 const DialogInfo = ref(false);
 const DialogDownloadBomHighlight = ref(false);
 const DialogDeleteBomHighlight = ref(false);
+const DialogRemoveImage = ref(false);
 const DialogDeletePickPlace = ref(false);
 const DialogEditGerber = ref(false);
 const MessageDialog = ref("");
@@ -3305,6 +3345,22 @@ const DeleteAllPickPlace = async () => {
     DialogFailed.value = true;
     MessageErrorDialog.value = "Xóa dữ liệu thất bại";
     DialogDeletePickPlace.value = false;
+  } finally {
+    DialogLoading.value = false;
+  }
+};
+
+const RemoveImage = async () => {
+  DialogLoading.value = true;
+  try {
+    await axios.delete(`${Url}/MPNMountType/Delete-image/${MPN_Name_Edit.value}`);
+    DialogSuccess.value = true;
+    MessageDialog.value = "Xóa dữ liệu thành công";
+    DialogRemoveImage.value = false;
+  } catch (error) {
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Xóa dữ liệu thất bại";
+    DialogRemoveImage.value = false;
   } finally {
     DialogLoading.value = false;
   }
@@ -5261,5 +5317,12 @@ export default {
 
 :deep(.row-green td) {
   background-color: #dcfce7 !important;
+}
+.delete-image-btn {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  z-index: 10;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
 }
 </style>

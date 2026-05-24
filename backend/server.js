@@ -1782,10 +1782,7 @@ io.on("connection", (socket) => {
                           END AS type,
                           B.designator,
                           B.quantity,
-                          CASE
-                            WHEN M.image IS NOT NULL THEN M.image
-                            ELSE B.image
-                          END AS image,
+                          M.image AS image,
                           B.project_id,
                           B.note
                       FROM BomHighlight B
@@ -6257,6 +6254,25 @@ app.post(
 app.delete("/api/MPNMountType/Delete-item/:mpn", (req, res) => {
   const { mpn } = req.params;
   db.run(`DELETE FROM MPNMountType WHERE mpn = ?`, [mpn], (err) => {
+    if (err) {
+      console.error("Database error:", err);
+      return res
+        .status(500)
+        .json({ error: "Database error", details: err.message });
+    }
+    io.emit("MPNMountTypeUpdate");
+    io.emit("RawBomHighlightUpdate");
+    io.emit("CombineBomUpdate");
+    io.emit("PnPFileUpdate");
+    io.emit("SettingSVGUpdate");
+    res.json({ message: "Summary received" });
+  });
+});
+
+// Delete image in MPNMountType table
+app.delete("/api/MPNMountType/Delete-image/:mpn", (req, res) => {
+  const { mpn } = req.params;
+  db.run(`UPDATE MPNMountType SET image = NULL WHERE mpn = ?`, [mpn], (err) => {
     if (err) {
       console.error("Database error:", err);
       return res
