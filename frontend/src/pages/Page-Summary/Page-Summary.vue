@@ -1250,7 +1250,7 @@ const summaryDetailByType = computed(() => {
     if (!grouped[type]) {
       grouped[type] = { ok: 0, error: 0 };
     }
-    grouped[type].ok += Number(item.Quantity_Real) || 0;
+    grouped[type].ok += Number(item.Quantity) || 0;
     grouped[type].error += Number(item.Quantity_Error) || 0;
   });
   return Object.entries(grouped).map(([type, { ok, error }]) => {
@@ -1308,6 +1308,7 @@ const formattedWeekDate = computed(() => {
 // Pass the computed ref to useSummary
 
 const { summary, summaryError } = useSummary(formattedSelectedDate);
+console.log(summary)
 const { compareSummary } = useCompareSummary(formattedSelectedDate);
 const { summaryFail, summaryFailError } = useSummaryFail(formattedSelectedDate);
 const {

@@ -16,7 +16,7 @@
             :totalSMT="statsBom.total.smt"
             :totalTHT="statsBom.total.handSolder"
             :totalPickup="statsBom.total.handPlace"
-          > 
+          >
           </CardStatistic>
         </v-col>
         <v-col cols="12" sm="4" md="4">
@@ -129,41 +129,15 @@
                 </v-list>
               </v-menu>
 
-              <v-menu>
-                <template v-slot:activator="{ props }">
-                  <v-btn
-                    v-bind="props"
-                    prepend-icon="mdi-sort"
-                    append-icon="mdi-chevron-down"
-                    color="grey"
-                    variant="tonal"
-                    class="text-caption ms-2"
-                  >
-                    Sắp xếp
-                  </v-btn>
-                </template>
-                <v-list density="compact">
-                  <v-list-item @click="SortTop()" prepend-icon="mdi-arrow-up">
-                    <v-list-item-title class="text-caption"
-                      >Bề mặt Top</v-list-item-title
-                    >
-                  </v-list-item>
-                  <v-list-item
-                    @click="SortBottom()"
-                    prepend-icon="mdi-arrow-down"
-                  >
-                    <v-list-item-title class="text-caption"
-                      >Bề mặt Bottom</v-list-item-title
-                    >
-                  </v-list-item>
-                  <v-list-item @click="ResetSort()" prepend-icon="mdi-refresh">
-                    <v-list-item-title class="text-caption"
-                      >Tất cả</v-list-item-title
-                    >
-                  </v-list-item>
-                </v-list>
-              </v-menu>
-              <v-btn color="error" variant="tonal" prepend-icon="mdi-delete" class="text-caption ms-2" @click="DialogDeleteBomHighlight = true" :disabled="rawBomHighlight.length === 0">Xoá Bom</v-btn>
+              <v-btn
+                color="error"
+                variant="tonal"
+                prepend-icon="mdi-delete"
+                class="text-caption ms-2"
+                @click="DialogDeleteBomHighlight = true"
+                :disabled="rawBomHighlight.length === 0"
+                >Xoá Bom</v-btn
+              >
               <v-spacer></v-spacer>
               <InputSearch v-model="searchBomHighlight" />
             </v-card-title>
@@ -197,7 +171,11 @@
               >
                 <!-- STT -->
                 <template v-slot:item.stt="{ index }">
-                  {{ (pageBomHighlight - 1) * itemsPerPageBomHighlight + index + 1 }}
+                  {{
+                    (pageBomHighlight - 1) * itemsPerPageBomHighlight +
+                    index +
+                    1
+                  }}
                 </template>
 
                 <!-- Action -->
@@ -205,7 +183,10 @@
                   <div class="d-flex">
                     <v-tooltip text="Chỉnh sửa" location="top">
                       <template v-slot:activator="{ props }">
-                        <ButtonEdit @edit="GetItemBomEdit(item)" v-bind="props" />
+                        <ButtonEdit
+                          @edit="GetItemBomEdit(item)"
+                          v-bind="props"
+                        />
                       </template>
                     </v-tooltip>
 
@@ -236,8 +217,18 @@
                     size="small"
                     variant="tonal"
                   >
-                    {{ value || 'SMT' }}
+                    {{ value || "SMT" }}
                   </v-chip>
+                </template>
+
+                <!-- Image -->
+                <template v-slot:item.image="{ value }">
+                  <v-img
+                    :src="`${Url}/${value}`"
+                    width="50"
+                    height="50"
+                    cover
+                  />
                 </template>
 
                 <!-- Pagination -->
@@ -246,7 +237,9 @@
                     <v-pagination
                       v-model="pageBomHighlight"
                       :length="
-                        Math.ceil(rawBomHighlight.length / itemsPerPageBomHighlight)
+                        Math.ceil(
+                          rawBomHighlight.length / itemsPerPageBomHighlight,
+                        )
                       "
                     />
                   </div>
@@ -348,7 +341,15 @@
                   </v-list-item>
                 </v-list>
               </v-menu>
-              <v-btn color="error" variant="tonal" prepend-icon="mdi-delete" class="text-caption ms-2" @click="DialogDeletePickPlace = true" :disabled="combineBom.length === 0">Xoá Pickplace</v-btn>
+              <v-btn
+                color="error"
+                variant="tonal"
+                prepend-icon="mdi-delete"
+                class="text-caption ms-2"
+                @click="DialogDeletePickPlace = true"
+                :disabled="combineBom.length === 0"
+                >Xoá Pickplace</v-btn
+              >
               <v-spacer></v-spacer>
               <InputSearch v-model="searchBom" />
             </v-card-title>
@@ -469,7 +470,7 @@
             </v-card-text>
           </v-tabs-window-item>
           <v-tabs-window-item :value="3">
-            <v-card height="calc(100vh - 280px)" variant="text">
+            <v-card height="100vh" variant="text">
               <v-card-title class="d-flex align-center mt-5">
                 <v-btn
                   v-bind="props"
@@ -532,7 +533,7 @@
                 <v-col cols="6">
                   <v-card-text
                     class="pa-0 ma-0 overflow-hidden"
-                    style="height: 58vh"
+                    style="height: 65vh"
                   >
                     <!-- Hiển thị SVG với overlay Pick & Place -->
 
@@ -712,7 +713,7 @@
                     :hover="true"
                     :dense="false"
                     :fixed-header="true"
-                    height="56vh"
+                    height="90vh"
                     show-select
                   >
                     <template
@@ -1410,6 +1411,10 @@
           </tr>
         </tbody>
       </v-table>
+      <p class="text-caption text-grey mt-2">
+        <v-icon size="14" color="grey">mdi-information-outline</v-icon>
+        Lưu ý: Layer của file Gerber sẽ là .gko .gtp, .gto, gbp, gbo.
+      </p>
     </div>
 
     <template #actions>
@@ -1839,7 +1844,7 @@
           prepend-icon="mdi-information-variant-circle"
         >
           <v-tooltip activator="parent" location="end"
-            >Lấy khoảng cách pitch của tâm 2 linh kiện (Mặt Bottom)</v-tooltip
+            >Khoảng cách giữa 2 linh kiện cùng tên của 2 board ngoài cùng panel</v-tooltip
           >
         </v-btn>
       </div>
@@ -1954,7 +1959,7 @@
   </BaseDialog>
   <BaseDialog
     v-model="DialogEditType"
-    width="600"
+    width="700"
     title="Cập nhật loại linh kiện"
     icon="mdi-update"
   >
@@ -1963,7 +1968,28 @@
       v-model="MPN_Type_Edit"
       :items="['SMT', 'Hàn tay', 'Gắp tay']"
     />
-    
+    <v-row>
+      <v-col cols="8">
+        <InputFiles
+          v-model="MPN_Image_Edit"
+          label="Hình ảnh linh kiện"
+          :multiple="false"
+          :accept="'.jpg,.jpeg,.png'"
+          prepend-icon="mdi-camera"
+        />
+      </v-col>
+      <v-col cols="4">
+        <v-img
+          v-if="MPN_Image_Edit"
+          :src="Url + '/' + MPN_Image_Edit"
+          alt="Hình ảnh linh kiện"
+          width="100px"
+          height="100px"
+        ></v-img>
+        <div v-else class="text-center pa-5 text-grey">Không có hình ảnh</div>
+      </v-col>
+    </v-row>
+
     <template #actions>
       <ButtonCancel @cancel="DialogEditType = false" />
       <ButtonSave @save="SaveEditType()" />
@@ -1975,9 +2001,7 @@
     title="Xoá dữ liệu Bom"
     icon="mdi-delete"
   >
-    <v-card-text>
-      Bạn có chắc xoá dữ liệu Bom này?
-    </v-card-text>
+    <v-card-text> Bạn có chắc xoá dữ liệu Bom này? </v-card-text>
     <template #actions>
       <ButtonCancel @cancel="DialogDeleteBomHighlight = false" />
       <ButtonDelete @delete="DeleteAllBomHighlight()" />
@@ -1989,9 +2013,7 @@
     title="Xoá dữ liệu PickPlace"
     icon="mdi-delete"
   >
-    <v-card-text>
-      Bạn có chắc xoá dữ liệu PickPlace này?
-    </v-card-text>
+    <v-card-text> Bạn có chắc xoá dữ liệu PickPlace này? </v-card-text>
     <template #actions>
       <ButtonCancel @cancel="DialogDeletePickPlace = false" />
       <ButtonDelete @delete="DeleteAllPickPlace()" />
@@ -2158,41 +2180,45 @@ const statsBom = computed(() => {
   let count = {
     total: { smt: 0, handSolder: 0, handPlace: 0 },
     top: { smt: 0, handSolder: 0, handPlace: 0 },
-    bottom: { smt: 0, handSolder: 0, handPlace: 0 }
+    bottom: { smt: 0, handSolder: 0, handPlace: 0 },
   };
 
   const layerMap = new Map();
-  combineBom.value.forEach(item => {
+  combineBom.value.forEach((item) => {
     if (!item.designator) return;
-    const layer = (item.layer || '').toLowerCase();
-    let normalizedLayer = 'unknown';
-    if (['top', 'toplayer'].includes(layer)) normalizedLayer = 'top';
-    else if (['bottom', 'bottomlayer'].includes(layer)) normalizedLayer = 'bottom';
-    
+    const layer = (item.layer || "").toLowerCase();
+    let normalizedLayer = "unknown";
+    if (["top", "toplayer"].includes(layer)) normalizedLayer = "top";
+    else if (["bottom", "bottomlayer"].includes(layer))
+      normalizedLayer = "bottom";
+
     layerMap.set(item.designator.trim().toUpperCase(), normalizedLayer);
   });
 
-  rawBomHighlight.value.forEach(item => {
-     const designators = (item.designator || '').split(',').map(d => d.trim().toUpperCase()).filter(d=>d);
-     const type = item.type;
-     
-     designators.forEach(d => {
-        const layer = layerMap.get(d) || 'unknown';
-        
-        if (layer === 'top') {
-           if (type === 'SMT') count.top.smt++;
-           else if (type === 'Hàn tay') count.top.handSolder++;
-           else if (type === 'Gắp tay') count.top.handPlace++;
-        } else if (layer === 'bottom') {
-           if (type === 'SMT') count.bottom.smt++;
-           else if (type === 'Hàn tay') count.bottom.handSolder++;
-           else if (type === 'Gắp tay') count.bottom.handPlace++;
-        }
-        
-        if (type === 'SMT') count.total.smt++;
-        else if (type === 'Hàn tay') count.total.handSolder++;
-        else if (type === 'Gắp tay') count.total.handPlace++;
-     });
+  rawBomHighlight.value.forEach((item) => {
+    const designators = (item.designator || "")
+      .split(",")
+      .map((d) => d.trim().toUpperCase())
+      .filter((d) => d);
+    const type = item.type;
+
+    designators.forEach((d) => {
+      const layer = layerMap.get(d) || "unknown";
+
+      if (layer === "top") {
+        if (type === "SMT") count.top.smt++;
+        else if (type === "Hàn tay") count.top.handSolder++;
+        else if (type === "Gắp tay") count.top.handPlace++;
+      } else if (layer === "bottom") {
+        if (type === "SMT") count.bottom.smt++;
+        else if (type === "Hàn tay") count.bottom.handSolder++;
+        else if (type === "Gắp tay") count.bottom.handPlace++;
+      }
+
+      if (type === "SMT") count.total.smt++;
+      else if (type === "Hàn tay") count.total.handSolder++;
+      else if (type === "Gắp tay") count.total.handPlace++;
+    });
   });
 
   return count;
@@ -2270,8 +2296,6 @@ const cx = ref(0);
 const cy = ref(0);
 const rotationAngle = ref(0);
 const svgRotation = ref(0);
-const designatorLabelAngle = ref(0);
-const componentBodyAngle = ref(0);
 const mirrorMode = ref("");
 
 const totalAddedX = ref(0.0);
@@ -2282,8 +2306,6 @@ const hintOffsetX_top = ref(0.0);
 const hintOffsetY_top = ref(0.0);
 const hintOffsetX_bottom = ref(0.0);
 const hintOffsetY_bottom = ref(0.0);
-const useStandardScale = ref(false); // Dùng tỉ lệ chuẩn 39.37 (1 mil = 1 unit)
-const STANDARD_FACTOR = 39.37007874; // 1mm = 39.37 mil (inches/1000)
 
 // --- Setting PCB States ---
 const width = ref(0);
@@ -2327,18 +2349,19 @@ const baseHeaders = [
   { title: "Quantity", key: "quantity" },
   { title: "Type", key: "type" },
   { title: "Note", key: "note", width: "150px" },
+  { title: "Image", key: "image", width: "150px" },
   { title: "Thao tác", key: "id", sortable: false },
 ];
 const HeadersRawBomHighlight = computed(() => {
   const hasMpn2 = rawBomHighlight.value.some(
-    item => item.mpn2 && item.mpn2.toString().trim() !== ""
+    (item) => item.mpn2 && item.mpn2.toString().trim() !== "",
   );
 
   const hasMpn3 = rawBomHighlight.value.some(
-    item => item.mpn3 && item.mpn3.toString().trim() !== ""
+    (item) => item.mpn3 && item.mpn3.toString().trim() !== "",
   );
 
-  return baseHeaders.filter(header => {
+  return baseHeaders.filter((header) => {
     if (header.key === "mpn2" && !hasMpn2) {
       return false;
     }
@@ -2416,6 +2439,7 @@ const PnP_Layer_Edit = ref("");
 const MPN_Type_Edit = ref("");
 const MPN_Name_Edit = ref("");
 const MPN_Description_Edit = ref("");
+const MPN_Image_Edit = ref("");
 
 // --- Zoom & ViewBox States ---
 /** ViewBox gốc của board – dùng để reset về toàn bộ board */
@@ -2694,8 +2718,6 @@ const pnpMarkersArray = computed(() => {
         coordinateScale.value,
       );
 
-
-
       const pnpRot = Number(pnp.rotation || pnp.rot || 0);
       const uiRot = Number(coordinateRotation.value || 0);
 
@@ -2869,8 +2891,7 @@ const uploadBOM = async () => {
     MessageErrorDialog.value = "Upload Bom thất bại";
     console.error("Lỗi upload BOM:", error);
     DialogLoading.value = false;
-  }
-  finally{
+  } finally {
     DialogLoading.value = false;
   }
 };
@@ -2973,7 +2994,8 @@ const GetItemBomEdit = (item) => {
   GetIDPnP.value = item.id;
   MPN_Type_Edit.value = item.type;
   MPN_Name_Edit.value = item.mpn;
-  MPN_Description_Edit.value = item.description
+  MPN_Description_Edit.value = item.description;
+  MPN_Image_Edit.value = item.image;
 };
 
 /**
@@ -3113,41 +3135,53 @@ const SaveEditPnP = async () => {
 
 const SaveEditType = async () => {
   DialogLoading.value = true;
-  const formData = reactive({
-    type: MPN_Type_Edit.value,
-  });
-  const formDataMountType = reactive({
-    mpn: MPN_Name_Edit.value,
-    mount_type: MPN_Type_Edit.value,
-    description: MPN_Description_Edit.value,
-    project_id: route.params.id,
-    created_by: localStorage.getItem("User"),
-  });
+
+  // ===== FORM DATA THẬT =====
+  const formData = new FormData();
+  const formDataMountType = new FormData();
+  formData.append("type", MPN_Type_Edit.value);
+
+  // FILE
+  if (MPN_Image_Edit.value) {
+    formData.append("image", MPN_Image_Edit.value);
+  }
+  formDataMountType.append("mpn", MPN_Name_Edit.value);
+  formDataMountType.append("mount_type", MPN_Type_Edit.value);
+  formDataMountType.append("description", MPN_Description_Edit.value);
+  formDataMountType.append("image", MPN_Image_Edit.value);
+  formDataMountType.append("project_id", route.params.id);
+  formDataMountType.append("created_by", localStorage.getItem("User"));
+
 
   try {
-    const response = await axios.put(
+    await axios.put(
       `${Url}/BomHighlight/Edit-type/${GetIDPnP.value}`,
       formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
     );
-    if (MPN_Type_Edit.value == "Hàn tay" || MPN_Type_Edit.value == "Gắp tay") {
-      const response = await axios.post(
-        `${Url}/MPNMountType/Add-item`,
-        formDataMountType,
-      );
+    if(MPN_Image_Edit.value !== ""){
+      await axios.post(`${Url}/MPNMountType/Add-item`, formDataMountType);
     }
-    if (MPN_Type_Edit.value == "SMT") {
-      const response = await axios.delete(
-        `${Url}/MPNMountType/Delete-item/${MPN_Name_Edit.value}`,
-      );
+    if (MPN_Type_Edit.value == "SMT" && MPN_Image_Edit.value == "") {
+      await axios.delete(`${Url}/MPNMountType/Delete-item/${MPN_Name_Edit.value}`);
     }
+
     DialogLoading.value = false;
     DialogEditType.value = false;
     DialogSuccess.value = true;
+
     MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
   } catch (error) {
+    console.error(error);
+
     DialogLoading.value = false;
     DialogEditType.value = false;
     DialogFailed.value = true;
+
     MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
   }
 };
@@ -3407,8 +3441,8 @@ function transform(p) {
         break;
 
       case 90:
-        x2 = -(H - (y + edgeYv));
-        y2 = -xm; // = x
+        x2 = - (y - edgeYv);
+        y2 = x; // = x
         r2 = normalizeRotation(r - angle.value);
         break;
 
@@ -4802,9 +4836,7 @@ function handleManualZoom(id) {
 const getRowClass = (data) => {
   const row = data?.item || data;
 
-  if (
-    row.note &&
-    row.note.toString().trim().toLowerCase() === "dnp") {
+  if (row.note && row.note.toString().trim().toLowerCase() === "dnp") {
     return { class: "row-yellow" };
   }
 

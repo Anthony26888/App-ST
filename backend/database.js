@@ -436,6 +436,7 @@ db.serialize(() => {
       type TEXT,
       designator TEXT,
       quantity INTEGER,
+      image TEXT,
       project_id INTERGER,
       note TEXT,
       FOREIGN KEY (project_id) REFERENCES FilterBom(id) ON DELETE CASCADE
@@ -444,9 +445,10 @@ db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS MPNMountType (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      mpn TEXT,
+      mpn TEXT UNIQUE,
       mount_type TEXT,
       description TEXT,
+      image TEXT,
       project_id INTERGER,
       created_by TEXT
     )

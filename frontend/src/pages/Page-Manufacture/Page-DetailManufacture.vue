@@ -804,14 +804,11 @@
             />
           </v-col>
         </v-row>
-        <v-autocomplete
+        <InputField
           label="Tên hạng mục"
-          variant="outlined"
-          clearable
-          :items="groupEditCategory"
           v-model="Category_Add"
           :rules="requiredRuleEmpty"
-        ></v-autocomplete>
+        ></InputField>
         <v-row>
           <v-col cols="12" sm="4">
             <InputField
