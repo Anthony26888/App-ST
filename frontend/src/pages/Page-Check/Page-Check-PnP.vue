@@ -3176,24 +3176,19 @@ const SaveEditPnP = async () => {
 const SaveEditType = async () => {
   DialogLoading.value = true;
 
-  // ===== FORM DATA THẬT =====
-  const formData = new FormData();
-  const formDataMountType = new FormData();
-  formData.append("type", MPN_Type_Edit.value);
-
-  // FILE
-  if (MPN_Image_Edit.value) {
-    formData.append("image", MPN_Image_Edit.value);
-  }
-  formDataMountType.append("mpn", MPN_Name_Edit.value);
-  formDataMountType.append("mount_type", MPN_Type_Edit.value);
-  formDataMountType.append("description", MPN_Description_Edit.value);
-  formDataMountType.append("image", MPN_Image_Edit.value);
-  formDataMountType.append("project_id", route.params.id);
-  formDataMountType.append("created_by", localStorage.getItem("User"));
-
-
   try {
+    // =========================
+    // UPDATE BOM HIGHLIGHT
+    // =========================
+    const formData = new FormData();
+
+    formData.append("type", MPN_Type_Edit.value);
+
+    // chỉ append khi là file mới
+    if (MPN_Image_Edit.value instanceof File) {
+      formData.append("image", MPN_Image_Edit.value);
+    }
+
     await axios.put(
       `${Url}/BomHighlight/Edit-type/${GetIDPnP.value}`,
       formData,
@@ -3201,20 +3196,69 @@ const SaveEditType = async () => {
         headers: {
           "Content-Type": "multipart/form-data",
         },
-      },
+      }
     );
-    if(MPN_Image_Edit.value !== ""){
-      await axios.post(`${Url}/MPNMountType/Add-item`, formDataMountType);
+
+    // =========================
+    // ADD MPN MOUNT TYPE
+    // =========================
+    if (MPN_Image_Edit.value) {
+      const formDataMountType = new FormData();
+
+      formDataMountType.append("mpn", MPN_Name_Edit.value);
+      formDataMountType.append("mount_type", MPN_Type_Edit.value);
+      formDataMountType.append(
+        "description",
+        MPN_Description_Edit.value
+      );
+
+      formDataMountType.append(
+        "project_id",
+        route.params.id
+      );
+
+      formDataMountType.append(
+        "created_by",
+        localStorage.getItem("User")
+      );
+
+      // chỉ append image nếu là file
+      if (MPN_Image_Edit.value instanceof File) {
+        formDataMountType.append(
+          "image",
+          MPN_Image_Edit.value
+        );
+      }
+
+      await axios.post(
+        `${Url}/MPNMountType/Add-item`,
+        formDataMountType,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
     }
-    if (MPN_Type_Edit.value == "SMT" && MPN_Image_Edit.value == "") {
-      await axios.delete(`${Url}/MPNMountType/Delete-item/${MPN_Name_Edit.value}`);
+
+    // =========================
+    // DELETE
+    // =========================
+    if (
+      MPN_Type_Edit.value === "SMT" &&
+      !MPN_Image_Edit.value
+    ) {
+      await axios.delete(
+        `${Url}/MPNMountType/Delete-item/${MPN_Name_Edit.value}`
+      );
     }
 
     DialogLoading.value = false;
     DialogEditType.value = false;
     DialogSuccess.value = true;
 
-    MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
+    MessageDialog.value =
+      "Chỉnh sửa dữ liệu thành công";
   } catch (error) {
     console.error(error);
 
@@ -3222,7 +3266,8 @@ const SaveEditType = async () => {
     DialogEditType.value = false;
     DialogFailed.value = true;
 
-    MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
+    MessageErrorDialog.value =
+      "Chỉnh sửa dữ liệu thất bại";
   }
 };
 
