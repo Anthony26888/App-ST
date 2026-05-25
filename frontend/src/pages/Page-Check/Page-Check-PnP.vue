@@ -224,7 +224,7 @@
                 <!-- Image -->
                 <template v-slot:item.image="{ value }">
                   <v-img
-                    :src="`${Url}/${value}`"
+                    :src="`${Url_Image}/${value}`"
                     width="50"
                     height="50"
                     cover
@@ -2100,6 +2100,7 @@ import { saveAs } from "file-saver";
 // 1. CONSTANTS & API CONFIG
 // ==========================================
 const Url = import.meta.env.VITE_API_URL;
+const Url_Image = import.meta.env.VITE_SOCKET_URL;
 const clientId = import.meta.env.VITE_DIGIKEY_CLIENT_ID;
 const clientSecret = import.meta.env.VITE_DIGIKEY_CLIENT_SECRET;
 const route = useRoute();
