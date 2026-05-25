@@ -2100,7 +2100,7 @@ import { saveAs } from "file-saver";
 // 1. CONSTANTS & API CONFIG
 // ==========================================
 const Url = import.meta.env.VITE_API_URL;
-const Url_Image = import.meta.env.VITE_SOCKET_URL;
+const Url_Image = import.meta.env.VITE_API_ERP_URL;
 const clientId = import.meta.env.VITE_DIGIKEY_CLIENT_ID;
 const clientSecret = import.meta.env.VITE_DIGIKEY_CLIENT_SECRET;
 const route = useRoute();
