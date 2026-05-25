@@ -6516,6 +6516,8 @@ app.delete("/api/To-Do/Delete-item/:id", (req, res) => {
 app.use("/api/ai-project", deliveryChatRouter(db));
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+
 // Serve static files from frontend/dist
 app.use(express.static(path.join(__dirname, "../frontend/dist")));
 

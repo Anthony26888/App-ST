@@ -2,12 +2,21 @@ tunnel: efdcf16b-d285-47ff-8c3b-8241c386198f
 credentials-file: /etc/cloudflared/efdcf16b-d285-47ff-8c3b-8241c386198f.json
 
 ingress:
+  # API
+  - hostname: erpst.io.vn
+    path: /api/*
+    service: http://backend:3000
+
+  # Uploads
+  - hostname: erpst.io.vn
+    path: /uploads/*
+    service: http://backend:3000
+
+  # Frontend
   - hostname: erpst.io.vn
     service: http://frontend:80
 
-  - hostname: api.erpst.io.vn
-    service: http://backend:3000
-
+  # AI
   - hostname: ai.erpst.io.vn
     service: http://ollama:11434
 
