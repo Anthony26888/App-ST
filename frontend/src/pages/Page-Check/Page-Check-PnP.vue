@@ -1985,7 +1985,7 @@
         <!-- IMAGE -->
         <v-img
           v-if="MPN_Image_Edit"
-          :src="Url + '/' + MPN_Image_Edit"
+          :src="Url_Image + '/' + MPN_Image_Edit"
           alt="Hình ảnh linh kiện"
           width="110"
           height="110"
