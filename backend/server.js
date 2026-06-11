@@ -5296,7 +5296,18 @@ app.post(
       await workbook.xlsx.readFile(req.file.path);
 
       const worksheet = workbook.getWorksheet(1);
+      if (!worksheet) {
+        return res.status(400).json({
+          success: false,
+          error: "Không tìm thấy sheet đầu tiên",
+        });
+      }
 
+      // 👇 LOG SAU KHI KIỂM TRA SHEET
+      console.log("ExcelJS:", require("exceljs/package.json").version);
+      console.log("File:", req.file.path);
+      console.log("Images:", worksheet.getImages().length);
+      console.log("Media:", workbook.model.media?.length);
       if (!worksheet) {
         return res.status(400).json({
           success: false,

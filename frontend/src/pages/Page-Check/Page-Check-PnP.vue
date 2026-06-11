@@ -3132,7 +3132,6 @@ const GetItemBomEdit = (item) => {
   MPN_Image_Edit.value = item.image;
   infoProjectName.value = item.project_name;
   infoCreatedBy.value = item.created_by;
-  console.log(item);
 };
 
 /**
