@@ -147,13 +147,66 @@
                 >Xoá Bom</v-btn
               >
               <v-spacer></v-spacer>
-              <InputSearch v-model="searchBomHighlight" />
+
+              <!-- Filter: Type -->
+              <v-chip-group
+                v-model="filterBomHighlightType"
+                class="ms-2"
+                selected-class="text-primary"
+                filter
+                multiple
+                column
+              >
+                <v-chip
+                  value="SMT"
+                  size="small"
+                  variant="tonal"
+                  color="primary"
+                  filter
+                  >SMT</v-chip
+                >
+                <v-chip
+                  value="Hàn tay"
+                  size="small"
+                  variant="tonal"
+                  color="pink"
+                  filter
+                  >Hàn tay</v-chip
+                >
+                <v-chip
+                  value="Gắp tay"
+                  size="small"
+                  variant="tonal"
+                  color="green"
+                  filter
+                  >Gắp tay</v-chip
+                >
+              </v-chip-group>
+
+              <!-- Filter: Image -->
+              <v-chip-group
+                v-model="filterBomHighlightHasImage"
+                class="ms-1"
+                selected-class="text-orange"
+              >
+                <v-chip
+                  :value="true"
+                  size="small"
+                  variant="tonal"
+                  color="orange"
+                  filter
+                  prepend-icon="mdi-image"
+                  >Có hình ảnh</v-chip
+                >
+              </v-chip-group>
+
+              <InputSearch v-model="searchBomHighlight" class="ms-2" />
             </v-card-title>
             <v-card-text>
               <v-data-table
                 density="comfortable"
                 :headers="HeadersRawBomHighlight"
-                :items="rawBomHighlight"
+                :items="filteredBomHighlight"
                 :search="searchBomHighlight"
                 :items-per-page="itemsPerPageBomHighlight"
                 v-model:page="pageBomHighlight"
@@ -235,10 +288,11 @@
                     <template v-for="(img, i) in safeParse(value)" :key="i">
                       <v-img
                         :src="`${Url_Image}/${img}`"
-                        width="100"
-                        height="100"
-                        cover
+                        width="150"
+                        height="150"
                         class="rounded border mr-2"
+                        @click="openImage(`${Url_Image}/${img}`)"
+                        style="cursor: pointer"
                       />
                     </template>
                   </div>
@@ -251,7 +305,8 @@
                       v-model="pageBomHighlight"
                       :length="
                         Math.ceil(
-                          rawBomHighlight.length / itemsPerPageBomHighlight,
+                          filteredBomHighlight.length /
+                            itemsPerPageBomHighlight,
                         )
                       "
                     />
@@ -2126,6 +2181,22 @@
       <ButtonDelete @delete="RemoveImage()" />
     </template>
   </BaseDialog>
+  <!-- Image Enlargement Dialog -->
+  <BaseDialog
+    v-model="dialogOpen"
+    max-width="800px"
+    title="Hình ảnh chi tiết"
+    icon="mdi-image"
+  >
+    <v-card-text class="d-flex justify-center">
+      <v-img
+        :src="dialogImageUrl"
+        max-width="100%"
+        max-height="80vh"
+        contain
+      ></v-img>
+    </v-card-text>
+  </BaseDialog>
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarCaution v-model="DialogCaution" :message="MessageCautionDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
@@ -2521,6 +2592,23 @@ const HeadersPnPGrouped = [
 ];
 const searchBom = ref("");
 const searchBomHighlight = ref("");
+const filterBomHighlightType = ref([]);
+const filterBomHighlightHasImage = ref(null);
+const filteredBomHighlight = computed(() => {
+  let items = rawBomHighlight.value;
+  if (filterBomHighlightType.value.length > 0) {
+    items = items.filter((item) =>
+      filterBomHighlightType.value.includes(item.type || "SMT"),
+    );
+  }
+  if (filterBomHighlightHasImage.value === true) {
+    items = items.filter((item) => {
+      const imgs = safeParse(item.image);
+      return Array.isArray(imgs) && imgs.length > 0;
+    });
+  }
+  return items;
+});
 const itemsPerPageBom = ref(20);
 const pageBom = ref(1);
 const itemsPerPageBomHighlight = ref(20);
@@ -5061,6 +5149,14 @@ const openRemoveImage = (img) => {
   ImageToDelete.value = img;
   DialogRemoveImage.value = true;
 };
+
+const dialogOpen = ref(false);
+const dialogImageUrl = ref("");
+
+function openImage(imageUrl) {
+  dialogImageUrl.value = imageUrl;
+  dialogOpen.value = true;
+}
 </script>
 <script>
 export default {
