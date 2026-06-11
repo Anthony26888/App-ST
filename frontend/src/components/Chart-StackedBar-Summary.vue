@@ -34,10 +34,6 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
-  failData: {
-    type: Array,
-    default: () => [],
-  },
   planData: {
     type: Array,
     default: () => [],
@@ -69,25 +65,6 @@ const renderChart = () => {
           backgroundColor: "rgba(0, 200, 83, 0.8)",
           stack: "stack1",
           maxBarThickness: 80,
-        },
-        {
-          label: "Fail",
-          data: props.failData || [],
-          backgroundColor: "rgba(229, 57, 53, 0.8)",
-          stack: "stack1",
-          maxBarThickness: 80,
-        },
-        {
-          label: "Kế hoạch",
-          data: props.planData || [],
-          type: "line", // Thay đổi loại thành 'line'
-          borderColor: "rgba(33, 150, 243, 1)", // Xanh dương (Blue)
-          backgroundColor: "rgba(33, 150, 243, 0.2)", // Background nhạt hơn
-          pointBackgroundColor: "rgba(33, 150, 243, 1)",
-          fill: false, // Không tô màu dưới đường
-          tension: 0.3, // Độ cong của đường
-          stack: "stack2", // TẮT stacked bằng cách dùng stack khác
-          yAxisID: 'y', // Đảm bảo sử dụng trục Y chính
         },
       ],
     },
@@ -121,8 +98,11 @@ const renderChart = () => {
       },
       elements: {
         bar: {
+          borderRadius: 4,
+
           barPercentage: 0.6,
-          categoryPercentage: 0.8,
+
+          categoryPercentage: 0.7,
         },
       },
     },
@@ -136,8 +116,6 @@ watch(
     if (chartInstance) {
       chartInstance.data.labels = props.labels || [];
       chartInstance.data.datasets[0].data = props.passData || [];
-      chartInstance.data.datasets[1].data = props.failData || [];
-      chartInstance.data.datasets[2].data = props.planData || [];
       chartInstance.update();
     } else {
       renderChart();

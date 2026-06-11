@@ -6,7 +6,6 @@
         prepend-avatar="@/assets/avatar-ST.jpg"
         :subtitle="LevelUser"
         :title="UserInfo"
-        
       >
       </v-list-item>
     </v-list>
@@ -87,10 +86,26 @@ const rail = ref(false);
 
 onMounted(() => {
   const token = localStorage.getItem("token");
+
   if (token) {
     const decoded = jwtDecode(token);
+    const expirationTime = decoded.exp * 1000;
+    const currentTime = Date.now();
+
+    // KIỂM TRA: Nếu thời gian hiện tại lớn hơn thời gian hết hạn
+    if (currentTime >= expirationTime) {
+      console.log("Token đã hết hạn sử dụng!");
+      localStorage.removeItem("token");
+      localStorage.removeItem("Username");
+      DialogFailed.value = true;
+      router.push("/");
+      return; // Dừng code tại đây, không chạy tiếp các hàm dưới
+    }
+
+    // Nếu còn hạn thì xử lý tiếp như bình thường
     UserInfo.value = decoded.Username;
-    Date_Expired.value = new Date(decoded.exp * 1000);
+    localStorage.setItem("Username", UserInfo.value);
+    Date_Expired.value = new Date(expirationTime);
     FetchUser();
   } else {
     console.log("Không tìm thấy token!");
@@ -115,7 +130,7 @@ const FetchUser = async () => {
       const Detail_User = await res.json();
       LevelUser.value = Detail_User[0].Level;
       localStorage.setItem("LevelUser", LevelUser.value);
-      
+
       if (LevelUser.value == "Kinh doanh") {
         StatusOption_1.value = true;
         StatusOption_4.value = true;
@@ -297,7 +312,7 @@ const menuItems = computed(() => [
 ]);
 
 const visibleMenuItems = computed(() =>
-  menuItems.value.filter((item) => !item.disabled)
+  menuItems.value.filter((item) => !item.disabled),
 );
 </script>
 
@@ -327,13 +342,13 @@ export default {
       overflow: hidden;
 
       &::before {
-        content: '';
+        content: "";
         position: absolute;
         left: 0;
         top: 0;
         height: 100%;
         width: 3px;
-        background: linear-gradient(180deg, #A52A2A 0%, #FF9500 100%);
+        background: linear-gradient(180deg, #a52a2a 0%, #ff9500 100%);
         transform: scaleY(0);
         transform-origin: center;
         transition: transform 0.3s ease;
@@ -349,13 +364,13 @@ export default {
         }
 
         .v-icon {
-          color: #FF9500 !important;
+          color: #ff9500 !important;
           transform: scale(1.2);
         }
       }
 
       &.v-list-item--active {
-        background: linear-gradient(135deg, #A52A2A 0%, #FF9500 100%);
+        background: linear-gradient(135deg, #a52a2a 0%, #ff9500 100%);
         color: #ffffff;
         border-left: none;
 
@@ -380,7 +395,7 @@ export default {
     }
 
     .v-list-item:first-child {
-      background: linear-gradient(135deg, #A52A2A 0%, #FF9500 100%);
+      background: linear-gradient(135deg, #a52a2a 0%, #ff9500 100%);
       margin: 8px;
       padding: 12px 8px;
       border-radius: 8px;
@@ -391,7 +406,7 @@ export default {
       }
 
       &:hover {
-        background: linear-gradient(135deg, #8B2222 0%, #E68900 100%);
+        background: linear-gradient(135deg, #8b2222 0%, #e68900 100%);
         transform: none;
         box-shadow: 0 6px 16px rgba(165, 42, 42, 0.3);
       }

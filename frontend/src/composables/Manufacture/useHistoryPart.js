@@ -1,18 +1,27 @@
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, watch, isRef } from "vue";
 import { io } from "socket.io-client";
 
 export function useHistoryPart(id) {
   const historyPart = ref([]);
   const historyPartError = ref([]);
   const connectionStatus = ref("Đang kết nối...");
-  const SOCKET_URL = import.meta.env.VITE_SOCKET_URL; // Lấy URL từ .env
-  const socket = io(SOCKET_URL) // chỉnh lại nếu deploys
+
+  const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
+  const socket = io(SOCKET_URL);
+
+  const getCurrentId = () => {
+    return isRef(id) ? id.value : id;
+  };
+
+  const loadData = (planID) => {
+    if (!planID) return;
+    socket.emit("getHistoryPart", planID);
+  };
 
   onMounted(() => {
-    socket.emit("getHistoryPart", id);
-
     socket.on("connect", () => {
       connectionStatus.value = "Đã kết nối thành công";
+      loadData(getCurrentId());
     });
 
     socket.on("disconnect", () => {
@@ -20,9 +29,7 @@ export function useHistoryPart(id) {
     });
 
     socket.on("HistoryPartData", (data) => {
-      if (Array.isArray(data)) {
-      }
-      historyPart.value = data;
+      historyPart.value = Array.isArray(data) ? data : [];
     });
 
     socket.on("HistoryPartError", (message) => {
@@ -31,13 +38,31 @@ export function useHistoryPart(id) {
     });
 
     socket.on("updateHistoryPart", () => {
-      socket.emit("getHistoryPart", id);
+      loadData(getCurrentId());
     });
+
+    // Trường hợp connect xong mới load
+    loadData(getCurrentId());
   });
+
+  // Chỉ watch nếu id là ref
+  if (isRef(id)) {
+    watch(
+      id,
+      (newId) => {
+        loadData(newId);
+      },
+      { immediate: true },
+    );
+  }
 
   onUnmounted(() => {
-    if (socket) socket.disconnect();
+    socket.disconnect();
   });
 
-  return { historyPart, historyPartError, connectionStatus };
+  return {
+    historyPart,
+    historyPartError,
+    connectionStatus,
+  };
 }

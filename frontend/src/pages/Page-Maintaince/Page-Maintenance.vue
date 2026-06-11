@@ -154,17 +154,17 @@
                 location="top left"
                 :color="
                   getSchedules(internalItem.raw).filter(
-                    (p) => p.Status === 'Cần bảo trì'
+                    (p) => p.Status === 'Cần bảo trì',
                   ).length > 0
                     ? 'error'
                     : 'grey'
                 "
                 :content="
                   getSchedules(internalItem.raw).filter(
-                    (p) => p.Status === 'Cần bảo trì'
+                    (p) => p.Status === 'Cần bảo trì',
                   ).length > 0
                     ? getSchedules(internalItem.raw).filter(
-                        (p) => p.Status === 'Cần bảo trì'
+                        (p) => p.Status === 'Cần bảo trì',
                       ).length
                     : 0
                 "
@@ -202,7 +202,8 @@
                         variant="text"
                         class="text-primary text-caption"
                         :to="`/Bao-tri/Lich-bao-tri/${item.MaThietBi}`"
-                      >Xem chi tiết</v-btn>
+                        >Xem chi tiết</v-btn
+                      >
                     </template>
 
                     <v-table
@@ -273,15 +274,15 @@
             <template #item.Image="{ value }">
               <v-img
                 v-if="value"
-                :src="`${API_URL}${value}`"
+                :src="`${Url_Image}/${value}`"
                 width="100"
                 height="100"
                 cover
-                :lazy-src="`${API_URL}${value}`"
+                :lazy-src="`${Url_Image}/${value}`"
                 :aspect-ratio="1"
                 :eager="true"
                 :loading="true"
-                :placeholder="`${API_URL}${value}`"
+                :placeholder="`${Url_Image}/${value}`"
                 class="rounded-lg ma-2"
               />
               <v-img
@@ -317,12 +318,7 @@
                   text="Đang bảo trì"
                   size="small"
                 ></v-chip>
-                <v-chip
-                  v-else
-                  color="success"
-                  text="Tốt"
-                  size="small"
-                ></v-chip>
+                <v-chip v-else color="success" text="Tốt" size="small"></v-chip>
               </div>
             </template>
 
@@ -430,10 +426,10 @@
   >
     <v-row>
       <v-col cols="12" md="12">
-        <InputField label="Mã thiết bị" v-model="MachineCode_Edit" />
+        <InputField label="Tên thiết bị" v-model="TenThietBi_Edit" />
       </v-col>
       <v-col cols="12" md="6">
-        <InputField label="Tên thiết bị" v-model="TenThietBi_Edit" />
+        <InputField label="Mã thiết bị" v-model="MachineCode_Edit" />
       </v-col>
       <v-col cols="12" md="6">
         <InputField label="Loại thiết bị" v-model="LoaiThietBi_Edit" />
@@ -448,7 +444,11 @@
         <InputField label="Vị trí" v-model="ViTri_Edit" />
       </v-col>
       <v-col cols="12" md="6">
-        <InputSelect label="Tình trạng" v-model="TinhTrang_Edit" :items="['Tốt', 'Hư hỏng', 'Đang thử nghiệm', 'Đang bảo trì']" />
+        <InputSelect
+          label="Tình trạng"
+          v-model="TinhTrang_Edit"
+          :items="['Tốt', 'Hư hỏng', 'Đang thử nghiệm', 'Đang bảo trì']"
+        />
       </v-col>
       <v-col cols="12">
         <v-row>
@@ -462,7 +462,7 @@
           </v-col>
           <v-col cols="2">
             <v-img
-              :src="ImagePreview_Edit"
+              :src="`${Url_Image}/${ImagePreview_Edit}`"
               v-if="ImagePreview_Edit"
               width="100"
               height="100"
@@ -513,10 +513,10 @@
   >
     <v-row>
       <v-col cols="12" md="12">
-        <InputField label="Mã thiết bị" v-model="MachineCode_Add" />
+        <InputField label="Tên thiết bị" v-model="TenThietBi_Add" />
       </v-col>
       <v-col cols="12" md="6">
-        <InputField label="Tên thiết bị" v-model="TenThietBi_Add" />
+        <InputField label="Mã thiết bị" v-model="MachineCode_Add" />
       </v-col>
       <v-col cols="12" md="6">
         <InputField label="Loại thiết bị" v-model="LoaiThietBi_Add" />
@@ -609,7 +609,7 @@ import ButtonRemove from "@/components/Button-Remove.vue";
 // ===== STATE MANAGEMENT =====
 // API Configuration
 const Url = import.meta.env.VITE_API_URL;
-const API_URL = import.meta.env.VITE_SOCKET_URL || "https://api.erpst.io.vn";
+const Url_Image = "https://api.erpst.io.vn";
 // Router
 const router = useRouter();
 const { mdAndDown, lgAndUp } = useDisplay();
@@ -672,7 +672,7 @@ const itemsPerPage = ref(15);
 
 // Table headers configuration
 const Headers = [
-  // { title: "Ảnh", key: "Image", width: "150" },
+  { title: "Ảnh", key: "Image", width: "150" },
   { title: "Tên thiết bị", key: "TenThietBi", width: "250" },
   { title: "Mã thiết bị", key: "MachineCode", width: "200" },
   { title: "Loại thiết bị", key: "LoaiThietBi" },
@@ -711,7 +711,6 @@ function PushItem(value) {
   const found = machine.value.find((v) => v.MaThietBi === value);
   router.push(`/Bao-tri/Chi-tiet/${value}`);
   localStorage.setItem("MaintenanceID", found.TenThietBi);
-
 }
 
 /**
@@ -764,7 +763,7 @@ const SaveEdit = async () => {
   try {
     const response = await axios.put(
       `${Url}/Machine/Edit/${GetID.value}`,
-      formData
+      formData,
     );
 
     MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
@@ -936,7 +935,6 @@ export default {
     InputDate,
     CardStatistic,
     BaseDialog,
-
   },
   data() {
     return {

@@ -237,7 +237,7 @@ const FetchUser = async () => {
       "Quản lý kinh doanh": { path: "/Ton-kho", title: "Tồn kho" },
       "Nhân viên": { path: "/Danh-sach-cong-viec", title: "Danh sách công việc" },
       "Quản lý sản xuất": { path: "/San-xuat", title: "Sản xuất" },
-      "Quản lý bảo trì": { path: "/Bao-tri", title: "Bảo trì" },
+      "Quản lý bảo trì": { path: "/Danh-sach-pnp", title: "Danh sách PnP" },
     };
 
     const route = routes[LevelUser] || { path: "/", title: "Kiểm tra số liệu" };

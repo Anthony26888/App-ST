@@ -1,5 +1,5 @@
 <template>
-  <div style="height: 450px; width: 100%">
+  <div style="height: 400px; width: 100%">
     <canvas ref="chartCanvas"></canvas>
   </div>
 </template>
@@ -69,7 +69,10 @@ const renderChart = () => {
   }
 
   const ctx = chartCanvas.value.getContext("2d");
+  const gradient = ctx.createLinearGradient(0, 0, 0, 400);
 
+  gradient.addColorStop(0, "rgba(25, 118, 210, 0.4)");
+  gradient.addColorStop(1, "rgba(25, 118, 210, 0)");
   chartInstance = new Chart(ctx, {
     type: "line",
 
@@ -83,17 +86,14 @@ const renderChart = () => {
 
         borderColor: item.color || "#1976D2",
 
-        backgroundColor: item.color || "#1976D2",
+        backgroundColor: item.gradient || gradient,
 
         borderWidth: item.borderWidth || 3,
 
-        tension: item.tension ?? 0.3,
+        tension: item.tension ?? 0.4,
 
-        fill: item.fill || false,
+        fill: true,
 
-        // =====================
-        // Point Styling
-        // =====================
         pointRadius: item.pointRadius || 5,
 
         pointHoverRadius: item.pointHoverRadius || 8,
@@ -101,14 +101,9 @@ const renderChart = () => {
         pointBackgroundColor:
           item.pointBackgroundColor || item.color || "#1976D2",
 
-        pointBorderColor: item.pointBorderColor || "#ffffff",
+        pointBorderColor: "#fff",
 
-        pointBorderWidth: item.pointBorderWidth || 2,
-
-        // =====================
-        // Optional
-        // =====================
-        hidden: item.hidden || false,
+        pointBorderWidth: 2,
       })),
     },
 
@@ -146,7 +141,7 @@ const renderChart = () => {
         x: {
           title: {
             display: true,
-            text: "Công đoạn",
+            text: "Thời gian",
           },
 
           grid: {

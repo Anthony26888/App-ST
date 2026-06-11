@@ -1010,8 +1010,7 @@ io.on("connection", (socket) => {
                         END AS Status_Output,
 
                         z.Level,
-                        strftime('%d-%m-%Y', z.Date, 'unixepoch', 'localtime') AS Date,
-                        strftime('%Y-%m-%d', z.Date, 'unixepoch', 'localtime') AS Date_unixepoch,
+                        z.Date AS Date,
 
                         -- Progress phải viết lại công thức
                         (
@@ -1063,46 +1062,19 @@ io.on("connection", (socket) => {
                       a.Quantity,
                       a.Level,
                       a.Date,
-                      
-                      COALESCE(smt.SMT_1, 0) AS SMT_1,
-                      COALESCE(smt.SMT_2, 0) AS SMT_2,
-                      COALESCE(smt.SMT_3, 0) AS SMT_3,
-                      COALESCE(smt.SMT_4, 0) AS SMT_4,
-                      
-                      COALESCE(cnt.Quantity_Pass, 0) AS Quantity_Pass,
-                      COALESCE(cnt.Quantity_Output_Fail, 0) AS Quantity_Output_Fail,
-                      COALESCE(cnt.Quantity_Error, 0) AS Quantity_Error,
-                      COALESCE(cnt.Quantity_Fixed, 0) AS Quantity_Fixed
+                      COALESCE(cnt.Quantity_Pass, 0) AS Quantity_Pass
 
                     FROM PlanManufacture a
-
-                    -- Subquery SMT được tối ưu (GROUP BY để đếm một lần)
                     LEFT JOIN (
                       SELECT 
                         PlanID,
-                        SUM(CASE WHEN Source = 'source_1' THEN 1 ELSE 0 END) AS SMT_1,
-                        SUM(CASE WHEN Source = 'source_2' THEN 1 ELSE 0 END) AS SMT_2,
-                        SUM(CASE WHEN Source = 'source_3' THEN 1 ELSE 0 END) AS SMT_3,
-                        SUM(CASE WHEN Source = 'source_4' THEN 1 ELSE 0 END) AS SMT_4
-                      FROM ManufactureSMT
-                      GROUP BY PlanID
-                    ) smt ON smt.PlanID = a.id
-
-                    -- Subquery Counting được tối ưu (GROUP BY để đếm một lần)
-                    LEFT JOIN (
-                      SELECT 
-                        PlanID,
-                        SUM(CASE WHEN Type = 'Thành phẩm' AND Status = 'pass' THEN 1 ELSE 0 END) AS Quantity_Pass,
-                        SUM(CASE WHEN Type = 'Thành phẩm' AND Status = 'fail' THEN 1 ELSE 0 END) AS Quantity_Output_Fail,
-                        SUM(CASE WHEN Status = 'fail' THEN 1 ELSE 0 END) AS Quantity_Error,
-                        SUM(CASE WHEN Status_Fixed = 'fixed' THEN 1 ELSE 0 END) AS Quantity_Fixed
+                        SUM(CASE WHEN Type = 'Thành phẩm' AND Status = 'pass' THEN 1 ELSE 0 END) AS Quantity_Pass
                       FROM ManufactureCounting
                       GROUP BY PlanID
                     ) cnt ON cnt.PlanID = a.id
 
                     WHERE a.id = ?
                   `;
-
         db.get(query, [id], (err, row) => {
           if (err) return socket.emit("ManufactureDetailsError", err);
           socket.emit("ManufactureDetailsData", row);
@@ -1139,9 +1111,9 @@ io.on("connection", (socket) => {
                             RWID,
                             GroupFail,
                             Quantity,
-                            strftime('%d-%m-%Y %H:%M:%S', TimestampRW, 'unixepoch', 'localtime') AS TimestampRW,
+                            TimestampRW,
                             Note,
-                            strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch', 'localtime') AS Timestamp
+                            Timestamp
                           FROM ManufactureCounting
                           WHERE HistoryID = ?
                           ORDER BY Timestamp DESC`;
@@ -1153,66 +1125,15 @@ io.on("connection", (socket) => {
       socket.emit("ManufactureCountingError", error);
     }
   }),
-    socket.on("getManufactureRW", async (id) => {
-      try {
-        const query = `SELECT 
-                          id,
-                          PartNumber,
-                          Type,
-                          Status,
-                          Status_Fixed,
-                          RWID,
-                          GroupFail,
-                          strftime('%d-%m-%Y %H:%M:%S', TimestampRW, 'unixepoch', 'localtime') AS TimestampRW,
-                          Note,
-                          Note_RW,
-                          strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch', 'localtime') AS Timestamp
-                        FROM ManufactureCounting
-                        WHERE PlanID = ? AND Status = 'fail'
-                        ORDER BY RWID ASC, Timestamp DESC`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("ManufactureRWError", err);
-          socket.emit("ManufactureRWData", rows);
-        });
-      } catch (error) {
-        socket.emit("ManufactureRWError", error);
-      }
-    }),
-    socket.on("getManufactureSMT", async (id) => {
-      try {
-        const query = `SELECT 
-                        id,
-                        PartNumber,
-                        CASE
-                          WHEN Source = 'source_1' THEN 'Máy printer'
-                          WHEN Source = 'source_2' THEN 'Máy gắp linh kiện Juki'
-                          WHEN Source = 'source_3' THEN 'Máy gắp linh kiện Topaz'
-                          ELSE 'Máy gắp linh kiện Yamaha'
-                        END AS Source,
-                        CASE
-                          WHEN Source = 'source_2' THEN 'Line 1'
-                          WHEN Source = 'source_1' THEN 'Line 1'
-                          ELSE 'Line 2'
-                        END AS Line,
-                        Status,
-                        strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch', 'localtime') AS Timestamp,
-                        HistoryID
-                      FROM ManufactureSMT
-                      WHERE HistoryID = ?
-                      ORDER BY Timestamp DESC`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("ManufactureSMTError", err);
-          socket.emit("ManufactureSMTData", rows);
-        });
-      } catch (error) {
-        socket.emit("ManufactureSMTError", error);
-      }
-    }),
     socket.on("getSummary", async (endDay) => {
       try {
-        const query = `SELECT *
-                        FROM ManufactureCounting
-                        WHERE date(Timestamp, 'unixepoch', '+7 hours') = ?`;
+        const query = `SELECT *,
+                          a.Quantity AS Quantity_Counting,
+                          ROUND((CAST(a.Quantity AS REAL) * 100.0 / b.Quantity_Plan), 0) AS Percent
+                        FROM ManufactureCounting a
+                        LEFT JOIN Summary b ON a.HistoryID = b.id
+						            LEFT JOIN PlanManufacture c ON b.PlanID = c.id
+                        WHERE a.Timestamp = ?`;
         db.all(query, [endDay], (err, rows) => {
           if (err) return socket.emit("SummaryError", err);
           socket.emit("SummaryData", rows);
@@ -1221,249 +1142,9 @@ io.on("connection", (socket) => {
         socket.emit("SummaryError", error);
       }
     }),
-    socket.on("getManufactureSummary", async (id) => {
+    socket.on("getCompareSummary", async (endDay) => {
       try {
         const query = `
-                    SELECT 
-                    a.Type,
-                    a.Surface AS Surface,
-
-                    -- PASS cho từng loại
-                    CASE 
-                        -- SMT: công thức đặc biệt
-                        WHEN a.Type = 'SMT' THEN (
-                            CASE 
-                                WHEN a.Surface = '1 Mặt' THEN (
-                                    -- SMT 1 mặt -> Quantity * tổng số record SMT 1 mặt
-                                    COALESCE((
-                                        SELECT d.Quantity
-                                        FROM PlanManufacture d
-                                        WHERE d.id = a.PlanID
-                                    ), 0) *
-                                    COALESCE((
-                                        SELECT COUNT(*)
-                                        FROM ManufactureSMT s 
-                                        WHERE s.HistoryID IN (
-                                            SELECT id FROM Summary 
-                                            WHERE PlanID = a.PlanID AND Surface = '1 Mặt'
-                                        )
-                                        AND s.Source IN ('source_2', 'source_4')
-                                    ), 0)
-                                )
-
-                                ELSE (
-                                    -- SMT 2 mặt: min(TOP, BOTTOM)
-                                    COALESCE((
-                                        SELECT d.Quantity
-                                        FROM PlanManufacture d
-                                        WHERE d.id = a.PlanID
-                                    ), 0) *
-                                    (
-                                        SELECT MIN(cnt)
-                                        FROM (
-                                            SELECT COUNT(*) AS cnt
-                                            FROM ManufactureSMT s
-                                            WHERE s.HistoryID IN (
-                                                SELECT id FROM Summary 
-                                                WHERE PlanID = a.PlanID AND Type='SMT' AND Surface='TOP'
-                                            ) AND s.Source IN ('source_2','source_4')
-
-                                            UNION ALL
-
-                                            SELECT COUNT(*)
-                                            FROM ManufactureSMT s
-                                            WHERE s.HistoryID IN (
-                                                SELECT id FROM Summary 
-                                                WHERE PlanID = a.PlanID AND Type='SMT' AND Surface='BOTTOM'
-                                            ) AND s.Source IN ('source_2','source_4')
-                                        )
-                                    )
-                                )
-                            END
-                        )
-
-                        -- AOI: công thức đặc biệt
-                        WHEN a.Type = 'AOI' THEN (
-                            CASE 
-                                WHEN a.Surface = '1 Mặt' THEN (
-                                    -- AOI 1 mặt
-                                    COALESCE((
-                                        SELECT SUM(CASE WHEN m.Status = 'pass' THEN 1 ELSE 0 END)
-                                        FROM ManufactureCounting m
-                                        WHERE m.HistoryID IN (
-                                            SELECT id FROM Summary 
-                                            WHERE PlanID = a.PlanID AND Type = 'AOI' AND Surface = '1 Mặt'
-                                        )
-                                    ), 0)
-                                )
-
-                                ELSE (
-                                    -- AOI 2 mặt: min(TOP_PASS, BOTTOM_PASS)
-                                    (
-                                        SELECT MIN(pass_cnt)
-                                        FROM (
-                                            SELECT COALESCE(SUM(CASE WHEN m.Status='pass' THEN 1 ELSE 0 END),0) AS pass_cnt
-                                            FROM ManufactureCounting m
-                                            WHERE m.HistoryID IN (
-                                                SELECT id FROM Summary WHERE PlanID = a.PlanID AND Type='AOI' AND Surface='TOP'
-                                            )
-
-                                            UNION ALL
-
-                                            SELECT COALESCE(SUM(CASE WHEN m.Status='pass' THEN 1 ELSE 0 END),0)
-                                            FROM ManufactureCounting m
-                                            WHERE m.HistoryID IN (
-                                                SELECT id FROM Summary WHERE PlanID = a.PlanID AND Type='AOI' AND Surface='BOTTOM'
-                                            )
-                                        )
-                                    )
-                                )
-                            END
-                        )
-
-                        ELSE (
-                            -- Các loại khác -> PASS
-                            COALESCE((
-                                SELECT 
-                                  CASE 
-                                    WHEN m.Status = 'pass' THEN SUM(m.Quantity) 
-                                    ELSE 0
-                                  END
-                                FROM ManufactureCounting m
-                                WHERE m.HistoryID IN (
-                                    SELECT id FROM Summary 
-                                    WHERE PlanID = a.PlanID AND Type = a.Type AND Surface = a.Surface
-                                )
-                            ), 0)
-                        )
-                    END AS Quantity_Pass,
-
-                    -- Tổng số SummaryID
-                    COUNT(DISTINCT a.id) AS Total_Summary_ID,
-
-                    -- SMT TOP
-                    CASE 
-                        WHEN a.Type != 'SMT' THEN 0
-                        WHEN a.Surface != 'TOP' THEN 0
-                        ELSE 
-                            COALESCE((
-                                SELECT d.Quantity FROM PlanManufacture d WHERE d.id = a.PlanID
-                            ), 0) *
-                            COALESCE((
-                                SELECT COUNT(*) FROM ManufactureSMT s
-                                WHERE s.HistoryID IN (
-                                    SELECT id FROM Summary WHERE PlanID=a.PlanID AND Type='SMT' AND Surface='TOP'
-                                ) AND s.Source IN ('source_2','source_4')
-                            ), 0)
-                    END AS SMT_Top_Quantity,
-
-                    -- SMT BOTTOM
-                    CASE 
-                        WHEN a.Type != 'SMT' THEN 0
-                        WHEN a.Surface != 'BOTTOM' THEN 0
-                        ELSE 
-                            COALESCE((
-                                SELECT d.Quantity FROM PlanManufacture d WHERE d.id = a.PlanID
-                            ), 0) *
-                            COALESCE((
-                                SELECT COUNT(*) FROM ManufactureSMT s
-                                WHERE s.HistoryID IN (
-                                    SELECT id FROM Summary WHERE PlanID=a.PlanID AND Type='SMT' AND Surface='BOTTOM'
-                                ) AND s.Source IN ('source_2','source_4')
-                            ), 0)
-                    END AS SMT_Bottom_Quantity,
-
-                    -- AOI TOP
-                    CASE 
-                        WHEN a.Type!='AOI' THEN 0
-                        WHEN a.Surface!='TOP' THEN 0
-                        ELSE 
-                            COALESCE((
-                                SELECT SUM(CASE WHEN m.Status='pass' THEN 1 ELSE 0 END)
-                                FROM ManufactureCounting m
-                                WHERE m.HistoryID IN (
-                                    SELECT id FROM Summary WHERE PlanID=a.PlanID AND Type='AOI' AND Surface='TOP'
-                                )
-                            ),0)
-                    END AS AOI_Top_Quantity,
-					
-					 -- AOI TOP FAIL
-					CASE 
-                        WHEN a.Type!='AOI' THEN 0
-                        WHEN a.Surface!='TOP' THEN 0
-                        ELSE 
-                            COALESCE((
-                                SELECT SUM(CASE WHEN m.Status='fail' THEN 1 ELSE 0 END)
-                                FROM ManufactureCounting m
-                                WHERE m.HistoryID IN (
-                                    SELECT id FROM Summary WHERE PlanID=a.PlanID AND Type='AOI' AND Surface='TOP'
-                                )
-                            ),0)
-                    END AS AOI_Top_Quantity_Fail,
-
-                    -- AOI BOTTOM
-                    CASE 
-                        WHEN a.Type!='AOI' THEN 0
-                        WHEN a.Surface!='BOTTOM' THEN 0
-                        ELSE 
-                            COALESCE((
-                                SELECT SUM(CASE WHEN m.Status='pass' THEN 1 ELSE 0 END)
-                                FROM ManufactureCounting m
-                                WHERE m.HistoryID IN (
-                                    SELECT id FROM Summary WHERE PlanID=a.PlanID AND Type='AOI' AND Surface='BOTTOM'
-                                )
-                            ),0)
-                    END AS AOI_Bottom_Quantity,
-					
-					-- AOI BOTTOM FAIL
-                    CASE 
-                        WHEN a.Type!='AOI' THEN 0
-                        WHEN a.Surface!='BOTTOM' THEN 0
-                        ELSE 
-                            COALESCE((
-                                SELECT SUM(CASE WHEN m.Status='fail' THEN 1 ELSE 0 END)
-                                FROM ManufactureCounting m
-                                WHERE m.HistoryID IN (
-                                    SELECT id FROM Summary WHERE PlanID=a.PlanID AND Type='AOI' AND Surface='BOTTOM'
-                                )
-                            ),0)
-                    END AS AOI_Bottom_Quantity_Fail
-
-                FROM Summary a
-                WHERE a.PlanID = ?
-                GROUP BY 
-                    a.Type,
-                    CASE WHEN a.Surface = '1 Mặt' THEN '1 Mặt' ELSE a.Surface END
-                ORDER BY a.Type, a.Surface;
-
-
-                CREATE INDEX idx_summary_planid ON Summary(PlanID);
-                CREATE INDEX idx_summary_planid_type_surface ON Summary(PlanID, Type, Surface);
-                CREATE INDEX idx_summary_id ON Summary(id);
-
-                -- Index cho ManufactureSMT
-                CREATE INDEX idx_smt_historyid ON ManufactureSMT(HistoryID);
-                CREATE INDEX idx_smt_source ON ManufactureSMT(Source);
-
-                -- Index cho ManufactureCounting
-                CREATE INDEX idx_counting_historyid ON ManufactureCounting(HistoryID);
-                CREATE INDEX idx_counting_status ON ManufactureCounting(Status);
-
-                -- Index cho PlanManufacture
-                CREATE INDEX idx_plan_id ON PlanManufacture(id);`;
-
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("ManufactureSummaryError", err);
-          socket.emit("ManufactureSummaryData", rows);
-        });
-      } catch (error) {
-        socket.emit("ManufactureSummaryError", error);
-      }
-    }));
-
-  socket.on("getCompareSummary", async (endDay) => {
-    try {
-      const query = `
                     WITH TodayData AS (
                       SELECT
                         COUNT(DISTINCT a.PONumber) AS Today_Total_PONumber,
@@ -1499,67 +1180,12 @@ io.on("connection", (socket) => {
                     FROM TodayData T CROSS JOIN YesterdayData Y;
                   `;
 
-      db.all(query, [endDay, endDay], (err, rows) => {
-        if (err) return socket.emit("CompareSummaryError", err.message);
-        socket.emit("CompareSummaryData", rows);
-      });
-    } catch (error) {
-      socket.emit("CompareSummaryError", error.message);
-    }
-  });
-
-  (socket.on("getSummaryFail", async (id) => {
-    try {
-      const query = `SELECT 
-                          id,
-                          PartNumber,
-                          Type,
-                          Status,
-                          Status_Fixed,
-                          RWID,
-                          GroupFail,
-                          strftime('%d-%m-%Y %H:%M:%S', TimestampRW, 'unixepoch', 'localtime') AS TimestampRW,
-                          Note,
-                          Note_RW,
-                          strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch', 'localtime') AS Timestamp
-                        FROM ManufactureCounting
-                        WHERE 
-                          strftime('%Y-%m-%d', Timestamp, 'unixepoch', '+7 hours') = ?
-                          AND Status = 'fail'
-                        ORDER BY Timestamp DESC;`;
-      db.all(query, [id], (err, rows) => {
-        if (err) return socket.emit("SummaryFail", err);
-        socket.emit("SummaryFailData", rows);
-      });
-    } catch (error) {
-      socket.emit("SummaryFailError", error);
-    }
-  }),
-    socket.on("getManufactureFail", async (id) => {
-      try {
-        const query = `SELECT 
-                          id,
-                          PartNumber,
-                          Type,
-                          Status,
-                          Status_Fixed,
-                          RWID,
-                          GroupFail,
-                          strftime('%d-%m-%Y %H:%M:%S', TimestampRW, 'unixepoch', 'localtime') AS TimestampRW,
-                          Note,
-                          Note_RW,
-                          strftime('%d-%m-%Y %H:%M:%S', Timestamp, 'unixepoch', 'localtime') AS Timestamp
-                        FROM ManufactureCounting
-                        WHERE 
-                          PlanID = ?
-                          AND Status = 'fail'
-                        ORDER BY Timestamp DESC;`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("ManufactureFail", err);
-          socket.emit("ManufactureFailData", rows);
+        db.all(query, [endDay, endDay], (err, rows) => {
+          if (err) return socket.emit("CompareSummaryError", err.message);
+          socket.emit("CompareSummaryData", rows);
         });
       } catch (error) {
-        socket.emit("ManufactureFailError", error);
+        socket.emit("CompareSummaryError", error.message);
       }
     }),
     socket.on("getHistory", async (id) => {
@@ -1568,35 +1194,12 @@ io.on("connection", (socket) => {
                         SELECT 
                           HistoryID,
                           CASE
-                            WHEN Status = 'pass' OR Status_Fixed = 'pass' 
+                            WHEN Status = 'pass'
                             THEN SUM(Quantity) ELSE 0 
-                          END AS pass_count,
-                          CASE
-                            WHEN Status = 'fail' AND Status_Fixed = 'fail' 
-                            THEN SUM(Quantity) ELSE 0 
-                          END AS fail_count,
-                          CASE
-                            WHEN RWID = 'Done' AND Status_Fixed = 'pass' 
-                            THEN SUM(Quantity) ELSE 0 
-                          END AS fixed_done_count,
-                          CASE
-                            WHEN TimestampRW IS NOT NULL AND TimestampRW <> '' 
-                            THEN SUM(Quantity) ELSE 0 
-                          END AS rw_count
+                          END AS pass_count
                         FROM ManufactureCounting
                         GROUP BY HistoryID
-                      ),
-
-                      SMTData AS (
-                        -- Pre-aggregate SMT data theo HistoryID
-                        SELECT 
-                          HistoryID,
-                          SUM(CASE WHEN Source = 'source_2' THEN 1 ELSE 0 END) AS source_2_count,
-                          SUM(CASE WHEN Source = 'source_4' THEN 1 ELSE 0 END) AS source_4_count
-                        FROM ManufactureSMT
-                        GROUP BY HistoryID
                       )
-
                       SELECT 
                         a.id,
                         a.Type,
@@ -1613,28 +1216,13 @@ io.on("connection", (socket) => {
                         c.Quantity,
                         a.Surface,
                         a.Note,
-
+						            a.Created_At,
                         COALESCE(b.pass_count, 0) AS Quantity_Real,
-
-                        -- Quantity_Error
-                        COALESCE(b.fail_count, 0) AS Quantity_Error,
-
-                        -- Quantity_Fixed_Done
-                        COALESCE(b.fixed_done_count, 0) AS Quantity_Fixed_Done,
-
-                        -- Percent (dựa trên Line_SMT)
-                        (COALESCE(b.pass_count, 0) + COALESCE(b.fail_count, 0)) * 100.0 / NULLIF(a.Quantity_Plan, 0.0) AS Percent,
-
-                        -- TimestampRW
-                        COALESCE(b.rw_count, 0) AS TimestampRW,
-
-                        strftime('%d-%m-%Y', a.Created_At, 'unixepoch', 'localtime') AS Created_At,
-                        strftime('%Y-%m-%d', a.Created_At, 'unixepoch', 'localtime') AS Created_At_unixepoch
-
+                        ROUND(COALESCE(b.pass_count, 0) * 100.0 / NULLIF(a.Quantity_Plan, 0.0), 1) AS Percent
+                        
                       FROM Summary a
                       LEFT JOIN CountingData b ON b.HistoryID = a.id
                       LEFT JOIN PlanManufacture c ON a.PlanID = c.id
-                      LEFT JOIN SMTData d ON d.HistoryID = a.id
 
                       WHERE a.PlanID = ?
 
@@ -1650,7 +1238,7 @@ io.on("connection", (socket) => {
                         a.CycleTime_Plan,
                         a.Created_At
 
-                      ORDER BY a.Created_At DESC;
+                      ORDER BY a.Created_At DESC
                       `;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("HistoryError", err);
@@ -1670,12 +1258,10 @@ io.on("connection", (socket) => {
 						              c.HistoryID,
                           c.Type AS Source,
                           c.Status,
-                          strftime('%d-%m-%Y', c.Timestamp, 'unixepoch', 'localtime') AS Timestamp,
-                          c.Note AS Note,
-                          c.RWID,
+                          c.Timestamp,
+                          c.Note,
                           c.Quantity,
-                          c.Surface,
-                          strftime('%d-%m-%Y', c.TimestampRW, 'unixepoch', 'localtime') AS TimestampRW
+                          c.Surface
                       FROM ManufactureCounting c
                       WHERE c.PlanID = ?`;
         db.all(query, [id], (err, rows) => {
@@ -1784,10 +1370,14 @@ io.on("connection", (socket) => {
                           B.quantity,
                           M.image AS image,
                           B.project_id,
-                          B.note
+                          B.note,
+                          M.created_by,
+                          F.project_name
                       FROM BomHighlight B
                       LEFT JOIN MPNMountType M
                           ON TRIM(LOWER(B.mpn)) = TRIM(LOWER(M.mpn))
+                      LEFT JOIN FilterBom F
+                          ON TRIM(M.project_id) = F.id
                       WHERE B.project_id = ?;`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("RawBomHighlightError", err);
@@ -4481,6 +4071,24 @@ app.delete("/api/SparePartUsage/Delete/:id", async (req, res) => {
 });
 
 // Router add new item in PlanManufacture table
+// Format date => YYYY-MM-DD theo local time
+function formatDateLocal(dateInput) {
+  const date = new Date(dateInput);
+
+  const vnDate = new Date(
+    date.toLocaleString("en-US", {
+      timeZone: "Asia/Ho_Chi_Minh",
+    }),
+  );
+
+  const year = vnDate.getFullYear();
+  const month = String(vnDate.getMonth() + 1).padStart(2, "0");
+  const day = String(vnDate.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+// ========================= ADD =========================
 app.post("/api/PlanManufacture/Add", async (req, res) => {
   const {
     Name,
@@ -4488,38 +4096,29 @@ app.post("/api/PlanManufacture/Add", async (req, res) => {
     Creater,
     Note,
     Total,
-    DelaySMT = 10000, // default value if undefined
+    DelaySMT = 10000,
     Level,
     Quantity,
     ProjectID,
     Timestamp,
   } = req.body;
-  const LevelCleaned = Array.isArray(Level) ? Level.join("-") : String(Level); // fallback nếu không phải mảng
 
-  // 🔥 Convert YYYY-MM-DD → Unix timestamp (seconds)
-  let Timestamps = null;
-  if (Timestamp) {
-    const dateObj = new Date(Timestamp); // ví dụ "2025-11-15"
-    if (!isNaN(dateObj.getTime())) {
-      Timestamps = Math.floor(dateObj.getTime() / 1000);
-    } else {
-      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
-    }
-  } else {
-    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
-  }
+  const LevelCleaned = Array.isArray(Level) ? Level.join("-") : String(Level);
+
+  // Convert date local
+  const formattedDate = formatDateLocal(Timestamp);
 
   const query = `
     INSERT INTO PlanManufacture (
-      Name, 
-      Date, 
-      Creater, 
-      Note, 
-      Total, 
-      DelaySMT, 
-      Level, 
-      Quantity, 
-      ProjectID, 
+      Name,
+      Date,
+      Creater,
+      Note,
+      Total,
+      DelaySMT,
+      Level,
+      Quantity,
+      ProjectID,
       Name_Order
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -4529,7 +4128,7 @@ app.post("/api/PlanManufacture/Add", async (req, res) => {
     query,
     [
       Name,
-      Timestamps,
+      formattedDate,
       Creater,
       Note,
       Total,
@@ -4542,6 +4141,7 @@ app.post("/api/PlanManufacture/Add", async (req, res) => {
     function (err) {
       if (err) {
         console.error("DB Error:", err.message);
+
         return res.status(500).json({
           error: "Lỗi khi thêm dữ liệu vào cơ sở dữ liệu",
           detail: err.message,
@@ -4549,14 +4149,18 @@ app.post("/api/PlanManufacture/Add", async (req, res) => {
       }
 
       io.emit("ManufactureUpdate");
-      res.json({ message: "Đã thêm dữ liệu dự án sản xuất thành công" });
+
+      res.json({
+        message: "Đã thêm dữ liệu dự án sản xuất thành công",
+      });
     },
   );
 });
 
-// Router update item in PlanManufacture table
+// ========================= EDIT =========================
 app.put("/api/PlanManufacture/Edit/:id", async (req, res) => {
   const { id } = req.params;
+
   const {
     Name,
     Name_Order,
@@ -4568,40 +4172,32 @@ app.put("/api/PlanManufacture/Edit/:id", async (req, res) => {
     Level,
     Quantity,
   } = req.body;
-  const LevelString = JSON.stringify(Level);
-  const LevelCleaned = LevelString.replace(/[\[\]"]/g, "").replace(/,/g, "-");
 
-  let Timestamps = null;
-  if (Timestamp) {
-    const dateObj = new Date(Timestamp); // ví dụ "2025-11-15"
-    if (!isNaN(dateObj.getTime())) {
-      Timestamps = Math.floor(dateObj.getTime() / 1000);
-    } else {
-      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
-    }
-  } else {
-    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
-  }
-  // Insert data into SQLite database
+  const LevelCleaned = Array.isArray(Level) ? Level.join("-") : String(Level);
+
+  // Convert date local
+  const formattedDate = formatDateLocal(Timestamp);
+
   const query = `
-      UPDATE PlanManufacture 
-      SET Name = ?, 
-          Name_Order = ?, 
-          Date = ?, 
-          Creater = ?, 
-          Note = ?, 
-          Total = ?, 
-          DelaySMT = ?, 
-          Level = ?, 
-          Quantity = ?
-      WHERE id = ?
-    `;
+    UPDATE PlanManufacture
+    SET Name = ?,
+        Name_Order = ?,
+        Date = ?,
+        Creater = ?,
+        Note = ?,
+        Total = ?,
+        DelaySMT = ?,
+        Level = ?,
+        Quantity = ?
+    WHERE id = ?
+  `;
+
   db.run(
     query,
     [
       Name,
       Name_Order,
-      Timestamps,
+      formattedDate,
       Creater,
       Note,
       Total,
@@ -4612,16 +4208,22 @@ app.put("/api/PlanManufacture/Edit/:id", async (req, res) => {
     ],
     function (err) {
       if (err) {
-        return res
-          .status(500)
-          .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
+        console.error("DB Error:", err.message);
+
+        return res.status(500).json({
+          error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu",
+          detail: err.message,
+        });
       }
+
       io.emit("ManufactureUpdate");
-      res.json({ message: "Đã cập nhật dữ liệu dự án sản xuất thành công" });
+
+      res.json({
+        message: "Đã cập nhật dữ liệu dự án sản xuất thành công",
+      });
     },
   );
 });
-
 // Router update item in PlanManufacture table for setting SMT
 app.put("/api/PlanManufacture/Edit-Line/:id", async (req, res) => {
   const { id } = req.params;
@@ -4897,11 +4499,12 @@ app.post("/api/ManufactureCounting", (req, res) => {
     Type,
     Quantity,
     Surface,
+    Timestamp,
   } = req.body;
 
   Quantity = Number(Quantity) || 1;
 
-  const Timestamp = Math.floor(Date.now() / 1000);
+  const Timestamps = formatDateLocal(Timestamp);
 
   db.run(
     `INSERT INTO ManufactureCounting
@@ -4910,20 +4513,18 @@ app.post("/api/ManufactureCounting", (req, res) => {
       HistoryID,
       Timestamp,
       Status,
-      GroupFail,
       Note,
       PlanID,
       Type,
       Quantity,
       Surface
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       PartNumber,
       HistoryID,
-      Timestamp,
+      Timestamps,
       Status,
-      GroupFail,
       Note,
       PlanID,
       Type,
@@ -5167,17 +4768,9 @@ app.post("/api/Summary/Add-item", (req, res) => {
     Timestamp,
     Surface,
   } = req.body;
-  let Timestamps = null;
-  if (Timestamp) {
-    const dateObj = new Date(Timestamp); // ví dụ "2025-11-15"
-    if (!isNaN(dateObj.getTime())) {
-      Timestamps = Math.floor(dateObj.getTime() / 1000);
-    } else {
-      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
-    }
-  } else {
-    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
-  }
+  // Convert date local
+  const formattedDate = formatDateLocal(Timestamp);
+
   db.run(
     `INSERT INTO Summary (Type, PlanID, PONumber, Category, Line_SMT, Quantity_Plan, CycleTime_Plan, Time_Plan, Note, Created_At, Surface)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -5191,7 +4784,7 @@ app.post("/api/Summary/Add-item", (req, res) => {
       CycleTime_Plan,
       Time_Plan,
       Note,
-      Timestamps,
+      formattedDate,
       Surface,
     ],
     (err) => {
@@ -5231,18 +4824,10 @@ app.put("/api/Summary/Edit-item/:id", (req, res) => {
     Timestamp,
     Surface,
   } = req.body;
-  let Timestamps = null;
-  if (Timestamp) {
-    const dateObj = new Date(Timestamp); // ví dụ "2025-11-15"
-    if (!isNaN(dateObj.getTime())) {
-      Timestamps = Math.floor(dateObj.getTime() / 1000);
-    } else {
-      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
-    }
-  } else {
-    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
-  }
   const { id } = req.params;
+  // Convert date local
+  const formattedDate = formatDateLocal(Timestamp);
+
   db.run(
     `UPDATE Summary
       SET Type=?, PONumber=?, Category=?, Line_SMT=?, Quantity_Plan=?, CycleTime_Plan=?, Time_Plan=?, Note=?, Created_At=?, Surface=?
@@ -5256,7 +4841,7 @@ app.put("/api/Summary/Edit-item/:id", (req, res) => {
       CycleTime_Plan,
       Time_Plan,
       Note,
-      Timestamps,
+      formattedDate,
       Surface,
       id,
     ],
@@ -5603,7 +5188,7 @@ app.post(
   },
 );
 const XLSX = require("xlsx");
-
+const ExcelJS = require("exceljs");
 // Router post item in Pick & Place table
 app.post(
   "/api/upload-pickplace/:id",
@@ -5692,7 +5277,225 @@ app.post(
     }
   },
 );
+app.post(
+  "/api/MPNMountType/Import-Bomlist/:id",
+  uploadPnP.single("FileBomMountType"),
+  async (req, res) => {
+    const { id } = req.params;
+    const { created_by } = req.body;
 
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          error: "Không tìm thấy file upload",
+        });
+      }
+
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.readFile(req.file.path);
+
+      const worksheet = workbook.getWorksheet(1);
+
+      if (!worksheet) {
+        return res.status(400).json({
+          success: false,
+          error: "Không tìm thấy sheet đầu tiên",
+        });
+      }
+
+      // =========================
+      // CREATE IMAGE DIR
+      // =========================
+      const uploadDir = path.join(__dirname, "uploads", "bomhighlight");
+
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+
+      // =========================
+      // MAP IMAGES
+      // =========================
+      const imageMap = {};
+
+      worksheet.getImages().forEach((img) => {
+        try {
+          const rowNumber = img.range.tl.nativeRow + 1;
+
+          const media = workbook.model.media.find(
+            (m) => m.index === img.imageId,
+          );
+
+          if (!media) return;
+
+          const fileName = `${crypto.randomUUID()}.${media.extension}`;
+          const filePath = path.join(uploadDir, fileName);
+
+          fs.writeFileSync(filePath, media.buffer);
+
+          if (!imageMap[rowNumber]) imageMap[rowNumber] = [];
+
+          imageMap[rowNumber].push(`uploads/bomhighlight/${fileName}`);
+        } catch (err) {
+          console.error("Lỗi lưu hình:", err);
+        }
+      });
+
+      // =========================
+      // HEADER MAPPING (FIX ALL CASES)
+      // =========================
+      const normalize = (str) => str?.toString().trim().toLowerCase();
+
+      const aliasMap = {
+        mpn: ["mpn", "part number", "part_no", "partno"],
+        description: ["description", "desc", "item description"],
+        qty: ["qty", "quantity", "quanity"],
+      };
+
+      const header = {};
+
+      worksheet.getRow(1).eachCell((cell, colNumber) => {
+        const key = normalize(cell.value);
+        if (!key) return;
+
+        Object.keys(aliasMap).forEach((field) => {
+          if (aliasMap[field].includes(key)) {
+            header[field] = colNumber;
+          }
+        });
+      });
+
+      console.log("HEADER MAP:", header);
+
+      // =========================
+      // SAFE GET VALUE
+      // =========================
+      const getVal = (cell) => {
+        if (!cell) return null;
+        if (cell.value == null) return null;
+
+        if (typeof cell.value === "object" && cell.value.text) {
+          return cell.value.text.toString().trim();
+        }
+
+        return cell.value.toString().trim();
+      };
+
+      // =========================
+      // READ ROWS
+      // =========================
+      const insertRows = [];
+
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return;
+
+        const mpn = getVal(row.getCell(header.mpn));
+        const description = getVal(row.getCell(header.description));
+        const qty = getVal(row.getCell(header.qty));
+
+        if (!mpn) return;
+
+        let mount_type = null;
+
+        const fillColor = row.getCell(1).fill?.fgColor?.argb || "";
+
+        if (fillColor === "FFFFC7CE") {
+          mount_type = "Hàn tay";
+        } else if (fillColor === "FFC6EFCE") {
+          mount_type = "Gắp tay";
+        }
+
+        const imagePaths = imageMap[rowNumber] || [];
+
+        if (!mount_type && imagePaths.length > 0) {
+          mount_type = "SMT";
+        }
+
+        if (!mount_type && imagePaths.length === 0) return;
+
+        insertRows.push({
+          mpn,
+          description,
+          qty,
+          image: JSON.stringify(imagePaths),
+          mount_type,
+        });
+      });
+
+      // =========================
+      // DB UPSERT
+      // =========================
+      const stmt = db.prepare(`
+        INSERT INTO MPNMountType
+        (
+          mpn,
+          mount_type,
+          description,
+          image,
+          project_id,
+          created_by
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(mpn)
+        DO UPDATE SET
+          mount_type = excluded.mount_type,
+          description = excluded.description,
+          image = excluded.image,
+          project_id = excluded.project_id,
+          created_by = excluded.created_by
+      `);
+
+      insertRows.forEach((item) => {
+        stmt.run(
+          item.mpn,
+          item.mount_type,
+          item.description,
+          item.image,
+          id,
+          created_by,
+        );
+      });
+
+      stmt.finalize();
+
+      // =========================
+      // CLEAN TEMP FILE
+      // =========================
+      if (req.file?.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+
+      // =========================
+      // SOCKET UPDATE
+      // =========================
+      io.emit("MPNMountTypeUpdate");
+      io.emit("CombineBomUpdate");
+      io.emit("BomHighlightUpdate");
+      io.emit("RawBomHighlightUpdate");
+      io.emit("BomRawHighlightUpdate");
+
+      // =========================
+      // RESPONSE
+      // =========================
+      res.json({
+        success: true,
+        imported: insertRows.length,
+        header_map: header,
+      });
+    } catch (err) {
+      console.error(err);
+
+      if (req.file?.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+
+      res.status(500).json({
+        success: false,
+        error: err.message,
+      });
+    }
+  },
+);
 // Detect layer by file extension
 function detectLayer(filename) {
   const ext = path.extname(filename).toLowerCase();
@@ -6189,26 +5992,31 @@ app.delete("/api/PickPlace/Delete-item/:id", (req, res) => {
 // Post item in MPNMountType table
 app.post(
   "/api/MPNMountType/Add-item",
-  uploadImageMPN.single("image"),
+  uploadImageMPN.array("image"), // 🔥 đổi từ single → array
   (req, res) => {
     const { mpn, mount_type, description, project_id, created_by } = req.body;
 
-    // Lấy file mới nếu có
-    const newImagePath = req.file
-      ? `uploads/bomhighlight/${req.file.filename}`
-      : null;
+    const newImages =
+      req.files?.map((file) => `uploads/bomhighlight/${file.filename}`) || [];
 
-    // Nếu không có file mới, giữ nguyên file cũ từ database
     db.get(
       "SELECT image FROM MPNMountType WHERE mpn = ?",
       [mpn],
       (err, row) => {
         if (err) {
-          console.error(err);
-          return res.status(500).json({ error: "Database error", details: err.message });
+          return res.status(500).json(err);
         }
 
-        const imagePath = newImagePath || (row ? row.image : null);
+        let oldImages = [];
+
+        try {
+          oldImages = JSON.parse(row?.image || "[]");
+        } catch (e) {
+          oldImages = [];
+        }
+
+        // 🔥 merge ảnh cũ + mới
+        const mergedImages = [...oldImages, ...newImages];
 
         db.run(
           `
@@ -6229,25 +6037,28 @@ app.post(
             project_id = excluded.project_id,
             created_by = excluded.created_by
           `,
-          [mpn, mount_type, description, imagePath, project_id, created_by],
-          (err) => {
-            if (err) {
-              console.error("Database error:", err);
-              return res.status(500).json({ error: "Database error", details: err.message });
-            }
+          [
+            mpn,
+            mount_type,
+            description,
+            JSON.stringify(mergedImages), // 🔥 lưu JSON array
+            project_id,
+            created_by,
+          ],
+          (err2) => {
+            if (err2) return res.status(500).json(err2);
 
             io.emit("MPNMountTypeUpdate");
             io.emit("RawBomHighlightUpdate");
             io.emit("CombineBomUpdate");
             io.emit("PnPFileUpdate");
             io.emit("SettingSVGUpdate");
-
-            res.json({ message: "Saved successfully" });
-          }
+            res.json({ message: "Saved multi images" });
+          },
         );
-      }
+      },
     );
-  }
+  },
 );
 
 // Delete item in MPNMountType table
@@ -6270,21 +6081,54 @@ app.delete("/api/MPNMountType/Delete-item/:mpn", (req, res) => {
 });
 
 // Delete image in MPNMountType table
-app.delete("/api/MPNMountType/Delete-image/:mpn", (req, res) => {
-  const { mpn } = req.params;
-  db.run(`UPDATE MPNMountType SET image = NULL WHERE mpn = ?`, [mpn], (err) => {
+// Thêm dấu * vào sau :mpn để bắt được toàn bộ chuỗi chứa dấu "/"
+app.delete("/api/MPNMountType/Delete-image/:mpn*", (req, res) => {
+  // Express sẽ tách phần sau dấu / đầu tiên vào req.params[0]
+  // Chúng ta cộng chuỗi lại để lấy được đầy đủ "APG1608SURKC/T"
+  const mpn = req.params.mpn + (req.params[0] || "");
+  const { image } = req.body;
+
+  db.get(`SELECT image FROM MPNMountType WHERE mpn = ?`, [mpn], (err, row) => {
     if (err) {
-      console.error("Database error:", err);
-      return res
-        .status(500)
-        .json({ error: "Database error", details: err.message });
+      return res.status(500).json({ error: err.message });
     }
-    io.emit("MPNMountTypeUpdate");
-    io.emit("RawBomHighlightUpdate");
-    io.emit("CombineBomUpdate");
-    io.emit("PnPFileUpdate");
-    io.emit("SettingSVGUpdate");
-    res.json({ message: "Summary received" });
+
+    // Kiểm tra nếu không tìm thấy MPN trong database
+    if (!row) {
+      return res.status(404).json({ error: "MPN không tồn tại" });
+    }
+
+    let images = [];
+
+    try {
+      images = JSON.parse(row.image || "[]");
+    } catch (e) {
+      images = [];
+    }
+
+    // 🔥 remove 1 image
+    images = images.filter((img) => img !== image);
+
+    db.run(
+      `UPDATE MPNMountType SET image = ? WHERE mpn = ?`,
+      [JSON.stringify(images), mpn],
+      (err2) => {
+        if (err2) {
+          return res.status(500).json({ error: err2.message });
+        }
+
+        io.emit("MPNMountTypeUpdate");
+        io.emit("RawBomHighlightUpdate");
+        io.emit("CombineBomUpdate");
+        io.emit("PnPFileUpdate");
+        io.emit("SettingSVGUpdate");
+
+        res.json({
+          message: "Deleted single image",
+          image: image,
+        });
+      },
+    );
   });
 });
 
@@ -6516,7 +6360,6 @@ app.delete("/api/To-Do/Delete-item/:id", (req, res) => {
 app.use("/api/ai-project", deliveryChatRouter(db));
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
 
 // Serve static files from frontend/dist
 app.use(express.static(path.join(__dirname, "../frontend/dist")));

@@ -98,7 +98,15 @@
                     prepend-icon="mdi-plus"
                   >
                     <v-list-item-title class="text-caption"
-                      >BOM</v-list-item-title
+                      >File Bom gốc</v-list-item-title
+                    >
+                  </v-list-item>
+                  <v-list-item
+                    @click="DialogAddBomMountType = true"
+                    prepend-icon="mdi-file-table-outline"
+                  >
+                    <v-list-item-title class="text-caption"
+                      >File Bom Highlight</v-list-item-title
                     >
                   </v-list-item>
                 </v-list>
@@ -223,12 +231,17 @@
 
                 <!-- Image -->
                 <template v-slot:item.image="{ value }">
-                  <v-img
-                    :src="`${Url_Image}/${value}`"
-                    width="50"
-                    height="50"
-                    cover
-                  />
+                  <div class="d-flex flex-wrap align-center ga-2 my-2">
+                    <template v-for="(img, i) in safeParse(value)" :key="i">
+                      <v-img
+                        :src="`${Url_Image}/${img}`"
+                        width="100"
+                        height="100"
+                        cover
+                        class="rounded border mr-2"
+                      />
+                    </template>
+                  </div>
                 </template>
 
                 <!-- Pagination -->
@@ -1289,6 +1302,23 @@
     </template>
   </BaseDialog>
   <BaseDialog
+    v-model="DialogAddBomMountType"
+    width="600"
+    title="Thêm dữ liệu BOM"
+    icon="mdi-plus"
+  >
+    <InputFiles
+      label="Nhập file Bom (.xlsx)"
+      class="mt-2"
+      v-model="FileBomMountType"
+      name="bom"
+    />
+    <template #actions>
+      <ButtonCancel @cancel="DialogAddBomMountType = false" />
+      <ButtonSave @save="uploadBOMMountType()" />
+    </template>
+  </BaseDialog>
+  <BaseDialog
     v-model="DialogAddPnP"
     width="700"
     title="Thêm dữ liệu Pick & Place"
@@ -1844,7 +1874,8 @@
           prepend-icon="mdi-information-variant-circle"
         >
           <v-tooltip activator="parent" location="end"
-            >Khoảng cách giữa 2 linh kiện cùng tên của 2 board ngoài cùng panel</v-tooltip
+            >Khoảng cách giữa 2 linh kiện cùng tên của 2 board ngoài cùng
+            panel</v-tooltip
           >
         </v-btn>
       </div>
@@ -1958,70 +1989,107 @@
     </template>
   </BaseDialog>
   <BaseDialog
-  v-model="DialogEditType"
-  width="700"
-  title="Cập nhật loại linh kiện"
-  icon="mdi-update"
->
-  <InputSelect
-    label="Loại linh kiện phù hợp"
-    v-model="MPN_Type_Edit"
-    :items="['SMT', 'Hàn tay', 'Gắp tay']"
-  />
+    v-model="DialogEditType"
+    width="700"
+    title="Cập nhật loại linh kiện"
+    icon="mdi-update"
+  >
+    <InputSelect
+      label="Loại linh kiện phù hợp"
+      v-model="MPN_Type_Edit"
+      :items="['SMT', 'Hàn tay', 'Gắp tay']"
+    />
 
-  <v-row>
-    <v-col cols="8">
-      <InputFiles
-        v-model="MPN_Image_Edit"
-        label="Hình ảnh linh kiện"
-        :multiple="false"
-        :accept="'.jpg,.jpeg,.png'"
-        prepend-icon="mdi-camera"
-      />
-    </v-col>
-
-    <v-col cols="4" class="d-flex justify-center align-center">
-      <div class="position-relative">
-        <!-- IMAGE -->
-        <v-img
-          v-if="MPN_Image_Edit"
-          :src="Url_Image + '/' + MPN_Image_Edit"
-          alt="Hình ảnh linh kiện"
-          width="110"
-          height="110"
-          cover
-          class="rounded-lg border"
+    <v-row>
+      <v-col cols="8">
+        <InputFiles
+          v-model="MPN_Image_Edit"
+          label="Hình ảnh linh kiện"
+          :multiple="false"
+          :accept="'.jpg,.jpeg,.png'"
+          prepend-icon="mdi-camera"
         />
+      </v-col>
 
-        <!-- DELETE BUTTON -->
-        <v-btn
-          v-if="MPN_Image_Edit"
-          icon
-          size="x-small"
-          color="red"
-          class="delete-image-btn"
-          @click="DialogRemoveImage = true"
-        >
-          <v-icon size="18">mdi-close</v-icon>
-        </v-btn>
-
-        <!-- EMPTY -->
+      <v-col cols="4" class="d-flex justify-center align-center">
         <div
-          v-if="!MPN_Image_Edit"
-          class="d-flex align-center justify-center text-grey border rounded-lg"
-          style="width: 110px; height: 110px"
+          class="position-relative"
+          v-for="(img, i) in safeParse(MPN_Image_Edit)"
+          :key="i"
         >
-          Không có ảnh
-        </div>
-      </div>
-    </v-col>
-  </v-row>
+          <!-- IMAGE -->
+          <v-img
+            :src="`${Url_Image}/${img}`"
+            alt="Hình ảnh linh kiện"
+            width="70"
+            height="70"
+            cover
+            class="rounded-lg border ms-5"
+          />
 
-  <template #actions>
-    <ButtonCancel @cancel="DialogEditType = false" />
-    <ButtonSave @save="SaveEditType()" />
-  </template>
-</BaseDialog>
+          <!-- DELETE BUTTON -->
+          <v-btn
+            v-if="MPN_Image_Edit"
+            icon
+            size="xl-small"
+            color="red"
+            class="delete-image-btn"
+            @click="openRemoveImage(img)"
+          >
+            <v-icon size="18">mdi-close</v-icon>
+          </v-btn>
+
+          <!-- EMPTY -->
+          <div
+            v-if="!MPN_Image_Edit"
+            class="d-flex align-center justify-center text-grey border rounded-lg"
+            style="width: 110px; height: 110px"
+          >
+            Không có ảnh
+          </div>
+        </div>
+      </v-col>
+    </v-row>
+    <v-divider class="my-2"></v-divider>
+    <v-card class="bg-surface pa-2" variant="text">
+      <v-card-title class="text-center text-h6"
+        ><v-icon color="primary" size="22">mdi-information-outline</v-icon>
+        Thông tin thêm</v-card-title
+      >
+      <v-card-text>
+        <v-list>
+          <v-list-item>
+            <v-list-item-subtitle> Tên MPN:</v-list-item-subtitle>
+            <v-list-item-title>{{
+              MPN_Name_Edit || "Chưa có dữ liệu"
+            }}</v-list-item-title>
+          </v-list-item>
+          <v-list-item>
+            <v-list-item-subtitle>Mô tả:</v-list-item-subtitle>
+            <v-list-item-title>{{
+              MPN_Description_Edit || "Chưa có dữ liệu"
+            }}</v-list-item-title>
+          </v-list-item>
+          <v-list-item>
+            <v-list-item-subtitle>Tên dự án đã dùng:</v-list-item-subtitle>
+            <v-list-item-title
+              >{{ infoProjectName || "Chưa có dữ liệu" }}
+            </v-list-item-title>
+          </v-list-item>
+          <v-list-item>
+            <v-list-item-subtitle>Người tạo:</v-list-item-subtitle>
+            <v-list-item-title>{{
+              infoCreatedBy || "Chưa có dữ liệu"
+            }}</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-card-text>
+    </v-card>
+    <template #actions>
+      <ButtonCancel @cancel="DialogEditType = false" />
+      <ButtonSave @save="SaveEditType()" />
+    </template>
+  </BaseDialog>
   <BaseDialog
     v-model="DialogDeleteBomHighlight"
     width="600"
@@ -2100,7 +2168,8 @@ import { saveAs } from "file-saver";
 // 1. CONSTANTS & API CONFIG
 // ==========================================
 const Url = import.meta.env.VITE_API_URL;
-const Url_Image = import.meta.env.VITE_API_ERP_URL;
+const Url_Image = "https://api.erpst.io.vn";
+// const Url_Image = import.meta.env.VITE_API_URL;
 const clientId = import.meta.env.VITE_DIGIKEY_CLIENT_ID;
 const clientSecret = import.meta.env.VITE_DIGIKEY_CLIENT_SECRET;
 const route = useRoute();
@@ -2271,6 +2340,7 @@ const statsBom = computed(() => {
 const DialogEdit = ref(false);
 const DialogEditType = ref(false);
 const DialogAddBom = ref(false);
+const DialogAddBomMountType = ref(false);
 const DialogAddPnP = ref(false);
 const DialogAddGerber = ref(false);
 const DialogAddWG = ref(false);
@@ -2286,6 +2356,7 @@ const DialogInfo = ref(false);
 const DialogDownloadBomHighlight = ref(false);
 const DialogDeleteBomHighlight = ref(false);
 const DialogRemoveImage = ref(false);
+const ImageToDelete = ref("");
 const DialogDeletePickPlace = ref(false);
 const DialogEditGerber = ref(false);
 const MessageDialog = ref("");
@@ -2296,6 +2367,7 @@ const tab = ref(null);
 // --- File & Project States ---
 const project_name = ref(localStorage.getItem("BomName"));
 const FileBom = ref(null);
+const FileBomMountType = ref(null);
 const FilePnP = ref(null);
 const FileGerber = ref(null);
 const LayerGerber = ref("Top");
@@ -2389,8 +2461,8 @@ const baseHeaders = [
   { title: "Description", key: "description" },
   { title: "Quantity", key: "quantity" },
   { title: "Type", key: "type" },
-  { title: "Note", key: "note", width: "150px" },
-  { title: "Image", key: "image", width: "150px" },
+  { title: "Note", key: "note", width: "100px" },
+  { title: "Image", key: "image", width: "200px" },
   { title: "Thao tác", key: "id", sortable: false },
 ];
 const HeadersRawBomHighlight = computed(() => {
@@ -2437,8 +2509,6 @@ const HeadersPnPGerber = [
   { title: "X (mm)", key: "x", width: "50px" },
   { title: "Y (mm)", key: "y", width: "50px" },
   { title: "Rotation", key: "rotation", width: "50px" },
-  // { title: "Length (mm)", key: "length", width: "25px" },
-  // { title: "Width (mm)", key: "width", width: "25px" },
   { title: "Thao tác", key: "id", sortable: false },
 ];
 
@@ -2481,6 +2551,8 @@ const MPN_Type_Edit = ref("");
 const MPN_Name_Edit = ref("");
 const MPN_Description_Edit = ref("");
 const MPN_Image_Edit = ref("");
+const infoProjectName = ref("");
+const infoCreatedBy = ref("");
 
 // --- Zoom & ViewBox States ---
 /** ViewBox gốc của board – dùng để reset về toàn bộ board */
@@ -2937,6 +3009,27 @@ const uploadBOM = async () => {
   }
 };
 
+const uploadBOMMountType = async () => {
+  DialogLoading.value = true;
+  try {
+    const formData = new FormData();
+    formData.append("FileBomMountType", FileBomMountType.value);
+    formData.append("created_by", localStorage.getItem("Username"));
+    await axios.post(`${Url}/MPNMountType/Import-Bomlist/${id}`, formData);
+    DialogSuccess.value = true;
+    MessageDialog.value = "Upload Bom thành công";
+    DialogAddBomMountType.value = false;
+    FileBomMountType.value = null;
+  } catch (error) {
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Upload Bom thất bại";
+    console.error("Lỗi upload BOM:", error);
+    DialogLoading.value = false;
+  } finally {
+    DialogLoading.value = false;
+  }
+};
+
 /**
  * Upload file Pick & Place (.xlsx) lên server và cập nhật tọa độ linh kiện
  */
@@ -3037,6 +3130,9 @@ const GetItemBomEdit = (item) => {
   MPN_Name_Edit.value = item.mpn;
   MPN_Description_Edit.value = item.description;
   MPN_Image_Edit.value = item.image;
+  infoProjectName.value = item.project_name;
+  infoCreatedBy.value = item.created_by;
+  console.log(item);
 };
 
 /**
@@ -3182,12 +3278,14 @@ const SaveEditType = async () => {
     // UPDATE BOM HIGHLIGHT
     // =========================
     const formData = new FormData();
-
     formData.append("type", MPN_Type_Edit.value);
 
-    // chỉ append khi là file mới
-    if (MPN_Image_Edit.value instanceof File) {
-      formData.append("image", MPN_Image_Edit.value);
+    // Chỉ append khi là file mới (và xử lý nếu nó là file đơn lẻ hoặc phần tử đầu tiên của mảng)
+    const singleFile = Array.isArray(MPN_Image_Edit.value)
+      ? MPN_Image_Edit.value[0]
+      : MPN_Image_Edit.value;
+    if (singleFile instanceof File) {
+      formData.append("image", singleFile);
     }
 
     await axios.put(
@@ -3197,78 +3295,67 @@ const SaveEditType = async () => {
         headers: {
           "Content-Type": "multipart/form-data",
         },
-      }
+      },
     );
 
+    // Kiểm tra xem người dùng có chọn file mới nào để upload không
+    const hasNewImages = Array.isArray(MPN_Image_Edit.value)
+      ? MPN_Image_Edit.value.length > 0
+      : !!MPN_Image_Edit.value;
+
     // =========================
-    // ADD MPN MOUNT TYPE
+    // ADD MPN MOUNT TYPE (Chỉ chạy khi thực sự có ảnh mới)
     // =========================
-    if (MPN_Image_Edit.value) {
+    if (hasNewImages) {
       const formDataMountType = new FormData();
 
       formDataMountType.append("mpn", MPN_Name_Edit.value);
       formDataMountType.append("mount_type", MPN_Type_Edit.value);
-      formDataMountType.append(
-        "description",
-        MPN_Description_Edit.value
-      );
+      formDataMountType.append("description", MPN_Description_Edit.value);
+      formDataMountType.append("project_id", route.params.id);
+      formDataMountType.append("created_by", localStorage.getItem("Username"));
 
-      formDataMountType.append(
-        "project_id",
-        route.params.id
-      );
-
-      formDataMountType.append(
-        "created_by",
-        localStorage.getItem("User")
-      );
-
-      // chỉ append image nếu là file
-      if (MPN_Image_Edit.value instanceof File) {
-        formDataMountType.append(
-          "image",
-          MPN_Image_Edit.value
-        );
+      // 🔥 FIX: Lặp qua mảng file một cách an toàn
+      if (Array.isArray(MPN_Image_Edit.value)) {
+        MPN_Image_Edit.value.forEach((file) => {
+          if (file instanceof File) {
+            formDataMountType.append("image", file);
+          }
+        });
+      } else if (MPN_Image_Edit.value instanceof File) {
+        formDataMountType.append("image", MPN_Image_Edit.value);
       }
 
-      await axios.post(
-        `${Url}/MPNMountType/Add-item`,
-        formDataMountType,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      await axios.post(`${Url}/MPNMountType/Add-item`, formDataMountType, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
     }
 
     // =========================
-    // DELETE
+    // DELETE (Chạy khi có yêu cầu xóa ảnh và KHÔNG upload thêm ảnh mới)
     // =========================
-    if (
-      MPN_Type_Edit.value === "SMT" &&
-      !MPN_Image_Edit.value
-    ) {
-      await axios.delete(
-        `${Url}/MPNMountType/Delete-item/${MPN_Name_Edit.value}`
-      );
+    if (MPN_Type_Edit.value === "SMT" && !hasNewImages && ImageToDelete.value) {
+      await axios.delete(`${Url}/MPNMountType/Delete-image`, {
+        data: {
+          mpnName: MPN_Name_Edit.value,
+          image: ImageToDelete.value,
+        },
+      });
     }
 
     DialogLoading.value = false;
     DialogEditType.value = false;
     DialogSuccess.value = true;
-
-    MessageDialog.value =
-      "Chỉnh sửa dữ liệu thành công";
+    MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
   } catch (error) {
     console.error(error);
 
     DialogLoading.value = false;
     DialogEditType.value = false;
     DialogFailed.value = true;
-
-    MessageErrorDialog.value =
-      "Chỉnh sửa dữ liệu thất bại";
+    MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
   }
 };
 
@@ -3398,14 +3485,25 @@ const DeleteAllPickPlace = async () => {
 
 const RemoveImage = async () => {
   DialogLoading.value = true;
+
   try {
-    await axios.delete(`${Url}/MPNMountType/Delete-image/${MPN_Name_Edit.value}`);
+    await axios.delete(
+      `${Url}/MPNMountType/Delete-image/${MPN_Name_Edit.value}`,
+      {
+        data: {
+          image: ImageToDelete.value,
+        },
+      },
+    );
+
     DialogSuccess.value = true;
-    MessageDialog.value = "Xóa dữ liệu thành công";
+    MessageDialog.value = "Xóa ảnh thành công";
     DialogRemoveImage.value = false;
+    ImageToDelete.value = "";
+    DialogEditType.value = false;
   } catch (error) {
     DialogFailed.value = true;
-    MessageErrorDialog.value = "Xóa dữ liệu thất bại";
+    MessageErrorDialog.value = "Xóa ảnh thất bại";
     DialogRemoveImage.value = false;
   } finally {
     DialogLoading.value = false;
@@ -3543,7 +3641,7 @@ function transform(p) {
         break;
 
       case 90:
-        x2 = - (y - edgeYv);
+        x2 = -(y - edgeYv);
         y2 = x; // = x
         r2 = normalizeRotation(r - angle.value);
         break;
@@ -4951,6 +5049,18 @@ const getRowClass = (data) => {
   }
 
   return {};
+};
+
+const safeParse = (value) => {
+  try {
+    return JSON.parse(value || "[]");
+  } catch (e) {
+    return [];
+  }
+};
+const openRemoveImage = (img) => {
+  ImageToDelete.value = img;
+  DialogRemoveImage.value = true;
 };
 </script>
 <script>

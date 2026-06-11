@@ -167,7 +167,7 @@
                               Top
                             </div>
                             <div class="text-h6 font-weight-bold">
-                              {{ passTop }}
+                              {{ totalPassTop || 0 }}
                             </div>
                           </div>
                         </div>
@@ -196,7 +196,7 @@
                               Bottom
                             </div>
                             <div class="text-h6 font-weight-bold">
-                              {{ passBottom }}
+                              {{ totalPassBottom || 0 }}
                             </div>
                           </div>
                         </div>
@@ -224,7 +224,7 @@
                               Tổng Pass
                             </div>
                             <div class="text-h6 font-weight-bold">
-                              {{ passOneSide }}
+                              {{ passTotal || 0 }}
                             </div>
                           </div>
                         </div>
@@ -253,7 +253,7 @@
                               Còn lại
                             </div>
                             <div class="text-h6 font-weight-bold">
-                              {{ totalInput - passOneSide }}
+                              {{ totalInput - passTotal }}
                             </div>
                           </div>
                         </div>
@@ -283,8 +283,8 @@
                   >
                     <template v-slot:center>
                       <div class="text-center">
-                        <div class="text-h4">
-                          {{ passOneSide }}
+                        <div class="text-h4 text-success font-weight-bold">
+                          {{ passTotal }}
                           <span style="font-size: 14px">pcs</span>
                         </div>
                         <div class="opacity-70 mt-1 mb-n1">Tổng Pass</div>
@@ -340,13 +340,13 @@
                   >
                     <template v-slot:center>
                       <div class="text-center">
-                        <div class="text-h4 text-info">
-                          {{ passTop }}
+                        <div class="text-h4 text-info font-weight-bold">
+                          {{ totalPassTop || 0 }}
                           <span style="font-size: 14px">pcs</span>
                         </div>
                         <v-divider :thickness="1"></v-divider>
-                        <div class="text-h4 text-red">
-                          {{ passBottom }}
+                        <div class="text-h4 text-red font-weight-bold">
+                          {{ totalPassBottom || 0 }}
                           <span style="font-size: 14px">pcs</span>
                         </div>
                       </div>
@@ -440,6 +440,19 @@
                                   item.items.length
                                 }})</span
                               >
+                              <v-spacer></v-spacer>
+                              <v-tooltip text="Thêm" location="top">
+                                <template v-slot:activator="{ props }">
+                                  <v-btn
+                                    icon="mdi-plus"
+                                    size="small"
+                                    variant="text"
+                                    color="primary"
+                                    v-bind="props"
+                                    @click="GetItemCategory(item.items[0].raw)"
+                                  />
+                                </template>
+                              </v-tooltip>
                             </div>
                           </td>
                         </tr>
@@ -452,14 +465,16 @@
                             color="success"
                             size="small"
                             variant="text"
-                            @click="DialogComplete = true; GetItemOutput(item)"
+                            @click="
+                              DialogComplete = true;
+                              GetItemOutput(item);
+                            "
                           />
                           <ButtonEdit @click="GetItem(item)" />
                         </div>
                       </template>
 
-                      <template #[`item.Category`]="{ item }">
-                        {{ item.Category }}
+                      <template #[`item.Note`]="{ item }">
                         <v-chip
                           v-if="item?.Line_SMT"
                           :color="
@@ -471,6 +486,7 @@
                         >
                           {{ item.Line_SMT }}
                         </v-chip>
+                        {{ item.Note }}
                       </template>
 
                       <template #[`item.Quantity_Plan`]="{ item }">
@@ -482,12 +498,6 @@
                       <template #[`item.Quantity_Real`]="{ item }">
                         <v-chip color="success" variant="tonal" size="small">{{
                           item.Quantity_Real
-                        }}</v-chip>
-                      </template>
-
-                      <template #[`item.Quantity_Error`]="{ item }">
-                        <v-chip color="warning" variant="tonal" size="small">{{
-                          item.Quantity_Error
                         }}</v-chip>
                       </template>
 
@@ -510,14 +520,23 @@
                   </v-card>
                 </v-col>
                 <v-col cols="12">
-                  <StackedBarChart
-                    :labels="days"
-                    :passDataOneSide="passDataOneSide"
-                    :passDataTop="passListTop"
-                    :passDataBottom="passListBottom"
-                    :planData="planList"
-                    title="Kết quả sản xuất theo ngày"
-                  />
+                  <v-row>
+                    <v-col>
+                      <StackedBarChart
+                        :labels="days"
+                        :passDataTop="passListTop"
+                        :passDataBottom="passListBottom"
+                        title="Kết quả sản xuất theo ngày Top và Bottom"
+                      />
+                    </v-col>
+                    <v-col>
+                      <StackedBarChart
+                        :labels="days"
+                        :passDataOneSide="passListTotal"
+                        title="Kết quả sản xuất theo ngày"
+                      />
+                    </v-col>
+                  </v-row>
                 </v-col>
               </v-row>
             </v-card-text>
@@ -548,8 +567,7 @@
                 <StackedBarChartSummary
                   :labels="progress"
                   :passData="passData"
-                  :planData="Array(progress.length).fill(totalInput)"
-                  title="Kết quả sản xuất theo ngày"
+                  title="Kết quả sản xuất theo công đoạn"
                 />
               </v-card-text>
             </v-card>
@@ -578,37 +596,18 @@
                   title="Biểu đồ phần trăm số lượng"
                   animation
                   :legend="{
-                    position: 'bottom',
+                    textFormat: '[title] ([value]%)',
+                    position: 'right',
                   }"
                   :tooltip="{ subtitleFormat: '[value]%' }"
                   reveal
-                  gap="2"
-                  inner-cut="70"
-                  item-key="key"
                   rounded="2"
+                  gap="2"
+                  item-key="key"
                   hide-slice
                   :items="pieDataProccess"
                   :size="268"
                 >
-                  <template v-slot:center>
-                    <div class="text-center">
-                      <div class="text-h4">
-                        {{
-                          passData.length > 0
-                            ? passData[passData.length - 1]
-                            : passOneSide
-                        }}
-                        <span style="font-size: 14px">pcs</span>
-                      </div>
-                      <div class="opacity-70 mt-1 mb-n1">
-                        {{
-                          progress.length > 0
-                            ? progress[progress.length - 1]
-                            : "Tổng Pass"
-                        }}
-                      </div>
-                    </div>
-                  </template>
                 </v-pie>
 
                 <div class="h-0">
@@ -799,13 +798,15 @@
               :items="['Line 1', 'Line 2']"
               hint="Lựa chọn công đoạn phù hợp"
               v-model="Line_Add"
-              :disabled="Type_Add != 'SMT'"
               :rules="requiredRule"
+              :disabled="Type_Add != 'SMT'"
             />
           </v-col>
         </v-row>
         <InputField
           label="Tên hạng mục"
+          variant="outlined"
+          clearable
           v-model="Category_Add"
           :rules="requiredRuleEmpty"
         ></InputField>
@@ -908,15 +909,7 @@
           />
         </v-col>
       </v-row>
-      <v-autocomplete
-        label="Tên hạng mục"
-        :items="
-          history
-            .filter((item) => item.Type === selectedTitle)
-            .map((item) => item.Category)
-        "
-        v-model="Category_Edit"
-      ></v-autocomplete>
+      <InputField label="Tên hạng mục" v-model="Category_Edit" />
 
       <v-row>
         <v-col cols="12" sm="4">
@@ -958,16 +951,13 @@
       icon="mdi-check-circle"
       max-width="500px"
     >
-      <v-row>
-        <v-col cols="12">
-          <InputField
-            label="Số lượng (pcs)"
-            type="number"
-            v-model="Quantity_Complete_Complete"
-            :rules="requiredRuleEmpty"
-          />
-        </v-col>
-      </v-row>
+      <InputDate label="Ngày hoàn thành" v-model="Date_Complete" />
+      <InputField
+        label="Số lượng (pcs)"
+        type="number"
+        v-model="Quantity_Complete"
+        :rules="requiredRuleEmpty"
+      />
 
       <template #actions>
         <v-spacer />
@@ -1056,6 +1046,7 @@ const id = route.params.id;
 const typeFilter = ref(route.query.Type || null);
 
 const { manufactureDetails, connectionStatus } = useManufactureDetails(id);
+
 const { manufacture, manufactureFound, manufactureError, isConnected } =
   useManufacture();
 const { historyPart, historyPartError } = useHistoryPart(id);
@@ -1142,7 +1133,8 @@ const CycleTime_Edit = ref("");
 const Note_Edit = ref("");
 const Date_DetailManufacture_Edit = ref("");
 
-const Quantity_Complete_Complete = ref("");
+const Quantity_Complete = ref("");
+const Date_Complete = ref("");
 
 // ===== FORM SETTING SMT =====
 const DelaySMT_Edit = ref(10000);
@@ -1185,7 +1177,7 @@ const HeadersHistoryPartError = [
 ];
 
 const groupBy = [{ key: "Category" }];
-const  groupEditCategory = ref([])
+const groupEditCategory = ref([]);
 
 const HeadersHistory = [
   { title: "Ngày", key: "Created_At", sortable: true },
@@ -1213,9 +1205,13 @@ const HeadersHistory = [
 
 // Chart
 const days = computed(() => {
-  return history.value
-    .filter((item) => item.Type === selectedTitle.value)
-    .map((item) => formatDate(item.Created_At));
+  return [
+    ...new Set(
+      history.value
+        .filter((item) => item.Type === selectedTitle.value)
+        .map((item) => item.Created_At),
+    ),
+  ];
 });
 
 const passListTop = computed(() =>
@@ -1241,6 +1237,41 @@ const passDataOneSide = computed(() =>
     )
     .map((item) => Number(item.Quantity_Real || 0)),
 );
+const totalPassTop = computed(() => {
+  return passListTop.value.reduce((sum, item) => sum + Number(item || 0), 0);
+});
+const totalPassBottom = computed(() => {
+  return passListBottom.value.reduce((sum, item) => sum + Number(item || 0), 0);
+});
+const totalPassOneSide = computed(() => {
+  return passDataOneSide.value.reduce(
+    (sum, item) => sum + Number(item || 0),
+    0,
+  );
+});
+
+const passTotal = computed(() => {
+  const top = Number(totalPassTop.value);
+  const bottom = Number(totalPassBottom.value);
+  const oneSide = Number(totalPassOneSide.value);
+
+  return top === 0 && bottom === 0 ? oneSide : Math.min(top, bottom);
+});
+const passListTotal = computed(() => {
+  const top = passListTop.value;
+  const bottom = passListBottom.value;
+  const oneSide = passDataOneSide.value;
+
+  const maxLength = Math.max(top.length, bottom.length, oneSide.length);
+
+  return Array.from({ length: maxLength }, (_, i) => {
+    const t = Number(top[i] || 0);
+    const b = Number(bottom[i] || 0);
+    const o = Number(oneSide[i] || 0);
+
+    return t === 0 && b === 0 ? o : Math.min(t, b);
+  });
+});
 
 const planList = computed(() =>
   history.value
@@ -1264,35 +1295,36 @@ const passListSummary = computed(() => {
       };
     }
 
-    // 1 mặt => lấy total luôn
-    if (surface === "1 Mặt") {
-      grouped[source].oneSide += qty;
-    }
-
-    // TOP
     if (surface === "TOP") {
       grouped[source].top += qty;
     }
 
-    // BOTTOM
     if (surface === "BOTTOM") {
       grouped[source].bottom += qty;
     }
+
+    if (surface === "1 Mặt") {
+      grouped[source].oneSide += qty;
+    }
   });
 
-  // Tính kết quả cuối
   const result = {};
 
-  Object.keys(grouped).forEach((source) => {
-    const item = grouped[source];
+  Object.entries(grouped).forEach(([source, item]) => {
+    const values = [];
 
-    // nếu có 1 mặt
-    if (item.oneSide > 0) {
-      result[source] = item.oneSide;
+    if (item.oneSide > 0) values.push(item.oneSide);
+
+    // Có đủ TOP + BOTTOM
+    if (item.top > 0 && item.bottom > 0) {
+      values.push(Math.min(item.top, item.bottom));
     } else {
-      // lấy giá trị nhỏ hơn giữa TOP và BOTTOM
-      result[source] = Math.min(item.top, item.bottom);
+      // Chỉ có TOP hoặc chỉ có BOTTOM
+      if (item.top > 0) values.push(item.top);
+      if (item.bottom > 0) values.push(item.bottom);
     }
+
+    result[source] = values.length ? Math.min(...values) : 0;
   });
 
   return result;
@@ -1301,9 +1333,8 @@ const passListSummary = computed(() => {
 const progress = computed(() => Object.keys(passListSummary.value));
 
 const passData = computed(() => Object.values(passListSummary.value));
-
 const pieData = computed(() => {
-  const pass = Number(passOneSide.value) || 0;
+  const pass = Number(passTotal.value) || 0;
   const total = Number(totalInput.value) || 0;
 
   if (total === 0 && pass === 0) {
@@ -1339,8 +1370,8 @@ const pieData = computed(() => {
 });
 
 const pieDataTopBottom = computed(() => {
-  const pieTop = Number(passTop.value) || 0;
-  const pieBottom = Number(passBottom.value) || 0;
+  const pieTop = Number(totalPassTop.value) || 0;
+  const pieBottom = Number(totalPassBottom.value) || 0;
   const total = Number(totalInput.value) || 0;
 
   if (total === 0 && pieTop === 0 && pieBottom === 0) {
@@ -1457,15 +1488,6 @@ const requiredRule = computed(() => {
   return [];
 });
 const requiredRuleEmpty = computed(() => [(v) => !!v || "Không được bỏ trống"]);
-
-function formatDate(dateString) {
-  if (!dateString) return "";
-  const parts = dateString.split(/[-/]/);
-  if (parts.length >= 2) {
-    return `${parts[0].padStart(2, "0")}/${parts[1].padStart(2, "0")}`;
-  }
-  return dateString;
-}
 
 // Watch for manufactureDetails changes
 const isManufactureDetailsReady = ref(false);
@@ -1677,7 +1699,7 @@ const GetItem = (item) => {
   CycleTime_Edit.value = item.CycleTime_Plan;
   Time_Edit.value = item.Time_Plan;
   Note_Edit.value = item.Note;
-  Date_DetailManufacture_Edit.value = item.Created_At_unixepoch;
+  Date_DetailManufacture_Edit.value = item.Created_At;
   GetID.value = item.id;
 };
 
@@ -1692,8 +1714,16 @@ const GetItemOutput = (item) => {
   CycleTime_Edit.value = item.CycleTime_Plan;
   Time_Edit.value = item.Time_Plan;
   Note_Edit.value = item.Note;
-  Date_DetailManufacture_Edit.value = item.Created_At_unixepoch;
+  Date_DetailManufacture_Edit.value = item.Created_At;
   GetID.value = item.id;
+};
+
+const GetItemCategory = (item) => {
+  DialogAdd.value = true;
+  Category_Add.value = item.Category;
+  Type_Add.value = item.Type;
+  Surface_Add.value = item.Surface;
+  Line_Add.value = item.Line_SMT;
 };
 
 const selectCard = (title) => {
@@ -1821,6 +1851,15 @@ const SaveAdd = async () => {
     MessageDialog.value = "Thêm dữ liệu thành công";
     DialogSuccess.value = true;
     DialogAdd.value = false;
+    Surface_Add.value = "";
+    Type_Add.value = "";
+    Category_Add.value = "";
+    Line_Add.value = "";
+    Quantity_Plan_Add.value = "";
+    CycleTime_Add.value = "";
+    Time_Add.value = "";
+    Note_Add.value = "";
+    Date_DetailManufacture_Add.value = "";
   } catch (error) {
     MessageErrorDialog.value = "Thêm dữ liệu thất bại";
     DialogFailed.value = true;
@@ -1839,8 +1878,9 @@ const CompleteItem = async () => {
     Note: null,
     PlanID: route.params.id,
     Type: Type_Edit.value,
-    Quantity: Quantity_Complete_Complete.value || 1,
+    Quantity: Quantity_Complete.value || 1,
     Surface: Surface_Edit.value,
+    Timestamp: Date_Complete.value,
   });
 
   try {
@@ -1848,13 +1888,14 @@ const CompleteItem = async () => {
     DialogLoading.value = false;
 
     // Reset các giá trị sau khi thành công
-    Quantity_Complete_Complete.value = 1
+    Quantity_Complete.value = 1;
     DialogSuccess.value = true;
     DialogComplete.value = false;
     MessageDialog.value = "Sản phẩm đã được nhập thành công";
   } catch (error) {
     DialogLoading.value = false;
-    Quantity_Complete_Complete.value = 1;
+    Quantity_Complete.value = 1;
+    Date_Complete.value = "";
     DialogFailed.value = true;
     MessageErrorDialog.value = "Lỗi khi nhập mã sản phẩm";
   }

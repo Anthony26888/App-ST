@@ -487,315 +487,6 @@ app.get("/api/PickPlaceBottom/download/:id", async (req, res) => {
 
 const ExcelJS = require("exceljs");
 
-//  app.get("/api/BomHighlight/download/:id", async (req, res) => {
-//   const { id } = req.params;
-
-//   // ===== NORMALIZE =====
-//   const normalize = (val) =>
-//     String(val || "")
-//       .replace(/\s+/g, "")
-//       .toUpperCase();
-
-//   // ===== REMOVE VIETNAMESE TONES =====
-//   const removeVietnameseTones = (str) => {
-//     return String(str || "")
-//       .normalize("NFD")
-//       .replace(/[\u0300-\u036f]/g, "")
-//       .replace(/đ/g, "d")
-//       .replace(/Đ/g, "D")
-//       .trim()
-//       .toLowerCase();
-//   };
-
-//   // ===== PICKPLACE QUERY =====
-//   const ppQuery = `
-//     SELECT p.designator, LOWER(TRIM(p.layer)) as layer
-//     FROM Pickplace p
-//     WHERE p.project_id = ?
-//       AND LOWER(TRIM(p.layer)) IN ('bottom', 'bottomlayer')
-//   `;
-
-//   db.all(ppQuery, [id], async (err, ppRows) => {
-//     if (err) {
-//       return res.status(500).json(err);
-//     }
-
-//     const map = new Map();
-
-//     ppRows.forEach((r) => {
-//       map.set(normalize(r.designator), true);
-//     });
-
-//     // ===== BOM QUERY =====
-//     const bomQuery = `
-//                       SELECT
-//                           B.id,
-//                           B.description,
-//                           B.mpn,
-//                           CASE
-//                               WHEN M.mount_type IS NOT NULL THEN M.mount_type
-//                               ELSE B.type
-//                           END AS type,
-//                           B.designator,
-//                           B.quantity,
-//                           B.project_id,
-//                           B.note
-//                       FROM BomHighlight B
-//                       LEFT JOIN MPNMountType M
-//                           ON TRIM(LOWER(B.mpn)) = TRIM(LOWER(M.mpn))
-//                       WHERE B.project_id = ?
-//     `;
-
-//     db.all(bomQuery, [id], async (err, bomRows) => {
-//       if (err) {
-//         return res.status(500).json(err);
-//       }
-
-//       const wb = new ExcelJS.Workbook();
-
-//       const ws = wb.addWorksheet("BOM");
-
-//       // ===== CHECK OPTIONAL COLUMNS =====
-//       const hasMPN2 = bomRows.some(
-//         (r) => r.mpn2 && String(r.mpn2).trim() !== ""
-//       );
-
-//       const hasMPN3 = bomRows.some(
-//         (r) => r.mpn3 && String(r.mpn3).trim() !== ""
-//       );
-
-//       // ===== BUILD COLUMNS =====
-//       const columns = [
-//         { header: "STT", key: "stt", width: 8 },
-//         { header: "Designator", key: "designator", width: 40 },
-//         { header: "Description", key: "description", width: 50 },
-//         { header: "MPN", key: "mpn", width: 25 },
-//       ];
-
-//       if (hasMPN2) {
-//         columns.push({
-//           header: "MPN2",
-//           key: "mpn2",
-//           width: 25,
-//         });
-//       }
-
-//       if (hasMPN3) {
-//         columns.push({
-//           header: "MPN3",
-//           key: "mpn3",
-//           width: 25,
-//         });
-//       }
-
-//       columns.push(
-//         { header: "QTY", key: "quantity", width: 12 },
-//         { header: "Note", key: "note", width: 25 }
-//       );
-
-//       // ===== SET COLUMNS =====
-//       ws.columns = columns;
-
-//       // ===== TITLE =====
-//       const title = req.query.title || "BOM HIGHLIGHT";
-
-//       ws.insertRow(1, [title]);
-
-//       ws.mergeCells(1, 1, 1, columns.length);
-
-//       const titleCell = ws.getCell("A1");
-
-//       titleCell.font = {
-//         name: "Times New Roman",
-//         size: 24,
-//         bold: true,
-//       };
-
-//       titleCell.alignment = {
-//         vertical: "middle",
-//         horizontal: "center",
-//       };
-
-//       ws.getRow(1).height = 35;
-
-//       // ===== HEADER =====
-//       const headerRow = ws.getRow(2);
-
-//       for (let i = 1; i <= columns.length; i++) {
-//         const cell = headerRow.getCell(i);
-
-//         cell.font = {
-//           name: "Times New Roman",
-//           bold: true,
-//         };
-
-//         cell.fill = {
-//           type: "pattern",
-//           pattern: "solid",
-//           fgColor: {
-//             argb: "FFD3D3D3",
-//           },
-//         };
-
-//         cell.alignment = {
-//           vertical: "middle",
-//           horizontal: "center",
-//         };
-
-//         cell.border = {
-//           top: { style: "thin" },
-//           left: { style: "thin" },
-//           bottom: { style: "thin" },
-//           right: { style: "thin" },
-//         };
-//       }
-
-//       // ===== DATA =====
-//       bomRows.forEach((row, rowIndex) => {
-//         const original = String(row.designator || "");
-
-//         const parts = original
-//           .split(",")
-//           .map((s) => s.trim());
-
-//         const richText = [];
-
-//         parts.forEach((p, index) => {
-//           const key = normalize(p);
-
-//           const isBottom = map.has(key);
-
-//           richText.push({
-//             text: p,
-//             font: {
-//               name: "Times New Roman",
-
-//               ...(isBottom
-//                 ? {
-//                     color: {
-//                       argb: "FFFF0000",
-//                     },
-//                     bold: true,
-//                   }
-//                 : {}),
-//             },
-//           });
-
-//           if (index < parts.length - 1) {
-//             richText.push({
-//               text: ", ",
-//               font: {
-//                 name: "Times New Roman",
-//               },
-//             });
-//           }
-//         });
-
-//         // ===== ROW DATA =====
-//         const rowData = {
-//           stt: rowIndex + 1,
-//           designator: { richText },
-//           description: row.description,
-//           mpn: row.mpn,
-//           quantity: row.quantity,
-//           note: row.note,
-//         };
-
-//         if (hasMPN2) {
-//           rowData.mpn2 = row.mpn2;
-//         }
-
-//         if (hasMPN3) {
-//           rowData.mpn3 = row.mpn3;
-//         }
-
-//         const newRow = ws.addRow(rowData);
-
-//         // ===== NORMALIZE VALUES =====
-//         const noteValue = removeVietnameseTones(row.note);
-
-//         const typeValue = removeVietnameseTones(row.type);
-
-//         // ===== APPLY STYLE =====
-//         for (let i = 1; i <= columns.length; i++) {
-//           const cell = newRow.getCell(i);
-
-//           // BORDER
-//           cell.border = {
-//             top: { style: "thin" },
-//             left: { style: "thin" },
-//             bottom: { style: "thin" },
-//             right: { style: "thin" },
-//           };
-
-//           // FONT
-//           if (!cell.font || !cell.font.richText) {
-//             cell.font = {
-//               name: "Times New Roman",
-//               size: 11,
-//             };
-//           }
-
-//           // ALIGNMENT
-//           cell.alignment = {
-//             vertical: "middle",
-//           };
-
-//           // ===== COLOR RULE =====
-
-//           // DNP => Neutral
-//           if (noteValue === "dnp") {
-//             cell.fill = {
-//               type: "pattern",
-//               pattern: "solid",
-//               fgColor: {
-//                 argb: "FFFFEB9C",
-//               },
-//             };
-//           }
-
-//           // Hàn tay => Bad
-//           else if (typeValue === "han tay") {
-//             cell.fill = {
-//               type: "pattern",
-//               pattern: "solid",
-//               fgColor: {
-//                 argb: "FFFFC7CE",
-//               },
-//             };
-//           }
-
-//           // Gắp tay => Good
-//           else if (typeValue === "gap tay") {
-//             cell.fill = {
-//               type: "pattern",
-//               pattern: "solid",
-//               fgColor: {
-//                 argb: "FFC6EFCE",
-//               },
-//             };
-//           }
-//         }
-//       });
-
-//       // ===== EXPORT =====
-//       res.setHeader(
-//         "Content-Type",
-//         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-//       );
-
-//       res.setHeader(
-//         "Content-Disposition",
-//         "attachment; filename=BOM_highlight.xlsx"
-//       );
-
-//       await wb.xlsx.write(res);
-
-//       res.end();
-//     });
-//   });
-// });
-
 app.get("/api/BomHighlight/download/:id", async (req, res) => {
   const { id } = req.params;
 
@@ -865,16 +556,15 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
       }
 
       const wb = new ExcelJS.Workbook();
-
       const ws = wb.addWorksheet("BOM");
 
       // ===== OPTIONAL COLUMNS =====
       const hasMPN2 = bomRows.some(
-        (r) => r.mpn2 && String(r.mpn2).trim() !== ""
+        (r) => r.mpn2 && String(r.mpn2).trim() !== "",
       );
 
       const hasMPN3 = bomRows.some(
-        (r) => r.mpn3 && String(r.mpn3).trim() !== ""
+        (r) => r.mpn3 && String(r.mpn3).trim() !== "",
       );
 
       // ===== COLUMNS =====
@@ -884,19 +574,16 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
           key: "stt",
           width: 8,
         },
-
         {
           header: "Designator",
           key: "designator",
           width: 35,
         },
-
         {
           header: "Description",
           key: "description",
-          width: 45,
+          width: 55, // Tăng nhẹ chiều rộng để chứa được nhiều ảnh ngang hơn
         },
-
         {
           header: "MPN",
           key: "mpn",
@@ -926,66 +613,43 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
           key: "quantity",
           width: 10,
         },
-
         {
           header: "Note",
           key: "note",
           width: 20,
-        }
+        },
       );
 
       ws.columns = columns;
 
       // ===== TITLE =====
-      const title =
-        req.query.title ||
-        "BOM HIGHLIGHT";
-
+      const title = req.query.title || "BOM HIGHLIGHT";
       ws.insertRow(1, [title]);
+      ws.mergeCells(1, 1, 1, columns.length);
 
-      ws.mergeCells(
-        1,
-        1,
-        1,
-        columns.length
-      );
-
-      const titleCell =
-        ws.getCell("A1");
-
+      const titleCell = ws.getCell("A1");
       titleCell.font = {
         name: "Times New Roman",
         size: 24,
         bold: true,
       };
-
       titleCell.alignment = {
         vertical: "middle",
         horizontal: "center",
       };
-
       ws.getRow(1).height = 35;
 
       // ===== HEADER =====
-      const headerRow =
-        ws.getRow(2);
-
+      const headerRow = ws.getRow(2);
       headerRow.height = 25;
 
-      for (
-        let i = 1;
-        i <= columns.length;
-        i++
-      ) {
-        const cell =
-          headerRow.getCell(i);
-
+      for (let i = 1; i <= columns.length; i++) {
+        const cell = headerRow.getCell(i);
         cell.font = {
           name: "Times New Roman",
           bold: true,
           size: 12,
         };
-
         cell.fill = {
           type: "pattern",
           pattern: "solid",
@@ -993,356 +657,212 @@ app.get("/api/BomHighlight/download/:id", async (req, res) => {
             argb: "FFD9D9D9",
           },
         };
-
         cell.alignment = {
           vertical: "middle",
           horizontal: "center",
         };
-
         cell.border = {
-          top: {
-            style: "thin",
-          },
-          left: {
-            style: "thin",
-          },
-          bottom: {
-            style: "thin",
-          },
-          right: {
-            style: "thin",
-          },
+          top: { style: "thin" },
+          left: { style: "thin" },
+          bottom: { style: "thin" },
+          right: { style: "thin" },
         };
       }
 
-      // ===== DESCRIPTION COLUMN =====
+      // ===== DESCRIPTION COLUMN INDEX =====
       const descriptionColIndex =
-        columns.findIndex(
-          (c) =>
-            c.key === "description"
-        ) + 1;
+        columns.findIndex((c) => c.key === "description") + 1;
 
       // ===== DATA =====
-      bomRows.forEach(
-        (row, rowIndex) => {
-          // ===== DESIGNATOR =====
-          const original = String(
-            row.designator || ""
-          );
+      bomRows.forEach((row, rowIndex) => {
+        // ===== DESIGNATOR =====
+        const original = String(row.designator || "");
+        const parts = original.split(",").map((s) => s.trim());
+        const richText = [];
 
-          const parts = original
-            .split(",")
-            .map((s) => s.trim());
+        parts.forEach((p, index) => {
+          const key = normalize(p);
+          const isBottom = bottomMap.has(key);
 
-          const richText = [];
-
-          parts.forEach(
-            (p, index) => {
-              const key =
-                normalize(p);
-
-              const isBottom =
-                bottomMap.has(key);
-
-              richText.push({
-                text: p,
-
-                font: {
-                  name: "Times New Roman",
-
-                  ...(isBottom
-                    ? {
-                        color: {
-                          argb:
-                            "FFFF0000",
-                        },
-
-                        bold: true,
-                      }
-                    : {}),
-                },
-              });
-
-              if (
-                index <
-                parts.length - 1
-              ) {
-                richText.push({
-                  text: ", ",
-
-                  font: {
-                    name: "Times New Roman",
-                  },
-                });
-              }
-            }
-          );
-
-          // ===== ROW DATA =====
-          const rowData = {
-            stt: rowIndex + 1,
-
-            designator: {
-              richText,
+          richText.push({
+            text: p,
+            font: {
+              name: "Times New Roman",
+              ...(isBottom
+                ? {
+                    color: { argb: "FFFF0000" },
+                    bold: true,
+                  }
+                : {}),
             },
+          });
 
-            description:
-              row.description ||
-              "",
+          if (index < parts.length - 1) {
+            richText.push({
+              text: ", ",
+              font: { name: "Times New Roman" },
+            });
+          }
+        });
 
-            mpn: row.mpn || "",
+        // ===== ROW DATA =====
+        const rowData = {
+          stt: rowIndex + 1,
+          designator: { richText },
+          description: row.description || "",
+          mpn: row.mpn || "",
+          quantity: row.quantity || "",
+          note: row.note || "",
+        };
 
-            quantity:
-              row.quantity || "",
+        if (hasMPN2) {
+          rowData.mpn2 = row.mpn2 || "";
+        }
+        if (hasMPN3) {
+          rowData.mpn3 = row.mpn3 || "";
+        }
 
-            note: row.note || "",
+        const newRow = ws.addRow(rowData);
+        const excelRow = rowIndex + 3;
+
+        // ===== STYLE =====
+        const noteValue = removeVietnameseTones(row.note);
+        const typeValue = removeVietnameseTones(row.type);
+
+        for (let i = 1; i <= columns.length; i++) {
+          const cell = newRow.getCell(i);
+
+          // BORDER
+          cell.border = {
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" },
           };
 
-          if (hasMPN2) {
-            rowData.mpn2 =
-              row.mpn2 || "";
+          // FONT
+          if (!cell.font || !cell.font.richText) {
+            cell.font = {
+              name: "Times New Roman",
+              size: 11,
+            };
           }
 
-          if (hasMPN3) {
-            rowData.mpn3 =
-              row.mpn3 || "";
+          // ALIGN
+          cell.alignment = {
+            vertical: "middle",
+            horizontal: "left",
+            wrapText: true,
+          };
+
+          // ===== COLOR RULE =====
+          if (noteValue === "dnp") {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFFFEB9C" },
+            };
+          } else if (typeValue === "han tay") {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFFFC7CE" },
+            };
+          } else if (typeValue === "gap tay") {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFC6EFCE" },
+            };
           }
+        }
 
-          const newRow =
-            ws.addRow(rowData);
+        // ===== INSERT ALL IMAGES IN DESCRIPTION =====
+        if (row.image) {
+          try {
+            let imagePaths = [];
 
-          const excelRow =
-            rowIndex + 3;
+            // 1. Phân tách dữ liệu string dạng mảng JSON
+            if (String(row.image).trim().startsWith("[")) {
+              const parsed = JSON.parse(row.image);
+              if (Array.isArray(parsed)) {
+                imagePaths = parsed;
+              }
+            } else if (String(row.image).trim() !== "") {
+              imagePaths = [row.image]; // Fallback nếu dữ liệu chỉ là 1 đường dẫn đơn
+            }
 
-          // ===== STYLE =====
-          const noteValue =
-            removeVietnameseTones(
-              row.note
+            // Lọc ra các đường dẫn file có tồn tại trên server
+            const validImagePaths = imagePaths.filter(
+              (img) => img && fs.existsSync(img),
             );
 
-          const typeValue =
-            removeVietnameseTones(
-              row.type
-            );
+            if (validImagePaths.length > 0) {
+              const descCell = ws.getCell(excelRow, descriptionColIndex);
 
-          for (
-            let i = 1;
-            i <= columns.length;
-            i++
-          ) {
-            const cell =
-              newRow.getCell(i);
-
-            // BORDER
-            cell.border = {
-              top: {
-                style: "thin",
-              },
-
-              left: {
-                style: "thin",
-              },
-
-              bottom: {
-                style: "thin",
-              },
-
-              right: {
-                style: "thin",
-              },
-            };
-
-            // FONT
-            if (
-              !cell.font ||
-              !cell.font.richText
-            ) {
-              cell.font = {
-                name: "Times New Roman",
-                size: 11,
-              };
-            }
-
-            // ALIGN
-            cell.alignment = {
-              vertical: "middle",
-              horizontal: "left",
-              wrapText: true,
-            };
-
-            // ===== COLOR RULE =====
-
-            // DNP
-            if (
-              noteValue === "dnp"
-            ) {
-              cell.fill = {
-                type: "pattern",
-                pattern: "solid",
-
-                fgColor: {
-                  argb:
-                    "FFFFEB9C",
-                },
-              };
-            }
-
-            // Hàn tay
-            else if (
-              typeValue ===
-              "han tay"
-            ) {
-              cell.fill = {
-                type: "pattern",
-                pattern: "solid",
-
-                fgColor: {
-                  argb:
-                    "FFFFC7CE",
-                },
-              };
-            }
-
-            // Gắp tay
-            else if (
-              typeValue ===
-              "gap tay"
-            ) {
-              cell.fill = {
-                type: "pattern",
-                pattern: "solid",
-
-                fgColor: {
-                  argb:
-                    "FFC6EFCE",
-                },
-              };
-            }
-          }
-
-          // ===== INSERT IMAGE IN DESCRIPTION =====
-          if (
-            row.image &&
-            fs.existsSync(
-              row.image
-            )
-          ) {
-            try {
-              const ext = path
-                .extname(
-                  row.image
-                )
-                .replace(".", "")
-                .toLowerCase();
-
-              const imageId =
-                wb.addImage({
-                  filename:
-                    row.image,
-
-                  extension:
-                    ext || "png",
-                });
-
-              // ===== DESCRIPTION CELL =====
-              const descCell =
-                ws.getCell(
-                  excelRow,
-                  descriptionColIndex
-                );
-
-              // ===== TEXT =====
-              descCell.value =
-                "\n\n\n\n" +
-                (row.description ||
-                  "");
-
-              // ===== ALIGN =====
+              // Đẩy chữ xuống dưới bằng dòng trống để nhường chỗ cho ảnh phía trên
+              descCell.value = "\n\n\n\n" + (row.description || "");
               descCell.alignment = {
                 vertical: "top",
                 horizontal: "left",
                 wrapText: true,
               };
 
-              // ===== AUTO HEIGHT =====
-              const textLength =
-                String(
-                  row.description ||
-                    ""
-                ).length;
+              // Tự động tính toán chiều cao hàng dựa theo số dòng text hoặc kích thước ảnh
+              const textLength = String(row.description || "").length;
+              const estimatedLines = Math.ceil(textLength / 40);
+              let rowHeight = Math.max(estimatedLines * 16, 75); // Tối thiểu 75 để vừa vặn khung ảnh
+              ws.getRow(excelRow).height = rowHeight;
 
-              const estimatedLines =
-                Math.ceil(
-                  textLength / 35
-                );
+              // Duyệt mảng và chèn toàn bộ ảnh nối đuôi nhau hàng ngang
+              validImagePaths.forEach((imagePath, imgIndex) => {
+                const ext = path
+                  .extname(imagePath)
+                  .replace(".", "")
+                  .toLowerCase();
 
-              // text height
-              let rowHeight =
-                estimatedLines *
-                16;
+                const imageId = wb.addImage({
+                  filename: imagePath,
+                  extension: ext || "png",
+                });
 
-              // image height
-              rowHeight =
-                Math.max(
-                  rowHeight,
-                  75
-                );
+                // Tọa độ X (cột) tăng dần cho mỗi ảnh để tránh đè chồng lên nhau
+                // Mỗi ảnh cách nhau một khoảng offset bằng 0.62 đơn vị cột Excel
+                const colOffset = 0.1 + imgIndex * 0.62;
 
-              // APPLY ONLY CURRENT ROW
-              ws.getRow(
-                excelRow
-              ).height =
-                rowHeight;
-
-              // ===== INSERT IMAGE =====
-              ws.addImage(imageId, {
-                tl: {
-                  col:
-                    descriptionColIndex -
-                    1 +
-                    0.2,
-
-                  row:
-                    excelRow -
-                    1 +
-                    0.15,
-                },
-
-                ext: {
-                  width: 55,
-                  height: 55,
-                },
+                ws.addImage(imageId, {
+                  tl: {
+                    col: descriptionColIndex - 1 + colOffset,
+                    row: excelRow - 1 + 0.1,
+                  },
+                  ext: {
+                    width: 150, // Kích thước cố định của mỗi ảnh (50x50)
+                    height: 100,
+                  },
+                });
               });
-            } catch (e) {
-              console.log(
-                "Image error:",
-                e
-              );
             }
+          } catch (e) {
+            console.log("Xử lý hình ảnh lỗi tại dòng " + excelRow + ":", e);
           }
         }
-      );
+      });
 
       // ===== EXPORT =====
       res.setHeader(
         "Content-Type",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       );
-
       res.setHeader(
         "Content-Disposition",
-        'attachment; filename="BOM_highlight.xlsx"'
+        'attachment; filename="BOM_highlight.xlsx"',
       );
 
-      await wb.xlsx.write(
-        res
-      );
-
+      await wb.xlsx.write(res);
       res.end();
     });
   });
 });
-
 // Router login user
 app.post("/api/Users/login", (req, res) => {
   const { Username, Password } = req.body;

@@ -1,57 +1,58 @@
 <template lang="">
-  <v-card
-    variant="text"
-    class="overflow-y-auto"
-    height="calc(100vh)"
-    v-if="lgAndUp"
-  >
-    <v-card-title class="d-flex justify-space-between align-center pa-4">
-      <span class="text-h4 font-weight-light">Báo cáo hằng ngày</span>
-      <v-spacer></v-spacer>
-      <v-tooltip text="Phân tích AI" location="start">
-        <template v-slot:activator="{ props }">
-          <v-btn variant="text" class="mt-2" @click="analyze" v-bind="props">
-            <v-icon start size="24" color="primary">mdi-robot</v-icon>
-          </v-btn>
-        </template>
-      </v-tooltip>
-      <v-sheet
-        rounded="lg"
-        border
-        class="d-flex align-center px-4 py-2 mt-3 ms-2"
-        color="surface"
-        elevation="0"
-        v-tooltip="'Chọn ngày xem báo cáo'"
+  <v-card variant="text" class="overflow-y-auto" height="calc(100vh)">
+    <v-card-title
+      class="d-flex flex-wrap justify-space-between align-center pa-4 ga-2"
+    >
+      <span class="text-h4 font-weight-light" v-if="lgAndUp"
+        >Báo cáo hằng ngày</span
       >
-        <div class="text-subtitle-2 mr-4 text-medium-emphasis">
-          {{ formattedWeekDate }}
-        </div>
-        <v-menu
-          v-model="dateMenu"
-          :close-on-content-click="false"
-          transition="scale-transition"
-          min-width="auto"
-        >
+      <v-spacer v-if="lgAndUp"></v-spacer>
+      <div class="d-flex align-center flex-wrap ga-2 justify-end">
+        <v-tooltip text="Phân tích AI" location="start">
           <template v-slot:activator="{ props }">
-            <v-btn
-              v-bind="props"
-              variant="tonal"
-              color="primary"
-              size="small"
-              prepend-icon="mdi-calendar"
-              class="font-weight-bold"
-            >
-              {{ formattedSelectedDate }}
+            <v-btn variant="text" class="mt-2" @click="analyze" v-bind="props">
+              <v-icon start size="24" color="primary">mdi-robot</v-icon>
             </v-btn>
           </template>
-          <v-date-picker
-            v-model="selectedDate"
-            @update:model-value="dateMenu = false"
-            :first-day-of-week="1"
-            color="primary"
-          ></v-date-picker>
-        </v-menu>
-      </v-sheet>
+        </v-tooltip>
+        <v-sheet
+          rounded="lg"
+          border
+          class="d-flex align-center px-4 py-2 mt-2 ms-2"
+          color="surface"
+          elevation="0"
+          v-tooltip="'Chọn ngày xem báo cáo'"
+        >
+          <div class="text-subtitle-2 mr-4 text-medium-emphasis">
+            {{ formattedWeekDate }}
+          </div>
+          <v-menu
+            v-model="dateMenu"
+            :close-on-content-click="false"
+            transition="scale-transition"
+            min-width="auto"
+          >
+            <template v-slot:activator="{ props }">
+              <v-btn
+                v-bind="props"
+                variant="tonal"
+                color="primary"
+                size="small"
+                prepend-icon="mdi-calendar"
+                class="font-weight-bold"
+              >
+                {{ formattedSelectedDate }}
+              </v-btn>
+            </template>
+            <v-date-picker
+              v-model="selectedDate"
+              @update:model-value="dateMenu = false"
+              :first-day-of-week="1"
+              color="primary"
+            ></v-date-picker>
+          </v-menu>
+        </v-sheet>
+      </div>
     </v-card-title>
 
     <!-- Thống kê tổng quan -->
@@ -59,38 +60,26 @@
       <v-row>
         <v-col cols="12" sm="6" md="3">
           <CardStatistic
-            title="Tổng số PO"
-            :value="Total_Po_Today"
-            :icon="
-              Percent_Compare_Po > 0
-                ? 'mdi-arrow-up'
-                : Percent_Compare_Po < 0
-                ? 'mdi-arrow-down'
-                : 'mdi-minus'
-            "
-            :color="
-              Percent_Compare_Po > 0
-                ? 'success'
-                : Percent_Compare_Po < 0
-                ? 'error'
-                : 'warning'
-            "
+            title="Tổng số dự án"
+            :value="summaryPlanManufacture.length || 0"
+            icon="mdi-book-multiple"
+            color="primary"
           >
             <template #bottom>
               <div
                 class="text-caption text-success mt-2"
-                v-if="Percent_Compare_Po > 0"
+                v-if="projectComparePercent > 0"
               >
-                {{ Percent_Compare_Po }} % vs hôm qua
+                +{{ projectComparePercent }}% vs hôm qua
               </div>
               <div
                 class="text-caption text-error mt-2"
-                v-else-if="Percent_Compare_Po < 0"
+                v-else-if="projectComparePercent < 0"
               >
-                {{ Percent_Compare_Po }} % vs hôm qua
+                {{ projectComparePercent }}% vs hôm qua
               </div>
               <div class="text-caption text-warning mt-2" v-else>
-                100% vs hôm qua
+                0% vs hôm qua
               </div>
             </template>
           </CardStatistic>
@@ -99,37 +88,25 @@
         <v-col cols="12" sm="6" md="3">
           <CardStatistic
             title="Tổng số hạng mục"
-            :value="Total_Category_Today"
-            :icon="
-              Percent_Compare_Category > 0
-                ? 'mdi-arrow-up'
-                : Percent_Compare_Category < 0
-                ? 'mdi-arrow-down'
-                : 'mdi-minus'
-            "
-            :color="
-              Percent_Compare_Category > 0
-                ? 'success'
-                : Percent_Compare_Category < 0
-                ? 'error'
-                : 'warning'
-            "
+            :value="summary.length || 0"
+            icon="mdi-tag"
+            color="info"
           >
             <template #bottom>
               <div
                 class="text-caption text-success mt-2"
-                v-if="Percent_Compare_Category > 0"
+                v-if="categoryComparePercent > 0"
               >
-                {{ Percent_Compare_Category }} % vs hôm qua
+                +{{ categoryComparePercent }}% vs hôm qua
               </div>
               <div
                 class="text-caption text-error mt-2"
-                v-else-if="Percent_Compare_Category < 0"
+                v-else-if="categoryComparePercent < 0"
               >
-                {{ Percent_Compare_Category }} % vs hôm qua
+                {{ categoryComparePercent }}% vs hôm qua
               </div>
               <div class="text-caption text-warning mt-2" v-else>
-                100% vs hôm qua
+                0% vs hôm qua
               </div>
             </template>
           </CardStatistic>
@@ -138,24 +115,13 @@
         <v-col cols="12" sm="6" md="3">
           <CardStatistic
             title="Hạng mục hoàn thành"
-            :value="
-              summary?.filter((item) => Number(item.Percent) >= 100).length || 0
-            "
+            :value="totalCategoryPassToday.length || 0"
             icon="mdi-check-circle"
             color="success"
           >
             <template #bottom>
               <div class="text-caption text-medium-emphasis mt-2">
-                Đạt mục tiêu:
-                {{
-                  (
-                    ((summary?.filter((item) => Number(item.Percent) >= 100)
-                      .length || 0) /
-                      Total_Category_Today) *
-                    100
-                  ).toFixed(1)
-                }}
-                %
+                Đạt mục tiêu: {{ goalAchievementPercent }}%
               </div>
             </template>
           </CardStatistic>
@@ -164,9 +130,7 @@
         <v-col cols="12" sm="6" md="3">
           <CardStatistic
             title="Dự án đang thực hiện"
-            :value="
-              summary?.filter((item) => Number(item.Percent) < 100).length || 0
-            "
+            :value="totalCategoryInProgressToday"
             icon="mdi-clock-time-three-outline"
             color="warning"
           >
@@ -179,757 +143,375 @@
         </v-col>
       </v-row>
 
-      <!-- Charts -->
       <v-row>
-        <v-col cols="12" md="8">
-          <v-card class="mb-4 rounded-xl border" elevation="0" height="500px">
+        <v-col cols="12" md="7">
+          <v-card class="mb-4 rounded-xl border" elevation="0" height="540px">
             <v-card-title class="d-flex align-center">
               <v-avatar color="primary" variant="tonal" size="32" class="me-3">
-                <v-icon icon="mdi-chart-bar" size="20"></v-icon>
+                <v-icon icon="mdi-list-status" size="20"></v-icon>
               </v-avatar>
               <span class="text-h6 font-weight-bold"
-                >Biểu đồ kế hoạch và thực tế</span
+                >Đơn hàng đang sản xuất</span
               >
             </v-card-title>
-            <v-card-text>
-              <StackedBarChart
-                :labels="progress"
-                :passData="passList"
-                :failData="failList"
-                :planData="planList"
-              />
-            </v-card-text>
-          </v-card>
-        </v-col>
-        <v-col cols="12" md="4">
-          <!-- Thay thế pie chart bằng bảng chi tiết công đoạn -->
-          <v-card class="mb-4 rounded-xl border" elevation="0" height="500px">
-            <v-card-title class="d-flex align-center">
-              <v-avatar color="primary" variant="tonal" size="32" class="me-3">
-                <v-icon icon="mdi-book-multiple" size="20"></v-icon>
-              </v-avatar>
-              <span class="text-h6 font-weight-bold"
-                >Chi tiết theo công đoạn</span
-              >
-            </v-card-title>
-            <v-card-text class="pa-4">
-              <div class="detail-table-container">
-                <v-table
-                  density="compact"
-                  height="280px"
-                  class="elevation-0 rounded-lg"
-                >
-                  <thead>
-                    <tr>
-                      <th class="text-left text-caption">Loại</th>
-                      <th class="text-center text-caption">Tổng Pass</th>
-                      <th class="text-center text-caption">Tổng Fail</th>
-                      <th class="text-center text-caption">Tỷ lệ</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr
-                      v-for="(item, index) in summaryDetailByType"
-                      :key="index"
-                    >
-                      <td class="text-caption font-weight-medium">
-                        {{ item.type }}
-                      </td>
-                      <td class="text-center">
-                        <v-chip size="x-small" color="success" variant="tonal">
-                          {{ item.ok }}
-                        </v-chip>
-                      </td>
-                      <td class="text-center">
-                        <v-chip size="x-small" color="error" variant="tonal">
-                          {{ item.error }}
-                        </v-chip>
-                      </td>
-                      <td class="text-center">
-                        <v-chip
-                          size="x-small"
-                          :color="
-                            item.rate >= 95
-                              ? 'success'
-                              : item.rate >= 80
-                              ? 'warning'
-                              : 'error'
-                          "
-                          variant="tonal"
-                        >
-                          {{ item.rate }}%
-                        </v-chip>
-                      </td>
-                    </tr>
-                  </tbody>
-                </v-table>
-                <!-- Summary Stats -->
-                <div class="mt-4">
-                  <v-divider class="mb-3"></v-divider>
-                  <div class="d-flex justify-space-between align-center mb-2">
-                    <span class="text-caption">Tổng Pass:</span>
-                    <v-chip size="small" color="success" variant="tonal">
-                      {{ totalSummaryOK }}
-                    </v-chip>
-                  </div>
-                  <div class="d-flex justify-space-between align-center mb-2">
-                    <span class="text-caption">Tổng Fail:</span>
-                    <v-chip size="small" color="error" variant="tonal">
-                      {{ totalSummaryError }}
-                    </v-chip>
-                  </div>
-                  <div class="d-flex justify-space-between align-center">
-                    <span class="text-caption">Tỷ lệ chung:</span>
-                    <v-chip
-                      size="small"
-                      :color="
-                        overallSummaryRate >= 95
-                          ? 'success'
-                          : overallSummaryRate >= 80
-                          ? 'warning'
-                          : 'error'
-                      "
-                      variant="tonal"
-                    >
-                      {{ overallSummaryRate }}%
-                    </v-chip>
-                  </div>
-                </div>
-              </div>
-            </v-card-text>
-          </v-card>
-        </v-col>
-      </v-row>
-
-      <v-card
-        variant="elevated"
-        elevation="0"
-        class="rounded-xl mt-3 bg-surface"
-      >
-        <v-data-table-virtual
-          density="compact"
-          :headers="Headers"
-          :items="summary"
-          :search="search"
-          :group-by="[{ key: 'Type' }]"
-          class="bg-transparent"
-          fixed-header
-          :header-props="{
-            sortByText: 'Sắp xếp theo',
-            sortDescText: 'Giảm dần',
-            sortAscText: 'Tăng dần',
-          }"
-          :loading="DialogLoading"
-          loading-text="Đang tải dữ liệu..."
-          no-data-text="Không có dữ liệu"
-          no-results-text="Không tìm thấy kết quả"
-          :hover="true"
-          :dense="false"
-          :fixed-header="true"
-        >
-          <template v-slot:top>
-            <v-toolbar flat color="transparent" class="border-b px-2">
-              <v-toolbar-title class="d-flex align-center">
-                <v-avatar
-                  color="primary"
-                  variant="tonal"
-                  size="32"
-                  class="me-3"
-                >
-                  <v-icon icon="mdi-table-of-contents" size="20"></v-icon>
-                </v-avatar>
-                <span class="text-h6 font-weight-bold">Báo cáo chi tiết</span>
-              </v-toolbar-title>
-            </v-toolbar>
-          </template>
-
-          <template v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }">
-            <tr>
-              <td
-                :colspan="columns.length"
-                class="cursor-pointer"
-                v-ripple
-                @click="toggleGroup(item)"
-              >
-                <div class="d-flex align-center">
-                  <v-btn
-                    :icon="isGroupOpen(item) ? '$expand' : '$next'"
-                    color="medium-emphasis"
-                    density="comfortable"
-                    size="small"
-                    variant="text"
-                  ></v-btn>
-
-                  <span class="ms-4 font-weight-bold text-primary"
-                    >{{ item.value }} ({{ item.items.length }})</span
-                  >
-                </div>
-              </td>
-            </tr>
-          </template>
-          <template #[`item.Quantity_Plan`]="{ item }">
-            <v-chip color="primary" variant="tonal" size="small">{{
-              item.Quantity_Plan
-            }}</v-chip>
-          </template>
-          <template #[`item.Quantity_Real`]="{ item }">
-            <v-chip color="success" variant="tonal" size="small">{{
-              item.Quantity_Real
-            }}</v-chip>
-          </template>
-          <template v-slot:item.Percent="{ item }">
-            <v-progress-linear
-              v-model="item.Percent"
-              height="25"
-              color="success"
-              rounded
-              class="rounded-lg"
+            <v-card-text
+              class="overflow-y-auto"
+              style="height: calc(100% - 64px)"
             >
-              <strong>{{ item.Percent.toFixed(1) }}%</strong>
-            </v-progress-linear>
-          </template>
-        </v-data-table-virtual>
-      </v-card>
-
-      <!-- Bảng dữ liệu tỷ lệ lỗi -->
-      <v-row>
-        <v-col lg="7" md="12">
-          <v-card
-            variant="elevated"
-            elevation="0"
-            class="rounded-xl mt-5 bg-surface"
-          >
-            <v-data-table-virtual
-              density="compact"
-              :headers="HeadersError"
-              :items="Manufacture_Fail"
-              :group-by="[{ key: 'PONumber' }]"
-              class="bg-transparent"
-              fixed-header
-              :header-props="{
-                sortByText: 'Sắp xếp theo',
-                sortDescText: 'Giảm dần',
-                sortAscText: 'Tăng dần',
-              }"
-              :loading="DialogLoading"
-              loading-text="Đang tải dữ liệu..."
-              no-data-text="Không có dữ liệu"
-              no-results-text="Không tìm thấy kết quả"
-              :hover="true"
-              :dense="false"
-              :fixed-header="true"
-              height="435px"
-            >
-              <template v-slot:top>
-                <v-toolbar flat color="transparent" class="border-b px-2">
-                  <v-toolbar-title class="d-flex align-center">
-                    <v-avatar
-                      color="error"
-                      variant="tonal"
-                      size="32"
-                      class="me-3"
-                    >
-                      <v-icon icon="mdi-message-alert" size="20"></v-icon>
-                    </v-avatar>
-                    <span class="text-h6 font-weight-bold"
-                      >Tỷ lệ lỗi trong đơn hàng</span
-                    >
-                  </v-toolbar-title>
-                </v-toolbar>
-              </template>
-
-              <template
-                v-slot:group-header="{
-                  item,
-                  columns,
-                  toggleGroup,
-                  isGroupOpen,
+              <v-data-table-virtual
+                density="compact"
+                :items="summary"
+                :search="search"
+                class="bg-transparent"
+                :headers="HeadersProject"
+                fixed-header
+                :header-props="{
+                  sortByText: 'Sắp xếp theo',
+                  sortDescText: 'Giảm dần',
+                  sortAscText: 'Tăng dần',
                 }"
+                :loading="DialogLoading"
+                loading-text="Đang tải dữ liệu..."
+                no-data-text="Không có dữ liệu"
+                no-results-text="Không tìm thấy kết quả"
+                :hover="true"
+                :dense="false"
+                :fixed-header="true"
               >
-                <tr>
-                  <td
-                    :colspan="columns.length"
-                    class="cursor-pointer"
-                    v-ripple
-                    @click="toggleGroup(item)"
+                <template #[`item.Quantity_Plan`]="{ item }">
+                  <v-chip color="primary" variant="tonal" size="small">{{
+                    item.Quantity_Plan
+                  }}</v-chip>
+                </template>
+                <template #[`item.Quantity_Counting`]="{ item }">
+                  <v-chip color="success" variant="tonal" size="small">{{
+                    item.Quantity_Counting
+                  }}</v-chip>
+                </template>
+                <template v-slot:item.Percent="{ item }">
+                  <v-progress-linear
+                    :model-value="Number(item.Percent || 0)"
+                    height="25"
+                    color="success"
+                    rounded
+                    class="rounded-lg"
                   >
-                    <div class="d-flex align-center">
-                      <v-btn
-                        :icon="isGroupOpen(item) ? '$expand' : '$next'"
-                        color="medium-emphasis"
-                        density="comfortable"
-                        size="small"
-                        variant="text"
-                      ></v-btn>
-
-                      <span class="ms-4 font-weight-bold text-primary"
-                        >{{ item.value }} ({{ item.items.length }})</span
-                      >
-                    </div>
-                  </td>
-                </tr>
-              </template>
-
-              <template #[`item.Total_Summary_ID`]="{ item }">
-                <v-chip color="success" variant="tonal" size="small">{{
-                  item.Total_Summary_ID
-                }}</v-chip>
-              </template>
-              <template #[`item.Quantity_Error`]="{ item }">
-                <v-chip color="warning" variant="tonal" size="small">{{
-                  item.Quantity_Error
-                }}</v-chip>
-              </template>
-              <template #[`item.Quantity_RW`]="{ item }">
-                <v-chip color="info" variant="tonal" size="small">{{
-                  item.Quantity_RW
-                }}</v-chip>
-              </template>
-              <template #[`item.Percent_Error`]="{ item }">
-                <v-progress-linear
-                  :model-value="Number(item.Percent_Error)"
-                  height="25"
-                  color="success"
-                  class="rounded-lg"
-                >
-                  <strong>{{ Number(item.Percent_Error).toFixed(1) }}%</strong>
-                </v-progress-linear>
-              </template>
-            </v-data-table-virtual>
+                    <strong>{{ Number(item.Percent || 0).toFixed(1) }}%</strong>
+                  </v-progress-linear>
+                </template>
+              </v-data-table-virtual>
+            </v-card-text>
           </v-card>
         </v-col>
-        <v-col lg="5" md="12">
-          <v-card
-            class="mb-4 rounded-xl mt-5 border"
-            variant="elevated"
-            elevation="0"
-            height="500px"
-          >
+        <v-col cols="12" md="5">
+          <v-card class="mb-4 rounded-xl border" elevation="0">
             <v-card-title class="d-flex align-center">
               <v-avatar color="primary" variant="tonal" size="32" class="me-3">
                 <v-icon icon="mdi-chart-donut" size="20"></v-icon>
               </v-avatar>
               <span class="text-h6 font-weight-bold"
-                >Biểu đồ thông tin lỗi</span
+                >Phân bổ theo hạng mục</span
               >
             </v-card-title>
-            <v-card-text>
-              <v-pie
-                :items="pieItems"
-                :legend="{
-                  position: $vuetify.display.mdAndUp ? 'right' : 'bottom',
-                }"
-                :tooltip="{ subtitleFormat: '[value]%' }"
-                class="pa-3 mt-3 justify-center"
-                gap="2"
-                inner-cut="70"
-                item-key="id"
-                rounded="2"
-                size="300"
-                animation
-                hide-slice
-                reveal
-              >
-                <template v-slot:center>
-                  <div class="text-center">
-                    <div class="text-h3">{{ summaryFail.length }}</div>
-                    <div class="opacity-70 mt-1 mb-n1">Tổng sản phẩm lỗi</div>
-                  </div>
-                </template>
-              </v-pie>
+            <v-card-text class="overflow-y-auto">
+              <!-- Sơ lược hạng mục cao nhất, thấp nhất -->
+              <v-row class="mb-2" dense>
+                <v-col cols="6">
+                  <v-card
+                    variant="tonal"
+                    class="rounded-lg text-success pa-2"
+                    elevation="0"
+                  >
+                    <div
+                      class="text-caption text-medium-emphasis font-weight-medium"
+                    >
+                      Hạng mục cao nhất
+                    </div>
+                    <div
+                      class="text-subtitle-1 font-weight-bold text-truncate"
+                      :title="maxPassCategory"
+                    >
+                      {{ maxPassCategory || "-" }}
+                    </div>
+                    <div class="text-caption font-weight-bold">
+                      {{ maxPassCategoryData }} pcs
+                    </div>
+                  </v-card>
+                </v-col>
+                <v-col cols="6">
+                  <v-card
+                    variant="tonal"
+                    class="rounded-lg text-warning pa-2"
+                    elevation="0"
+                  >
+                    <div
+                      class="text-caption text-medium-emphasis font-weight-medium"
+                    >
+                      Hạng mục thấp nhất
+                    </div>
+                    <div
+                      class="text-subtitle-1 font-weight-bold text-truncate"
+                      :title="minPassCategory"
+                    >
+                      {{ minPassCategory || "-" }}
+                    </div>
+                    <div class="text-caption font-weight-bold">
+                      {{ minPassCategoryData || "-" }} pcs
+                    </div>
+                  </v-card>
+                </v-col>
+              </v-row>
+
+              <ChartDonutSummary
+                :labels="categoryLabels"
+                :data="categoryData"
+              />
             </v-card-text>
           </v-card>
         </v-col>
       </v-row>
-    </v-card-text>
-  </v-card>
 
-  <!-------------------------------- Mobile -------------------------------->
-
-  <v-card
-    variant="text"
-    class="overflow-y-auto"
-    height="calc(100vh - 80px)"
-    v-else
-  >
-    <v-card-title class="d-flex justify-space-between align-center pa-4">
-      <v-sheet
-        rounded="lg"
-        border
-        class="d-flex align-center px-4 py-2 mt-3"
-        color="surface"
-        elevation="0"
-        v-tooltip="'Chọn ngày xem báo cáo'"
-      >
-        <div class="d-flex align-center px-4">
-          <div class="text-subtitle-1 mr-4">
-            {{ formattedWeekDate }}
-          </div>
-          <v-menu
-            v-model="dateMenu"
-            :close-on-content-click="false"
-            transition="scale-transition"
-            min-width="auto"
-          >
-            <template v-slot:activator="{ props }">
-              <v-btn
-                v-bind="props"
-                variant="text"
-                class="text-subtitle-1"
-                prepend-icon="mdi-calendar"
-              >
-                {{ formattedSelectedDate }}
-              </v-btn>
-            </template>
-            <v-date-picker
-              v-model="selectedDate"
-              @update:model-value="dateMenu = false"
-              :first-day-of-week="1"
-            ></v-date-picker>
-          </v-menu>
-        </div>
-      </v-sheet>
-    </v-card-title>
-
-    <!-- Thống kê tổng quan -->
-    <v-card-text>
       <v-row>
-        <v-col cols="6">
-          <CardStatistic
-            title="Tổng số PO"
-            :value="summary?.map((item) => item.PONumber).length || 0"
-            icon="mdi-file-document-multiple-outline"
-            color="primary"
-          />
-        </v-col>
-        <v-col cols="6">
-          <CardStatistic
-            title="Tổng số hạng mục"
-            :value="summary?.map((item) => item.Category).length || 0"
-            icon="mdi-format-list-bulleted"
-            color="info"
-          />
-        </v-col>
-      </v-row>
-      <v-row>
-        <v-col cols="6">
-          <CardStatistic
-            title="Dự án hoàn thành"
-            :value="
-              summary?.filter((item) => Number(item.Percent) >= 100).length || 0
-            "
-            icon="mdi-check-circle"
-            color="success"
-          />
-        </v-col>
-        <v-col cols="6">
-          <CardStatistic
-            title="Đang thực hiện"
-            :value="
-              summary?.filter((item) => Number(item.Percent) < 100).length || 0
-            "
-            icon="mdi-clock-time-three-outline"
-            color="warning"
-          />
-        </v-col>
-      </v-row>
-
-      <!-- Charts -->
-      <v-row>
-        <v-col cols="12" md="12">
-          <!-- Thay thế pie chart bằng bảng chi tiết công đoạn -->
-          <v-card class="mb-4 rounded-xl border" elevation="0" height="500px">
+        <v-col cols="12" md="4">
+          <v-card class="mb-4 rounded-xl border" elevation="0" height="600px">
             <v-card-title class="d-flex align-center">
               <v-avatar color="primary" variant="tonal" size="32" class="me-3">
-                <v-icon icon="mdi-book-multiple" size="20"></v-icon>
+                <v-icon icon="mdi-list-status" size="20"></v-icon>
+              </v-avatar>
+              <span class="text-h6 font-weight-bold">Danh sách hạng mục</span>
+            </v-card-title>
+            <v-card-text
+              class="overflow-y-auto"
+              style="height: calc(100% - 64px)"
+            >
+              <v-list
+                :lines="false"
+                density="compact"
+                nav
+                v-if="summaryTypeGrouped.length > 0"
+              >
+                <!-- TYPE -->
+                <v-list-group v-for="(type, i) in summaryTypeGrouped" :key="i">
+                  <template #activator="{ props }">
+                    <v-list-item
+                      v-bind="props"
+                      :title="type.Type"
+                      prepend-icon="mdi-cog"
+                    />
+                  </template>
+
+                  <!-- CATEGORY -->
+                  <v-list-item
+                    v-for="(categoryItem, j) in type.categories"
+                    :key="j"
+                    :title="categoryItem.Category"
+                    prepend-icon="mdi-tag"
+                    :value="categoryItem.Category"
+                    color="primary"
+                    @click="
+                      handleCategoryClick(categoryItem.Category, categoryItem)
+                    "
+                  />
+                </v-list-group>
+              </v-list>
+              <v-empty-state
+                v-else
+                class="mt-5"
+                title="Không có dữ liệu"
+                text="Không có dữ liệu để hiển thị"
+                icon="mdi-chart-bar"
+              ></v-empty-state>
+            </v-card-text>
+          </v-card>
+        </v-col>
+        <v-col cols="12" md="8">
+          <v-card class="mb-4 rounded-xl border" elevation="0" height="600px">
+            <v-card-title class="d-flex align-center">
+              <v-avatar color="primary" variant="tonal" size="32" class="me-3">
+                <v-icon icon="mdi-chart-bar" size="20"></v-icon>
               </v-avatar>
               <span class="text-h6 font-weight-bold"
-                >Chi tiết theo công đoạn</span
+                >Hạng mục {{ selectedCategory }}</span
               >
+              <v-spacer></v-spacer>
+              <v-btn
+                v-if="selectedCategory !== ''"
+                color="error"
+                variant="tonal"
+                class="text-caption"
+                rounded="xl"
+                prepend-icon="mdi-close"
+                @click="handleClose"
+              >
+                Đóng
+              </v-btn>
             </v-card-title>
-            <v-card-text class="pa-4">
-              <div class="detail-table-container">
-                <v-table
-                  density="compact"
-                  height="280px"
-                  class="elevation-1 rounded"
-                >
-                  <thead>
-                    <tr>
-                      <th class="text-left text-caption">Loại</th>
-                      <th class="text-center text-caption">Tổng Pass</th>
-                      <th class="text-center text-caption">Tổng Fail</th>
-                      <th class="text-center text-caption">Tỷ lệ</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr
-                      v-for="(item, index) in summaryDetailByType"
-                      :key="index"
+            <v-card-text
+              v-if="selectedCategory !== ''"
+              class="overflow-y-auto"
+              style="height: calc(100% - 64px)"
+            >
+              <v-row>
+                <v-col cols="12" sm="4">
+                  <v-card
+                    variant="tonal"
+                    class="rounded-lg text-primary pa-2"
+                    elevation="0"
+                    height="95px"
+                  >
+                    <div
+                      class="text-caption text-medium-emphasis font-weight-medium"
                     >
-                      <td class="text-caption font-weight-medium">
-                        {{ item.type }}
-                      </td>
-                      <td class="text-center">
-                        <v-chip size="x-small" color="success" variant="tonal">
-                          {{ item.ok }}
-                        </v-chip>
-                      </td>
-                      <td class="text-center">
-                        <v-chip size="x-small" color="error" variant="tonal">
-                          {{ item.error }}
-                        </v-chip>
-                      </td>
-                      <td class="text-center">
-                        <v-chip
-                          size="x-small"
-                          :color="
-                            item.rate >= 95
-                              ? 'success'
-                              : item.rate >= 80
-                              ? 'warning'
-                              : 'error'
-                          "
-                          variant="tonal"
-                        >
-                          {{ item.rate }}%
-                        </v-chip>
-                      </td>
-                    </tr>
-                  </tbody>
-                </v-table>
-                <!-- Summary Stats -->
-                <div class="mt-4">
-                  <v-divider class="mb-3"></v-divider>
-                  <div class="d-flex justify-space-between align-center mb-2">
-                    <span class="text-caption">Tổng Pass:</span>
-                    <v-chip size="small" color="success" variant="tonal">
-                      {{ totalSummaryOK }}
-                    </v-chip>
-                  </div>
-                  <div class="d-flex justify-space-between align-center mb-2">
-                    <span class="text-caption">Tổng Fail:</span>
-                    <v-chip size="small" color="error" variant="tonal">
-                      {{ totalSummaryError }}
-                    </v-chip>
-                  </div>
-                  <div class="d-flex justify-space-between align-center">
-                    <span class="text-caption">Tỷ lệ chung:</span>
-                    <v-chip
-                      size="small"
-                      :color="
-                        overallSummaryRate >= 95
-                          ? 'success'
-                          : overallSummaryRate >= 80
-                          ? 'warning'
-                          : 'error'
-                      "
-                      variant="tonal"
+                      Kế hoạch
+                    </div>
+                    <div class="text-subtitle-1 font-weight-bold text-truncate">
+                      {{
+                        selectedCategoryData.find(
+                          (item) => item.Category === selectedCategory,
+                        )?.Quantity_Plan || 0
+                      }}
+                      pcs
+                    </div>
+                  </v-card>
+                </v-col>
+                <v-col cols="12" sm="4">
+                  <v-card
+                    variant="tonal"
+                    class="rounded-lg text-success pa-2"
+                    elevation="0"
+                    height="95px"
+                  >
+                    <div
+                      class="text-caption text-medium-emphasis font-weight-medium"
                     >
-                      {{ overallSummaryRate }}%
-                    </v-chip>
-                  </div>
-                </div>
-              </div>
+                      Hoàn thành
+                    </div>
+                    <div class="text-subtitle-1 font-weight-bold text-truncate">
+                      {{
+                        selectedCategoryData.find(
+                          (item) => item.Category === selectedCategory,
+                        )?.Quantity_Counting || 0
+                      }}
+                      pcs
+                    </div>
+                  </v-card>
+                </v-col>
+                <v-col cols="12" sm="4">
+                  <v-card
+                    variant="tonal"
+                    class="rounded-lg text-warning pa-2"
+                    elevation="0"
+                    height="95px"
+                  >
+                    <div
+                      class="text-caption text-medium-emphasis font-weight-medium"
+                    >
+                      Tỉ lệ
+                    </div>
+                    <div class="text-subtitle-1 font-weight-bold text-truncate">
+                      {{ selectedCategoryRate }}%
+                    </div>
+                  </v-card>
+                </v-col>
+                <v-col cols="12">
+                  <LinePointChart
+                    :title="`Tiến độ ${selectedCategory}`"
+                    :labels="progress"
+                    :datasets="[
+                      {
+                        label: 'Số lượng',
+                        data: passList,
+                        color: '#1976D2',
+                      },
+                    ]"
+                  />
+                </v-col>
+              </v-row>
+            </v-card-text>
+            <v-card-text
+              v-else
+              class="overflow-y-auto"
+              style="height: calc(100% - 64px)"
+            >
+              <v-row>
+                <v-col cols="12" sm="4">
+                  <v-card
+                    variant="tonal"
+                    class="rounded-lg text-primary pa-2"
+                    elevation="0"
+                    height="95px"
+                  >
+                    <div
+                      class="text-caption text-medium-emphasis font-weight-medium"
+                    >
+                      Tổng số công đoạn
+                    </div>
+                    <div
+                      class="text-subtitle-1 font-weight-bold text-truncate"
+                      :title="progressGroup.length"
+                    >
+                      {{ progressGroup.length || 0 }}
+                    </div>
+                  </v-card>
+                </v-col>
+                <v-col cols="12" sm="4">
+                  <v-card
+                    variant="tonal"
+                    class="rounded-lg text-success pa-2"
+                    elevation="0"
+                    height="95px"
+                  >
+                    <div
+                      class="text-caption text-medium-emphasis font-weight-medium"
+                    >
+                      Công đoạn cao nhất
+                    </div>
+                    <div
+                      class="text-subtitle-1 font-weight-bold text-truncate"
+                      :title="maxPassTypeGroup"
+                    >
+                      {{ maxPassTypeGroup }}
+                    </div>
+                    <div class="text-caption font-weight-bold">
+                      {{ maxPassDataGroup }} pcs
+                    </div>
+                  </v-card>
+                </v-col>
+                <v-col cols="12" sm="4">
+                  <v-card
+                    variant="tonal"
+                    class="rounded-lg text-error pa-2"
+                    elevation="0"
+                    height="95px"
+                  >
+                    <div
+                      class="text-caption text-medium-emphasis font-weight-medium"
+                    >
+                      Công đoạn thấp nhất
+                    </div>
+                    <div
+                      class="text-subtitle-1 font-weight-bold text-truncate"
+                      :title="minPassTypeGroup"
+                    >
+                      {{ minPassTypeGroup }}
+                    </div>
+                    <div class="text-caption font-weight-bold">
+                      {{ minPassDataGroup }} pcs
+                    </div>
+                  </v-card>
+                </v-col>
+                <v-col cols="12">
+                  <StackedBarChartSummary
+                    :labels="progressGroup"
+                    :passData="passDataGroup"
+                    title="Kết quả sản xuất theo công đoạn"
+                  />
+                </v-col>
+              </v-row>
             </v-card-text>
           </v-card>
         </v-col>
       </v-row>
-
-      <v-card variant="outlined" class="rounded-xl mt-3 bg-surface">
-        <v-data-table-virtual
-          :headers="Headers"
-          density="compact"
-          :items="summary"
-          :search="search"
-          :group-by="[{ key: 'Type' }]"
-          class="bg-transparent"
-          fixed-header
-          :header-props="{
-            sortByText: 'Sắp xếp theo',
-            sortDescText: 'Giảm dần',
-            sortAscText: 'Tăng dần',
-          }"
-          :loading="DialogLoading"
-          loading-text="Đang tải dữ liệu..."
-          no-data-text="Không có dữ liệu"
-          no-results-text="Không tìm thấy kết quả"
-          :hover="true"
-          :dense="false"
-          :fixed-header="true"
-        >
-          <template v-slot:top>
-            <v-toolbar flat color="transparent" class="border-b px-2">
-              <v-toolbar-title class="d-flex align-center">
-                <v-avatar
-                  color="primary"
-                  variant="tonal"
-                  size="32"
-                  class="me-3"
-                >
-                  <v-icon icon="mdi-table-of-contents" size="20"></v-icon>
-                </v-avatar>
-                <span class="text-h6 font-weight-bold">Báo cáo chi tiết</span>
-              </v-toolbar-title>
-            </v-toolbar>
-          </template>
-
-          <template
-            v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }"
-          >
-            <tr>
-              <td
-                :colspan="columns.length"
-                class="cursor-pointer"
-                v-ripple
-                @click="toggleGroup(item)"
-              >
-                <div class="d-flex align-center">
-                  <v-btn
-                    :icon="isGroupOpen(item) ? '$expand' : '$next'"
-                    color="medium-emphasis"
-                    density="comfortable"
-                    size="small"
-                    variant="text"
-                  ></v-btn>
-
-                  <span class="ms-4 font-weight-bold text-primary"
-                    >{{ item.value }} ({{ item.items.length }})</span
-                  >
-                </div>
-              </td>
-            </tr>
-          </template>
-          <template #[`item.Quantity_Plan`]="{ item }">
-            <v-chip color="primary" variant="tonal">{{
-              item.Quantity_Plan
-            }}</v-chip>
-          </template>
-          <template #[`item.Quantity_Real`]="{ item }">
-            <v-chip color="success" variant="tonal">{{
-              item.Quantity_Real
-            }}</v-chip>
-          </template>
-          <template v-slot:item.Percent="{ item }">
-            <v-progress-linear
-              v-model="item.Percent"
-              height="25"
-              color="success"
-            >
-              <strong>{{ item.Percent.toFixed(1) }}%</strong>
-            </v-progress-linear>
-          </template>
-        </v-data-table-virtual>
-      </v-card>
-
-      <v-card variant="outlined" class="rounded-xl mt-5 bg-surface">
-        <v-data-table-virtual
-          :headers="HeadersError"
-          :items="Manufacture_Fail"
-          :group-by="[{ key: 'PONumber' }]"
-          class="bg-transparent"
-          fixed-header
-          :header-props="{
-            sortByText: 'Sắp xếp theo',
-            sortDescText: 'Giảm dần',
-            sortAscText: 'Tăng dần',
-          }"
-          :loading="DialogLoading"
-          loading-text="Đang tải dữ liệu..."
-          no-data-text="Không có dữ liệu"
-          no-results-text="Không tìm thấy kết quả"
-          :hover="true"
-          :dense="false"
-          :fixed-header="true"
-        >
-          <template v-slot:top>
-            <v-toolbar flat color="transparent" class="border-b px-2">
-              <v-toolbar-title class="d-flex align-center">
-                <v-avatar color="error" variant="tonal" size="32" class="me-3">
-                  <v-icon icon="mdi-message-alert" size="20"></v-icon>
-                </v-avatar>
-                <span class="text-h6 font-weight-bold"
-                  >Tỷ lệ lỗi trong đơn hàng</span
-                >
-              </v-toolbar-title>
-            </v-toolbar>
-          </template>
-
-          <template
-            v-slot:group-header="{ item, columns, toggleGroup, isGroupOpen }"
-          >
-            <tr>
-              <td :colspan="columns.length">
-                <v-btn
-                  variant="text"
-                  :icon="isGroupOpen ? 'mdi-chevron-down' : 'mdi-chevron-up'"
-                  @click="toggleGroup(item)"
-                  class="me-2"
-                ></v-btn>
-                <span class="font-weight-bold text-primary">{{
-                  item.value
-                }}</span>
-              </td>
-            </tr>
-          </template>
-          <template #[`item.Total_Summary_ID`]="{ item }">
-            <v-chip color="success" variant="tonal">{{
-              item.Total_Summary_ID
-            }}</v-chip>
-          </template>
-          <template #[`item.Quantity_Error`]="{ item }">
-            <v-chip color="warning" variant="tonal">{{
-              item.Quantity_Error
-            }}</v-chip>
-          </template>
-          <template #[`item.Quantity_RW`]="{ item }">
-            <v-chip color="info" variant="tonal">{{ item.Quantity_RW }}</v-chip>
-          </template>
-          <template #[`item.Percent_Error`]="{ item }">
-            <v-progress-linear
-              :model-value="Number(item.Percent_Error)"
-              height="25"
-              color="success"
-              class="rounded-lg"
-            >
-              <strong>{{ Number(item.Percent_Error).toFixed(1) }}%</strong>
-            </v-progress-linear>
-          </template>
-        </v-data-table-virtual>
-      </v-card>
-      <v-card class="mb-4 rounded-xl mt-5 border" elevation="0" height="500px">
-        <v-card-title class="d-flex align-center">
-          <v-avatar color="primary" variant="tonal" size="32" class="me-3">
-            <v-icon icon="mdi-chart-donut" size="20"></v-icon>
-          </v-avatar>
-          <span class="text-h6 font-weight-bold">Biểu đồ thông tin lỗi</span>
-        </v-card-title>
-        <v-card-text>
-          <v-pie
-            :items="pieItems"
-            :legend="{
-              position: $vuetify.display.mdAndUp ? 'right' : 'bottom',
-            }"
-            :tooltip="{ subtitleFormat: '[value]%' }"
-            class="pa-3 mt-3 justify-center"
-            gap="2"
-            inner-cut="70"
-            item-key="id"
-            rounded="2"
-            size="300"
-            animation
-            hide-slice
-            reveal
-          >
-            <template v-slot:center>
-              <div class="text-center">
-                <div class="text-h3">{{ summaryFail.length }}</div>
-                <div class="opacity-70 mt-1 mb-n1">Tổng sản phẩm lỗi</div>
-              </div>
-            </template>
-          </v-pie>
-        </v-card-text>
-      </v-card>
     </v-card-text>
   </v-card>
 
@@ -1155,14 +737,18 @@ import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 import StackedBarChart from "@/components/Chart-StackedBar-PageSummary.vue";
+import StackedBarChartSummary from "@/components/Chart-StackedBar-Summary.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
+import LinePointChart from "@/components/Chart-PointLine-Summary.vue";
+import ChartDonutSummary from "@/components/Chart-Donut-Summary.vue";
 
 // Composables
 import { useSummary } from "@/composables/Summary/useSummary";
+import { useSummaryYesterday } from "@/composables/Summary/useSummaryYesterday";
 import { useCompareSummary } from "@/composables/Summary/useCompareSummary";
 import { useSummaryFail } from "@/composables/Summary/useSummaryFail";
 import { useSummaryAI } from "@/composables/Summary/useSummaryAI";
-
+import { useHistoryPart } from "@/composables/Manufacture/useHistoryPart";
 import { useActived } from "@/composables/Summary/useActived";
 
 // ===== STATE MANAGEMENT =====
@@ -1193,6 +779,40 @@ const Percent_Compare_Po = ref(0);
 const Percent_Compare_Category = ref(0);
 const Manufacture_Fail = ref([]);
 
+const summaryFailChart = ref({
+  "Lỗi hàn": 0,
+  "Lỗi linh kiện": 0,
+  "Lỗi ngoại quan": 0,
+  "Lỗi chức năng": 0,
+  "Lỗi lắp ráp cơ khí": 0,
+  "Lỗi quy trình / Vận hành": 0,
+  "Lỗi không xác định": 0,
+});
+
+const summaryDetailByType = computed(() => {
+  if (!summary.value) return [];
+  const grouped = {};
+  summary.value.forEach((item) => {
+    const type = item.Type || "Lỗi không xác định";
+    if (!grouped[type]) {
+      grouped[type] = {
+        type: type,
+        ok: 0,
+        error: 0,
+      };
+    }
+    grouped[type].ok += Number(item.Quantity_Counting || 0);
+    grouped[type].error += Number(item.Quantity_Error || 0);
+  });
+  return Object.values(grouped);
+});
+
+// ========Data SelectedType========
+const selectedCategory = ref("");
+const selectedCategoryData = ref([]);
+const selectedPlanID = ref("");
+const categoryDataChart = ref([]);
+
 // ===== Table States =====
 const search = ref("");
 const itemsPerPage = ref(15);
@@ -1221,14 +841,14 @@ const Headers = ref([
   },
 ]);
 
-const HeadersError = ref([
-  { key: "Category", title: "Dự án" },
-  { key: "Type", title: "Công đoạn" },
-  { key: "Total_Summary_ID", title: "SL đã sản xuất" },
-  { key: "Quantity_Error", title: "Hàng lỗi" },
-  { key: "Quantity_RW", title: "RW đã sửa" },
-  { key: "Percent_Error", title: "Tỷ lệ lỗi" },
-]);
+const HeadersProject = [
+  { title: "Tên dự án", key: "PONumber", width: "200px" },
+  { title: "Hạng mục", key: "Category", width: "200px" },
+  { title: "Công đoạn", key: "Type" },
+  { title: "Kế hoạch (pcs)", key: "Quantity_Plan" },
+  { title: "Thực tế (pcs)", key: "Quantity_Counting" },
+  { title: "Tỉ lệ (%)", key: "Percent" },
+];
 
 const HeadersActived = [
   { title: "Tên thiết bị", key: "Device" },
@@ -1239,25 +859,98 @@ const HeadersActived = [
 
 // ===== COMPUTED =======
 
-// Tổng hợp dữ liệu summary theo Type (loại)
-const summaryDetailByType = computed(() => {
-  if (!summary.value || !Array.isArray(summary.value)) return [];
-  // Giả sử Quantity_Real là OK, Quantity_Error là lỗi (nếu có)
-  // Nếu không có Quantity_Error, sẽ lấy 0
+const summaryTypeGrouped = computed(() => {
   const grouped = {};
+
   summary.value.forEach((item) => {
-    const type = item.Type || "Không phân loại";
-    if (!grouped[type]) {
-      grouped[type] = { ok: 0, error: 0 };
+    if (!grouped[item.Type]) {
+      grouped[item.Type] = {
+        Type: item.Type,
+        categories: [],
+      };
     }
-    grouped[type].ok += Number(item.Quantity) || 0;
-    grouped[type].error += Number(item.Quantity_Error) || 0;
+
+    const exists = grouped[item.Type].categories.some(
+      (c) => c.Category === item.Category,
+    );
+
+    if (!exists) {
+      grouped[item.Type].categories.push({
+        Category: item.Category,
+        PlanID: item.PlanID,
+      });
+    }
   });
-  return Object.entries(grouped).map(([type, { ok, error }]) => {
-    const total = ok + error;
-    const rate = total > 0 ? Math.round((ok / total) * 100) : 0;
-    return { type, ok, error, rate };
+
+  return Object.values(grouped);
+});
+
+const summaryPlanManufacture = computed(() => {
+  const grouped = {};
+
+  summary.value.forEach((item) => {
+    if (!grouped[item.Name]) {
+      grouped[item.Name] = {
+        Name: item.Name,
+        PlanID: item.PlanID,
+        summaryType: {},
+      };
+    }
+
+    if (!grouped[item.Name].summaryType[item.Type]) {
+      grouped[item.Name].summaryType[item.Type] = {
+        Type: item.Type,
+        categories: [],
+      };
+    }
+
+    const exists = grouped[item.Name].summaryType[
+      item.Type
+    ].categories.includes(item.Category);
+
+    if (!exists) {
+      grouped[item.Name].summaryType[item.Type].categories.push(item.Category);
+    }
   });
+
+  return Object.values(grouped).map((nameItem) => ({
+    ...nameItem,
+    summaryType: Object.values(nameItem.summaryType),
+  }));
+});
+
+const summaryPlanManufactureYesterday = computed(() => {
+  const grouped = {};
+
+  summaryYesterday.value.forEach((item) => {
+    if (!grouped[item.Name]) {
+      grouped[item.Name] = {
+        Name: item.Name,
+        PlanID: item.PlanID,
+        summaryType: {},
+      };
+    }
+
+    if (!grouped[item.Name].summaryType[item.Type]) {
+      grouped[item.Name].summaryType[item.Type] = {
+        Type: item.Type,
+        categories: [],
+      };
+    }
+
+    const exists = grouped[item.Name].summaryType[
+      item.Type
+    ].categories.includes(item.Category);
+
+    if (!exists) {
+      grouped[item.Name].summaryType[item.Type].categories.push(item.Category);
+    }
+  });
+
+  return Object.values(grouped).map((nameItem) => ({
+    ...nameItem,
+    summaryType: Object.values(nameItem.summaryType),
+  }));
 });
 
 const totalSummaryOK = computed(() => {
@@ -1280,6 +973,14 @@ const formattedSelectedDate = computed(() => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+});
+
+const formattedSelectedYesterday = computed(() => {
+  const date = selectedDate.value;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate() - 1).padStart(2, "0");
   return `${year}-${month}-${day}`;
 });
 const formattedWeekDate = computed(() => {
@@ -1308,9 +1009,12 @@ const formattedWeekDate = computed(() => {
 // Pass the computed ref to useSummary
 
 const { summary, summaryError } = useSummary(formattedSelectedDate);
-console.log(summary)
+const { summaryYesterday, summaryYesterdayError } = useSummaryYesterday(
+  formattedSelectedYesterday,
+);
 const { compareSummary } = useCompareSummary(formattedSelectedDate);
 const { summaryFail, summaryFailError } = useSummaryFail(formattedSelectedDate);
+const { historyPart } = useHistoryPart(selectedPlanID);
 const {
   aiText,
   loading: aiLoading,
@@ -1411,7 +1115,7 @@ watch(
         chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
       }
     });
-  }
+  },
 );
 
 // Watch for streaming response to auto-scroll
@@ -1452,19 +1156,47 @@ watch(summaryError, (error) => {
 });
 
 watch(
+  summaryFail,
+  (newVal) => {
+    if (!Array.isArray(newVal)) return;
+
+    // Reset statistics
+    for (const key in summaryFailChart.value) {
+      summaryFailChart.value[key] = 0;
+    }
+
+    // Process each record
+    newVal.forEach((item) => {
+      if (item.GroupFail && item.GroupFail.trim() !== "") {
+        const errors = item.GroupFail.split(",").map((e) => e.trim());
+        errors.forEach((err) => {
+          if (summaryFailChart.value[err] !== undefined) {
+            summaryFailChart.value[err]++;
+          }
+        });
+      } else {
+        // No GroupFail -> count as "Lỗi không xác định"
+        summaryFailChart.value["Lỗi không xác định"]++;
+      }
+    });
+  },
+  { immediate: true, deep: true },
+);
+
+watch(
   summary,
   (newValue) => {
     if (Array.isArray(newValue) && newValue.length > 0) {
       // Lọc các phần tử có Quantity_Error > 0
       Manufacture_Fail.value = newValue.filter(
-        (item) => Number(item.Quantity_Error) > 0
+        (item) => Number(item.Quantity_Error) > 0,
       );
     } else {
       // Nếu mảng rỗng hoặc không hợp lệ, reset lại
       Manufacture_Fail.value = [];
     }
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
 
 watch(
@@ -1487,72 +1219,85 @@ watch(
       }
     }
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
 
-// Add debug logging
+watch(historyPart, (newData) => {
+  categoryDataChart.value = newData.filter(
+    (item) => item.PartNumber === selectedCategory.value,
+  );
+});
+
+const totalCategoryPassToday = computed(() => {
+  if (!summary.value) return []; // Phòng hờ summary chưa có dữ liệu
+
+  return summary.value.filter((item) => {
+    return (
+      Number(item.Quantity_Counting || 0) >= Number(item.Quantity_Plan || 0)
+    );
+  });
+});
+
+const totalCategoryPassYesterday = computed(() => {
+  if (!summaryYesterday.value) return []; // Phòng hờ summary chưa có dữ liệu
+
+  return summaryYesterday.value.filter((item) => {
+    return (
+      Number(item.Quantity_Counting || 0) >= Number(item.Quantity_Plan || 0)
+    );
+  });
+});
+
+// ======= Computed Trend/Percentage changes =======
+const projectComparePercent = computed(() => {
+  const today = summaryPlanManufacture.value.length;
+  const yesterday = summaryPlanManufactureYesterday.value.length;
+  if (yesterday === 0) {
+    return today > 0 ? 100 : 0;
+  }
+  return parseFloat((((today - yesterday) / yesterday) * 100).toFixed(1));
+});
+
+const categoryComparePercent = computed(() => {
+  const today = summary.value.length;
+  const yesterday = summaryYesterday.value.length;
+  if (yesterday === 0) {
+    return today > 0 ? 100 : 0;
+  }
+  return parseFloat((((today - yesterday) / yesterday) * 100).toFixed(1));
+});
+
+const goalAchievementPercent = computed(() => {
+  const total = summary.value ? summary.value.length : 0;
+  if (total === 0) return 0;
+  const completed = totalCategoryPassToday.value.length;
+  return parseFloat(((completed / total) * 100).toFixed(1));
+});
+
+const totalCategoryInProgressToday = computed(() => {
+  const total = summary.value ? summary.value.length : 0;
+  return total - totalCategoryPassToday.value.length;
+});
+
+const selectedCategoryRate = computed(() => {
+  if (!selectedCategory.value || !selectedCategoryData.value) return 0;
+  const data = selectedCategoryData.value.find(
+    (item) => item.Category === selectedCategory.value,
+  );
+  if (!data) return 0;
+  const plan = Number(data.Quantity_Plan || 0);
+  const counting = Number(data.Quantity_Counting || 0);
+  if (plan === 0) return 0;
+  return parseFloat(((counting / plan) * 100).toFixed(1));
+});
 
 // ===== CHART CONFIGURATION =====s
 const progress = computed(() =>
-  summary.value.map((item) => item.Category || 0)
+  categoryDataChart.value.map((item) => item.Timestamp || 0),
 );
 
 const passList = computed(() =>
-  summary.value.map((item) => Number(item.Quantity_Real || 0))
-);
-
-const failList = computed(() =>
-  summary.value.map((item) => Number(item.Quantity_Error || 0))
-);
-
-const planList = computed(() =>
-  summary.value.map((item) => Number(item.Quantity_Plan || 0))
-);
-
-const progressFail = computed(() =>
-  Manufacture_Fail.value.map((item) => item.Category || 0)
-);
-
-const failListTable = computed(() =>
-  Manufacture_Fail.value.map((item) => Number(item.Quantity_Error || 0))
-);
-
-const summaryFailChart = ref({
-  "Lỗi hàn": 0,
-  "Lỗi linh kiện": 0,
-  "Lỗi ngoại quan": 0,
-  "Lỗi chức năng": 0,
-  "Lỗi lắp ráp cơ khí": 0,
-  "Lỗi quy trình / Vận hành": 0,
-  "Lỗi không xác định": 0, // bản ghi GroupFail rỗng/null
-});
-
-watch(
-  summaryFail,
-  (newVal) => {
-    if (!Array.isArray(newVal)) return;
-
-    // Reset lại thống kê
-    for (const key in summaryFailChart.value) {
-      summaryFailChart.value[key] = 0;
-    }
-
-    // Duyệt từng bản ghi
-    newVal.forEach((item) => {
-      if (item.GroupFail && item.GroupFail.trim() !== "") {
-        const errors = item.GroupFail.split(",").map((e) => e.trim());
-        errors.forEach((err) => {
-          if (summaryFailChart.value[err] !== undefined) {
-            summaryFailChart.value[err]++;
-          }
-        });
-      } else {
-        // Không có GroupFail → đếm vào "Lỗi không xác định"
-        summaryFailChart.value["Lỗi không xác định"]++;
-      }
-    });
-  },
-  { immediate: true, deep: true }
+  categoryDataChart.value.map((item) => Number(item.Quantity || 0)),
 );
 
 // Pie chart items
@@ -1568,7 +1313,7 @@ const pieItems = computed(() => {
   ];
 
   const entries = Object.entries(summaryFailChart.value).filter(
-    ([_, value]) => Number.isFinite(value) && value > 0
+    ([_, value]) => Number.isFinite(value) && value > 0,
   );
 
   const total = entries.reduce((sum, [, value]) => sum + value, 0);
@@ -1594,6 +1339,172 @@ const pieItems = computed(() => {
     count: value, // số lượng thật
     color: colors[i % colors.length],
   }));
+});
+
+const handleCategoryClick = (category, item) => {
+  selectedCategory.value = category;
+
+  selectedCategoryData.value = summary.value.filter(
+    (row) => row.Category === category,
+  );
+
+  selectedPlanID.value = item.PlanID;
+  categoryDataChart.value = historyPart.value.filter(
+    (item) => item.PartNumber === selectedCategory.value,
+  );
+};
+
+const handleClose = () => {
+  selectedCategory.value = "";
+  selectedCategoryData.value = [];
+  selectedPlanID.value = "";
+  categoryDataChart.value = [];
+};
+
+const passSummaryGroup = computed(() => {
+  const grouped = {};
+
+  summary.value.forEach((item) => {
+    const source = item.Type;
+    const surface = item.Surface;
+    const qty = Number(item.Quantity_Counting || 0);
+
+    if (!grouped[source]) {
+      grouped[source] = {
+        top: 0,
+        bottom: 0,
+        oneSide: 0,
+      };
+    }
+
+    if (surface === "TOP") {
+      grouped[source].top += qty;
+    }
+
+    if (surface === "BOTTOM") {
+      grouped[source].bottom += qty;
+    }
+
+    if (surface === "1 Mặt") {
+      grouped[source].oneSide += qty;
+    }
+  });
+
+  const result = {};
+
+  Object.entries(grouped).forEach(([source, item]) => {
+    const values = [];
+
+    if (item.oneSide > 0) values.push(item.oneSide);
+
+    // Có đủ TOP + BOTTOM
+    if (item.top > 0 && item.bottom > 0) {
+      values.push(Math.min(item.top, item.bottom));
+    } else {
+      // Chỉ có TOP hoặc chỉ có BOTTOM
+      if (item.top > 0) values.push(item.top);
+      if (item.bottom > 0) values.push(item.bottom);
+    }
+
+    result[source] = values.length ? Math.min(...values) : 0;
+  });
+
+  return result;
+});
+
+const progressGroup = computed(() => Object.keys(passSummaryGroup.value));
+
+const passDataGroup = computed(() => Object.values(passSummaryGroup.value));
+
+const maxPassDataGroup = computed(() => {
+  return passDataGroup.value.length ? Math.max(...passDataGroup.value) : "-";
+});
+
+const maxPassTypeGroup = computed(() => {
+  if (
+    !passSummaryGroup.value ||
+    Object.keys(passSummaryGroup.value).length === 0
+  )
+    return "-";
+  return Object.entries(passSummaryGroup.value).reduce(
+    (max, [type, qty]) => {
+      return qty > max.qty ? { type, qty } : max;
+    },
+    { type: "-", qty: -Infinity },
+  ).type;
+});
+
+const minPassDataGroup = computed(() => {
+  return passDataGroup.value.length ? Math.min(...passDataGroup.value) : "-";
+});
+
+const minPassTypeGroup = computed(() => {
+  if (
+    !passSummaryGroup.value ||
+    Object.keys(passSummaryGroup.value).length === 0
+  )
+    return "-";
+  return Object.entries(passSummaryGroup.value).reduce(
+    (min, [type, qty]) => {
+      return qty < min.qty ? { type, qty } : min;
+    },
+    { type: "-", qty: Infinity },
+  ).type;
+});
+
+// Category Summary Grouping (Hạng mục)
+const categorySummaryGroup = computed(() => {
+  const grouped = {};
+  if (Array.isArray(summary.value)) {
+    summary.value.forEach((item) => {
+      const cat = item.Category;
+      if (!cat) return;
+      const qty = Number(item.Quantity_Counting || 0);
+      grouped[cat] = (grouped[cat] || 0) + qty;
+    });
+  }
+  return grouped;
+});
+
+const categoryLabels = computed(() => Object.keys(categorySummaryGroup.value));
+const categoryData = computed(() => Object.values(categorySummaryGroup.value));
+
+const maxPassCategoryData = computed(() => {
+  const values = categoryData.value;
+  return values.length ? Math.max(...values) : 0;
+});
+
+const maxPassCategory = computed(() => {
+  if (
+    !categorySummaryGroup.value ||
+    Object.keys(categorySummaryGroup.value).length === 0
+  )
+    return "-";
+  return Object.entries(categorySummaryGroup.value).reduce(
+    (max, [cat, qty]) => {
+      return qty > max.qty ? { cat, qty } : max;
+    },
+    { cat: "-", qty: -Infinity },
+  ).cat;
+});
+
+const minPassCategoryData = computed(() => {
+  const values = categoryData.value;
+  return values.length ? Math.min(...values) : 0;
+});
+
+const minPassCategory = computed(() => {
+  if (
+    !categorySummaryGroup.value ||
+    Object.keys(categorySummaryGroup.value).length === 0
+  )
+    return "-";
+  return Object.entries(categorySummaryGroup.value).reduce(
+    (min, [cat, qty]) => {
+      return qty < min.qty ? { cat, qty } : min;
+    },
+    { cat: "-", qty: Infinity },
+  ).cat;
 });
 
 // ===== UTILITY FUNCTIONS =====

@@ -683,7 +683,7 @@ function GetItem(value) {
   const levelArray = found.Level.split("-");
 
   customProcessListEdit.value = levelArray;
-  Date_Edit.value = found.Date_unixepoch;
+  Date_Edit.value = found.Date;
   Note_Edit.value = found.Note;
   DelaySMT_Edit.value = found.DelaySMT;
   Quantity_Edit.value = found.Quantity;

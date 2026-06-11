@@ -6,6 +6,7 @@
 
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from "vue";
+
 import {
   Chart,
   BarController,
@@ -33,30 +34,32 @@ Chart.register(
   Title
 );
 
+// ================= PROPS =================
 const props = defineProps({
   labels: {
     type: Array,
     default: () => [],
   },
 
-  // Cột TOP
+  // TOP
   passDataTop: {
     type: Array,
     default: () => [],
   },
 
-  // Cột BOTTOM
+  // BOTTOM
   passDataBottom: {
     type: Array,
     default: () => [],
   },
 
+  // ONE SIDE
   passDataOneSide: {
     type: Array,
     default: () => [],
   },
 
-  // Line kế hoạch
+  // PLAN LINE
   planData: {
     type: Array,
     default: () => [],
@@ -68,9 +71,76 @@ const props = defineProps({
   },
 });
 
+// ================= REF =================
 const chartCanvas = ref(null);
+
 let chartInstance = null;
 
+// ================= CREATE DATASETS =================
+const createDatasets = () => {
+  const datasets = [];
+
+  // ===== TOP =====
+  if (
+    props.passDataTop &&
+    props.passDataTop.some((v) => v !== null && v !== undefined)
+  ) {
+    datasets.push({
+      label: "Pass Top",
+      data: props.passDataTop,
+
+      backgroundColor: "rgba(33, 150, 243, 0.8)",
+      borderColor: "rgba(33, 150, 243, 1)",
+
+      borderWidth: 1,
+      maxBarThickness: 50,
+
+      order: 2,
+    });
+  }
+
+  // ===== BOTTOM =====
+  if (
+    props.passDataBottom &&
+    props.passDataBottom.some((v) => v !== null && v !== undefined)
+  ) {
+    datasets.push({
+      label: "Pass Bottom",
+      data: props.passDataBottom,
+
+      backgroundColor: "rgba(229, 57, 53, 0.8)",
+      borderColor: "rgba(229, 57, 53, 1)",
+
+      borderWidth: 1,
+      maxBarThickness: 50,
+
+      order: 2,
+    });
+  }
+
+  // ===== ONE SIDE =====
+  if (
+    props.passDataOneSide &&
+    props.passDataOneSide.some((v) => v !== null && v !== undefined)
+  ) {
+    datasets.push({
+      label: "Pass",
+      data: props.passDataOneSide,
+
+      backgroundColor: "rgba(0, 200, 83, 0.8)",
+      borderColor: "rgba(0, 200, 83, 1)",
+
+      borderWidth: 1,
+      maxBarThickness: 50,
+
+      order: 2,
+    });
+  }
+
+  return datasets;
+};
+
+// ================= RENDER CHART =================
 const renderChart = () => {
   if (!chartCanvas.value) return;
 
@@ -88,59 +158,12 @@ const renderChart = () => {
     data: {
       labels: props.labels || [],
 
-      datasets: [
-        // ===== TOP =====
-        {
-          label: "Pass Top",
-          data: props.passDataTop || [],
-          backgroundColor: "rgba(33, 150, 243, 0.8)", // Xanh dương
-          borderColor: "rgba(33, 150, 243, 1)",
-          borderWidth: 1,
-          maxBarThickness: 50,
-        },
-
-        // ===== BOTTOM =====
-        {
-          label: "Pass Bottom",
-          data: props.passDataBottom || [],
-          backgroundColor: "rgba(229, 57, 53, 0.8)", // Đỏ
-          borderColor: "rgba(229, 57, 53, 1)",
-          borderWidth: 1,
-          maxBarThickness: 50,
-        },
-
-        // ===== ONE SIDE =====
-        {
-          label: "Pass",
-          data: props.passDataOneSide || [],
-          borderColor: "rgba(0, 200, 83, 1)", // Xanh lá
-          backgroundColor: "rgba(0, 200, 83, 1)",
-          borderWidth: 1,
-          maxBarThickness: 50,
-        },
-
-        // ===== PLAN LINE =====
-        {
-          label: "Kế hoạch",
-          data: props.planData || [],
-          type: "line",
-
-          
-          backgroundColor: "rgba(255, 165, 0, 0.8)", // Cam
-          borderColor: "rgba(255, 165, 0, 1)",
-          pointRadius: 4,
-
-          borderWidth: 3,
-          fill: false,
-          tension: 0.3,
-
-          yAxisID: "y",
-        },
-      ],
+      datasets: createDatasets(),
     },
 
     options: {
       responsive: true,
+
       maintainAspectRatio: false,
 
       interaction: {
@@ -151,7 +174,9 @@ const renderChart = () => {
       plugins: {
         title: {
           display: true,
+
           text: props.title,
+
           font: {
             size: 18,
           },
@@ -169,7 +194,7 @@ const renderChart = () => {
 
       scales: {
         x: {
-          stacked: false,
+          stacked: true,
 
           title: {
             display: true,
@@ -183,7 +208,8 @@ const renderChart = () => {
 
         y: {
           beginAtZero: true,
-          stacked: false,
+
+          stacked: true,
 
           title: {
             display: true,
@@ -194,7 +220,10 @@ const renderChart = () => {
 
       elements: {
         bar: {
+          borderRadius: 4,
+
           barPercentage: 0.6,
+
           categoryPercentage: 0.7,
         },
       },
@@ -202,48 +231,30 @@ const renderChart = () => {
   });
 };
 
-// ===== WATCH UPDATE =====
+// ================= WATCH =================
 watch(
   () => [
     props.labels,
     props.passDataTop,
     props.passDataBottom,
+    props.passDataOneSide,
     props.planData,
     props.title,
   ],
   () => {
-    if (chartInstance) {
-      chartInstance.data.labels = props.labels || [];
-
-      chartInstance.data.datasets[0].data =
-        props.passDataTop || [];
-
-      chartInstance.data.datasets[1].data =
-        props.passDataBottom || [];
-
-      chartInstance.data.datasets[2].data =
-        props.passDataOneSide || [];
-
-      chartInstance.data.datasets[3].data =
-        props.planData || [];
-
-      chartInstance.options.plugins.title.text =
-        props.title;
-
-      chartInstance.update();
-    } else {
-      renderChart();
-    }
+    renderChart();
   },
-  { deep: true }
+  {
+    deep: true,
+  }
 );
 
-// ===== MOUNT =====
+// ================= MOUNT =================
 onMounted(() => {
   renderChart();
 });
 
-// ===== UNMOUNT =====
+// ================= UNMOUNT =================
 onUnmounted(() => {
   if (chartInstance) {
     chartInstance.destroy();

@@ -6,12 +6,6 @@ export function useSummary(selectedDate) {
   const summaryError = ref(null);
   const socket = io(import.meta.env.VITE_SOCKET_URL);
 
-  const endOfDay = computed(() =>
-    Math.floor(
-      new Date(`${selectedDate.value}T23:59:59+07:00`).getTime() / 1000
-    )
-  );
-
   const fetchData = () => {
     if (selectedDate.value) {
       socket.emit("getSummary", selectedDate.value);
