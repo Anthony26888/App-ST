@@ -6,6 +6,7 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const path = require("path");
 const bcrypt = require("bcrypt");
+const crypto = require("crypto");
 const db = require("./database.js");
 const { v4: uuidv4 } = require("uuid"); // tạo UUID
 const routes = require("./routes");
@@ -5318,7 +5319,7 @@ app.post(
       // =========================
       // CREATE IMAGE DIR
       // =========================
-      const uploadDir = path.join(__dirname, "uploads", "bomhighlight");
+      const uploadDir = path.join(process.cwd(), "uploads", "bomhighlight");
 
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
