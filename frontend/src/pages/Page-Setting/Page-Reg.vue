@@ -12,7 +12,17 @@
         <InputField label="Email" v-model="Email" />
         <v-select
           label="Phân quyền"
-          :items="['Admin', 'Kế hoạch', 'Thủ kho', 'Kinh doanh', 'Quản lý']"
+          :items="[
+            'Admin',
+            'Kế hoạch',
+            'Thủ kho',
+            'Kinh doanh',
+            'Quản lý',
+            'Nhân viên',
+            'Sản xuất',
+            'Bảo trì',
+            'QC',
+          ]"
           variant="solo-filled"
           v-model="Level"
         ></v-select>
@@ -21,14 +31,7 @@
       <v-divider></v-divider>
 
       <v-card-actions>
-        <v-btn
-          @click="
-            Register();
-          "
-          block
-          variant="tonal"
-          color="primary"
-        >
+        <v-btn @click="Register()" block variant="tonal" color="primary">
           Đăng ký
         </v-btn>
       </v-card-actions>
@@ -43,12 +46,11 @@ import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import InputField from "@/components/Input-Field.vue";
 </script>
 <script>
-
 export default {
-  components:{
+  components: {
     ButtonBack,
     SnackbarSuccess,
-    InputField
+    InputField,
   },
   data() {
     return {
@@ -82,7 +84,7 @@ export default {
         Level: this.Level,
         Date: this.Date,
       };
-      this.Reset()
+      this.Reset();
       axios
         .post(`${this.Url}/Users/register`, Item)
         .then(function (response) {
@@ -92,14 +94,13 @@ export default {
           console.log(error);
         });
     },
-    Reset(){
-      this.DialogSuccess = true,
-      this.Username = "",
-      this.Password = "",
-      this.Email = ""
-      this.Level = "",
-      this.FullName = ""
-    }
+    Reset() {
+      (this.DialogSuccess = true),
+        (this.Username = ""),
+        (this.Password = ""),
+        (this.Email = "");
+      (this.Level = ""), (this.FullName = "");
+    },
   },
 };
 </script>

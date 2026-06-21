@@ -98,6 +98,7 @@
             'Nhân viên',
             'Quản lý sản xuất',
             'Quản lý bảo trì',
+            'Quản lý QC',
           ]"
           variant="solo-filled"
           v-model="Level_Edit"
@@ -134,6 +135,7 @@
         'Nhân viên',
         'Quản lý sản xuất',
         'Quản lý bảo trì',
+        'Quản lý QC',
       ]"
       variant="solo-filled"
       v-model="Level_Add"
@@ -257,13 +259,11 @@ const SaveEdit = async () => {
   try {
     const response = await axios.put(
       `${Url}/Users/Edit-User/${GetID.value}`,
-      formData
+      formData,
     );
-    console.log(response.data.message);
     MessageDialog.value = "Cập nhật người dùng thành công";
     Reset();
   } catch (error) {
-    console.error("Error updating user:", error);
     MessageErrorDialog.value = "Cập nhật người dùng thất bại";
     Error();
   }
@@ -292,11 +292,9 @@ const SaveAdd = async () => {
 
   try {
     const response = await axios.post(`${Url}/Users/register`, formData);
-    console.log(response.data.message);
     MessageDialog.value = "Thêm người dùng thành công";
     Reset();
   } catch (error) {
-    console.error("Error adding user:", error);
     MessageErrorDialog.value = "Thêm người dùng thất bại";
     Error();
   }
@@ -310,9 +308,8 @@ const RemoveUser = async () => {
   DialogLoading.value = true;
   try {
     const response = await axios.delete(
-      `${Url}/Users/delete-user/${GetID.value}`
+      `${Url}/Users/delete-user/${GetID.value}`,
     );
-    console.log(response);
     MessageDialog.value = "Xoá người dùng thành công";
     Reset();
   } catch (error) {

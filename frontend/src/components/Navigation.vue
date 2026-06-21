@@ -75,6 +75,7 @@ const StatusOption_9 = ref(false);
 const StatusOption_10 = ref(false);
 const StatusOption_11 = ref(false);
 const StatusOption_12 = ref(false);
+const StatusOption_13 = ref(false);
 const Date_Expired = ref("");
 
 // Dialog
@@ -198,6 +199,19 @@ const FetchUser = async () => {
         StatusOption_8.value = true;
         StatusOption_9.value = true;
         StatusOption_12.value = true;
+      } else if (LevelUser.value == "Quản lý QC") {
+        StatusOption_1.value = true;
+        StatusOption_2.value = true;
+        StatusOption_3.value = true;
+        StatusOption_4.value = true;
+        StatusOption_5.value = true;
+        StatusOption_6.value = true;
+        StatusOption_7.value = true;
+        StatusOption_8.value = true;
+        StatusOption_9.value = true;
+        StatusOption_10.value = true;
+        StatusOption_11.value = true;
+        StatusOption_12.value = true;
       } else {
         StatusOption_1.value = true;
         StatusOption_2.value = true;
@@ -233,11 +247,25 @@ const menuItems = computed(() => [
     disabled: StatusOption_1.value,
   },
   {
+    icon: "mdi-shopping-outline",
+    title: "Tình trạng đơn hàng",
+    value: "Orders",
+    to: "/Don-hang",
+    disabled: StatusOption_4.value,
+  },
+  {
     icon: "mdi-package-variant-closed",
     title: "Pick & Place",
     value: "CheckPnP",
     to: "/Danh-sach-pnp",
     disabled: StatusOption_12.value,
+  },
+  {
+    icon: "mdi-check-decagram-outline",
+    title: "Pick & Place QC",
+    value: "CheckPnPQC",
+    to: "/Danh-sach-pnp-qc",
+    disabled: StatusOption_13.value,
   },
   {
     icon: "mdi-warehouse",
@@ -246,20 +274,14 @@ const menuItems = computed(() => [
     to: "/Ton-kho",
     disabled: StatusOption_2.value,
   },
-  {
-    icon: "mdi-database-outline",
-    title: "Tồn Kho Misa",
-    value: "WareHouse2",
-    to: "/Ton-kho-2",
-    disabled: StatusOption_3.value,
-  },
-  {
-    icon: "mdi-shopping-outline",
-    title: "Tình trạng đơn hàng",
-    value: "Orders",
-    to: "/Don-hang",
-    disabled: StatusOption_4.value,
-  },
+  // {
+  //   icon: "mdi-database-outline",
+  //   title: "Tồn Kho Misa",
+  //   value: "WareHouse2",
+  //   to: "/Ton-kho-2",
+  //   disabled: StatusOption_3.value,
+  // },
+
   {
     icon: "mdi-briefcase-outline",
     title: "Dự án",

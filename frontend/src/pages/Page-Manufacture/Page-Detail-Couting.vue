@@ -89,56 +89,6 @@
               </template>
             </CardStatistic>
           </v-col>
-          <!-- <v-col cols="12" sm="3">
-            <CardStatistic
-              title="Lỗi"
-              :value="totalErrors"
-              icon="mdi-alert-circle"
-              color="warning"
-            >
-              <template #value-append>
-                <div class="text-h6 font-weight-medium text-warning mb-1">
-                  {{ PercentError }}%
-                </div>
-              </template>
-              <template #bottom>
-                <v-progress-linear
-                  v-model="PercentError"
-                  height="8"
-                  color="warning"
-                  rounded
-                  class="mt-4"
-                  bg-color="warning"
-                  bg-opacity="0.2"
-                ></v-progress-linear>
-              </template>
-            </CardStatistic>
-          </v-col>
-          <v-col cols="12" sm="3">
-            <CardStatistic
-              title="Đã sửa"
-              :value="totalFixed"
-              icon="mdi-wrench"
-              color="info"
-            >
-              <template #value-append>
-                <div class="text-h6 font-weight-medium text-info mb-1">
-                  {{ PercentFixed }}%
-                </div>
-              </template>
-              <template #bottom>
-                <v-progress-linear
-                  v-model="PercentFixed"
-                  height="8"
-                  color="info"
-                  rounded
-                  class="mt-4"
-                  bg-color="info"
-                  bg-opacity="0.2"
-                ></v-progress-linear>
-              </template>
-            </CardStatistic>
-          </v-col> -->
         </v-row>
 
         <ButtonAdd @click="DialogAdd = true" />
@@ -244,20 +194,6 @@
                     >Fixed</v-chip
                   >
                 </template>
-                <template #item.RWID="{ item }">
-                  <v-chip
-                    color="success"
-                    class="ms-2"
-                    v-if="item.RWID === 'Done'"
-                    size="small"
-                    variant="tonal"
-                  >
-                    <v-icon>mdi-check</v-icon>
-                  </v-chip>
-                </template>
-                <template #item.TimestampRW="{ item }">
-                  <div class="text-primary">{{ item.TimestampRW }}</div>
-                </template>
                 <template #item.Note="{ item }">
                   <div style="white-space: pre-line" class="text-error">
                     {{ item.Note }}
@@ -306,7 +242,6 @@
               elevation="0"
               height="calc(100vh - 410px)"
             >
-
               <div style="position: relative; height: 550px">
                 <Bar :data="chartData" :options="chartOptions" />
               </div>

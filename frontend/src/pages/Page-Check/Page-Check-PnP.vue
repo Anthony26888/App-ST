@@ -73,7 +73,6 @@
           <v-tab :value="1" class="text-caption">Pick & Place</v-tab>
           <v-tab :value="2" class="text-caption">Tính toán PnP</v-tab>
           <v-tab :value="3" class="text-caption">Gerber</v-tab>
-          <v-tab :value="4" class="text-caption">Check MPN</v-tab>
         </v-tabs>
 
         <v-tabs-window v-model="tab">
@@ -537,392 +536,6 @@
               </v-data-table>
             </v-card-text>
           </v-tabs-window-item>
-          <v-tabs-window-item :value="3">
-            <v-card height="100vh" variant="text">
-              <v-card-title class="d-flex align-center mt-5">
-                <v-btn
-                  v-bind="props"
-                  prepend-icon="mdi-import"
-                  color="primary"
-                  variant="tonal"
-                  class="text-caption"
-                  @click="DialogAddGerber = true"
-                >
-                  Nhập dữ liệu
-                </v-btn>
-                <v-btn
-                  v-bind="props"
-                  prepend-icon="mdi-file-document-multiple-outline"
-                  color="warning"
-                  variant="tonal"
-                  class="text-caption ms-2"
-                  @click="DialogEditGerber = true"
-                >
-                  Danh sách Gerber
-                </v-btn>
-                <!-- <Button-Download @click="downloadExcelPnP()"/> -->
-                <v-spacer></v-spacer>
-                <!-- Coordinate scaling controls -->
-
-                <v-btn
-                  @click="DialogCoordinateSettings = true"
-                  prepend-icon="mdi-tune"
-                  variant="tonal"
-                  class="me-2 ms-2 text-caption"
-                  title="Cài đặt tọa độ"
-                  >Cài đặt</v-btn
-                >
-
-                <!-- Controls for overlay -->
-
-                <!-- Layer select -->
-                <v-select
-                  v-model="selectedLayer"
-                  :items="['Top', 'Bottom']"
-                  label="Layer"
-                  class="me-4"
-                  density="comfortable"
-                  variant="outlined"
-                  hide-details
-                  style="max-width: 160px"
-                />
-                <!-- <v-select
-                  v-model="selectedLayer"
-                  :items="['Top', 'Bottom', 'WG Top', 'WG Bottom']"
-                  label="Layer"
-                  class="me-4"
-                  density="comfortable"
-                  variant="outlined"
-                  hide-details
-                  style="max-width: 160px"
-                /> -->
-              </v-card-title>
-              <v-row>
-                <v-col cols="6">
-                  <v-card-text
-                    class="pa-0 ma-0 overflow-hidden"
-                    style="height: 65vh"
-                  >
-                    <!-- Hiển thị SVG với overlay Pick & Place -->
-
-                    <div
-                      v-if="currentGerberSvg && overlayMode !== 'pnp'"
-                      class="gerber-svg-container-full"
-                      ref="svgContainer"
-                      @mousemove="handleDragMove"
-                      @mousedown="handleDragStart"
-                      @mouseup="handleDragEnd"
-                      @mouseleave="handleDragEnd"
-                      @wheel.prevent="handleWheelZoom"
-                      :data-zoom-low="zoomLevel < 2"
-                      :class="{ 'is-dragging': isDragging }"
-                      :style="{
-                        overflow: 'hidden',
-                        position: 'relative',
-                        cursor: isDragging ? 'grabbing' : 'grab',
-                        userSelect: 'none',
-                        height: '100%',
-                        background: 'white',
-                      }"
-                    >
-                      <div
-                        style="
-                          position: absolute;
-                          top: 15px;
-                          right: 15px;
-                          z-index: 20;
-                        "
-                      >
-                        <v-btn
-                          prepend-icon="mdi-refresh"
-                          @click="resetsZoom"
-                          class="text-caption"
-                          title="Reset View (H)"
-                          color="error"
-                          variant="tonal"
-                        >
-                          Reset Zoom
-                        </v-btn>
-                      </div>
-
-                      <!-- Lớp Gerber (Canvas - Chuyên nghiệp & Mượt) -->
-                      <canvas
-                        ref="gerberCanvas"
-                        style="
-                          position: absolute;
-                          top: 0;
-                          left: 0;
-                          width: 100%;
-                          height: 100%;
-                          pointer-events: none;
-                        "
-                        :style="layerTransformStyle"
-                      ></canvas>
-
-                      <!-- Lớp PnP (SVG Overlay - Tương tác) -->
-                      <svg
-                        ref="svgWrapper"
-                        id="gerber-svg"
-                        class="svg-full-wrapper"
-                        style="
-                          position: absolute;
-                          top: 0;
-                          left: 0;
-                          width: 100%;
-                          height: 100%;
-                          pointer-events: none;
-                        "
-                        :style="layerTransformStyle"
-                      >
-                        <g
-                          class="pnp-markers-layer"
-                          v-memo="[pnpMarkersArray, allActiveHighlights]"
-                          :transform="pnpGroupFlipTransform"
-                        >
-                          <g
-                            v-for="marker in pnpMarkersArray"
-                            :key="marker.designator"
-                            class="pnp-marker"
-                            :data-designator="marker.designator"
-                            :transform="marker.transform"
-                            style="pointer-events: auto"
-                            @click="handleMarkerClick(marker)"
-                          >
-                            <rect
-                              class="pnp-highlight-frame"
-                              :x="-marker.rectL / 2 || -20"
-                              :y="-marker.rectW / 2 || -20"
-                              :width="marker.rectL || 40"
-                              :height="marker.rectW || 40"
-                              fill="red"
-                              stroke="red"
-                              :stroke-width="marker.strokeMain * 0.5"
-                              style="display: none"
-                            />
-                            <polygon
-                              points="0,0 -4, -2 -4, 2"
-                              fill="#D32F2F"
-                              :transform="`translate(${
-                                marker.anchorSize + 1
-                              }, 0) scale(${marker.strokeMain * 0.5})`"
-                            />
-
-                            <g
-                              class="crosshair-group pnp-crosshair"
-                              stroke="#D32F2F"
-                              :stroke-width="marker.strokeMain"
-                            >
-                              <line
-                                :x1="-marker.anchorSize"
-                                y1="0"
-                                :x2="marker.anchorSize"
-                                y2="0"
-                              />
-                              <line
-                                x1="0"
-                                :y1="-marker.anchorSize"
-                                x2="0"
-                                :y2="marker.anchorSize"
-                              />
-                            </g>
-                            <text
-                              class="pnp-label"
-                              :x="marker.strokeMain"
-                              :y="-marker.strokeMain"
-                              :font-size="marker.fontSize"
-                              fill="blue"
-                              font-weight="bold"
-                              style="
-                                paint-order: stroke;
-                                stroke: white;
-                                user-select: none;
-                              "
-                              :stroke-width="marker.fontSize * 0.1 + 'px'"
-                              :transform="marker.textTransform"
-                            >
-                              {{ marker.designator }}
-                            </text>
-                          </g>
-                        </g>
-                      </svg>
-                    </div>
-
-                    <v-empty-state
-                      v-if="overlayMode !== 'pnp' && !currentGerberSvg"
-                      title="Dữ liệu trống"
-                      text="Chưa có dữ liệu Gerber"
-                      icon="mdi-image-off"
-                      class="mt-10"
-                    />
-                  </v-card-text>
-                </v-col>
-                <v-col cols="6">
-                  <v-data-table-virtual
-                    density="comfortable"
-                    :headers="HeadersPnPGerber"
-                    :items="combinePnPGerber"
-                    :search="searchPnPGerber"
-                    v-model="selectedPnPGerber"
-                    item-value="id"
-                    class="elevation-0"
-                    :footer-props="{
-                      'items-per-page-options': [10, 20, 50, 100],
-                      'items-per-page-text': 'Số hàng mỗi trang',
-                    }"
-                    :header-props="{
-                      sortByText: 'Sắp xếp theo',
-                      sortDescText: 'Giảm dần',
-                      sortAscText: 'Tăng dần',
-                    }"
-                    :loading="DialogLoading"
-                    loading-text="Đang tải dữ liệu..."
-                    no-data-text="Không có dữ liệu"
-                    no-results-text="Không tìm thấy kết quả"
-                    :hover="true"
-                    :dense="false"
-                    :fixed-header="true"
-                    height="90vh"
-                    show-select
-                  >
-                    <template
-                      v-slot:header.data-table-select="{
-                        allSelected,
-                        selectAll,
-                        someSelected,
-                      }"
-                    >
-                      <v-checkbox-btn
-                        :indeterminate="someSelected && !allSelected"
-                        :model-value="allSelected"
-                        color="primary"
-                        @update:model-value="selectAll(!allSelected)"
-                      ></v-checkbox-btn>
-                    </template>
-
-                    <template
-                      v-slot:item.data-table-select="{
-                        internalItem,
-                        isSelected,
-                        toggleSelect,
-                      }"
-                    >
-                      <v-checkbox-btn
-                        :model-value="isSelected(internalItem)"
-                        color="primary"
-                        @update:model-value="toggleSelect(internalItem)"
-                      ></v-checkbox-btn>
-                    </template>
-                    <template v-slot:top>
-                      <v-toolbar
-                        flat
-                        class="d-flex align-center bg-transparent"
-                      >
-                        <InputSearch v-model="searchPnPGerber" />
-
-                        <v-divider vertical class="mx-3" inset></v-divider>
-
-                        <v-btn
-                          icon="mdi-chevron-left"
-                          variant="tonal"
-                          class="me-2"
-                          color="primary"
-                          @click="navigatePnP('prev')"
-                          :disabled="!combinePnPGerber.length"
-                          title="Linh kiện trước"
-                        ></v-btn>
-
-                        <span
-                          class="text-caption font-weight-bold"
-                          style="min-width: 60px text-align: center"
-                        >
-                          {{ currentIndex + 1 }} / {{ combinePnPGerber.length }}
-                        </span>
-
-                        <v-btn
-                          icon="mdi-chevron-right"
-                          variant="tonal"
-                          class="ms-2"
-                          color="primary"
-                          @click="navigatePnP('next')"
-                          :disabled="!combinePnPGerber.length"
-                          title="Linh kiện tiếp theo"
-                        ></v-btn>
-                      </v-toolbar>
-                    </template>
-
-                    <template v-slot:item.stt="{ index }">
-                      {{
-                        (pagePCBTopLayer - 1) * itemPerPCBTopLayer + index + 1
-                      }}
-                    </template>
-
-                    <template v-slot:item.x="{ item }">
-                      {{ item.x }}
-                    </template>
-                    <template v-slot:item.y="{ item }">
-                      {{ item.y }}
-                    </template>
-                    <template v-slot:item.id="{ item }">
-                      <div class="d-flex">
-                        <v-tooltip text="Xem chi tiết" location="top">
-                          <template v-slot:activator="{ props }">
-                            <v-btn
-                              v-bind="props"
-                              size="small"
-                              icon="mdi-eye"
-                              @click="GetZoomPnP(item.id)"
-                              color="warning"
-                              variant="text"
-                            ></v-btn>
-                          </template>
-                        </v-tooltip>
-
-                        <v-menu>
-                          <template v-slot:activator="{ props }">
-                            <v-btn
-                              v-bind="props"
-                              icon="mdi-dots-vertical"
-                              variant="text"
-                              class="ms-2"
-                              size="small"
-                            >
-                            </v-btn>
-                          </template>
-                          <v-list density="compact">
-                            <v-list-item
-                              @click="GetAddSize(item)"
-                              prepend-icon="mdi-ruler"
-                              color="success"
-                            >
-                              <v-list-item-title class="text-caption"
-                                >Thêm kích thước</v-list-item-title
-                              >
-                            </v-list-item>
-                            <v-list-item
-                              @click="GetItemEdit(item)"
-                              prepend-icon="mdi-pencil"
-                            >
-                              <v-list-item-title class="text-caption"
-                                >Chỉnh sửa</v-list-item-title
-                              >
-                            </v-list-item>
-                            <v-list-item
-                              @click="getAccessToken(item)"
-                              prepend-icon="mdi-tag-search-outline"
-                            >
-                              <v-list-item-title class="text-caption"
-                                >Xem linh kiện</v-list-item-title
-                              >
-                            </v-list-item>
-                          </v-list>
-                        </v-menu>
-                      </div>
-                    </template>
-                  </v-data-table-virtual>
-                </v-col>
-              </v-row>
-            </v-card>
-          </v-tabs-window-item>
 
           <v-tabs-window-item :value="2">
             <v-card-title class="d-flex align-center pe-2">
@@ -1068,270 +681,510 @@
             </v-card-text>
           </v-tabs-window-item>
 
-          <v-tabs-window-item :value="4">
-            <v-card height="calc(100vh - 280px)" variant="text">
-              <v-card-title class="d-flex align-center mt-5">
-                <v-spacer></v-spacer>
-                <v-select
-                  v-model="selectedLayer"
-                  :items="['Top', 'Bottom']"
-                  label="Layer"
-                  class="me-4"
-                  density="comfortable"
-                  variant="outlined"
-                  hide-details
-                  style="max-width: 160px"
-                />
-              </v-card-title>
-              <v-row>
-                <v-col cols="7">
-                  <v-card-text
-                    class="pa-0 ma-0 overflow-hidden"
-                    style="height: 56vh"
+          <v-tabs-window-item :value="3">
+            <v-card class="rounded-lg elevation-1 bg-surface" height="100vh">
+              <v-card-title class="d-flex align-center pa-4 border-b">
+                <div class="d-flex g-2">
+                  <v-btn
+                    prepend-icon="mdi-import"
+                    color="primary"
+                    variant="tonal"
+                    class="text-caption"
+                    @click="DialogAddGerber = true"
                   >
-                    <div
-                      v-if="currentGerberSvg"
-                      class="gerber-svg-container-full"
-                      ref="svgContainer"
-                      @mousemove="handleDragMove"
-                      @mousedown="handleDragStart"
-                      @mouseup="handleDragEnd"
-                      @mouseleave="handleDragEnd"
-                      @wheel.prevent="handleWheelZoom"
-                      :data-zoom-low="zoomLevel < 2"
-                      :class="{ 'is-dragging': isDragging }"
-                      :style="{
-                        overflow: 'hidden',
-                        position: 'relative',
-                        cursor: isDragging ? 'grabbing' : 'grab',
-                        userSelect: 'none',
-                        height: '100%',
-                        background: 'white',
-                      }"
+                    Nhập dữ liệu
+                  </v-btn>
+
+                  <v-btn
+                    prepend-icon="mdi-file-document-multiple-outline"
+                    color="warning"
+                    variant="tonal"
+                    class="text-caption ms-2"
+                    @click="DialogEditGerber = true"
+                  >
+                    Danh sách Gerber
+                  </v-btn>
+                </div>
+
+                <v-spacer></v-spacer>
+
+                <div
+                  class="d-flex align-center g-3"
+                  style="
+                    max-width: 400px;
+                    width: 100%;
+                    justify-content: flex-end;
+                  "
+                >
+                  <v-btn
+                    prepend-icon="mdi-tune"
+                    variant="outlined"
+                    color="secondary"
+                    class="text-none font-weight-medium me-3"
+                    title="Cài đặt tọa độ"
+                    @click="DialogCoordinateSettings = true"
+                  >
+                    Cài đặt
+                  </v-btn>
+
+                  <v-select
+                    v-model="selectedLayer"
+                    :items="['Top', 'Bottom']"
+                    label="Layer"
+                    density="compact"
+                    variant="outlined"
+                    hide-details
+                    style="max-width: 130px"
+                    prepend-inner-icon="mdi-layers-outline"
+                  />
+                </div>
+              </v-card-title>
+
+              <v-card-text class="pa-4" style="height: calc(100vh - 75px)">
+                <v-row class="fill-height" spacing="4">
+                  <v-col cols="7" class="fill-height">
+                    <v-card
+                      variant="outlined"
+                      class="fill-height border-dashed rounded-lg overflow-hidden position-relative bg-grey-lighten-5"
                     >
                       <div
-                        style="
-                          position: absolute;
-                          top: 15px;
-                          right: 15px;
-                          z-index: 20;
+                        v-if="
+                          (currentGerberSvg || hasPcbImage) &&
+                          overlayMode !== 'pnp'
                         "
+                        class="fill-height"
                       >
-                        <v-btn
-                          prepend-icon="mdi-refresh"
-                          @click="resetsZoom"
-                          class="text-caption"
-                          color="error"
-                          variant="tonal"
+                        <div
+                          style="
+                            position: absolute;
+                            top: 16px;
+                            right: 16px;
+                            z-index: 20;
+                          "
                         >
-                          Reset Zoom
-                        </v-btn>
+                          <v-btn
+                            prepend-icon="mdi-refresh"
+                            @click="resetsZoom"
+                            class="text-none font-weight-medium elevation-2"
+                            color="error"
+                            variant="flat"
+                            size="small"
+                          >
+                            Reset Zoom
+                          </v-btn>
+                        </div>
+
+                        <div
+                          class="gerber-svg-container-full fill-height"
+                          ref="svgContainer"
+                          @mousemove="handleDragMove"
+                          @mousedown="handleDragStart"
+                          @mouseup="handleDragEnd"
+                          @mouseleave="handleDragEnd"
+                          @wheel.prevent="handleWheelZoom"
+                          :data-zoom-low="zoomLevel < 2"
+                          :class="{ 'is-dragging': isDragging }"
+                          :style="{
+                            cursor: isDragging ? 'grabbing' : 'grab',
+                            userSelect: 'none',
+                            position: 'relative',
+                          }"
+                        >
+                          <canvas
+                            ref="gerberCanvas"
+                            style="
+                              position: absolute;
+                              top: 0;
+                              left: 0;
+                              width: 100%;
+                              height: 100%;
+                              pointer-events: none;
+                            "
+                            :style="layerTransformStyle"
+                          ></canvas>
+
+                          <svg
+                            ref="svgWrapper"
+                            id="gerber-svg"
+                            class="svg-full-wrapper"
+                            style="
+                              position: absolute;
+                              top: 0;
+                              left: 0;
+                              width: 100%;
+                              height: 100%;
+                              pointer-events: none;
+                            "
+                            :style="layerTransformStyle"
+                          >
+                            <g
+                              class="pnp-markers-layer"
+                              v-memo="[pnpMarkersArray, allActiveHighlights]"
+                              :transform="pnpGroupFlipTransform"
+                            >
+                              <g
+                                v-for="marker in pnpMarkersArray"
+                                :key="marker.designator"
+                                class="pnp-marker"
+                                :data-designator="marker.designator"
+                                :transform="marker.transform"
+                                style="pointer-events: auto"
+                                @click="handleMarkerClick(marker)"
+                              >
+                                <rect
+                                  class="pnp-highlight-frame"
+                                  :x="-200"
+                                  :y="-200"
+                                  width="400"
+                                  height="400"
+                                  fill="none"
+                                  stroke="#D32F2F"
+                                  stroke-width="20"
+                                  :style="{
+                                    display:
+                                      selectedPnPGerber.includes(marker.id) ||
+                                      marker.designator ===
+                                        combinePnPGerber[currentIndex]
+                                          ?.designator
+                                        ? 'block'
+                                        : 'none',
+                                  }"
+                                />
+                                <rect
+                                  class="pnp-highlight-frame"
+                                  :x="-marker.rectL / 2 || -20"
+                                  :y="-marker.rectW / 2 || -20"
+                                  :width="marker.rectL || 40"
+                                  :height="marker.rectW || 40"
+                                  fill="red"
+                                  stroke="red"
+                                  :stroke-width="marker.strokeMain * 0.5"
+                                  style="display: none"
+                                />
+                                <polygon
+                                  points="0,0 -4, -2 -4, 2"
+                                  fill="#D32F2F"
+                                  :transform="`translate(${
+                                    marker.anchorSize + 1
+                                  }, 0) scale(${marker.strokeMain * 0.5})`"
+                                />
+                                <g
+                                  class="crosshair-group pnp-crosshair"
+                                  stroke="#D32F2F"
+                                  :stroke-width="marker.strokeMain"
+                                >
+                                  <line
+                                    :x1="-marker.anchorSize"
+                                    y1="0"
+                                    :x2="marker.anchorSize"
+                                    y2="0"
+                                  />
+                                  <line
+                                    x1="0"
+                                    :y1="-marker.anchorSize"
+                                    x2="0"
+                                    :y2="marker.anchorSize"
+                                  />
+                                </g>
+                                <text
+                                  class="pnp-label"
+                                  :x="marker.strokeMain"
+                                  :y="-marker.strokeMain"
+                                  :font-size="marker.fontSize"
+                                  fill="blue"
+                                  font-weight="bold"
+                                  style="
+                                    paint-order: stroke;
+                                    stroke: white;
+                                    user-select: none;
+                                  "
+                                  :stroke-width="marker.fontSize * 0.1 + 'px'"
+                                  :transform="marker.textTransform"
+                                >
+                                  {{ marker.designator }}
+                                </text>
+                              </g>
+                            </g>
+                          </svg>
+                        </div>
                       </div>
 
-                      <!-- Lớp Gerber (Canvas) -->
-                      <canvas
-                        ref="gerberCanvas"
-                        style="
-                          position: absolute;
-                          top: 0;
-                          left: 0;
-                          width: 100%;
-                          height: 100%;
-                          pointer-events: none;
+                      <v-empty-state
+                        v-slot
+                        v-if="
+                          overlayMode !== 'pnp' &&
+                          !currentGerberSvg &&
+                          !hasPcbImage
                         "
-                        :style="layerTransformStyle"
-                      ></canvas>
+                        title="Dữ liệu trống"
+                        text="Hệ thống chưa ghi nhận dữ liệu Gerber. Vui lòng nhập dữ liệu để bắt đầu."
+                        icon="mdi-file-cad"
+                        class="fill-height d-flex flex-column align-center justify-center text-grey-darken-1"
+                      />
+                    </v-card>
+                  </v-col>
 
-                      <!-- Lớp PnP (SVG Overlay) -->
-                      <svg
-                        ref="svgWrapper"
-                        id="gerber-svg"
-                        class="svg-full-wrapper"
-                        style="
-                          position: absolute;
-                          top: 0;
-                          left: 0;
-                          width: 100%;
-                          height: 100%;
-                          pointer-events: none;
-                        "
-                        :style="layerTransformStyle"
-                      >
-                        <g
-                          class="pnp-markers-layer"
-                          v-memo="[pnpMarkersArray, allActiveHighlights]"
-                          :transform="pnpGroupFlipTransform"
-                        >
-                          <g
-                            v-for="marker in pnpMarkersArray"
-                            :key="marker.designator"
-                            class="pnp-marker"
-                            :data-designator="marker.designator"
-                            :transform="marker.transform"
-                            style="pointer-events: auto"
-                            @click="handleMarkerClick(marker)"
-                          >
-                            <rect
-                              class="pnp-highlight-frame"
-                              :x="-marker.rectL / 2"
-                              :y="-marker.rectW / 2"
-                              :width="marker.rectL"
-                              :height="marker.rectW"
-                              fill="rgba(0, 128, 0, 0.4)"
-                              stroke="rgba(0, 128, 0, 1)"
-                              :stroke-width="marker.strokeMain * 0.5"
-                              style="display: none"
-                            />
-                            <polygon
-                              points="0,0 -8, -4 -8, 4"
-                              fill="#D32F2F"
-                              :transform="`translate(${
-                                marker.anchorSize + 1
-                              }, 0) scale(${marker.strokeMain * 0.5})`"
-                            />
-                            <g
-                              class="crosshair-group pnp-crosshair"
-                              stroke="#D32F2F"
-                              :stroke-width="marker.strokeMain"
-                            >
-                              <line
-                                :x1="-marker.anchorSize"
-                                y1="0"
-                                :x2="marker.anchorSize"
-                                y2="0"
-                              />
-                              <line
-                                x1="0"
-                                :y1="-marker.anchorSize"
-                                x2="0"
-                                :y2="marker.anchorSize"
-                              />
-                            </g>
-                            <text
-                              class="pnp-label"
-                              :x="marker.strokeMain"
-                              :y="-marker.strokeMain"
-                              :font-size="marker.fontSize"
-                              fill="blue"
-                              font-weight="bold"
-                              style="
-                                paint-order: stroke;
-                                stroke: white;
-                                user-select: none;
-                              "
-                              :stroke-width="marker.fontSize * 0.1 + 'px'"
-                              :transform="marker.textTransform"
-                            >
-                              {{ marker.designator }}
-                            </text>
-                          </g>
-                        </g>
-                      </svg>
-                    </div>
-                    <v-empty-state
-                      v-else
-                      title="Dữ liệu trống"
-                      text="Chưa có dữ liệu Gerber"
-                      icon="mdi-image-off"
-                      class="mt-10"
-                    />
-                  </v-card-text>
-                </v-col>
-                <v-col cols="5">
-                  <v-data-table-virtual
-                    density="comfortable"
-                    :headers="HeadersPnPGrouped"
-                    :items="combinePnPGerberGrouped"
-                    :search="searchPnPGrouped"
-                    v-model="selectedPnPGrouped"
-                    item-value="id"
-                    class="elevation-0"
-                    :loading="DialogLoading"
-                    loading-text="Đang tải dữ liệu..."
-                    no-data-text="Không có dữ liệu"
-                    no-results-text="Không tìm thấy kết quả"
-                    :hover="true"
-                    :fixed-header="true"
-                    height="56vh"
-                    show-select
-                  >
-                    <template
-                      v-slot:header.data-table-select="{
-                        allSelected,
-                        selectAll,
-                        someSelected,
-                      }"
+                  <v-col cols="5" class="fill-height d-flex flex-column g-3">
+                    <v-card
+                      variant="outlined"
+                      class="rounded-lg overflow-hidden flex-grow-1 mb-3"
                     >
-                      <v-checkbox-btn
-                        :indeterminate="someSelected && !allSelected"
-                        :model-value="allSelected"
-                        color="primary"
-                        @update:model-value="selectAll(!allSelected)"
-                      ></v-checkbox-btn>
-                    </template>
-
-                    <template
-                      v-slot:item.data-table-select="{
-                        internalItem,
-                        isSelected,
-                        toggleSelect,
-                      }"
-                    >
-                      <v-checkbox-btn
-                        :model-value="isSelected(internalItem)"
-                        color="primary"
-                        @update:model-value="toggleSelect(internalItem)"
-                      ></v-checkbox-btn>
-                    </template>
-                    <template v-slot:top>
                       <v-toolbar
                         flat
-                        class="d-flex align-center bg-transparent"
+                        class="px-3 border-b bg-transparent"
+                        height="64"
                       >
-                        <InputSearch v-model="searchPnPGrouped" />
-                        <v-spacer></v-spacer>
-                        <v-chip class="ma-2" color="primary" variant="tonal">
-                          Tổng cộng: {{ combinePnPGerberGrouped.length }} loại
-                          MPN
-                        </v-chip>
-                      </v-toolbar>
-                    </template>
+                        <InputSearch
+                          v-model="searchPnPGerber"
+                          class="flex-grow-1 me-3"
+                        />
 
-                    <template v-slot:item.designators="{ value }">
-                      <div
-                        class="text-caption text-truncate"
-                        style="max-width: 180px"
-                      >
-                        {{ value.join(", ") }}
-                      </div>
-                    </template>
+                        <v-divider vertical inset class="mx-2"></v-divider>
 
-                    <template v-slot:item.coordinates="{ value }">
-                      <div
-                        class="text-caption text-truncate"
-                        style="max-width: 180px"
-                      >
-                        {{ value.join("; ") }}
-                      </div>
-                    </template>
-
-                    <template v-slot:item.id="{ item }">
-                      <v-tooltip text="Hiển thị tất cả" location="top">
-                        <template v-slot:activator="{ props }">
+                        <div
+                          class="d-flex align-center bg-grey-lighten-4 rounded-pill px-2 py-1"
+                        >
                           <v-btn
-                            v-bind="props"
-                            size="small"
-                            icon="mdi-image-multiple"
-                            @click="GetZoomGroup(item)"
-                            color="success"
+                            icon="mdi-chevron-left"
                             variant="text"
+                            density="comfortable"
+                            color="primary"
+                            @click="navigatePnP('prev')"
+                            :disabled="!combinePnPGerber.length"
                           ></v-btn>
+
+                          <span
+                            class="text-caption font-weight-bold px-2 text-center"
+                            style="min-width: 75px"
+                          >
+                            {{ combinePnPGerber.length ? currentIndex + 1 : 0 }}
+                            / {{ combinePnPGerber.length }}
+                          </span>
+
+                          <v-btn
+                            icon="mdi-chevron-right"
+                            variant="text"
+                            density="comfortable"
+                            color="primary"
+                            @click="navigatePnP('next')"
+                            :disabled="!combinePnPGerber.length"
+                          ></v-btn>
+                        </div>
+                      </v-toolbar>
+
+                      <v-data-table-virtual
+                        density="compact"
+                        :headers="HeadersPnPGerber"
+                        :items="combinePnPGerber"
+                        :search="searchPnPGerber"
+                        v-model="selectedPnPGerber"
+                        item-value="id"
+                        :loading="DialogLoading"
+                        loading-text="Đang tải dữ liệu linh kiện..."
+                        no-data-text="Không có dữ liệu hiển thị"
+                        :hover="true"
+                        fixed-header
+                        height="calc(50vh - 80px)"
+                        show-select
+                      >
+                        <template
+                          v-slot:header.data-table-select="{
+                            allSelected,
+                            selectAll,
+                            someSelected,
+                          }"
+                        >
+                          <v-checkbox-btn
+                            :indeterminate="someSelected && !allSelected"
+                            :model-value="allSelected"
+                            color="primary"
+                            @update:model-value="selectAll(!allSelected)"
+                          ></v-checkbox-btn>
                         </template>
-                      </v-tooltip>
-                    </template>
-                  </v-data-table-virtual>
-                </v-col>
-              </v-row>
+
+                        <template
+                          v-slot:item.data-table-select="{
+                            internalItem,
+                            isSelected,
+                            toggleSelect,
+                          }"
+                        >
+                          <v-checkbox-btn
+                            :model-value="isSelected(internalItem)"
+                            color="primary"
+                            @update:model-value="toggleSelect(internalItem)"
+                          ></v-checkbox-btn>
+                        </template>
+
+                        <template v-slot:item.stt="{ index }">
+                          <span class="text-grey font-weight-medium">{{
+                            (pagePCBTopLayer - 1) * itemPerPCBTopLayer +
+                            index +
+                            1
+                          }}</span>
+                        </template>
+
+                        <template v-slot:item.x="{ item }"
+                          ><code>{{ item.x }}</code></template
+                        >
+                        <template v-slot:item.y="{ item }"
+                          ><code>{{ item.y }}</code></template
+                        >
+
+                        <template v-slot:item.id="{ item }">
+                          <div class="d-flex align-center justify-end">
+                            <v-tooltip
+                              text="Xem chi tiết trên bản vẽ"
+                              location="top"
+                            >
+                              <template v-slot:activator="{ props }">
+                                <v-btn
+                                  v-bind="props"
+                                  size="small"
+                                  icon="mdi-eye-outline"
+                                  @click="GetZoomPnP(item.id)"
+                                  color="primary"
+                                  variant="text"
+                                ></v-btn>
+                              </template>
+                            </v-tooltip>
+
+                            <v-menu transition="scale-transition">
+                              <template v-slot:activator="{ props }">
+                                <v-btn
+                                  v-bind="props"
+                                  icon="mdi-dots-vertical"
+                                  variant="text"
+                                  size="small"
+                                  color="grey-darken-1"
+                                ></v-btn>
+                              </template>
+                              <v-list
+                                density="compact"
+                                class="rounded-lg elevation-3 py-1"
+                              >
+                                <v-list-item
+                                  @click="GetAddSize(item)"
+                                  prepend-icon="mdi-ruler"
+                                  class="text-caption"
+                                >
+                                  <v-list-item-title
+                                    >Thêm kích thước</v-list-item-title
+                                  >
+                                </v-list-item>
+                                <v-list-item
+                                  @click="GetItemEdit(item)"
+                                  prepend-icon="mdi-pencil-outline"
+                                  class="text-caption"
+                                >
+                                  <v-list-item-title
+                                    >Chỉnh sửa thông tin</v-list-item-title
+                                  >
+                                </v-list-item>
+                                <v-divider class="my-1"></v-divider>
+                                <v-list-item
+                                  @click="getAccessToken(item)"
+                                  prepend-icon="mdi-tag-search-outline"
+                                  class="text-caption"
+                                  color="secondary"
+                                >
+                                  <v-list-item-title
+                                    >Tra cứu linh kiện</v-list-item-title
+                                  >
+                                </v-list-item>
+                              </v-list>
+                            </v-menu>
+                          </div>
+                        </template>
+                      </v-data-table-virtual>
+                    </v-card>
+
+                    <v-card
+                      variant="outlined"
+                      class="rounded-lg overflow-hidden d-flex flex-column align-center justify-center bg-grey-lighten-5"
+                      style="height: calc(50vh - 45px)"
+                    >
+                      <div
+                        v-if="dialogImageUrl"
+                        class="pa-3 fill-height w-100 d-flex align-center justify-center bg-white"
+                      >
+                        <div
+                          class="position-relative d-flex align-center justify-center"
+                          style="width: 100%; height: 100%"
+                        >
+                          <v-img
+                            :src="dialogImageUrl"
+                            max-width="100%"
+                            max-height="100%"
+                            aspect-ratio="1/1"
+                            class="rounded-lg elevation-1"
+                            alt="Component Preview"
+                          >
+                            <template v-slot:placeholder>
+                              <div
+                                class="d-flex align-center justify-center fill-height bg-grey-lighten-4"
+                              >
+                                <v-progress-circular
+                                  indeterminate
+                                  color="primary"
+                                ></v-progress-circular>
+                              </div>
+                            </template>
+                          </v-img>
+
+                          <div
+                            style="
+                              position: absolute;
+                              top: 50%;
+                              left: 50%;
+                              transform: translate(-50%, -50%);
+                              width: 100px;
+                              height: 100px;
+                              pointer-events: none;
+                              z-index: 10;
+                            "
+                          >
+                            <svg
+                              width="100"
+                              height="100"
+                              viewBox="0 0 100 100"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <line
+                                x1="0"
+                                y1="50"
+                                x2="100"
+                                y2="50"
+                                stroke="#D32F2F"
+                                stroke-width="2"
+                              />
+                              <line
+                                x1="50"
+                                y1="0"
+                                x2="50"
+                                y2="100"
+                                stroke="#D32F2F"
+                                stroke-width="2"
+                              />
+
+                              <circle cx="50" cy="50" r="2" fill="#D32F2F" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+
+                      <v-empty-state
+                        v-else
+                        title="Không có hình ảnh"
+                        text="Chọn hoặc xem chi tiết linh kiện để hiển thị ảnh thực tế."
+                        icon="mdi-image-off-outline"
+                        class="text-grey-darken-1"
+                      />
+                    </v-card>
+                  </v-col>
+                </v-row>
+              </v-card-text>
             </v-card>
           </v-tabs-window-item>
         </v-tabs-window>
@@ -1805,15 +1658,6 @@
     <v-divider class="my-3" />
     <p class="text-caption text-grey mb-2">4. Căn chỉnh thông minh & Tỉ lệ:</p>
 
-    <!-- <v-checkbox
-      v-model="useStandardScale"
-      label="Sử dụng tỉ lệ chuẩn (1 mil = 1 unit)"
-      density="compact"
-      hide-details
-      color="primary"
-      class="mb-2"
-    /> -->
-
     <div class="d-flex flex-wrap ga-2">
       <v-btn
         @click="autoAlignOverlay"
@@ -1822,7 +1666,9 @@
         size="small"
         prepend-icon="mdi-auto-fix"
         :disabled="
-          !currentGerberSvg || !filteredPnP || filteredPnP.length === 0
+          (!currentGerberSvg && !hasPcbImage) ||
+          !filteredPnP ||
+          filteredPnP.length === 0
         "
         class="text-caption"
         title="Tính toán delta đưa tâm linh kiện về tâm board"
@@ -1836,7 +1682,9 @@
         size="small"
         prepend-icon="mdi-ray-start-arrow"
         :disabled="
-          !currentGerberSvg || !filteredPnP || filteredPnP.length === 0
+          (!currentGerberSvg && !hasPcbImage) ||
+          !filteredPnP ||
+          filteredPnP.length === 0
         "
         class="text-caption"
         title="Đưa điểm thấp nhất của PnP về gốc tọa độ Gerber"
@@ -2181,22 +2029,6 @@
       <ButtonDelete @delete="RemoveImage()" />
     </template>
   </BaseDialog>
-  <!-- Image Enlargement Dialog -->
-  <BaseDialog
-    v-model="dialogOpen"
-    max-width="800px"
-    title="Hình ảnh chi tiết"
-    icon="mdi-image"
-  >
-    <v-card-text class="d-flex justify-center">
-      <v-img
-        :src="dialogImageUrl"
-        max-width="100%"
-        max-height="80vh"
-        contain
-      ></v-img>
-    </v-card-text>
-  </BaseDialog>
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarCaution v-model="DialogCaution" :message="MessageCautionDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
@@ -2508,6 +2340,10 @@ const accessToken = ref(null);
 const tokenType = ref(null);
 const ResultSearch = ref(null);
 
+// --- Diaglog Image States ---
+const dialogOpen = ref(false);
+const dialogImageUrl = ref("");
+
 // --- Table & Data States ---
 const Headers = [
   { title: "STT", key: "stt" },
@@ -2645,6 +2481,34 @@ const infoCreatedBy = ref("");
 // --- Zoom & ViewBox States ---
 /** ViewBox gốc của board – dùng để reset về toàn bộ board */
 const baseViewBox = ref({ x: 0, y: 0, w: 0, h: 0 });
+
+const hasPcbImage = ref(false);
+const pcbFileInput = ref(null);
+function handlePcbImageUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    _gerberImage = img;
+    _gerberImageW = img.width;
+    _gerberImageH = img.height;
+    _isGerberImageLoaded = true;
+    hasPcbImage.value = true;
+
+    if (!baseViewBox.value || baseViewBox.value.w === 0) {
+      baseViewBox.value = { x: 0, y: 0, w: img.width, h: img.height };
+      _currentViewBox.x = 0;
+      _currentViewBox.y = 0;
+      _currentViewBox.w = img.width;
+      _currentViewBox.h = img.height;
+    }
+
+    drawGerberOnCanvas();
+  };
+  img.src = url;
+}
 /**
  * ViewBox hiện tại – dùng plain object (KHÔNG phải reactive ref) để tránh
  * Vue re-render mỗi animation frame khi zoom/pan. Chỉ cập nhật DOM trực tiếp.
@@ -2898,9 +2762,17 @@ const transformedPnP = computed(() => {
 
 // --- PnP Markers Array for SVG Overlay ---
 const pnpMarkersArray = computed(() => {
-  if (!currentGerberSvg.value || !filteredPnP.value) return [];
+  if ((!currentGerberSvg.value && !hasPcbImage.value) || !filteredPnP.value)
+    return [];
 
-  const vb = getSvgViewBox(currentGerberSvg.value);
+  const vb = currentGerberSvg.value
+    ? getSvgViewBox(currentGerberSvg.value)
+    : {
+        minX: baseViewBox.value.x,
+        minY: baseViewBox.value.y,
+        width: baseViewBox.value.w,
+        height: baseViewBox.value.h,
+      };
   if (!vb) return [];
 
   const isBottom = String(selectedLayer.value || "")
@@ -4878,7 +4750,8 @@ function highlightComponents(designators) {
   highlightTimer = setTimeout(() => {
     temporaryHighlights.value = new Set();
     highlightTimer = null;
-  }, 3000);
+    openImage(null);
+  }, 60000);
 }
 
 /**
@@ -4989,8 +4862,41 @@ async function GetZoomPnP(componentId) {
 
   // 3. Thực hiện Zoom đến điểm (tx, ty) đã tính toán
   // ZOOM_IN_LEVEL ví dụ là 8 hoặc 10 tùy độ soi kỹ
-  await zoomToSvgPoint(tx, ty, 3);
+
+  // await zoomToSvgPoint(tx, ty, 3);
   highlightComponent(pnp.designator);
+
+  // 4. Crop hình ảnh tới vị trí crosshair và hiển thị
+  if (_gerberImage && _isGerberImageLoaded) {
+    const bvb = baseViewBox.value;
+    if (bvb && bvb.w > 0 && bvb.h > 0) {
+      const imgX = ((tx - bvb.x) / bvb.w) * _gerberImageW;
+      const imgY = ((ty - bvb.y) / bvb.h) * _gerberImageH;
+
+      const cropSize = 300; // kích thước vùng crop
+      const sx = imgX - cropSize / 2;
+      const sy = imgY - cropSize / 2;
+
+      const cropCanvas = document.createElement("canvas");
+      cropCanvas.width = cropSize;
+      cropCanvas.height = cropSize;
+      const ctx = cropCanvas.getContext("2d");
+      ctx.drawImage(
+        _gerberImage,
+        sx,
+        sy,
+        cropSize,
+        cropSize,
+        0,
+        0,
+        cropSize,
+        cropSize,
+      );
+
+      const croppedDataUrl = cropCanvas.toDataURL("image/png");
+      openImage(croppedDataUrl);
+    }
+  }
 }
 
 /**
@@ -5150,12 +5056,8 @@ const openRemoveImage = (img) => {
   DialogRemoveImage.value = true;
 };
 
-const dialogOpen = ref(false);
-const dialogImageUrl = ref("");
-
 function openImage(imageUrl) {
   dialogImageUrl.value = imageUrl;
-  dialogOpen.value = true;
 }
 </script>
 <script>
@@ -5575,5 +5477,22 @@ export default {
   right: -10px;
   z-index: 10;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+/* Thêm class hỗ trợ tối ưu layout UI */
+.border-bottom {
+  border-bottom: 1px solid #e0e0e0 !important;
+}
+.border-end {
+  border-right: 1px solid #e0e0e0 !important;
+}
+.max-width-search {
+  max-width: 240px;
+}
+.bg-black-opacity {
+  background: rgba(0, 0, 0, 0.6);
+}
+.text-neutral-light {
+  color: #757575;
 }
 </style>

@@ -37,6 +37,8 @@ const utc = require("dayjs/plugin/utc");
 const timezone = require("dayjs/plugin/timezone");
 const { nanoid } = require("nanoid");
 const deliveryChatRouter = require("./routes/AI/ai-project.js");
+const XLSX = require("xlsx");
+const ExcelJS = require("exceljs");
 
 // const {queryWithLangChain } = require("./Ollama-AI/queryEngine.js");
 // const queryMap = require("./Ollama-AI/queryMap")
@@ -186,6 +188,16 @@ const storageImageMPN = multer.diskStorage({
   },
 });
 
+const storageImageQC = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/qc"); // folder to save images
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = `${file.originalname}`;
+    cb(null, uniqueSuffix);
+  },
+});
+
 const upload = multer({
   storage: storage,
   limits: {
@@ -247,6 +259,22 @@ const uploadGerber = multer({
 
 const uploadImageMPN = multer({
   storage: storageImageMPN,
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedExt = [".png", ".jpg", ".jpeg", ".webp", ".heic"];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedExt.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Chỉ chấp nhận file png, jpg, jpeg, webp, heic"));
+    }
+  },
+});
+
+const uploadImageQC = multer({
+  storage: storageImageQC,
   limits: {
     fileSize: 100 * 1024 * 1024, // 100MB
   },
@@ -1108,9 +1136,6 @@ io.on("connection", (socket) => {
                             id,
                             PartNumber,
                             Status,
-                            Status_Fixed,
-                            RWID,
-                            GroupFail,
                             Quantity,
                             TimestampRW,
                             Note,
@@ -1544,6 +1569,21 @@ io.on("connection", (socket) => {
         socket.emit("SettingPCBError", error);
       }
     }),
+    socket.on("getFilterBomQC", async (id) => {
+      try {
+        const query = `SELECT 
+					            *,				
+                      created_at AS Created_at
+                      FROM FilterBomQC
+                      ORDER BY id DESC`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("FilterBomQCError", err);
+          socket.emit("FilterBomQCData", rows);
+        });
+      } catch (error) {
+        socket.emit("FilterBomQCError", error);
+      }
+    }),
     socket.on("getOrderTracking", async (id) => {
       try {
         const query = `SELECT 
@@ -1574,6 +1614,87 @@ io.on("connection", (socket) => {
         });
       } catch (error) {
         socket.emit("OrderTrackingError", error);
+      }
+    }),
+    socket.on("getCombineBomQC", async (id) => {
+      try {
+        const query = `WITH pm_match AS (
+                        SELECT 
+                            b.project_id,
+                            b.designator, 
+                            pm.package,
+                            pm.width,
+                            pm.length,
+                            pm.id,
+                            LENGTH(pm.package) AS match_len,
+                            ROW_NUMBER() OVER (
+                                PARTITION BY b.project_id, b.designator
+                                ORDER BY LENGTH(pm.package) DESC
+                            ) AS rn
+                        FROM BomQC b
+                        JOIN Components pm 
+                            ON UPPER(b.description) LIKE '%' || UPPER(pm.package) || '%'
+                    )
+
+                    SELECT 
+                        p.id,
+                        p.project_id,
+                        o.id AS id_components_overrides,
+                        pm.id AS id_component,
+                        p.designator,
+                        ROUND(p.x, 2) AS x,
+                        ROUND(p.y, 2) AS y,
+                        p.rotation, 
+                        p.layer,
+                        p.type,
+                        b.mpn,
+                        b.description AS description_bom,
+                        b.note,
+                        COALESCE(o.width, pm.width)  AS width,
+                        COALESCE(o.length, pm.length) AS length,
+                        pm.package AS package,
+
+                        -- SOURCE
+                        CASE
+                            WHEN o.mpn IS NOT NULL THEN 'override'
+                            WHEN pm.package IS NOT NULL THEN 'package_map'
+                            ELSE 'missing'
+                        END AS source
+
+                    FROM PickplaceQC p
+
+                    LEFT JOIN BomQC b
+                        ON p.designator = b.designator 
+                      AND p.project_id = b.project_id
+
+                    LEFT JOIN pm_match pm
+                        ON b.designator = pm.designator 
+                      AND b.project_id = pm.project_id 
+                      AND pm.rn = 1
+
+                    LEFT JOIN Component_overrides o
+                        ON b.mpn = o.mpn
+
+                    WHERE p.project_id = ?`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("CombineBomQCError", err);
+          socket.emit("CombineBomQCData", rows);
+        });
+      } catch (error) {
+        socket.emit("CombineBomQCError", error);
+      }
+    }),
+    socket.on("getSettingPCBQC", async (id) => {
+      try {
+        const query = `SELECT DISTINCT  *
+                      FROM SettingPCBQC
+                      WHERE project_id = ?`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("SettingPCBQCError", err);
+          socket.emit("SettingPCBQCData", rows);
+        });
+      } catch (error) {
+        socket.emit("SettingPCBQCError", error);
       }
     }),
     socket.on("getToDo", () => {
@@ -4895,7 +5016,7 @@ app.delete("/api/Summary/Delete-item/:id", async (req, res) => {
 
 // Bom , Pick&Place table
 
-// Post value in table Summary
+// Post value in table FilterBom
 app.post("/api/FilterBom/Add-item", function (req, res) {
   const { project_name, created_by, created_at, note } = req.body;
 
@@ -4936,29 +5057,20 @@ app.post("/api/FilterBom/Add-item", function (req, res) {
   );
 });
 
-// Put value in table Summary
+// Put value in table FilterBom
 app.put("/api/FilterBom/Edit-item/:id", (req, res) => {
   const { id } = req.params;
-  const { project_name, created_at, note } = req.body;
-  let Timestamps = null;
-  if (created_at) {
-    const dateObj = new Date(created_at); // ví dụ "2025-11-15"
-    if (!isNaN(dateObj.getTime())) {
-      Timestamps = Math.floor(dateObj.getTime() / 1000);
-    } else {
-      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
-    }
-  } else {
-    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
-  }
+  const { project_name, created_at, created_by, note } = req.body;
+  const Timestamps = formatDateLocal(created_at);
   db.run(
     `UPDATE FilterBom 
     SET 
       project_name = ?, 
-      created_at = ?, 
+      created_at = ?,
+      created_by = ?,
       note = ?
     WHERE id = ?`,
-    [project_name, Timestamps, note, id],
+    [project_name, Timestamps, created_by, note, id],
     (err) => {
       if (err) {
         console.error("Database error:", err);
@@ -4972,7 +5084,7 @@ app.put("/api/FilterBom/Edit-item/:id", (req, res) => {
   );
 });
 
-// Router delete item in Summary table
+// Router delete item in FilterBom table
 app.delete("/api/FilterBom/Delete-item/:id", async (req, res) => {
   const { id } = req.params;
   // Insert data into SQLite database
@@ -5188,8 +5300,7 @@ app.post(
     }
   },
 );
-const XLSX = require("xlsx");
-const ExcelJS = require("exceljs");
+
 // Router post item in Pick & Place table
 app.post(
   "/api/upload-pickplace/:id",
@@ -5266,6 +5377,9 @@ app.post(
 
       // --- 5️⃣ Emit chỉ sau khi DB insert hoàn tất
       io.emit("CombineBomUpdate", { project_id: id });
+      io.emit("BomHighlightUpdate", { project_id: id });
+      io.emit("RawBomHighlightUpdate", { project_id: id });
+      io.emit("MPNMountTypeUpdate", { project_id: id });
 
       // --- 6️⃣ Gửi phản hồi
       res.json({
@@ -5278,6 +5392,7 @@ app.post(
     }
   },
 );
+
 app.post(
   "/api/MPNMountType/Import-Bomlist/:id",
   uploadPnP.single("FileBomMountType"),
@@ -6173,6 +6288,34 @@ app.put("/api/PickPlace/Edit-offset/:id", (req, res) => {
   });
 });
 
+// Put item in PickPlace table
+app.put("/api/PickPlaceQC/Edit-offset/:id", (req, res) => {
+  const { id } = req.params;
+  const { offsetX, offsetY, layer } = req.body;
+
+  const ox = Number(offsetX) || 0;
+  const oy = Number(offsetY) || 0;
+
+  const query = `
+    UPDATE PickplaceQC
+    SET x = x + ?, y = y + ?
+    WHERE project_id = ? AND layer = ?
+  `;
+
+  db.run(query, [ox, oy, id, layer], function (err) {
+    if (err) {
+      return res.status(500).json({ error: "Update failed" });
+    }
+
+    res.json({
+      success: true,
+      updatedRows: this.changes,
+    });
+    io.emit("CombineBomQCUpdate");
+    io.emit("PnPFileQCUpdate");
+  });
+});
+
 // Post item in Component overrides
 app.post("/api/Component-overrides/Add-item", (req, res) => {
   const { mpn, package, length, width } = req.body;
@@ -6254,6 +6397,306 @@ app.put("/api/Component/Edit-item/:id", (req, res) => {
   );
 });
 
+// Post value in table FilterBomQC
+app.post("/api/FilterBomQC/Add-item", function (req, res) {
+  const { project_name, created_by, created_at, note } = req.body;
+  const Timestamps = formatDateLocal(created_at);
+  db.run(
+    `INSERT INTO FilterBomQC (project_name, created_by, created_at, note)
+     VALUES (?, ?, ?, ?)`,
+    [project_name, created_by, Timestamps, note],
+    function (err) {
+      if (err) {
+        console.error("Database error:", err);
+        return res.status(500).json({
+          error: "Database error",
+          details: err.message,
+        });
+      }
+
+      const insertedId = this.lastID; // 🔥 QUAN TRỌNG
+
+      io.emit("UpdateFilterBomQC");
+
+      res.json({
+        message: "Filter BomQC received",
+        id: insertedId, // 👈 trả về id
+      });
+    },
+  );
+});
+
+// Put value in table FilterBomQC
+app.put("/api/FilterBomQC/Edit-item/:id", (req, res) => {
+  const { id } = req.params;
+  const { project_name, created_at, created_by, note } = req.body;
+  const Timestamps = formatDateLocal(created_at);
+  db.run(
+    `UPDATE FilterBom 
+    SET 
+      project_name = ?, 
+      created_at = ?, 
+      created_by = ?,
+      note = ?
+    WHERE id = ?`,
+    [project_name, Timestamps, created_by, note, id],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("UpdateFilterBom");
+      res.json({ message: "Summary received" });
+    },
+  );
+});
+
+// Router delete item in FilterBomQC table
+app.delete("/api/FilterBomQC/Delete-item/:id", async (req, res) => {
+  const { id } = req.params;
+  // Insert data into SQLite database
+  const query = `
+    DELETE FROM FilterBomQC WHERE id = ?
+  `;
+  db.run(query, [id], function (err) {
+    if (err) {
+      return res
+        .status(500)
+        .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
+    }
+    io.emit("UpdateFilterBomQC");
+    res.json({ message: "Đã xoá dữ liệu BomQC thành công" });
+  });
+});
+
+// Post value in table SettingPCB QC
+app.post("/api/SettingPCBQC/Add-item", (req, res) => {
+  const { project_id } = req.body;
+
+  db.run(
+    `INSERT INTO SettingPCBQC (
+        project_id,
+        width,
+        height,
+        image
+     )
+     VALUES (?, 0, 0, '')`,
+    [project_id],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res.status(500).json({
+          error: "Database error",
+          details: err.message,
+        });
+      }
+
+      io.emit("SettingPCBUpdate");
+
+      res.json({ message: "SettingPCB created" });
+    },
+  );
+});
+
+// Put value in table SettingPCB QC table
+app.put(
+  "/api/SettingPCB-QC/Edit-item/:id",
+  uploadImageQC.single("image"),
+  (req, res) => {
+    const { id } = req.params;
+    const { width, height } = req.body;
+
+    // Tên file sau khi upload
+    const image = req.file ? `uploads/qc/${req.file.filename}` : null;
+
+    db.run(
+      `UPDATE SettingPCBQC
+       SET width = ?,
+           height = ?,
+           image = ?
+       WHERE project_id = ?`,
+      [width, height, image, id],
+      (err) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({
+            error: "Database error",
+            details: err.message,
+          });
+        }
+
+        io.emit("SettingPCBUpdate");
+        io.emit("CombineBomQCUpdate");
+
+        res.json({
+          success: true,
+          image,
+        });
+      },
+    );
+  },
+);
+
+// Upload xlsx to BOM QC table
+app.post(
+  "/api/upload-bom-qc/:project_id",
+  uploadPnP.single("FileBom"),
+  async (req, res) => {
+    const projectId = req.params.project_id;
+    const filePath = path.join(__dirname, req.file.path);
+
+    try {
+      const workbook = xlsx.readFile(filePath);
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = xlsx.utils.sheet_to_json(sheet);
+
+      db.serialize(() => {
+        const stmtBom = db.prepare(`
+          INSERT INTO BomQC (description, mpn, designator, quantity, project_id, note)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `);
+
+        const insertedRefs = new Set();
+
+        rows.forEach((row) => {
+          const refs = String(row["Reference(s)"] || row["Designator"] || "")
+            .split(",")
+            .map((r) => r.trim())
+            .filter((r) => r.length > 0);
+
+          refs.forEach((ref) => {
+            if (!insertedRefs.has(ref)) {
+              let mpnValue = row.MPN || row.Comment || "";
+              mpnValue = String(mpnValue)
+                .replace(/\s+/g, "")
+                .replace(/,/g, ".");
+
+              stmtBom.run(
+                row.Description || "",
+                mpnValue,
+                ref,
+                1,
+                projectId,
+                row.note || row.Note || row.notes || row.Notes || "",
+              );
+              insertedRefs.add(ref);
+            }
+          });
+        });
+
+        // Chỉ trả về response thành công SAU KHI finalize xong hoàn toàn
+        stmtBom.finalize((err) => {
+          // Xóa file tạm sau khi xong việc (Nên làm)
+          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+          if (err) {
+            console.error(err);
+            return res.status(500).json({ error: "Finalize BOM lỗi" });
+          }
+
+          // --- THÊM DÒNG NÀY ĐỂ BÁO CHO FRONTEND ---
+          return res.status(200).json({ message: "Upload BOM thành công" });
+        });
+      });
+    } catch (err) {
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath); // Xóa file nếu lỗi nửa chừng
+      console.error(err);
+      res.status(500).json({ error: "Lỗi xử lý file BOM" });
+    }
+  },
+);
+
+// Router post item in Pick & Place QC table
+app.post(
+  "/api/upload-pickplace-qc/:id",
+  uploadPnP.single("FilePnP"),
+  async (req, res) => {
+    const { id } = req.params;
+
+    try {
+      const ppFile = req.file;
+      if (!ppFile) {
+        return res.status(400).json({ error: "Thiếu file Pick&Place" });
+      }
+
+      // --- 1️⃣ Đọc file Excel
+      const workbook = xlsx.readFile(ppFile.path);
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const ppData = xlsx.utils.sheet_to_json(sheet, {
+        defval: "",
+        raw: false,
+        blankrows: false,
+      });
+
+      // --- 2️⃣ Chuyển đổi và lọc dữ liệu
+      const uniqueRows = [];
+      const seenRefs = new Set();
+      for (const row of ppData) {
+        const designator = (row.Ref || row.Designator)?.trim();
+        if (!designator || seenRefs.has(designator)) continue;
+        seenRefs.add(designator);
+
+        uniqueRows.push({
+          designator,
+          layer: row.Side || row.Layer || "" || row.side || row.layer,
+          posX: parseFloat(row.PosX || 0 || row.posx || row.X || row.x),
+          posY: parseFloat(row.PosY || 0 || row.posy || row.Y || row.y),
+          rotation: parseFloat(
+            row.Rotation || 0 || row.rotation || row.R || row.r,
+          ),
+          project_id: id,
+          note: row.note || "",
+        });
+      }
+
+      // --- 3️⃣ Chèn dữ liệu vào SQLite và CHỜ hoàn tất
+      await new Promise((resolve, reject) => {
+        db.serialize(() => {
+          const stmt = db.prepare(`
+          INSERT INTO PickplaceQC (designator, layer, x, y, rotation, project_id, type, note)
+          VALUES (?, ?, ?, ?, ?, ?, 'SMT', ?)
+        `);
+
+          for (const r of uniqueRows) {
+            stmt.run(
+              r.designator,
+              r.layer,
+              r.posX,
+              r.posY,
+              r.rotation,
+              r.project_id,
+              r.note,
+            );
+          }
+
+          stmt.finalize((err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      });
+
+      // --- 4️⃣ Xóa file tạm
+      fs.unlinkSync(ppFile.path);
+
+      // --- 5️⃣ Emit chỉ sau khi DB insert hoàn tất
+      io.emit("CombineBomQCUpdate", { project_id: id });
+
+      // --- 6️⃣ Gửi phản hồi
+      res.json({
+        message: "Pick&Place đã upload & lưu thành công (Excel, mils → mm)",
+        inserted: uniqueRows.length,
+      });
+    } catch (error) {
+      console.error("Lỗi xử lý Pick&Place:", error);
+      res.status(500).json({ error: "Lỗi xử lý file Pick&Place (Excel)" });
+    }
+  },
+);
+
 // Post item in To Do
 app.post("/api/To-Do/Add-item", (req, res) => {
   const { department, title, description, status, creater, createdAt } =
@@ -6289,6 +6732,60 @@ app.post("/api/To-Do/Add-item", (req, res) => {
       }
       io.emit("updateToDo");
       res.json({ message: "To Do received" });
+    },
+  );
+});
+
+// Delete all item in PickPlaceQC table
+app.delete("/api/PickPlaceQC/Delete-item/:id", (req, res) => {
+  const { id } = req.params;
+  db.run(`DELETE FROM PickplaceQC WHERE project_id = ?`, [id], (err) => {
+    if (err) {
+      console.error("Database error:", err);
+      return res
+        .status(500)
+        .json({ error: "Database error", details: err.message });
+    }
+    io.emit("CombineBomQCUpdate");
+    res.json({ message: "Summary received" });
+  });
+});
+
+// Delete all item in BomQC table
+app.delete("/api/BomQC/Delete-item/:id", (req, res) => {
+  const { id } = req.params;
+  db.run(`DELETE FROM BomQC WHERE project_id = ?`, [id], (err) => {
+    if (err) {
+      console.error("Database error:", err);
+      return res
+        .status(500)
+        .json({ error: "Database error", details: err.message });
+    }
+    io.emit("CombineBomQCUpdate");
+    res.json({ message: "Summary received" });
+  });
+});
+
+// Delete all item in SettingPCB-QC table
+app.put("/api/SettingPCB-QC/Delete-item/:id", (req, res) => {
+  const { id } = req.params;
+  db.run(
+    `UPDATE SettingPCBQC 
+      SET 
+      width = 0, 
+      height = 0,
+      image = ''
+      WHERE project_id = ?`,
+    [id],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("SettingPCBQCUpdate");
+      res.json({ message: "Summary received" });
     },
   );
 });

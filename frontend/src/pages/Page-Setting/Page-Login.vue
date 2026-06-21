@@ -5,16 +5,25 @@
       <v-col cols="12" md="7" class="d-none d-md-flex">
         <div class="login-image-container">
           <div class="animated-bg"></div>
-          
+
           <div class="login-image-overlay">
             <div class="brand-section mb-12">
               <!-- Logo -->
               <div class="logo-container mb-6">
-                <v-img src="@/assets/avatar-ST.jpg" width="120" height="120" class="logo-animate mx-auto"></v-img>
+                <v-img
+                  src="@/assets/avatar-ST.jpg"
+                  width="120"
+                  height="120"
+                  class="logo-animate mx-auto"
+                ></v-img>
               </div>
-              
-              <h2 class="text-h3 font-weight-700 text-white mb-3 brand-text">SUPER TEC ERP</h2>
-              <p class="text-h6 text-white opacity-90">Giải pháp quản lý doanh nghiệp toàn diện</p>
+
+              <h2 class="text-h3 font-weight-700 text-white mb-3 brand-text">
+                SUPER TEC ERP
+              </h2>
+              <p class="text-h6 text-white opacity-90">
+                Giải pháp quản lý doanh nghiệp toàn diện
+              </p>
             </div>
 
             <!-- Features Grid -->
@@ -25,7 +34,9 @@
                 </div>
                 <div class="feature-text text-left">
                   <p class="font-weight-600 text-white">Hiệu năng cao</p>
-                  <p class="text-caption text-white opacity-75">Xử lý dữ liệu nhanh chóng</p>
+                  <p class="text-caption text-white opacity-75">
+                    Xử lý dữ liệu nhanh chóng
+                  </p>
                 </div>
               </div>
 
@@ -35,7 +46,9 @@
                 </div>
                 <div class="feature-text text-left">
                   <p class="font-weight-600 text-white">Bảo mật</p>
-                  <p class="text-caption text-white opacity-75">Mã hóa dữ liệu đầu cuối</p>
+                  <p class="text-caption text-white opacity-75">
+                    Mã hóa dữ liệu đầu cuối
+                  </p>
                 </div>
               </div>
 
@@ -45,7 +58,9 @@
                 </div>
                 <div class="feature-text text-left">
                   <p class="font-weight-600 text-white">Phân tích dữ liệu</p>
-                  <p class="text-caption text-white opacity-75">Báo cáo chi tiết realtime</p>
+                  <p class="text-caption text-white opacity-75">
+                    Báo cáo chi tiết realtime
+                  </p>
                 </div>
               </div>
 
@@ -55,7 +70,9 @@
                 </div>
                 <div class="feature-text text-left">
                   <p class="font-weight-600 text-white">Đồng bộ dữ liệu</p>
-                  <p class="text-caption text-white opacity-75">Cập nhật thời gian thực</p>
+                  <p class="text-caption text-white opacity-75">
+                    Cập nhật thời gian thực
+                  </p>
                 </div>
               </div>
             </div>
@@ -64,12 +81,16 @@
       </v-col>
 
       <!-- Right Section - Login Form -->
-      <v-col cols="12" md="5" class="d-flex align-center justify-center pa-4 pa-md-8">
-        <v-card 
-          class="login-card rounded-xl" 
+      <v-col
+        cols="12"
+        md="5"
+        class="d-flex align-center justify-center pa-4 pa-md-8"
+      >
+        <v-card
+          class="login-card rounded-xl"
           :elevation="mdAndDown ? 0 : 6"
-          rounded="2xl" 
-          width="100%" 
+          rounded="2xl"
+          width="100%"
           max-width="450"
         >
           <!-- Header with Logo -->
@@ -86,7 +107,9 @@
           <!-- Main Title -->
           <v-card-text class="pa-8 pb-4">
             <h2 class="text-h4 font-weight-700 mb-1">Đăng Nhập</h2>
-            <p class="text-subtitle-2 text-medium-emphasis">Truy cập hệ thống quản lý của bạn</p>
+            <p class="text-subtitle-2 text-medium-emphasis">
+              Truy cập hệ thống quản lý của bạn
+            </p>
           </v-card-text>
 
           <v-divider class="mx-8"></v-divider>
@@ -96,7 +119,9 @@
             <v-form @submit.prevent="login" class="mt-4">
               <!-- Username Field -->
               <div class="mb-4">
-                <label class="text-subtitle-2 font-weight-600 d-block mb-2">Tên đăng nhập</label>
+                <label class="text-subtitle-2 font-weight-600 d-block mb-2"
+                  >Tên đăng nhập</label
+                >
                 <InputField
                   v-model="Username"
                   placeholder="Nhập tên đăng nhập"
@@ -120,7 +145,9 @@
                   :type="showPassword ? 'text' : 'password'"
                   placeholder="Nhập mật khẩu"
                   prepend-inner-icon="mdi-lock-outline"
-                  :append-inner-icon="showPassword ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
+                  :append-inner-icon="
+                    showPassword ? 'mdi-eye-off-outline' : 'mdi-eye-outline'
+                  "
                   @click:append-inner="showPassword = !showPassword"
                   variant="outlined"
                   density="comfortable"
@@ -161,13 +188,15 @@
                 <template v-slot:prepend v-if="!DialogLoading">
                   <v-icon>mdi-login</v-icon>
                 </template>
-                {{ DialogLoading ? 'Đang xử lý...' : 'Đăng Nhập' }}
+                {{ DialogLoading ? "Đang xử lý..." : "Đăng Nhập" }}
               </v-btn>
             </v-form>
           </v-card-text>
 
           <!-- Footer -->
-          <v-card-text class="pa-8 pt-0 text-center text-caption text-medium-emphasis">
+          <v-card-text
+            class="pa-8 pt-0 text-center text-caption text-medium-emphasis"
+          >
             © 2025 SUPER TEC ERP. All rights reserved.
           </v-card-text>
         </v-card>
@@ -183,9 +212,9 @@ import { ref } from "vue";
 import { useRouter } from "vue-router";
 import InputField from "@/components/Input-Field.vue";
 import Loading from "@/components/Loading.vue";
-import { useDisplay } from 'vuetify'
+import { useDisplay } from "vuetify";
 
-const { mdAndDown } = useDisplay()
+const { mdAndDown } = useDisplay();
 
 const router = useRouter();
 const Url = import.meta.env.VITE_API_URL;
@@ -217,7 +246,8 @@ const login = async () => {
     }
     FetchUser();
   } catch (err) {
-    TextError.value = err.response?.data?.error || "Đăng nhập thất bại. Vui lòng thử lại.";
+    TextError.value =
+      err.response?.data?.error || "Đăng nhập thất bại. Vui lòng thử lại.";
     DialogLoading.value = false;
   }
 };
@@ -227,17 +257,21 @@ const FetchUser = async () => {
     const res = await fetch(`${Url}/All-Users/${Username.value}`);
     const Detail_User = await res.json();
     const LevelUser = Detail_User[0].Level;
-    
+
     const routes = {
-      "Admin": { path: "/Kiem-tra-so-lieu", title: "Kiểm tra số liệu" },
+      Admin: { path: "/Kiem-tra-so-lieu", title: "Kiểm tra số liệu" },
       "Kế hoạch": { path: "/Kiem-tra-so-lieu", title: "Kiểm tra số liệu" },
       "Quản lý": { path: "/Kiem-tra-so-lieu", title: "Kiểm tra số liệu" },
       "Kinh doanh": { path: "/Ton-kho", title: "Tồn kho" },
       "Thủ kho": { path: "/Ton-kho", title: "Tồn kho" },
       "Quản lý kinh doanh": { path: "/Ton-kho", title: "Tồn kho" },
-      "Nhân viên": { path: "/Danh-sach-cong-viec", title: "Danh sách công việc" },
+      "Nhân viên": {
+        path: "/Danh-sach-cong-viec",
+        title: "Danh sách công việc",
+      },
       "Quản lý sản xuất": { path: "/San-xuat", title: "Sản xuất" },
       "Quản lý bảo trì": { path: "/Danh-sach-pnp", title: "Danh sách PnP" },
+      "Quản lý QC": { path: "/Kiem-tra-pnp-qc", title: "Kiểm tra PnP QC" },
     };
 
     const route = routes[LevelUser] || { path: "/", title: "Kiểm tra số liệu" };
@@ -261,7 +295,7 @@ const FetchUser = async () => {
   position: relative;
   width: 100%;
   overflow: hidden;
-  background: linear-gradient(135deg, #A52A2A 0%, #D2691E 50%, #FF9500 100%);
+  background: linear-gradient(135deg, #a52a2a 0%, #d2691e 50%, #ff9500 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -271,7 +305,11 @@ const FetchUser = async () => {
   position: absolute;
   width: 400px;
   height: 400px;
-  background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.1) 1px,
+    transparent 1px
+  );
   background-size: 50px 50px;
   animation: moveBackground 20s linear infinite;
   top: -50%;
@@ -279,8 +317,12 @@ const FetchUser = async () => {
 }
 
 @keyframes moveBackground {
-  0% { transform: translate(0, 0); }
-  100% { transform: translate(50px, 50px); }
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(50px, 50px);
+  }
 }
 
 .login-image-overlay {
@@ -330,10 +372,18 @@ const FetchUser = async () => {
   opacity: 0;
 }
 
-.feature-item:nth-child(1) { animation-delay: 0.2s; }
-.feature-item:nth-child(2) { animation-delay: 0.3s; }
-.feature-item:nth-child(3) { animation-delay: 0.4s; }
-.feature-item:nth-child(4) { animation-delay: 0.5s; }
+.feature-item:nth-child(1) {
+  animation-delay: 0.2s;
+}
+.feature-item:nth-child(2) {
+  animation-delay: 0.3s;
+}
+.feature-item:nth-child(3) {
+  animation-delay: 0.4s;
+}
+.feature-item:nth-child(4) {
+  animation-delay: 0.5s;
+}
 
 .feature-item:hover {
   background: rgba(255, 255, 255, 0.15);
@@ -360,7 +410,7 @@ const FetchUser = async () => {
 }
 
 .card-header {
-  background: linear-gradient(135deg, #A52A2A 0%, #D2691E 50%, #FF9500 100%);
+  background: linear-gradient(135deg, #a52a2a 0%, #d2691e 50%, #ff9500 100%);
   color: white;
   border-radius: 2xl 2xl 0 0;
   position: relative;
@@ -368,13 +418,18 @@ const FetchUser = async () => {
 }
 
 .card-header::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: -50%;
   width: 200%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
   animation: shimmer 3s infinite;
 }
 
@@ -389,23 +444,32 @@ const FetchUser = async () => {
 }
 
 .btn-login {
-  background: linear-gradient(135deg, #A52A2A 0%, #D2691E 100%);
+  background: linear-gradient(135deg, #a52a2a 0%, #d2691e 100%);
   color: white;
 }
 
 .btn-login:hover {
-  background: linear-gradient(135deg, #8B2222 0%, #CD6600 100%);
+  background: linear-gradient(135deg, #8b2222 0%, #cd6600 100%);
   transform: translateY(-2px);
 }
 
 @keyframes shimmer {
-  0% { left: -50%; }
-  100% { left: 100%; }
+  0% {
+    left: -50%;
+  }
+  100% {
+    left: 100%;
+  }
 }
 
 @keyframes pulse-rotate {
-  0%, 100% { transform: scale(1) rotateZ(0deg); }
-  50% { transform: scale(1.05) rotateZ(2deg); }
+  0%,
+  100% {
+    transform: scale(1) rotateZ(0deg);
+  }
+  50% {
+    transform: scale(1.05) rotateZ(2deg);
+  }
 }
 
 @keyframes slideInUp {
@@ -442,8 +506,13 @@ const FetchUser = async () => {
 }
 
 @keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 :deep(.custom-input .v-field) {
@@ -458,7 +527,7 @@ const FetchUser = async () => {
 }
 
 :deep(.custom-input .v-field.v-field--focused) {
-  border-color: #A52A2A;
+  border-color: #a52a2a;
   background-color: rgba(165, 42, 42, 0.05);
   box-shadow: 0 0 0 3px rgba(165, 42, 42, 0.1);
 }
@@ -493,7 +562,7 @@ const FetchUser = async () => {
   }
 
   .card-header {
-    background: linear-gradient(135deg, #A52A2A 0%, #D2691E 50%, #FF9500 100%);
+    background: linear-gradient(135deg, #a52a2a 0%, #d2691e 50%, #ff9500 100%);
     padding: 2rem;
   }
 }

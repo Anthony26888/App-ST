@@ -1,9 +1,5 @@
 <template lang="">
-  <v-snackbar
-    v-model="visible"
-    :timeout="timeout"
-    color="red"
-  >
+  <v-snackbar v-model="visible" :timeout="timeout" color="red">
     <v-icon>mdi-close-circle</v-icon>
     {{ message }}
   </v-snackbar>
@@ -18,7 +14,7 @@ const props = defineProps({
   },
   timeout: {
     type: Number,
-    default: 3000,
+    default: 7000,
   },
 });
 const emit = defineEmits(["update:modelValue"]);

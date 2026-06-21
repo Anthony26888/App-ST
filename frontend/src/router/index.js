@@ -1,22 +1,22 @@
 // Composables
 import { createRouter, createWebHistory } from "vue-router";
-import App from "@/layouts/default.vue"
-import Login from "@/layouts/login.vue"
-import PageCheck from "@/pages/Page-Check/Page-Check.vue"
+import App from "@/layouts/default.vue";
+import Login from "@/layouts/login.vue";
+import PageCheck from "@/pages/Page-Check/Page-Check.vue";
 import PageListProject from "@/pages/Page-Check/Page-List-Project.vue";
-import PageCheckPnP from "@/pages/Page-Check/Page-Check-PnP.vue"
+import PageCheckPnP from "@/pages/Page-Check/Page-Check-PnP.vue";
 import PageWareHouse from "@/pages/Page-Warehouse/Page-WareHouse.vue";
 import PageWareHouse2 from "@/pages/Page-Warehouse/Page-WareHouse-2.vue";
 import PageOrders from "@/pages/Page-Orders/Page-Orders.vue";
 import PageSetting from "@/pages/Page-Setting/Page-Setting.vue";
 import PageLogin from "@/pages/Page-Setting/Page-Login.vue";
-import PageUsers from "@/pages/Page-Setting/Page-Users.vue"
+import PageUsers from "@/pages/Page-Setting/Page-Users.vue";
 import PageReg from "@/pages/Page-Setting/Page-Reg.vue";
 import PageEditBom from "@/pages/Page-Check/Page-EditBom.vue";
 import PageDetailOrders from "@/pages/Page-Orders/Page-DetailOrders.vue";
 import PageProject from "@/pages/Page-Project/Page-Project.vue";
 import PageProjectDetail from "@/pages/Page-Project/Page-DetailProject.vue";
-import PagePODetail from "@/pages/Page-Project/Page-DetailProjectPO.vue"
+import PagePODetail from "@/pages/Page-Project/Page-DetailProjectPO.vue";
 import PageMaintenance from "@/pages/Page-Maintaince/Page-Maintenance.vue";
 import PageDetailMaintenance from "@/pages/Page-Maintaince/Page-DetailMaintenance.vue";
 import PageMaintenanceSchedule from "@/pages/Page-Maintaince/Page-MaintenanceSchedule.vue";
@@ -24,12 +24,14 @@ import PageSparePartUsage from "@/pages/Page-Maintaince/Page-SparePartUsage.vue"
 import PagePlanProduct from "@/pages/Page-Manufacture/Page-Manufacture.vue";
 import PageDetailManufacture from "@/pages/Page-Manufacture/Page-DetailManufacture.vue";
 import PageDetailSMT from "@/pages/Page-Manufacture/Page-DetailSMT.vue";
-import PageSummary from "@/pages/Page-Summary/Page-Summary.vue"
+import PageSummary from "@/pages/Page-Summary/Page-Summary.vue";
 import PageListWork from "@/pages/Page-Manufacture/Page-ListWork.vue";
-import PageAI from "@/pages/Page-AI-Chatbox/Page-AI.vue"
-import PageDetailCounting from "@/pages/Page-Manufacture/Page-Detail-Couting.vue"
-import PageDetailRW from "@/pages/Page-Manufacture/Page-DetailRW.vue"
-import PageToDo from "@/pages/Page-To-Do/Page-To-Do.vue"
+import PageAI from "@/pages/Page-AI-Chatbox/Page-AI.vue";
+import PageDetailCounting from "@/pages/Page-Manufacture/Page-Detail-Couting.vue";
+import PageDetailRW from "@/pages/Page-Manufacture/Page-DetailRW.vue";
+import PageToDo from "@/pages/Page-To-Do/Page-To-Do.vue";
+import PageListProjectQC from "@/pages/Page-Check-QC/Page-List-Project-QC.vue";
+import PageCheckQC from "@/pages/Page-Check-QC/Page-Check-QC.vue";
 
 const routes = [
   {
@@ -77,6 +79,18 @@ const routes = [
         name: "CheckPnP",
         meta: { requiresAuth: true },
         component: PageCheckPnP,
+      },
+      {
+        path: "/Danh-sach-pnp-qc",
+        name: "ListPnPQC",
+        meta: { requiresAuth: true },
+        component: PageListProjectQC,
+      },
+      {
+        path: "/Kiem-tra-pnp-qc/:id",
+        name: "CheckPnPQC",
+        meta: { requiresAuth: true },
+        component: PageCheckQC,
       },
       {
         path: "/Ton-kho",
@@ -207,11 +221,10 @@ const routes = [
       {
         path: "",
         component: PageLogin,
-      }
-    ]
+      },
+    ],
   },
-  
-]
+];
 
 const router = createRouter({
   history: createWebHistory(),

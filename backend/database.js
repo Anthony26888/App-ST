@@ -194,10 +194,10 @@ db.serialize(() => {
       UNIQUE(notification_id)
     )
   `);
-// XÓA VIEW CŨ
+  // XÓA VIEW CŨ
   db.run(`DROP VIEW IF EXISTS vw_NotificationDelivery`);
 
-    // TẠO VIEW - CHỈ THÔNG BÁO KHI SẮP ĐẾN HẠN (3-2-1-0 NGÀY)
+  // TẠO VIEW - CHỈ THÔNG BÁO KHI SẮP ĐẾN HẠN (3-2-1-0 NGÀY)
   db.run(`
       CREATE VIEW vw_NotificationDelivery AS
       SELECT 
@@ -332,23 +332,6 @@ db.serialize(() => {
   `);
 
   db.run(`
-    CREATE TABLE IF NOT EXISTS ManufactureSMT (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      HistoryID INTEGER NOT NULL,
-      PartNumber INTEGER NOT NULL,
-      Timestamp TEXT NOT NULL,
-      RWID TEXT,
-      TimestampRW TEXT,
-      Status TEXT,
-      PlanID INTEGER,
-      Note TEXT,
-      Source TEXT,
-      FOREIGN KEY (HistoryID) REFERENCES Summary(id) ON DELETE CASCADE
-      FOREIGN KEY (PlanID) REFERENCES PlanManufacture(id) ON DELETE CASCADE
-    )
-  `);
-
-  db.run(`
     CREATE TABLE IF NOT EXISTS ManufactureCounting (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       HistoryID INTEGER NOT NULL,
@@ -393,6 +376,7 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       project_name TEXT,
       created_at TEXT,
+      created_by TEXT,
       note TEXT
     )
   `);
@@ -426,6 +410,7 @@ db.serialize(() => {
       FOREIGN KEY (project_id) REFERENCES FilterBom(id) ON DELETE CASCADE
     )
   `);
+
   db.run(`
     CREATE TABLE IF NOT EXISTS BomHighlight (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -491,7 +476,7 @@ db.serialize(() => {
       length REAL   
     )
   `);
-  
+
   db.run(`
     CREATE TABLE IF NOT EXISTS Component_overrides (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -502,6 +487,58 @@ db.serialize(() => {
     );
   `);
 
+  // Bảng FilterBom QC
+  db.run(`
+    CREATE TABLE IF NOT EXISTS FilterBomQC (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_name TEXT,
+      created_at TEXT,
+      created_by TEXT,
+      note TEXT
+    )
+  `);
+
+  // Bảng Bom QC
+  db.run(`
+    CREATE TABLE IF NOT EXISTS BomQC (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      description TEXT,
+      mpn TEXT,
+      designator TEXT,
+      quantity INTEGER,
+      project_id INTEGER,
+      note TEXT,
+      FOREIGN KEY (project_id) REFERENCES FilterBomQC(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Bảng Pick & Place QC
+  db.run(`
+    CREATE TABLE IF NOT EXISTS PickplaceQC (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      designator TEXT,
+      layer TEXT,
+      x REAL,
+      y REAL,
+      rotation REAL,
+      type TEXT,
+      project_id INTERGER,
+      note TEXT,
+      FOREIGN KEY (project_id) REFERENCES FilterBomQC(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Bảng Setting PCB QC
+  db.run(`
+    CREATE TABLE IF NOT EXISTS SettingPCBQC (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      width REAL,
+      height REAL,
+      image TEXT,
+      project_id INTEGER NOT NULL,
+      FOREIGN KEY (project_id) REFERENCES FilterBomQC(id) ON DELETE CASCADE
+    )
+  `);
 
   db.run(`
     CREATE TABLE IF NOT EXISTS heartbeats (
@@ -521,7 +558,7 @@ db.serialize(() => {
       createdAt TEXT
     )
   `);
-  
+
   db.run(`
     CREATE TABLE IF NOT EXISTS configs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

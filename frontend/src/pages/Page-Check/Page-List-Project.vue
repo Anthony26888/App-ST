@@ -234,6 +234,7 @@ const SaveEdit = async () => {
   const formData = reactive({
     project_name: FileName_Edit.value,
     created_at: Created_at_Edit.value,
+    created_by: localStorage.getItem("Username"),
     note: Note_Edit.value,
   });
   try {
@@ -241,11 +242,9 @@ const SaveEdit = async () => {
       `${Url}/FilterBom/Edit-item/${GetID.value}`,
       formData,
     );
-    console.log(response.data);
     Reset();
     MessageDialog.value = "Thêm dữ liệu dự án thành công";
   } catch (error) {
-    console.error("Error adding maintenance record:", error);
     MessageErrorDialog.value = "Lỗi thêm dữ liệu dự án";
     Error();
   } finally {
