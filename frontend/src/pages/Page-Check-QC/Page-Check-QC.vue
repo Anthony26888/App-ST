@@ -76,19 +76,19 @@
               </template>
               <v-list density="compact">
                 <v-list-item
-                  @click="DialogAddBom = true"
-                  prepend-icon="mdi-plus"
-                >
-                  <v-list-item-title class="text-caption"
-                    >File BOM</v-list-item-title
-                  >
-                </v-list-item>
-                <v-list-item
                   @click="DialogAddPnP = true"
                   prepend-icon="mdi-plus"
                 >
                   <v-list-item-title class="text-caption"
                     >File Pick&Place</v-list-item-title
+                  >
+                </v-list-item>
+                <v-list-item
+                  @click="DialogAddBom = true"
+                  prepend-icon="mdi-plus"
+                >
+                  <v-list-item-title class="text-caption"
+                    >File BOM</v-list-item-title
                   >
                 </v-list-item>
               </v-list>
@@ -191,11 +191,74 @@
                 />
 
                 <div v-if="imageUrl" class="pcb-wrapper">
+                  <!-- Căn chỉnh Fiducial Toolbar -->
+                  <div
+                    class="d-flex align-center bg-white rounded-lg px-2 py-1 elevation-2 position-absolute"
+                    style="top: 8px; left: 400px; z-index: 10"
+                  >
+                    <v-btn
+                      :color="isAlignMode ? 'primary' : 'default'"
+                      variant="text"
+                      density="comfortable"
+                      prepend-icon="mdi-crosshairs-gps"
+                      @click="toggleAlignMode"
+                      class="text-caption"
+                    >
+                      Căn chỉnh
+                    </v-btn>
+                    <span
+                      v-if="isAlignMode"
+                      class="text-caption ms-2"
+                      :class="
+                        alignStep === 5
+                          ? 'text-success font-weight-bold'
+                          : 'text-primary'
+                      "
+                    >
+                      {{
+                        alignStep === 1
+                          ? "1. Chọn điểm Trái Trên"
+                          : alignStep === 2
+                          ? "2. Chọn điểm Phải Trên"
+                          : alignStep === 3
+                          ? "3. Chọn điểm Trái Dưới"
+                          : alignStep === 4
+                          ? "4. Chọn điểm Phải Dưới"
+                          : "Hoàn tất căn chỉnh"
+                      }}
+                    </span>
+                    <v-btn
+                      v-if="isAlignMode && alignStep > 1"
+                      icon="mdi-refresh"
+                      variant="text"
+                      size="small"
+                      color="error"
+                      @click="resetAlign"
+                      class="ms-2"
+                      title="Làm lại"
+                    ></v-btn>
+                    <v-btn
+                      v-if="isAlignMode && alignStep === 5"
+                      icon="mdi-check"
+                      variant="text"
+                      size="small"
+                      color="success"
+                      @click="ApplyAlign()"
+                      class="ms-2"
+                      title="Áp dụng"
+                    ></v-btn>
+                  </div>
+
                   <img
                     ref="pcbImg"
                     :src="imageUrl"
                     class="pcb-image"
                     @load="onImageLoad"
+                    @click="onImageClick"
+                    :style="{
+                      cursor:
+                        isAlignMode && alignStep < 5 ? 'crosshair' : 'default',
+                    }"
                     crossorigin="anonymous"
                   />
 
@@ -205,27 +268,169 @@
                     :height="imageHeight"
                     v-if="imageWidth"
                   >
+                    <!-- Fiducial Markers -->
+                    <g v-if="fiducialTL">
+                      <line
+                        :x1="fiducialTL.x - 30"
+                        :y1="fiducialTL.y"
+                        :x2="fiducialTL.x + 30"
+                        :y2="fiducialTL.y"
+                        stroke="blue"
+                        stroke-width="2"
+                      />
+                      <line
+                        :x1="fiducialTL.x"
+                        :y1="fiducialTL.y - 30"
+                        :x2="fiducialTL.x"
+                        :y2="fiducialTL.y + 30"
+                        stroke="blue"
+                        stroke-width="2"
+                      />
+                      <circle
+                        :cx="fiducialTL.x"
+                        :cy="fiducialTL.y"
+                        r="4"
+                        fill="transparent"
+                        stroke="blue"
+                        stroke-width="2"
+                      />
+                      <text
+                        :x="fiducialTL.x + 30"
+                        :y="fiducialTL.y - 30"
+                        fill="blue"
+                        font-size="14"
+                        font-weight="bold"
+                      >
+                        Trái Trên
+                      </text>
+                    </g>
+                    <g v-if="fiducialTR">
+                      <line
+                        :x1="fiducialTR.x - 30"
+                        :y1="fiducialTR.y"
+                        :x2="fiducialTR.x + 30"
+                        :y2="fiducialTR.y"
+                        stroke="blue"
+                        stroke-width="2"
+                      />
+                      <line
+                        :x1="fiducialTR.x"
+                        :y1="fiducialTR.y - 30"
+                        :x2="fiducialTR.x"
+                        :y2="fiducialTR.y + 30"
+                        stroke="blue"
+                        stroke-width="2"
+                      />
+                      <circle
+                        :cx="fiducialTR.x"
+                        :cy="fiducialTR.y"
+                        r="4"
+                        fill="transparent"
+                        stroke="blue"
+                        stroke-width="2"
+                      />
+                      <text
+                        :x="fiducialTR.x + 10"
+                        :y="fiducialTR.y - 10"
+                        fill="blue"
+                        font-size="14"
+                        font-weight="bold"
+                      >
+                        Phải Trên
+                      </text>
+                    </g>
+                    <g v-if="fiducialBL">
+                      <line
+                        :x1="fiducialBL.x - 30"
+                        :y1="fiducialBL.y"
+                        :x2="fiducialBL.x + 30"
+                        :y2="fiducialBL.y"
+                        stroke="blue"
+                        stroke-width="2"
+                      />
+                      <line
+                        :x1="fiducialBL.x"
+                        :y1="fiducialBL.y - 30"
+                        :x2="fiducialBL.x"
+                        :y2="fiducialBL.y + 30"
+                        stroke="blue"
+                        stroke-width="2"
+                      />
+                      <circle
+                        :cx="fiducialBL.x"
+                        :cy="fiducialBL.y"
+                        r="4"
+                        fill="transparent"
+                        stroke="blue"
+                        stroke-width="2"
+                      />
+                      <text
+                        :x="fiducialBL.x + 30"
+                        :y="fiducialBL.y - 30"
+                        fill="blue"
+                        font-size="14"
+                        font-weight="bold"
+                      >
+                        Trái Dưới
+                      </text>
+                    </g>
+                    <g v-if="fiducialBR">
+                      <line
+                        :x1="fiducialBR.x - 30"
+                        :y1="fiducialBR.y"
+                        :x2="fiducialBR.x + 30"
+                        :y2="fiducialBR.y"
+                        stroke="blue"
+                        stroke-width="2"
+                      />
+                      <line
+                        :x1="fiducialBR.x"
+                        :y1="fiducialBR.y - 30"
+                        :x2="fiducialBR.x"
+                        :y2="fiducialBR.y + 30"
+                        stroke="blue"
+                        stroke-width="2"
+                      />
+                      <circle
+                        :cx="fiducialBR.x"
+                        :cy="fiducialBR.y"
+                        r="4"
+                        fill="transparent"
+                        stroke="blue"
+                        stroke-width="2"
+                      />
+                      <text
+                        :x="fiducialBR.x + 10"
+                        :y="fiducialBR.y - 10"
+                        fill="blue"
+                        font-size="14"
+                        font-weight="bold"
+                      >
+                        Phải Dưới
+                      </text>
+                    </g>
+
                     <g v-for="item in svgPoints" :key="item.id">
                       <!-- Crosshair -->
 
                       <line
-                        v-if="String(activePointId) === String(item.id)"
+                        v-if="isActivePoint(item.id)"
                         :x1="item.px - 20"
                         :y1="item.py"
                         :x2="item.px + 20"
                         :y2="item.py"
-                        stroke="lime"
-                        stroke-width="1"
+                        :stroke="getPointColor(item.id)"
+                        :stroke-width="getPointStrokeWidth(item.id)"
                       />
 
                       <line
-                        v-if="String(activePointId) === String(item.id)"
+                        v-if="isActivePoint(item.id)"
                         :x1="item.px"
                         :y1="item.py - 20"
                         :x2="item.px"
                         :y2="item.py + 20"
-                        stroke="lime"
-                        stroke-width="1"
+                        :stroke="getPointColor(item.id)"
+                        :stroke-width="getPointStrokeWidth(item.id)"
                       />
 
                       <!-- Center Dot -->
@@ -234,31 +439,34 @@
                         :cx="item.px"
                         :cy="item.py"
                         r="2"
-                        fill="red"
-                        v-if="String(activePointId) === String(item.id)"
+                        :fill="getPointColor(item.id)"
+                        v-if="isActivePoint(item.id)"
                       />
 
                       <!-- Selected -->
 
                       <rect
-                        v-if="String(activePointId) === String(item.id)"
+                        v-if="
+                          String(activePointId) === String(item.id) &&
+                          activeGroupPointIds.length === 0
+                        "
                         :x="item.px - 100"
                         :y="item.py - 100"
                         width="200"
                         height="200"
                         fill="none"
                         stroke="red"
-                        stroke-width="2"
+                        stroke-width="4"
                       />
 
                       <!-- Designator -->
 
                       <text
-                        v-if="String(activePointId) === String(item.id)"
+                        v-if="isActivePoint(item.id)"
                         :x="item.px + 12"
                         :y="item.py - 12"
-                        font-size="15"
-                        fill="yellow"
+                        font-size="20"
+                        :fill="getPointColor(item.id)"
                         stroke="black"
                         stroke-width="0.3"
                       >
@@ -300,123 +508,280 @@
                 variant="outlined"
                 class="rounded-lg overflow-hidden flex-grow-1 mb-3"
               >
-                <v-toolbar
-                  flat
-                  class="px-3 border-b bg-transparent"
-                  height="64"
+                <v-tabs
+                  v-model="tab"
+                  align-tabs="center"
+                  color="orange-accent-4"
                 >
-                  <InputSearch v-model="searchPnPQC" class="flex-grow-1 me-3" />
+                  <v-tab value="one" class="text-caption">Linh kiện</v-tab>
+                  <v-tab value="two" class="text-caption">MPN</v-tab>
+                </v-tabs>
 
-                  <v-divider vertical inset class="mx-2"></v-divider>
+                <v-divider></v-divider>
 
-                  <div
-                    class="d-flex align-center bg-grey-lighten-4 rounded-pill px-2 py-1"
-                  >
-                    <v-btn
-                      icon="mdi-chevron-left"
-                      variant="text"
-                      density="comfortable"
-                      color="primary"
-                      @click="navigatePnP('prev')"
-                      :disabled="!combinePnPQC.length"
-                    ></v-btn>
+                <v-tabs-window v-model="tab">
+                  <v-tabs-window-item value="one">
+                    <v-sheet class="pa-5">
+                      <v-toolbar
+                        flat
+                        class="px-3 border-b bg-transparent"
+                        height="64"
+                      >
+                        <InputSearch
+                          v-model="searchPnPQC"
+                          class="flex-grow-1 me-3"
+                        />
 
-                    <span
-                      class="text-caption font-weight-bold px-2 text-center"
-                      style="min-width: 75px"
-                    >
-                      {{ combinePnPQC.length ? currentIndex + 1 : 0 }}
-                      / {{ combinePnPQC.length }}
-                    </span>
+                        <v-divider vertical inset class="mx-2"></v-divider>
 
-                    <v-btn
-                      icon="mdi-chevron-right"
-                      variant="text"
-                      density="comfortable"
-                      color="primary"
-                      @click="navigatePnP('next')"
-                      :disabled="!combinePnPQC.length"
-                    ></v-btn>
-                  </div>
-                </v-toolbar>
-
-                <v-data-table-virtual
-                  density="compact"
-                  :headers="HeadersPnPQC"
-                  :items="combinePnPQC"
-                  :search="searchPnPQC"
-                  v-model="selectedPnPQC"
-                  item-value="id"
-                  :loading="DialogLoading"
-                  loading-text="Đang tải dữ liệu linh kiện..."
-                  no-data-text="Không có dữ liệu hiển thị"
-                  :hover="true"
-                  fixed-header
-                  height="calc(50vh - 170px)"
-                  show-select
-                >
-                  <template
-                    v-slot:header.data-table-select="{
-                      allSelected,
-                      selectAll,
-                      someSelected,
-                    }"
-                  >
-                    <v-checkbox-btn
-                      :indeterminate="someSelected && !allSelected"
-                      :model-value="allSelected"
-                      color="primary"
-                      @update:model-value="selectAll(!allSelected)"
-                    ></v-checkbox-btn>
-                  </template>
-
-                  <template
-                    v-slot:item.data-table-select="{
-                      internalItem,
-                      isSelected,
-                      toggleSelect,
-                    }"
-                  >
-                    <v-checkbox-btn
-                      :model-value="isSelected(internalItem)"
-                      color="primary"
-                      @update:model-value="toggleSelect(internalItem)"
-                    ></v-checkbox-btn>
-                  </template>
-
-                  <template v-slot:item.stt="{ index }">
-                    <span class="text-grey font-weight-medium">{{
-                      (pagePCBTopLayer - 1) * itemPerPCBTopLayer + index + 1
-                    }}</span>
-                  </template>
-
-                  <template v-slot:item.x="{ item }"
-                    ><code>{{ item.x }}</code></template
-                  >
-                  <template v-slot:item.y="{ item }"
-                    ><code>{{ item.y }}</code></template
-                  >
-
-                  <template v-slot:item.id="{ item }">
-                    <div class="d-flex align-center justify-end">
-                      <v-tooltip text="Xem chi tiết trên bản vẽ" location="top">
-                        <template v-slot:activator="{ props }">
+                        <div
+                          class="d-flex align-center bg-grey-lighten-4 rounded-pill px-2 py-1"
+                        >
                           <v-btn
-                            v-bind="props"
-                            size="small"
-                            icon="mdi-eye-outline"
-                            @click="
-                              GetZoomPnP(item.id);
-                              GetZoomPnPSample(item.id);
-                            "
-                            color="primary"
+                            icon="mdi-chevron-left"
                             variant="text"
+                            density="comfortable"
+                            color="primary"
+                            @click="navigatePnP('prev')"
+                            :disabled="!combinePnPQC.length"
                           ></v-btn>
+
+                          <span
+                            class="text-caption font-weight-bold px-2 text-center"
+                            style="min-width: 75px"
+                          >
+                            {{ combinePnPQC.length ? currentIndex + 1 : 0 }}
+                            / {{ combinePnPQC.length }}
+                          </span>
+
+                          <v-btn
+                            icon="mdi-chevron-right"
+                            variant="text"
+                            density="comfortable"
+                            color="primary"
+                            @click="navigatePnP('next')"
+                            :disabled="!combinePnPQC.length"
+                          ></v-btn>
+                        </div>
+                      </v-toolbar>
+
+                      <v-data-table-virtual
+                        ref="pnpTable"
+                        density="compact"
+                        :headers="HeadersPnPQC"
+                        :items="combinePnPQC"
+                        :search="searchPnPQC"
+                        v-model="selectedPnPQC"
+                        item-value="id"
+                        :loading="DialogLoading"
+                        loading-text="Đang tải dữ liệu linh kiện..."
+                        no-data-text="Không có dữ liệu hiển thị"
+                        :hover="true"
+                        fixed-header
+                        height="calc(50vh - 220px)"
+                        show-select
+                        :row-props="rowProps"
+                      >
+                        <template
+                          v-slot:header.data-table-select="{
+                            allSelected,
+                            selectAll,
+                            someSelected,
+                          }"
+                        >
+                          <v-checkbox-btn
+                            :indeterminate="someSelected && !allSelected"
+                            :model-value="allSelected"
+                            color="primary"
+                            @update:model-value="selectAll(!allSelected)"
+                          ></v-checkbox-btn>
                         </template>
-                      </v-tooltip>
-                    </div>
-                  </template>
-                </v-data-table-virtual>
+
+                        <template
+                          v-slot:item.data-table-select="{
+                            internalItem,
+                            isSelected,
+                            toggleSelect,
+                          }"
+                        >
+                          <v-checkbox-btn
+                            :model-value="isSelected(internalItem)"
+                            color="primary"
+                            @update:model-value="toggleSelect(internalItem)"
+                          ></v-checkbox-btn>
+                        </template>
+
+                        <template v-slot:item.stt="{ index }">
+                          <span class="text-grey font-weight-medium">{{
+                            (pagePCBTopLayer - 1) * itemPerPCBTopLayer +
+                            index +
+                            1
+                          }}</span>
+                        </template>
+
+                        <template v-slot:item.x="{ item }"
+                          ><code>{{ item.x }}</code></template
+                        >
+                        <template v-slot:item.y="{ item }"
+                          ><code>{{ item.y }}</code></template
+                        >
+
+                        <template v-slot:item.id="{ item }">
+                          <div class="d-flex align-center justify-end">
+                            <v-tooltip
+                              text="Xem chi tiết trên bản vẽ"
+                              location="top"
+                            >
+                              <template v-slot:activator="{ props }">
+                                <v-btn
+                                  v-bind="props"
+                                  size="small"
+                                  icon="mdi-eye-outline"
+                                  @click="
+                                    GetZoomPnP(item.id);
+                                    GetZoomPnPSample(item.id);
+                                  "
+                                  color="primary"
+                                  variant="text"
+                                ></v-btn>
+                              </template>
+                            </v-tooltip>
+                          </div>
+                        </template>
+                      </v-data-table-virtual>
+                    </v-sheet>
+                  </v-tabs-window-item>
+                  <v-tabs-window-item value="two">
+                    <v-sheet class="pa-5">
+                      <v-toolbar
+                        flat
+                        class="px-3 border-b bg-transparent"
+                        height="64"
+                      >
+                        <InputSearch
+                          v-model="searchBomQC"
+                          class="flex-grow-1 me-3"
+                        />
+
+                        <v-divider vertical inset class="mx-2"></v-divider>
+
+                        <div
+                          class="d-flex align-center bg-grey-lighten-4 rounded-pill px-2 py-1"
+                        >
+                          <v-btn
+                            icon="mdi-chevron-left"
+                            variant="text"
+                            density="comfortable"
+                            color="primary"
+                            @click="navigatePnP('prev')"
+                            :disabled="!combinePnPQC.length"
+                          ></v-btn>
+
+                          <span
+                            class="text-caption font-weight-bold px-2 text-center"
+                            style="min-width: 75px"
+                          >
+                            {{
+                              combineRawBomQC.length ? currentIndexBom + 1 : 0
+                            }}
+                            / {{ combineRawBomQC.length }}
+                          </span>
+
+                          <v-btn
+                            icon="mdi-chevron-right"
+                            variant="text"
+                            density="comfortable"
+                            color="primary"
+                            @click="navigatePnP('next')"
+                            :disabled="!combinePnPQC.length"
+                          ></v-btn>
+                        </div>
+                      </v-toolbar>
+
+                      <v-data-table-virtual
+                        ref="pnpTableBom"
+                        density="compact"
+                        :headers="HeadersBomQC"
+                        :items="combineRawBomQC"
+                        :search="searchBomQC"
+                        v-model="selectedBomQC"
+                        item-value="id"
+                        :loading="DialogLoading"
+                        loading-text="Đang tải dữ liệu linh kiện..."
+                        no-data-text="Không có dữ liệu hiển thị"
+                        :hover="true"
+                        fixed-header
+                        height="calc(50vh - 220px)"
+                        show-select
+                        :row-props="rowProps"
+                      >
+                        <template
+                          v-slot:header.data-table-select="{
+                            allSelected,
+                            selectAll,
+                            someSelected,
+                          }"
+                        >
+                          <v-checkbox-btn
+                            :indeterminate="someSelected && !allSelected"
+                            :model-value="allSelected"
+                            color="primary"
+                            @update:model-value="selectAll(!allSelected)"
+                          ></v-checkbox-btn>
+                        </template>
+
+                        <template
+                          v-slot:item.data-table-select="{
+                            internalItem,
+                            isSelected,
+                            toggleSelect,
+                          }"
+                        >
+                          <v-checkbox-btn
+                            :model-value="isSelected(internalItem)"
+                            color="primary"
+                            @update:model-value="toggleSelect(internalItem)"
+                          ></v-checkbox-btn>
+                        </template>
+
+                        <template v-slot:item.stt="{ index }">
+                          <span class="text-grey font-weight-medium">{{
+                            (pagePCBTopLayer - 1) * itemPerPCBTopLayer +
+                            index +
+                            1
+                          }}</span>
+                        </template>
+
+                        <template v-slot:item.x="{ item }"
+                          ><code>{{ item.x }}</code></template
+                        >
+                        <template v-slot:item.y="{ item }"
+                          ><code>{{ item.y }}</code></template
+                        >
+
+                        <template v-slot:item.id="{ item }">
+                          <div class="d-flex align-center justify-end">
+                            <v-tooltip
+                              text="Xem chi tiết trên bản vẽ"
+                              location="top"
+                            >
+                              <template v-slot:activator="{ props }">
+                                <v-btn
+                                  v-bind="props"
+                                  size="small"
+                                  icon="mdi-eye-outline"
+                                  @click="GetZoomPnPGroup(item.id)"
+                                  color="primary"
+                                  variant="text"
+                                ></v-btn>
+                              </template>
+                            </v-tooltip>
+                          </div>
+                        </template>
+                      </v-data-table-virtual>
+                    </v-sheet>
+                  </v-tabs-window-item>
+                </v-tabs-window>
               </v-card>
 
               <v-card
@@ -433,6 +798,44 @@
                     class="position-relative d-flex align-center justify-center"
                     style="width: 100%; height: 100%"
                   >
+                    <!-- Navigation nằm đè trên ảnh -->
+                    <div
+                      v-if="activeGroupPointIds.length > 1"
+                      style="
+                        position: absolute;
+                        top: 10px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        z-index: 100;
+                      "
+                    >
+                      <div
+                        class="d-flex align-center bg-white rounded-pill px-2 py-1 elevation-3"
+                      >
+                        <v-btn
+                          icon="mdi-chevron-left"
+                          variant="text"
+                          density="comfortable"
+                          color="primary"
+                          @click="NavigateGroupZoom('prev')"
+                        />
+
+                        <span class="text-caption font-weight-bold px-3">
+                          Điểm thứ {{ currentGroupZoomIndex + 1 }} /
+                          {{ activeGroupPointIds.length }}
+                        </span>
+
+                        <v-btn
+                          icon="mdi-chevron-right"
+                          variant="text"
+                          density="comfortable"
+                          color="primary"
+                          @click="NavigateGroupZoom('next')"
+                        />
+                      </div>
+                    </div>
+
+                    <!-- Ảnh -->
                     <v-img
                       :src="dialogImageUrl"
                       max-width="100%"
@@ -441,18 +844,16 @@
                       class="rounded-lg elevation-1"
                       alt="Component Preview"
                     >
-                      <template v-slot:placeholder>
+                      <template #placeholder>
                         <div
                           class="d-flex align-center justify-center fill-height bg-grey-lighten-4"
                         >
-                          <v-progress-circular
-                            indeterminate
-                            color="primary"
-                          ></v-progress-circular>
+                          <v-progress-circular indeterminate color="primary" />
                         </div>
                       </template>
                     </v-img>
 
+                    <!-- Crosshair -->
                     <div
                       style="
                         position: absolute;
@@ -477,16 +878,16 @@
                           y1="50"
                           x2="100"
                           y2="50"
-                          stroke="#D32F2F"
-                          stroke-width="1"
+                          stroke="red"
+                          stroke-width="2"
                         />
                         <line
                           x1="50"
                           y1="0"
                           x2="50"
                           y2="100"
-                          stroke="#D32F2F"
-                          stroke-width="1"
+                          stroke="red"
+                          stroke-width="2"
                         />
                       </svg>
                     </div>
@@ -872,6 +1273,7 @@ import { useRoute } from "vue-router";
 import { useCombineBomQC } from "@/composables/CheckQC/useCombineBomQC";
 import { usePnPFile } from "@/composables/CheckBOM/usePnPFile";
 import { useSettingPCBQC } from "@/composables/CheckQC/useSettingPCBQC";
+import { useRawBomQC } from "@/composables/CheckQC/useRawBomQC";
 
 import ButtonBack from "@/components/Button-Back.vue";
 import InputSearch from "@/components/Input-Search.vue";
@@ -899,8 +1301,8 @@ import { saveAs } from "file-saver";
 // 1. CONSTANTS & API CONFIG
 // ==========================================
 const Url = import.meta.env.VITE_API_URL;
-const Url_Image = "https://api.erpst.io.vn";
-// const Url_Image = import.meta.env.VITE_API_URL;
+// const Url_Image = "https://api.erpst.io.vn";
+const Url_Image = import.meta.env.VITE_API_URL;
 const route = useRoute();
 const id = route.params.id;
 
@@ -910,6 +1312,7 @@ const id = route.params.id;
 const { combineBomQC } = useCombineBomQC(id);
 const { detailPnP } = usePnPFile(id);
 const { detailSettingQC } = useSettingPCBQC(id);
+const { rawBomQC } = useRawBomQC(id);
 
 // ==========================================
 // 3. STATE MANAGEMENT
@@ -942,6 +1345,7 @@ const selectedLayer = ref("Top");
 const pagePCBTopLayer = 1;
 const itemPerPCBTopLayer = ref(15);
 const currentIndex = ref(-1);
+const currentIndexBom = ref(-1);
 
 // --- Input Field States ---
 const width = ref(0);
@@ -951,6 +1355,19 @@ const manualOffsetX = ref(0);
 const manualOffsetY = ref(0);
 
 // --- Table & Data States ---
+const pnpTable = ref(null);
+const tab = ref("one");
+const rowProps = (data) => {
+  if (
+    String(activePointId.value) === String(data.item.id) ||
+    activeGroupPointIds.value.includes(data.item.id)
+  ) {
+    return {
+      class: "bg-grey-lighten-3",
+    };
+  }
+  return {};
+};
 
 const HeadersPnPQC = [
   { title: "STT", key: "stt" },
@@ -958,22 +1375,104 @@ const HeadersPnPQC = [
   { title: "MPN", key: "mpn", width: "200px" },
   { title: "Thao tác", key: "id", sortable: false },
 ];
+const HeadersBomQC = [
+  { title: "STT", key: "stt" },
+  { title: "MPN", key: "mpn", width: "200px" },
+  { title: "Designator", key: "designator" },
+  { title: "Thao tác", key: "id", sortable: false },
+];
 const searchPnPQC = ref("");
 const selectedPnPQC = ref([]);
+const searchBomQC = ref("");
+const selectedBomQC = ref([]);
 const itemsPerPageBom = ref(20);
 const pageBom = ref(1);
+
+// ===============================
+// PCB IMAGE + PNP OVERLAY
+// ===============================
+
+const imageUrl = ref("");
+const pcbImg = ref(null);
+const pcbFileInput = ref(null);
+
+const imageWidth = ref(0);
+const imageHeight = ref(0);
+
+const activePointId = ref(null);
+const activeGroupPointIds = ref([]);
+const currentGroupZoomIndex = ref(0);
+const dialogImageUrl = ref("");
+
+const isActivePoint = (id) => {
+  return (
+    String(activePointId.value) === String(id) ||
+    activeGroupPointIds.value.includes(id)
+  );
+};
+
+const getPointColor = (id) => {
+  return String(activePointId.value) === String(id) &&
+    activeGroupPointIds.value.length > 1
+    ? "blue"
+    : "red";
+};
+
+const getPointStrokeWidth = (id) => {
+  return String(activePointId.value) === String(id) &&
+    activeGroupPointIds.value.length > 1
+    ? 2
+    : 1;
+};
+
+// Board Size (mm)
+const boardWidthMM = computed(() => width.value);
+const boardHeightMM = computed(() => height.value);
+
+// ======================================
+// Fiducial Alignment State
+// ======================================
+const isAlignMode = ref(false);
+const alignStep = ref(0); // 0: off, 1: TL, 2: TR, 3: BL, 4: BR, 5: done
+const fiducialTL = ref(null); // { x, y } in px
+const fiducialTR = ref(null); // { x, y } in px
+const fiducialBL = ref(null); // { x, y } in px
+const fiducialBR = ref(null); // { x, y } in px
 
 // ==========================================
 // 4. COMPUTED PROPERTIES
 // ==========================================
-watch(detailSettingQC, (val) => {
-  if (!val.length) return;
+watch(
+  detailSettingQC,
+  (val) => {
+    if (!val?.length) return;
 
-  const found = val[0];
-  width.value = found.width || 0;
-  height.value = found.height || 0;
-  imageSample.value = found.image || "";
-});
+    const found = val[0];
+
+    width.value = Number(found.width) || 0;
+    height.value = Number(found.height) || 0;
+    imageSample.value = found.image || "";
+
+    fiducialBL.value = found.fiducialBL ? JSON.parse(found.fiducialBL) : null;
+
+    fiducialBR.value = found.fiducialBR ? JSON.parse(found.fiducialBR) : null;
+
+    fiducialTL.value = found.fiducialTL ? JSON.parse(found.fiducialTL) : null;
+
+    fiducialTR.value = found.fiducialTR ? JSON.parse(found.fiducialTR) : null;
+
+    // Nếu đủ 4 điểm thì đánh dấu đã align xong
+    if (
+      fiducialTL.value &&
+      fiducialTR.value &&
+      fiducialBL.value &&
+      fiducialBR.value
+    ) {
+      alignStep.value = 5;
+    }
+  },
+  { immediate: true },
+);
 
 const filteredPnP = computed(() => {
   const list = detailPnP.value || [];
@@ -1051,6 +1550,22 @@ const combinePnPQC = computed(() => {
   }
 });
 
+const combineRawBomQC = computed(() => {
+  if (selectedLayer.value === "Top") {
+    return rawBomQC.value.filter((item) =>
+      item.layers?.toLowerCase().includes("top"),
+    );
+  }
+
+  if (selectedLayer.value === "Bottom") {
+    return rawBomQC.value.filter((item) =>
+      item.layers?.toLowerCase().includes("bottom"),
+    );
+  }
+
+  return rawBomQC.value;
+});
+
 function navigatePnP(direction) {
   if (!combinePnPQC.value.length) return;
 
@@ -1065,27 +1580,50 @@ function navigatePnP(direction) {
   const targetItem = combinePnPQC.value[currentIndex.value];
   if (targetItem) {
     GetZoomPnP(targetItem.id);
-    highlightComponent(targetItem.designator);
+    GetZoomPnPSample(targetItem.id);
   }
 }
 
-// ===============================
-// PCB IMAGE + PNP OVERLAY
-// ===============================
+function toggleAlignMode() {
+  isAlignMode.value = !isAlignMode.value;
+  if (isAlignMode.value && alignStep.value === 0) {
+    alignStep.value = 1;
+    fiducialTL.value = null;
+    fiducialTR.value = null;
+    fiducialBL.value = null;
+    fiducialBR.value = null;
+  }
+}
 
-const imageUrl = ref("");
-const pcbImg = ref(null);
-const pcbFileInput = ref(null);
+function resetAlign() {
+  alignStep.value = 1;
+  fiducialTL.value = null;
+  fiducialTR.value = null;
+  fiducialBL.value = null;
+  fiducialBR.value = null;
+}
 
-const imageWidth = ref(0);
-const imageHeight = ref(0);
+function onImageClick(event) {
+  if (!isAlignMode.value || alignStep.value >= 5) return;
 
-const activePointId = ref(null);
-const dialogImageUrl = ref("");
+  const rect = pcbImg.value.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
 
-// Board Size (mm)
-const boardWidthMM = computed(() => width.value);
-const boardHeightMM = computed(() => height.value);
+  if (alignStep.value === 1) {
+    fiducialTL.value = { x, y };
+    alignStep.value = 2;
+  } else if (alignStep.value === 2) {
+    fiducialTR.value = { x, y };
+    alignStep.value = 3;
+  } else if (alignStep.value === 3) {
+    fiducialBL.value = { x, y };
+    alignStep.value = 4;
+  } else if (alignStep.value === 4) {
+    fiducialBR.value = { x, y };
+    alignStep.value = 5;
+  }
+}
 
 // ======================================
 // Upload PCB Image
@@ -1146,14 +1684,43 @@ const svgPoints = computed(() => {
         !isNaN(Number(item.y)),
     )
     .map((item) => {
-      const mmX = Number(item.x);
-      const mmY = Number(item.y);
+      const mmX = Number(item.x) + Number(manualOffsetX.value || 0);
+      const mmY = Number(item.y) + Number(manualOffsetY.value || 0);
 
-      const px = (mmX / boardWidthMM.value) * imageWidth.value;
+      let px, py;
 
-      // Nếu ảnh PCB được chụp từ TOP VIEW
-      const py =
-        imageHeight.value - (mmY / boardHeightMM.value) * imageHeight.value;
+      if (
+        fiducialTL.value &&
+        fiducialTR.value &&
+        fiducialBL.value &&
+        fiducialBR.value
+      ) {
+        // Căng chỉnh theo 4 điểm sử dụng Bilinear Interpolation
+        // U: Tỷ lệ theo trục X (0 ở trái, 1 ở phải)
+        // V: Tỷ lệ theo trục Y (0 ở dưới, 1 ở trên)
+        const u = mmX / boardWidthMM.value;
+        const v = mmY / boardHeightMM.value;
+
+        // Nội suy tọa độ X và Y
+        px =
+          (1 - u) * (1 - v) * fiducialBL.value.x +
+          u * (1 - v) * fiducialBR.value.x +
+          (1 - u) * v * fiducialTL.value.x +
+          u * v * fiducialTR.value.x;
+
+        py =
+          (1 - u) * (1 - v) * fiducialBL.value.y +
+          u * (1 - v) * fiducialBR.value.y +
+          (1 - u) * v * fiducialTL.value.y +
+          u * v * fiducialTR.value.y;
+      } else {
+        // Mặc định căng chỉnh theo kích thước ảnh
+        px = (mmX / boardWidthMM.value) * imageWidth.value;
+
+        // Nếu ảnh PCB được chụp từ TOP VIEW
+        py =
+          imageHeight.value - (mmY / boardHeightMM.value) * imageHeight.value;
+      }
 
       return {
         ...item,
@@ -1185,6 +1752,21 @@ function GetZoomPnP(componentId) {
   }
 
   activePointId.value = componentId;
+  activeGroupPointIds.value = [];
+
+  if (combinePnPQC.value && combinePnPQC.value.length) {
+    const index = combinePnPQC.value.findIndex(
+      (p) => String(p.id) === String(componentId),
+    );
+    if (index !== -1) {
+      currentIndex.value = index;
+      nextTick(() => {
+        if (pnpTable.value) {
+          pnpTable.value.scrollToIndex(index);
+        }
+      });
+    }
+  }
 
   const img = pcbImg.value;
 
@@ -1192,7 +1774,7 @@ function GetZoomPnP(componentId) {
 
   const canvas = document.createElement("canvas");
 
-  const cropSize = 500;
+  const cropSize = 300;
 
   canvas.width = cropSize;
   canvas.height = cropSize;
@@ -1206,7 +1788,7 @@ function GetZoomPnP(componentId) {
 
   const scaleX = img.naturalWidth / imageWidth.value;
 
-  const cropHalf = 40 * scaleX;
+  const cropHalf = 30 * scaleX;
 
   let sx = natX - cropHalf;
   let sy = natY - cropHalf;
@@ -1255,6 +1837,69 @@ const boardSampleHeightMM = computed(() => height.value);
 // Zoom Component
 // ======================================
 
+function GetZoomPnPGroup(componentId) {
+  if (width.value == 0 || height.value == 0) {
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Chưa có dữ liệu chiều dài hoặc chiều rộng PCB";
+    return;
+  }
+
+  const bomItem = combineRawBomQC.value.find(
+    (p) => String(p.id) === String(componentId),
+  );
+
+  if (!bomItem) {
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Không tìm thấy BOM item";
+    return;
+  }
+
+  const designators = bomItem.designator
+    ? bomItem.designator.split(",").map((d) => d.trim())
+    : [];
+
+  const matchedPoints = combinePnPQC.value.filter((p) =>
+    designators.includes(p.designator),
+  );
+
+  if (matchedPoints.length === 0) {
+    DialogFailed.value = true;
+    MessageErrorDialog.value =
+      "Không tìm thấy tọa độ linh kiện nào trong danh sách PnP";
+    return;
+  }
+
+  currentGroupZoomIndex.value = 0;
+
+  // Zoom vào linh kiện đầu tiên để hiển thị ở 2 bảng PCB Test/Sample
+  GetZoomPnP(matchedPoints[0].id);
+  GetZoomPnPSample(matchedPoints[0].id);
+
+  // Đặt danh sách group các id sau khi gọi GetZoomPnP để không bị clear
+  activeGroupPointIds.value = matchedPoints.map((p) => p.id);
+}
+
+function NavigateGroupZoom(direction) {
+  if (activeGroupPointIds.value.length <= 1) return;
+
+  if (direction === "next") {
+    currentGroupZoomIndex.value =
+      (currentGroupZoomIndex.value + 1) % activeGroupPointIds.value.length;
+  } else {
+    currentGroupZoomIndex.value =
+      (currentGroupZoomIndex.value - 1 + activeGroupPointIds.value.length) %
+      activeGroupPointIds.value.length;
+  }
+
+  const pointId = activeGroupPointIds.value[currentGroupZoomIndex.value];
+  const groupIds = [...activeGroupPointIds.value];
+
+  GetZoomPnP(pointId);
+  GetZoomPnPSample(pointId);
+
+  activeGroupPointIds.value = groupIds;
+}
+
 function GetZoomPnPSample(componentId) {
   if (width.value == 0 || height.value == 0) {
     DialogFailed.value = true;
@@ -1279,7 +1924,7 @@ function GetZoomPnPSample(componentId) {
 
   const canvas = document.createElement("canvas");
 
-  const cropSize = 500;
+  const cropSize = 300;
 
   canvas.width = cropSize;
   canvas.height = cropSize;
@@ -1296,7 +1941,7 @@ function GetZoomPnPSample(componentId) {
   const displayWidth = imageWidth.value > 0 ? imageWidth.value : 800;
   const scaleX = img.naturalWidth / displayWidth;
 
-  const cropHalf = 40 * scaleX;
+  const cropHalf = 80 * scaleX;
 
   let sx = natX - cropHalf;
   let sy = natY - cropHalf;
@@ -1462,6 +2107,34 @@ const SaveSettingPCB = async () => {
       error.response?.data?.error ||
       error.response?.data?.message ||
       "Chỉnh sửa dữ liệu thất bại";
+  } finally {
+    DialogLoading.value = false;
+  }
+};
+
+const ApplyAlign = async () => {
+  DialogLoading.value = true;
+  try {
+    await axios.put(
+      `${Url}/SettingPCB-QC/apply-align/${route.params.id}`,
+      {
+        fiducialBL: fiducialBL.value,
+        fiducialBR: fiducialBR.value,
+        fiducialTL: fiducialTL.value,
+        fiducialTR: fiducialTR.value,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+    DialogSuccess.value = true;
+    MessageDialog.value = "Áp dụng dữ liệu thành công";
+    isAlignMode.value = false;
+  } catch (error) {
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Áp dụng dữ liệu thất bại";
   } finally {
     DialogLoading.value = false;
   }

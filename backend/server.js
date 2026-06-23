@@ -1618,70 +1618,49 @@ io.on("connection", (socket) => {
     }),
     socket.on("getCombineBomQC", async (id) => {
       try {
-        const query = `WITH pm_match AS (
-                        SELECT 
-                            b.project_id,
-                            b.designator, 
-                            pm.package,
-                            pm.width,
-                            pm.length,
-                            pm.id,
-                            LENGTH(pm.package) AS match_len,
-                            ROW_NUMBER() OVER (
-                                PARTITION BY b.project_id, b.designator
-                                ORDER BY LENGTH(pm.package) DESC
-                            ) AS rn
-                        FROM BomQC b
-                        JOIN Components pm 
-                            ON UPPER(b.description) LIKE '%' || UPPER(pm.package) || '%'
-                    )
-
-                    SELECT 
-                        p.id,
-                        p.project_id,
-                        o.id AS id_components_overrides,
-                        pm.id AS id_component,
-                        p.designator,
-                        ROUND(p.x, 2) AS x,
-                        ROUND(p.y, 2) AS y,
-                        p.rotation, 
-                        p.layer,
-                        p.type,
-                        b.mpn,
-                        b.description AS description_bom,
-                        b.note,
-                        COALESCE(o.width, pm.width)  AS width,
-                        COALESCE(o.length, pm.length) AS length,
-                        pm.package AS package,
-
-                        -- SOURCE
-                        CASE
-                            WHEN o.mpn IS NOT NULL THEN 'override'
-                            WHEN pm.package IS NOT NULL THEN 'package_map'
-                            ELSE 'missing'
-                        END AS source
-
-                    FROM PickplaceQC p
-
-                    LEFT JOIN BomQC b
-                        ON p.designator = b.designator 
-                      AND p.project_id = b.project_id
-
-                    LEFT JOIN pm_match pm
-                        ON b.designator = pm.designator 
-                      AND b.project_id = pm.project_id 
-                      AND pm.rn = 1
-
-                    LEFT JOIN Component_overrides o
-                        ON b.mpn = o.mpn
-
-                    WHERE p.project_id = ?`;
+        const query = `SELECT DISTINCT * FROM PickplaceQC WHERE project_id = ?`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("CombineBomQCError", err);
           socket.emit("CombineBomQCData", rows);
         });
       } catch (error) {
         socket.emit("CombineBomQCError", error);
+      }
+    }),
+    socket.on("getRawBomQC", async (id) => {
+      try {
+        const query = `SELECT
+                          b.id,
+                          b.description,
+                          b.mpn,
+                          b.designator,
+                          b.quantity,
+
+                          GROUP_CONCAT(p.designator) AS pnp_designators,
+                          GROUP_CONCAT(p.x) AS xs,
+                          GROUP_CONCAT(p.y) AS ys,
+                          GROUP_CONCAT(p.rotation) AS rotations,
+                          GROUP_CONCAT(p.layer) AS layers
+
+                      FROM BomQC b
+                      LEFT JOIN PickplaceQC p
+                          ON ',' || REPLACE(b.designator,' ','') || ','
+                            LIKE '%,' || p.designator || ',%'
+
+                      WHERE b.project_id = ?
+
+                      GROUP BY
+                          b.id,
+                          b.description,
+                          b.mpn,
+                          b.designator,
+                          b.quantity;`;
+        db.all(query, [id], (err, rows) => {
+          if (err) return socket.emit("RawBomQCError", err);
+          socket.emit("RawBomQCData", rows);
+        });
+      } catch (error) {
+        socket.emit("RawBomQCError", error);
       }
     }),
     socket.on("getSettingPCBQC", async (id) => {
@@ -6539,6 +6518,41 @@ app.put(
   },
 );
 
+// Put value in table SettingPCB QC table
+app.put("/api/SettingPCB-QC/apply-align/:id", (req, res) => {
+  const { id } = req.params;
+  const { fiducialBL, fiducialTR, fiducialTL, fiducialBR } = req.body;
+  console.log("BL =", fiducialBL);
+  console.log("TR =", fiducialTR);
+  console.log("TL =", fiducialTL);
+  console.log("BR =", fiducialBR);
+  db.run(
+    `UPDATE SettingPCBQC
+   SET fiducialBL = ?,
+       fiducialTR = ?,
+       fiducialTL = ?,
+       fiducialBR = ?
+   WHERE project_id = ?`,
+    [
+      JSON.stringify(fiducialBL),
+      JSON.stringify(fiducialTR),
+      JSON.stringify(fiducialTL),
+      JSON.stringify(fiducialBR),
+      Number(id),
+    ],
+    function (err) {
+      if (err) {
+        console.error("DB ERROR:", err);
+        return res.status(500).json(err);
+      }
+      res.json({
+        success: true,
+        changes: this.changes,
+      });
+    },
+  );
+});
+
 // Upload xlsx to BOM QC table
 app.post(
   "/api/upload-bom-qc/:project_id",
@@ -6554,56 +6568,55 @@ app.post(
 
       db.serialize(() => {
         const stmtBom = db.prepare(`
-          INSERT INTO BomQC (description, mpn, designator, quantity, project_id, note)
+          INSERT INTO BomQC
+          (
+            description,
+            mpn,
+            designator,
+            quantity,
+            project_id,
+            note
+          )
           VALUES (?, ?, ?, ?, ?, ?)
         `);
 
-        const insertedRefs = new Set();
-
         rows.forEach((row) => {
-          const refs = String(row["Reference(s)"] || row["Designator"] || "")
-            .split(",")
-            .map((r) => r.trim())
-            .filter((r) => r.length > 0);
-
-          refs.forEach((ref) => {
-            if (!insertedRefs.has(ref)) {
-              let mpnValue = row.MPN || row.Comment || "";
-              mpnValue = String(mpnValue)
-                .replace(/\s+/g, "")
-                .replace(/,/g, ".");
-
-              stmtBom.run(
-                row.Description || "",
-                mpnValue,
-                ref,
-                1,
-                projectId,
-                row.note || row.Note || row.notes || row.Notes || "",
-              );
-              insertedRefs.add(ref);
-            }
-          });
+          stmtBom.run(
+            row.Description || "",
+            row.MPN || row.Comment || "",
+            row["Reference(s)"] || row.Designator || "",
+            row.Quantity || row.QTY || row.qty || 1,
+            projectId,
+            row.note || row.Note || row.notes || row.Notes || "",
+          );
         });
 
-        // Chỉ trả về response thành công SAU KHI finalize xong hoàn toàn
         stmtBom.finalize((err) => {
-          // Xóa file tạm sau khi xong việc (Nên làm)
-          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
 
           if (err) {
             console.error(err);
-            return res.status(500).json({ error: "Finalize BOM lỗi" });
+            return res.status(500).json({
+              error: "Finalize BOM lỗi",
+            });
           }
 
-          // --- THÊM DÒNG NÀY ĐỂ BÁO CHO FRONTEND ---
-          return res.status(200).json({ message: "Upload BOM thành công" });
+          return res.status(200).json({
+            message: "Upload BOM thành công",
+          });
         });
       });
     } catch (err) {
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath); // Xóa file nếu lỗi nửa chừng
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+
       console.error(err);
-      res.status(500).json({ error: "Lỗi xử lý file BOM" });
+      return res.status(500).json({
+        error: "Lỗi xử lý file BOM",
+      });
     }
   },
 );
@@ -6642,6 +6655,7 @@ app.post(
         uniqueRows.push({
           designator,
           layer: row.Side || row.Layer || "" || row.side || row.layer,
+          mpn: row.MPN || row.mpn || "",
           posX: parseFloat(row.PosX || 0 || row.posx || row.X || row.x),
           posY: parseFloat(row.PosY || 0 || row.posy || row.Y || row.y),
           rotation: parseFloat(
@@ -6656,14 +6670,15 @@ app.post(
       await new Promise((resolve, reject) => {
         db.serialize(() => {
           const stmt = db.prepare(`
-          INSERT INTO PickplaceQC (designator, layer, x, y, rotation, project_id, type, note)
-          VALUES (?, ?, ?, ?, ?, ?, 'SMT', ?)
+          INSERT INTO PickplaceQC (designator, layer, mpn, x, y, rotation, project_id, type, note)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 'SMT', ?)
         `);
 
           for (const r of uniqueRows) {
             stmt.run(
               r.designator,
               r.layer,
+              r.mpn,
               r.posX,
               r.posY,
               r.rotation,
@@ -6696,6 +6711,64 @@ app.post(
     }
   },
 );
+
+// Delete all item in BomQC table
+app.delete("/api/BomQC/Delete-item/:id", (req, res) => {
+  const { id } = req.params;
+  db.run(`DELETE FROM BomQC WHERE project_id = ?`, [id], (err) => {
+    if (err) {
+      console.error("Database error:", err);
+      return res
+        .status(500)
+        .json({ error: "Database error", details: err.message });
+    }
+    io.emit("CombineBomQCUpdate");
+    res.json({ message: "Summary received" });
+  });
+});
+
+// Delete all item in PickPlaceQC table
+app.delete("/api/PickPlaceQC/Delete-item/:id", (req, res) => {
+  const { id } = req.params;
+  db.run(`DELETE FROM PickplaceQC WHERE project_id = ?`, [id], (err) => {
+    if (err) {
+      console.error("Database error:", err);
+      return res
+        .status(500)
+        .json({ error: "Database error", details: err.message });
+    }
+    io.emit("CombineBomQCUpdate");
+    res.json({ message: "Summary received" });
+  });
+});
+
+// Delete all item in SettingPCB-QC table
+app.put("/api/SettingPCB-QC/Delete-item/:id", (req, res) => {
+  const { id } = req.params;
+  db.run(
+    `UPDATE SettingPCBQC 
+      SET 
+      width = 0, 
+      height = 0,
+      image = '',
+      fiducialBL = '',
+      fiducialBR = '',
+      fiducialTL = '',
+      fiducialTR = ''
+      WHERE project_id = ?`,
+    [id],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("SettingPCBQCUpdate");
+      res.json({ message: "Summary received" });
+    },
+  );
+});
 
 // Post item in To Do
 app.post("/api/To-Do/Add-item", (req, res) => {
@@ -6732,60 +6805,6 @@ app.post("/api/To-Do/Add-item", (req, res) => {
       }
       io.emit("updateToDo");
       res.json({ message: "To Do received" });
-    },
-  );
-});
-
-// Delete all item in PickPlaceQC table
-app.delete("/api/PickPlaceQC/Delete-item/:id", (req, res) => {
-  const { id } = req.params;
-  db.run(`DELETE FROM PickplaceQC WHERE project_id = ?`, [id], (err) => {
-    if (err) {
-      console.error("Database error:", err);
-      return res
-        .status(500)
-        .json({ error: "Database error", details: err.message });
-    }
-    io.emit("CombineBomQCUpdate");
-    res.json({ message: "Summary received" });
-  });
-});
-
-// Delete all item in BomQC table
-app.delete("/api/BomQC/Delete-item/:id", (req, res) => {
-  const { id } = req.params;
-  db.run(`DELETE FROM BomQC WHERE project_id = ?`, [id], (err) => {
-    if (err) {
-      console.error("Database error:", err);
-      return res
-        .status(500)
-        .json({ error: "Database error", details: err.message });
-    }
-    io.emit("CombineBomQCUpdate");
-    res.json({ message: "Summary received" });
-  });
-});
-
-// Delete all item in SettingPCB-QC table
-app.put("/api/SettingPCB-QC/Delete-item/:id", (req, res) => {
-  const { id } = req.params;
-  db.run(
-    `UPDATE SettingPCBQC 
-      SET 
-      width = 0, 
-      height = 0,
-      image = ''
-      WHERE project_id = ?`,
-    [id],
-    (err) => {
-      if (err) {
-        console.error("Database error:", err);
-        return res
-          .status(500)
-          .json({ error: "Database error", details: err.message });
-      }
-      io.emit("SettingPCBQCUpdate");
-      res.json({ message: "Summary received" });
     },
   );
 });

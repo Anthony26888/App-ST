@@ -518,6 +518,7 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       designator TEXT,
       layer TEXT,
+      mpn TEXT,
       x REAL,
       y REAL,
       rotation REAL,
@@ -535,6 +536,10 @@ db.serialize(() => {
       width REAL,
       height REAL,
       image TEXT,
+      fiducialTL TEXT,
+      fiducialTR TEXT,
+      fiducialBL TEXT,
+      fiducialBR TEXT,
       project_id INTEGER NOT NULL,
       FOREIGN KEY (project_id) REFERENCES FilterBomQC(id) ON DELETE CASCADE
     )
