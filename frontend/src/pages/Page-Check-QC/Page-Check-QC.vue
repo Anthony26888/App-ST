@@ -673,8 +673,8 @@
                             variant="text"
                             density="comfortable"
                             color="primary"
-                            @click="navigatePnP('prev')"
-                            :disabled="!combinePnPQC.length"
+                            @click="navigateBom('prev')"
+                            :disabled="!combineRawBomQC.length"
                           ></v-btn>
 
                           <span
@@ -692,8 +692,8 @@
                             variant="text"
                             density="comfortable"
                             color="primary"
-                            @click="navigatePnP('next')"
-                            :disabled="!combinePnPQC.length"
+                            @click="navigateBom('next')"
+                            :disabled="!combineRawBomQC.length"
                           ></v-btn>
                         </div>
                       </v-toolbar>
@@ -1581,6 +1581,24 @@ function navigatePnP(direction) {
   if (targetItem) {
     GetZoomPnP(targetItem.id);
     GetZoomPnPSample(targetItem.id);
+  }
+}
+
+function navigateBom(direction) {
+  if (!combineRawBomQC.value.length) return;
+
+  if (direction === "next") {
+    currentIndexBom.value =
+      (currentIndexBom.value + 1) % combineRawBomQC.value.length;
+  } else {
+    currentIndexBom.value =
+      (currentIndexBom.value - 1 + combineRawBomQC.value.length) %
+      combineRawBomQC.value.length;
+  }
+
+  const targetItem = combineRawBomQC.value[currentIndexBom.value];
+  if (targetItem) {
+    GetZoomPnPGroup(targetItem.id);
   }
 }
 
