@@ -6602,6 +6602,8 @@ app.post(
               error: "Finalize BOM lỗi",
             });
           }
+          io.emit("RawBomQCUpdate");
+          io.emit("CombineBomQCUpdate");
 
           return res.status(200).json({
             message: "Upload BOM thành công",
