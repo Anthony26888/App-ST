@@ -522,7 +522,7 @@ db.serialize(() => {
       x REAL,
       y REAL,
       rotation REAL,
-      type TEXT,
+      status TEXT,
       project_id INTERGER,
       note TEXT,
       FOREIGN KEY (project_id) REFERENCES FilterBomQC(id) ON DELETE CASCADE

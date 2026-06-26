@@ -876,7 +876,7 @@ app.post("/api/Users/login", (req, res) => {
         const token = jwt.sign(
           { id: user.id, Username: user.Username },
           SECRET_KEY,
-          { expiresIn: "4h" },
+          { expiresIn: "12h" },
         );
         res.json({ message: "Đăng nhập thành công", token });
       } else {

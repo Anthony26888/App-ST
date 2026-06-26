@@ -113,7 +113,7 @@
                   prepend-icon="mdi-delete"
                 >
                   <v-list-item-title class="text-caption"
-                    >File BO
+                    >File Bom
                   </v-list-item-title>
                 </v-list-item>
                 <v-list-item
@@ -134,6 +134,20 @@
                 </v-list-item>
               </v-list>
             </v-menu>
+            <v-tooltip text="Kiểm tra hình ảnh pcb">
+              <template v-slot:activator="{ props }">
+                <v-btn
+                  color="primary"
+                  variant="tonal"
+                  class="text-caption ms-2"
+                  prepend-icon="mdi-history"
+                  v-bind="props"
+                  @click="$router.push(`/Kiem-tra-image-qc/${id}`)"
+                >
+                  Kiểm tra
+                </v-btn>
+              </template>
+            </v-tooltip>
           </div>
 
           <v-spacer></v-spacer>
@@ -177,7 +191,7 @@
                 <input
                   ref="pcbFileInput"
                   type="file"
-                  accept="image/*"
+                  accept="image/*,.pdf"
                   style="display: none"
                   @change="onPcbImageSelected"
                 />
@@ -579,38 +593,8 @@
                         :hover="true"
                         fixed-header
                         height="calc(50vh - 220px)"
-                        show-select
                         :row-props="rowProps"
                       >
-                        <template
-                          v-slot:header.data-table-select="{
-                            allSelected,
-                            selectAll,
-                            someSelected,
-                          }"
-                        >
-                          <v-checkbox-btn
-                            :indeterminate="someSelected && !allSelected"
-                            :model-value="allSelected"
-                            color="primary"
-                            @update:model-value="selectAll(!allSelected)"
-                          ></v-checkbox-btn>
-                        </template>
-
-                        <template
-                          v-slot:item.data-table-select="{
-                            internalItem,
-                            isSelected,
-                            toggleSelect,
-                          }"
-                        >
-                          <v-checkbox-btn
-                            :model-value="isSelected(internalItem)"
-                            color="primary"
-                            @update:model-value="toggleSelect(internalItem)"
-                          ></v-checkbox-btn>
-                        </template>
-
                         <template v-slot:item.stt="{ index }">
                           <span class="text-grey font-weight-medium">{{
                             (pagePCBTopLayer - 1) * itemPerPCBTopLayer +
@@ -712,38 +696,8 @@
                         :hover="true"
                         fixed-header
                         height="calc(50vh - 220px)"
-                        show-select
                         :row-props="rowProps"
                       >
-                        <template
-                          v-slot:header.data-table-select="{
-                            allSelected,
-                            selectAll,
-                            someSelected,
-                          }"
-                        >
-                          <v-checkbox-btn
-                            :indeterminate="someSelected && !allSelected"
-                            :model-value="allSelected"
-                            color="primary"
-                            @update:model-value="selectAll(!allSelected)"
-                          ></v-checkbox-btn>
-                        </template>
-
-                        <template
-                          v-slot:item.data-table-select="{
-                            internalItem,
-                            isSelected,
-                            toggleSelect,
-                          }"
-                        >
-                          <v-checkbox-btn
-                            :model-value="isSelected(internalItem)"
-                            color="primary"
-                            @update:model-value="toggleSelect(internalItem)"
-                          ></v-checkbox-btn>
-                        </template>
-
                         <template v-slot:item.stt="{ index }">
                           <span class="text-grey font-weight-medium">{{
                             (pagePCBTopLayer - 1) * itemPerPCBTopLayer +
@@ -798,7 +752,7 @@
                     class="position-relative d-flex align-center justify-center"
                     style="width: 100%; height: 100%"
                   >
-                    <!-- Navigation nằm đè trên ảnh -->
+                    <!-- Navigation -->
                     <div
                       v-if="activeGroupPointIds.length > 1"
                       style="
@@ -835,7 +789,7 @@
                       </div>
                     </div>
 
-                    <!-- Ảnh -->
+                    <!-- Image -->
                     <v-img
                       :src="dialogImageUrl"
                       max-width="100%"
@@ -890,6 +844,48 @@
                           stroke-width="2"
                         />
                       </svg>
+                    </div>
+
+                    <!-- Save Button Overlay -->
+                    <div
+                      style="
+                        position: absolute;
+                        bottom: 0;
+                        left: 0;
+                        width: 100%;
+                        z-index: 200;
+                        padding: 12px;
+                        background: linear-gradient(
+                          to top,
+                          rgba(255, 255, 255, 0.95),
+                          rgba(255, 255, 255, 0.6),
+                          transparent
+                        );
+                      "
+                    >
+                      <v-btn
+                        v-if="StatusPnP == 'Watting'"
+                        class="text-subtitle-2 font-weight-bold"
+                        block
+                        size="large"
+                        color="success"
+                        prepend-icon="mdi-check-circle"
+                        :loading="loadingAlign"
+                        @click="SaveStatusPnP()"
+                      >
+                        Xác nhận linh kiện
+                      </v-btn>
+                      <v-btn
+                        v-else
+                        class="text-subtitle-2 font-weight-bold"
+                        disabled
+                        block
+                        size="large"
+                        color="grey"
+                        prepend-icon="mdi-check-circle"
+                      >
+                        Đã kiểm tra
+                      </v-btn>
                     </div>
                   </div>
                 </div>
@@ -1084,6 +1080,52 @@
           </v-row>
         </v-card-text>
       </v-card>
+      <v-card class="mt-5 rounded-lg">
+        <v-card-title class="d-flex align-center pe-2">
+          <v-icon color="primary">mdi-history</v-icon>
+          <p class="text-h6 ms-2">Lịch sử kiểm tra</p>
+          <v-spacer></v-spacer>
+          <InputSearch
+            v-model="searchHistoryQC"
+            placeholder="Tìm kiếm linh kiện"
+          />
+        </v-card-title>
+        <v-card-text>
+          <v-data-table-virtual
+            ref="pnpTableBom"
+            density="compact"
+            :headers="HeaderHistoryPnPQC"
+            :items="combineStatusPnPQC"
+            :search="searchHistoryQC"
+            v-model="selectedBomQC"
+            item-value="id"
+            :loading="DialogLoading"
+            loading-text="Đang tải dữ liệu linh kiện..."
+            no-data-text="Không có dữ liệu hiển thị"
+            :hover="true"
+            fixed-header
+            height="calc(100vh - 220px)"
+            :row-props="rowProps"
+          >
+            <template v-slot:item.stt="{ index }">
+              <span class="text-grey font-weight-medium">{{
+                (pagePCBTopLayer - 1) * itemPerPCBTopLayer + index + 1
+              }}</span>
+            </template>
+
+            <template v-slot:item.status="{ item }">
+              <v-chip
+                :color="item.status === 'Done' ? 'success' : 'error'"
+                variant="tonal"
+                size="small"
+                class="font-weight-medium"
+                density="comfortable"
+                >{{ item.status === "Done" ? "Hoàn thành" : "Chưa hoàn thành" }}
+              </v-chip></template
+            >
+          </v-data-table-virtual>
+        </v-card-text>
+      </v-card>
     </v-card-text>
   </v-card>
 
@@ -1268,13 +1310,20 @@
 </template>
 <script setup>
 import axios from "axios";
-import { ref, watch, computed, onMounted, reactive, nextTick } from "vue";
+import {
+  ref,
+  watch,
+  computed,
+  onMounted,
+  reactive,
+  nextTick,
+  shallowRef,
+} from "vue";
 import { useRoute } from "vue-router";
 import { useCombineBomQC } from "@/composables/CheckQC/useCombineBomQC";
 import { usePnPFile } from "@/composables/CheckBOM/usePnPFile";
 import { useSettingPCBQC } from "@/composables/CheckQC/useSettingPCBQC";
 import { useRawBomQC } from "@/composables/CheckQC/useRawBomQC";
-
 import ButtonBack from "@/components/Button-Back.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
@@ -1295,6 +1344,9 @@ import BaseDialog from "@/components/BaseDialog.vue";
 import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import * as pdfjsLib from "pdfjs-dist";
+import pdfWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 //
 
 // ==========================================
@@ -1381,9 +1433,18 @@ const HeadersBomQC = [
   { title: "Designator", key: "designator" },
   { title: "Thao tác", key: "id", sortable: false },
 ];
+const HeaderHistoryPnPQC = [
+  { title: "STT", key: "stt" },
+  { title: "Designator", key: "designator", width: "500px" },
+  { title: "MPN", key: "mpn", width: "300px" },
+  { title: "Description", key: "description", width: "300px" },
+  { title: "Trạng thái", key: "status" },
+];
 const searchPnPQC = ref("");
+const searchHistoryQC = ref("");
 const selectedPnPQC = ref([]);
 const searchBomQC = ref("");
+const searchHistoryBomQC = ref("");
 const selectedBomQC = ref([]);
 const itemsPerPageBom = ref(20);
 const pageBom = ref(1);
@@ -1395,6 +1456,7 @@ const pageBom = ref(1);
 const imageUrl = ref("");
 const pcbImg = ref(null);
 const pcbFileInput = ref(null);
+const pdfPage = shallowRef(null);
 
 const imageWidth = ref(0);
 const imageHeight = ref(0);
@@ -1403,6 +1465,8 @@ const activePointId = ref(null);
 const activeGroupPointIds = ref([]);
 const currentGroupZoomIndex = ref(0);
 const dialogImageUrl = ref("");
+const GetIDPnP = ref(null);
+const StatusPnP = ref(null);
 
 const isActivePoint = (id) => {
   return (
@@ -1566,6 +1630,35 @@ const combineRawBomQC = computed(() => {
   return rawBomQC.value;
 });
 
+const combineStatusPnPQC = computed(() => {
+  let data = [];
+
+  if (selectedLayer.value === "Top") {
+    data = combineBomQC.value.filter((item) =>
+      ["Top", "TopLayer", "top", "TOPLAYER", "toplayer", "TOP"].includes(
+        item.layer,
+      ),
+    );
+  } else if (selectedLayer.value === "Bottom") {
+    data = combineBomQC.value.filter((item) =>
+      [
+        "Bottom",
+        "BottomLayer",
+        "bottom",
+        "BOTTOMLAYER",
+        "bottomlayer",
+        "BOTTOM",
+      ].includes(item.layer),
+    );
+  }
+
+  return [...data].sort((a, b) => {
+    if (a.status === "Done" && b.status !== "Done") return -1;
+    if (a.status !== "Done" && b.status === "Done") return 1;
+    return 0;
+  });
+});
+
 function navigatePnP(direction) {
   if (!combinePnPQC.value.length) return;
 
@@ -1652,15 +1745,45 @@ function onPcbImageSelected(event) {
 
   if (!file) return;
 
-  const reader = new FileReader();
+  if (file.type === "application/pdf") {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const typedarray = new Uint8Array(e.target.result);
+      const loadingTask = pdfjsLib.getDocument(typedarray);
+      const pdf = await loadingTask.promise;
+      const page = await pdf.getPage(1);
+      pdfPage.value = page;
 
-  reader.onload = (e) => {
-    imageUrl.value = e.target.result;
-    activePointId.value = null;
-    dialogImageUrl.value = "";
-  };
+      const scale = 2.0;
+      const viewport = page.getViewport({ scale });
+      const canvas = document.createElement("canvas");
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext("2d");
 
-  reader.readAsDataURL(file);
+      const renderContext = {
+        canvasContext: ctx,
+        viewport: viewport,
+      };
+
+      await page.render(renderContext).promise;
+      imageUrl.value = canvas.toDataURL("image/png");
+      activePointId.value = null;
+      dialogImageUrl.value = "";
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    pdfPage.value = null;
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      imageUrl.value = e.target.result;
+      activePointId.value = null;
+      dialogImageUrl.value = "";
+    };
+
+    reader.readAsDataURL(file);
+  }
 }
 
 // ======================================
@@ -1753,6 +1876,9 @@ const svgPoints = computed(() => {
 // ======================================
 
 function GetZoomPnP(componentId) {
+  GetIDPnP.value = componentId;
+  const foundStatus = combinePnPQC.value.find((val) => val.id === componentId);
+  StatusPnP.value = foundStatus?.status;
   if (width.value == 0 || height.value == 0)
     return (
       (DialogFailed.value = true),
@@ -1789,6 +1915,52 @@ function GetZoomPnP(componentId) {
   const img = pcbImg.value;
 
   if (!img) return;
+
+  if (pdfPage.value) {
+    dialogImageUrl.value = "";
+    const cropSize = 300;
+    const canvas = document.createElement("canvas");
+    canvas.width = cropSize;
+    canvas.height = cropSize;
+    const ctx = canvas.getContext("2d");
+
+    const pdfViewport = pdfPage.value.getViewport({ scale: 1 });
+    const pdfToDisplayScale = imageWidth.value / pdfViewport.width;
+
+    const pdfX = point.px / pdfToDisplayScale;
+    const pdfY = point.py / pdfToDisplayScale;
+
+    const pdfCropHalf = 30 / pdfToDisplayScale;
+    const renderScale = cropSize / 2 / pdfCropHalf;
+
+    const scaledPdfX = pdfX * renderScale;
+    const scaledPdfY = pdfY * renderScale;
+
+    const offsetX = cropSize / 2 - scaledPdfX;
+    const offsetY = cropSize / 2 - scaledPdfY;
+
+    const cropViewport = pdfPage.value.getViewport({
+      scale: renderScale,
+      offsetX: offsetX,
+      offsetY: offsetY,
+    });
+
+    const renderContext = {
+      canvasContext: ctx,
+      viewport: cropViewport,
+    };
+
+    pdfPage.value
+      .render(renderContext)
+      .promise.then(() => {
+        dialogImageUrl.value = canvas.toDataURL("image/png");
+        console.log("PDF zoom rendered successfully.");
+      })
+      .catch((err) => {
+        console.error("Lỗi render PDF:", err);
+      });
+    return;
+  }
 
   const canvas = document.createElement("canvas");
 
@@ -2155,6 +2327,25 @@ const ApplyAlign = async () => {
     MessageErrorDialog.value = "Áp dụng dữ liệu thất bại";
   } finally {
     DialogLoading.value = false;
+  }
+};
+
+// Save Status in Pickplace QC table
+const SaveStatusPnP = async () => {
+  DialogLoading.value = true;
+  try {
+    const response = await axios.put(
+      `${Url}/PickPlaceQC/Edit-item-status/${GetIDPnP.value}`,
+    );
+    DialogLoading.value = false;
+    GetIDPnP.value = null;
+    StatusPnP.value = "Done";
+    DialogSuccess.value = true;
+    MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
+  } catch (error) {
+    DialogLoading.value = false;
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
   }
 };
 

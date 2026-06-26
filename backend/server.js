@@ -6672,8 +6672,8 @@ app.post(
       await new Promise((resolve, reject) => {
         db.serialize(() => {
           const stmt = db.prepare(`
-          INSERT INTO PickplaceQC (designator, layer, mpn, x, y, rotation, project_id, type, note)
-          VALUES (?, ?, ?, ?, ?, ?, ?, 'SMT', ?)
+          INSERT INTO PickplaceQC (designator, layer, mpn, x, y, rotation, project_id, status, note)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 'Watting', ?)
         `);
 
           for (const r of uniqueRows) {
@@ -6713,6 +6713,27 @@ app.post(
     }
   },
 );
+// Put value status in table PickplaceQC
+app.put("/api/PickplaceQC/Edit-item-status/:id", (req, res) => {
+  const { id } = req.params;
+  db.run(
+    `UPDATE PickplaceQC 
+    SET 
+      status = 'Done'
+    WHERE id = ?`,
+    [id],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("CombineBomQCUpdate");
+      res.json({ message: "Summary received" });
+    },
+  );
+});
 
 // Delete all item in BomQC table
 app.delete("/api/BomQC/Delete-item/:id", (req, res) => {

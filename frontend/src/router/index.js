@@ -32,6 +32,7 @@ import PageDetailRW from "@/pages/Page-Manufacture/Page-DetailRW.vue";
 import PageToDo from "@/pages/Page-To-Do/Page-To-Do.vue";
 import PageListProjectQC from "@/pages/Page-Check-QC/Page-List-Project-QC.vue";
 import PageCheckQC from "@/pages/Page-Check-QC/Page-Check-QC.vue";
+import PageCheckImageQC from "@/pages/Page-Check-QC/Page-CheckImage-QC.vue";
 
 const routes = [
   {
@@ -91,6 +92,12 @@ const routes = [
         name: "CheckPnPQC",
         meta: { requiresAuth: true },
         component: PageCheckQC,
+      },
+      {
+        path: "/Kiem-tra-image-qc/:id",
+        name: "CheckImageQC",
+        meta: { requiresAuth: true },
+        component: PageCheckImageQC,
       },
       {
         path: "/Ton-kho",
