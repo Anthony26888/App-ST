@@ -1,14 +1,46 @@
 <template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="100vh">
+  <v-card variant="text" class="overflow-y-auto" height="100%">
     <v-card-title class="d-flex">
       <ButtonBack :to="`/Kiem-tra-pnp-qc/${id}`" />
       <p class="text-h4 font-weight-light ms-3">{{ project_name }}</p>
     </v-card-title>
 
     <v-card-text>
-      <v-card class="rounded-lg elevation-1 bg-surface" height="100vh">
+      <v-card class="rounded-lg elevation-1 bg-surface" height="100%">
         <v-card-title class="d-flex align-center pa-4 border-b">
           <div class="d-flex g-2">
+            <v-menu>
+              <template v-slot:activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  prepend-icon="mdi-import"
+                  append-icon="mdi-chevron-down"
+                  color="primary"
+                  variant="tonal"
+                  class="text-caption"
+                >
+                  Nhập dữ liệu
+                </v-btn>
+              </template>
+              <v-list density="compact">
+                <v-list-item
+                  @click="DialogAddImageTop = true"
+                  prepend-icon="mdi-image-plus"
+                >
+                  <v-list-item-title class="text-caption"
+                    >Hình ảnh PCB Mặt Top</v-list-item-title
+                  >
+                </v-list-item>
+                <v-list-item
+                  @click="DialogAddImageBottom = true"
+                  prepend-icon="mdi-image-plus"
+                >
+                  <v-list-item-title class="text-caption"
+                    >Hình ảnh PCB Mặt Bottom</v-list-item-title
+                  >
+                </v-list-item>
+              </v-list>
+            </v-menu>
             <v-menu>
               <template v-slot:activator="{ props }">
                 <v-btn
@@ -24,27 +56,19 @@
               </template>
               <v-list density="compact">
                 <v-list-item
-                  @click="DialogDeleteBom = true"
-                  prepend-icon="mdi-delete"
+                  @click="DialogDeleteSetting = true"
+                  prepend-icon="mdi-image-remove"
                 >
                   <v-list-item-title class="text-caption"
-                    >File Bom
-                  </v-list-item-title>
-                </v-list-item>
-                <v-list-item
-                  @click="DialogDeletePickPlace = true"
-                  prepend-icon="mdi-delete"
-                >
-                  <v-list-item-title class="text-caption"
-                    >File Pick&Place</v-list-item-title
+                    >Hình ảnh PCB Top</v-list-item-title
                   >
                 </v-list-item>
                 <v-list-item
                   @click="DialogDeleteSetting = true"
-                  prepend-icon="mdi-delete"
+                  prepend-icon="mdi-image-remove"
                 >
                   <v-list-item-title class="text-caption"
-                    >Dữ liệu cài đặt</v-list-item-title
+                    >Hình ảnh PCB Bottom</v-list-item-title
                   >
                 </v-list-item>
               </v-list>
@@ -57,17 +81,6 @@
             class="d-flex align-center g-3"
             style="max-width: 400px; width: 100%; justify-content: flex-end"
           >
-            <v-btn
-              prepend-icon="mdi-tune"
-              variant="outlined"
-              color="secondary"
-              class="text-none font-weight-medium me-3"
-              title="Cài đặt tọa độ"
-              @click="DialogSettings = true"
-            >
-              Cài đặt
-            </v-btn>
-
             <v-select
               v-model="selectedLayer"
               :items="['Top', 'Bottom']"
@@ -81,7 +94,7 @@
           </div>
         </v-card-title>
 
-        <v-card-text class="pa-4" style="height: calc(100vh - 75px)">
+        <v-card-text class="pa-4" style="height: calc(100vh - 45px)">
           <v-row class="fill-height" spacing="4">
             <v-col cols="7" class="fill-height">
               <v-card
@@ -109,7 +122,7 @@
                   <!-- Grid Toolbar -->
                   <div
                     v-if="imageUrl && imageSample"
-                    class="d-flex align-center bg-white rounded-lg px-2 py-1 elevation-2 position-absolute"
+                    class="d-flex align-center bg-white opacity-80 rounded-lg px-2 py-2 elevation-2 position-absolute"
                     style="top: 8px; left: 10px; z-index: 10"
                   >
                     <v-btn
@@ -150,8 +163,8 @@
 
                   <!-- Căn chỉnh Fiducial Toolbar -->
                   <div
-                    class="d-flex align-center bg-white rounded-lg px-2 py-1 elevation-2 position-absolute"
-                    style="top: 8px; left: 400px; z-index: 10"
+                    class="d-flex align-center bg-white opacity-80 rounded-lg px-2 py-2 elevation-2 position-absolute"
+                    style="top: 8px; left: 300px; z-index: 10"
                   >
                     <v-btn
                       :color="isAlignMode ? 'primary' : 'default'"
@@ -513,178 +526,234 @@
             </v-col>
 
             <v-col cols="5" class="fill-height d-flex flex-column g-3">
-              <v-card
-                variant="outlined"
-                class="rounded-lg overflow-hidden d-flex flex-column align-center justify-center bg-grey-lighten-5"
-                style="height: calc(50vh - 45px)"
-              >
-                <v-card-title
-                  class="text-center w-100 text-subtitle-1 text-primary"
-                  >PCB Test</v-card-title
-                >
-                <div
-                  v-if="dialogImageUrl"
-                  class="pa-3 fill-height w-100 d-flex align-center justify-center bg-white"
-                >
-                  <div
-                    class="position-relative d-flex align-center justify-center"
-                    style="width: 100%; height: 100%"
+              <v-row>
+                <v-col cols="12">
+                  <v-card
+                    variant="outlined"
+                    class="rounded-lg overflow-hidden position-relative bg-grey-lighten-5"
+                    style="height: 43vh"
                   >
-                    <v-img
-                      :src="dialogImageUrl"
-                      max-width="100%"
-                      max-height="100%"
-                      aspect-ratio="1/1"
-                      class="rounded-lg elevation-1"
-                      alt="Component Preview"
-                    >
-                      <template v-slot:placeholder>
-                        <div
-                          class="d-flex align-center justify-center fill-height bg-grey-lighten-4"
-                        >
-                          <v-progress-circular
-                            indeterminate
-                            color="primary"
-                          ></v-progress-circular>
-                        </div>
-                      </template>
-                    </v-img>
-
-                    <div
+                    <!-- Toolbar Overlay -->
+                    <v-toolbar
+                      density="compact"
+                      flat
                       style="
                         position: absolute;
-                        top: 50%;
-                        left: 50%;
-                        transform: translate(-50%, -50%);
-                        width: 100px;
-                        height: 100px;
-                        pointer-events: none;
-                        z-index: 10;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        z-index: 20;
+                        background: rgba(46, 125, 50, 0) !important;
                       "
                     >
-                      <svg
-                        width="100"
-                        height="100"
-                        viewBox="0 0 100 100"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
+                      <v-toolbar-title
+                        class="text-subtitle-1 font-weight-medium text-primary"
                       >
-                        <line
-                          x1="0"
-                          y1="50"
-                          x2="100"
-                          y2="50"
-                          stroke="#D32F2F"
-                          stroke-width="1"
-                        />
-                        <line
-                          x1="50"
-                          y1="0"
-                          x2="50"
-                          y2="100"
-                          stroke="#D32F2F"
-                          stroke-width="1"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
+                        PCB Test
+                      </v-toolbar-title>
 
-                <v-card-text v-else>
-                  <v-empty-state
-                    title="Không có hình ảnh"
-                    text="Chọn hoặc xem chi tiết linh kiện để hiển thị ảnh thực tế."
-                    icon="mdi-image-off-outline"
-                    class="text-grey-darken-1"
-                  />
-                </v-card-text>
-              </v-card>
-              <v-card
-                variant="outlined"
-                class="rounded-lg overflow-hidden d-flex flex-column align-center justify-center bg-grey-lighten-5 mt-5"
-                style="height: calc(50vh - 45px)"
-              >
-                <v-card-title
-                  class="text-center w-100 text-subtitle-1 text-success"
-                  >PCB Mẫu</v-card-title
-                >
-                <div
-                  v-if="dialogSampleImageUrl"
-                  class="pa-3 fill-height w-100 d-flex align-center justify-center bg-white"
-                >
-                  <div
-                    class="position-relative d-flex align-center justify-center"
-                    style="width: 100%; height: 100%"
-                  >
-                    <v-img
-                      :src="dialogSampleImageUrl"
-                      max-width="100%"
-                      max-height="100%"
-                      aspect-ratio="1/1"
-                      class="rounded-lg elevation-1"
-                      alt="Component Preview"
-                    >
-                      <template v-slot:placeholder>
-                        <div
-                          class="d-flex align-center justify-center fill-height bg-grey-lighten-4"
-                        >
-                          <v-progress-circular
-                            indeterminate
-                            color="primary"
-                          ></v-progress-circular>
-                        </div>
-                      </template>
-                    </v-img>
+                      <v-btn
+                        icon="mdi-fit-to-screen"
+                        variant="text"
+                        color="white"
+                      />
+                    </v-toolbar>
 
+                    <!-- Image -->
                     <div
+                      v-if="dialogImageUrl"
+                      class="fill-height w-100 d-flex align-center justify-center bg-white"
+                    >
+                      <div
+                        class="position-relative d-flex align-center justify-center"
+                        style="width: 100%; height: 100%"
+                      >
+                        <v-img
+                          :src="dialogImageUrl"
+                          width="100%"
+                          height="100%"
+                          contain
+                          class="rounded-lg"
+                          alt="PCB Sample"
+                        >
+                          <template #placeholder>
+                            <div
+                              class="fill-height d-flex align-center justify-center bg-grey-lighten-4"
+                            >
+                              <v-progress-circular
+                                indeterminate
+                                color="primary"
+                              />
+                            </div>
+                          </template>
+                        </v-img>
+
+                        <!-- Crosshair -->
+                        <div
+                          style="
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            width: 100px;
+                            height: 100px;
+                            pointer-events: none;
+                            z-index: 30;
+                          "
+                        >
+                          <svg
+                            width="100"
+                            height="100"
+                            viewBox="0 0 100 100"
+                            fill="none"
+                          >
+                            <line
+                              x1="0"
+                              y1="50"
+                              x2="100"
+                              y2="50"
+                              stroke="#D32F2F"
+                              stroke-width="1"
+                            />
+                            <line
+                              x1="50"
+                              y1="0"
+                              x2="50"
+                              y2="100"
+                              stroke="#D32F2F"
+                              stroke-width="1"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+
+                    <v-card-text
+                      v-else
+                      class="fill-height d-flex align-center justify-center"
+                    >
+                      <v-empty-state
+                        title="Không có hình ảnh"
+                        text="Chọn hoặc xem chi tiết linh kiện để hiển thị ảnh thực tế."
+                        icon="mdi-image-off-outline"
+                      />
+                    </v-card-text>
+                  </v-card>
+                </v-col>
+                <v-col cols="12">
+                  <v-card
+                    variant="outlined"
+                    class="rounded-lg overflow-hidden position-relative bg-grey-lighten-5"
+                    style="height: 43vh"
+                  >
+                    <!-- Toolbar Overlay -->
+                    <v-toolbar
+                      density="compact"
+                      flat
                       style="
                         position: absolute;
-                        top: 50%;
-                        left: 50%;
-                        transform: translate(-50%, -50%);
-                        width: 100px;
-                        height: 100px;
-                        pointer-events: none;
-                        z-index: 10;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        z-index: 20;
+                        background: rgba(46, 125, 50, 0) !important;
                       "
                     >
-                      <svg
-                        width="100"
-                        height="100"
-                        viewBox="0 0 100 100"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
+                      <v-toolbar-title
+                        class="text-subtitle-1 font-weight-medium text-green-accent-4"
                       >
-                        <line
-                          x1="0"
-                          y1="50"
-                          x2="100"
-                          y2="50"
-                          stroke="#D32F2F"
-                          stroke-width="1"
-                        />
-                        <line
-                          x1="50"
-                          y1="0"
-                          x2="50"
-                          y2="100"
-                          stroke="#D32F2F"
-                          stroke-width="1"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
+                        PCB Mẫu
+                      </v-toolbar-title>
 
-                <v-card-text v-else>
-                  <v-empty-state
-                    title="Không có hình ảnh"
-                    text="Chọn hoặc xem chi tiết linh kiện để hiển thị ảnh thực tế."
-                    icon="mdi-image-off-outline"
-                    class="text-grey-darken-1"
-                  />
-                </v-card-text>
-              </v-card>
+                      <v-btn
+                        icon="mdi-fit-to-screen"
+                        variant="text"
+                        color="white"
+                      />
+                    </v-toolbar>
+
+                    <!-- Image -->
+                    <div
+                      v-if="dialogSampleImageUrl"
+                      class="fill-height w-100 d-flex align-center justify-center bg-white"
+                    >
+                      <div
+                        class="position-relative d-flex align-center justify-center"
+                        style="width: 100%; height: 100%"
+                      >
+                        <v-img
+                          :src="dialogSampleImageUrl"
+                          width="100%"
+                          height="100%"
+                          contain
+                          class="rounded-lg"
+                          alt="PCB Sample"
+                        >
+                          <template #placeholder>
+                            <div
+                              class="fill-height d-flex align-center justify-center bg-grey-lighten-4"
+                            >
+                              <v-progress-circular
+                                indeterminate
+                                color="primary"
+                              />
+                            </div>
+                          </template>
+                        </v-img>
+
+                        <!-- Crosshair -->
+                        <div
+                          style="
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            width: 100px;
+                            height: 100px;
+                            pointer-events: none;
+                            z-index: 30;
+                          "
+                        >
+                          <svg
+                            width="100"
+                            height="100"
+                            viewBox="0 0 100 100"
+                            fill="none"
+                          >
+                            <line
+                              x1="0"
+                              y1="50"
+                              x2="100"
+                              y2="50"
+                              stroke="#D32F2F"
+                              stroke-width="1"
+                            />
+                            <line
+                              x1="50"
+                              y1="0"
+                              x2="50"
+                              y2="100"
+                              stroke="#D32F2F"
+                              stroke-width="1"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+
+                    <v-card-text
+                      v-else
+                      class="fill-height d-flex align-center justify-center"
+                    >
+                      <v-empty-state
+                        title="Không có hình ảnh"
+                        text="Chọn hoặc xem chi tiết linh kiện để hiển thị ảnh thực tế."
+                        icon="mdi-image-off-outline"
+                      />
+                    </v-card-text>
+                  </v-card>
+                </v-col>
+              </v-row>
             </v-col>
           </v-row>
         </v-card-text>
@@ -692,98 +761,38 @@
     </v-card-text>
   </v-card>
   <BaseDialog
-    v-model="DialogSettings"
-    width="700"
-    title="Cài đặt tọa độ & Căn chỉnh"
-    icon="mdi-tune"
+    v-model="DialogAddImageTop"
+    width="600"
+    title="Thêm hình ảnh PCB mặt Top"
+    icon="mdi-format-vertical-align-top"
   >
-    <div class="bg-blue-lighten-5 pa-3 rounded-lg mb-4 border-s-lg border-blue">
-      <p class="text-caption font-weight-bold text-blue-darken-2 mb-2">
-        1. Kích thước Panel thực tế:
-      </p>
-      <v-row density="compact">
-        <v-col cols="6">
-          <InputField
-            v-model.number="width"
-            label="Chiều rộng W (mm)"
-            type="number"
-            density="comfortable"
-            variant="outlined"
-            step="0.01"
-            hide-details
-          />
-        </v-col>
-        <v-col cols="6">
-          <InputField
-            v-model.number="height"
-            label="Chiều cao H (mm)"
-            type="number"
-            density="comfortable"
-            variant="outlined"
-            step="0.01"
-            hide-details
-          />
-        </v-col>
-      </v-row>
-    </div>
-
-    <p class="text-caption text-grey mb-2">
-      2. Điều chỉnh tọa độ thủ công (mm):
-    </p>
-
-    <div class="ga-2">
-      <v-row>
-        <v-col>
-          <InputField
-            v-model.number="manualOffsetX"
-            label="Điều chỉnh X (mm)"
-            type="number"
-            density="comfortable"
-            variant="outlined"
-            step="0.01"
-          />
-        </v-col>
-        <v-col>
-          <InputField
-            v-model.number="manualOffsetY"
-            label="Điều chỉnh Y (mm)"
-            type="number"
-            density="comfortable"
-            variant="outlined"
-            step="0.01"
-          />
-        </v-col>
-      </v-row>
-    </div>
-
-    <p class="text-caption text-grey mb-2">3. Hình ảnh PCB Mẫu:</p>
-
-    <div class="ga-2">
-      <v-row>
-        <v-col cols="8">
-          <InputFiles
-            v-model="FileGoldenImage"
-            label="Chọn ảnh mẫu PCB"
-            name="imageSample"
-            accept=".png,.jpg,.jpeg,.heic"
-          />
-        </v-col>
-        <v-col v-if="imageSample" cols="4" class="mx-auto">
-          <v-img
-            :src="`${Url_Image}/${imageSample}`"
-            max-height="100px"
-            rounded
-          ></v-img>
-        </v-col>
-      </v-row>
-    </div>
-    <v-divider class="my-3"></v-divider>
-    <div class="d-flex gap-2">
-      <v-spacer></v-spacer>
-      <v-btn color="primary" class="text-caption me-2" @click="SaveSettingPCB()"
-        >Áp dụng PnP</v-btn
-      >
-    </div>
+    <InputFiles
+      label="Nhập hình ảnh PCB mặt Top (.jpeg, .jpg, .png)"
+      class="mt-2"
+      v-model="ImageTop"
+      name="ImageTop"
+    />
+    <template #actions>
+      <ButtonCancel @cancel="DialogAddImageTop = false" />
+      <ButtonSave @save="uploadImageTop()" />
+    </template>
+  </BaseDialog>
+  <BaseDialog
+    v-model="DialogAddImageBottom"
+    width="600"
+    title="Thêm hình ảnh PCB mặt Bottom"
+    icon="mdi-format-vertical-align-bottom"
+  >
+    <InputFiles
+      label="Nhập hình ảnh PCB mặt Bottom (.jpeg, .jpg, .png)"
+      class="mt-2"
+      v-model="ImageBottom"
+      name="ImageBottom"
+    />
+    <template #actions>
+      <ButtonCancel @cancel="DialogAddImageBottom = false" />
+      <ButtonSave @save="uploadImageBottom()" />
+    </template>
   </BaseDialog>
   <BaseDialog
     v-model="DialogDeleteBom"
@@ -869,8 +878,8 @@ const { rawBomQC } = useRawBomQC(id);
 // --- Dialog & UI States ---
 const DialogAddBom = ref(false);
 const DialogAddPnP = ref(false);
-const DialogAddGerber = ref(false);
-const DialogSettingPCB = ref(false);
+const DialogAddImageTop = ref(false);
+const DialogAddImageBottom = ref(false);
 const DialogSettings = ref(false);
 const DialogRemove = ref(false);
 const DialogFailed = ref(false);
@@ -902,6 +911,9 @@ const imageSample = ref("");
 const manualOffsetX = ref(0);
 const manualOffsetY = ref(0);
 
+const ImageTop = ref(null);
+const ImageBottom = ref(null);
+
 // --- Table & Data States ---
 const pnpTable = ref(null);
 const tab = ref("one");
@@ -916,33 +928,6 @@ const rowProps = (data) => {
   }
   return {};
 };
-
-const HeadersPnPQC = [
-  { title: "STT", key: "stt" },
-  { title: "Designator", key: "designator" },
-  { title: "MPN", key: "mpn", width: "200px" },
-  { title: "Thao tác", key: "id", sortable: false },
-];
-const HeadersBomQC = [
-  { title: "STT", key: "stt" },
-  { title: "MPN", key: "mpn", width: "200px" },
-  { title: "Designator", key: "designator" },
-  { title: "Thao tác", key: "id", sortable: false },
-];
-const HeaderHistoryPnPQC = [
-  { title: "STT", key: "stt" },
-  { title: "Designator", key: "designator", width: "500px" },
-  { title: "MPN", key: "mpn", width: "300px" },
-  { title: "Description", key: "description", width: "300px" },
-  { title: "Trạng thái", key: "status" },
-  { title: "Thao tác", key: "id", sortable: false },
-];
-const searchPnPQC = ref("");
-const selectedPnPQC = ref([]);
-const searchBomQC = ref("");
-const selectedBomQC = ref([]);
-const itemsPerPageBom = ref(20);
-const pageBom = ref(1);
 
 // ===============================
 // PCB IMAGE + PNP OVERLAY
@@ -1121,7 +1106,14 @@ watch(
 
     width.value = Number(found.width) || 0;
     height.value = Number(found.height) || 0;
-    imageSample.value = found.image || "";
+    if (selectedLayer.value === "Top" || selectedLayer.value === "TopLayer") {
+      imageSample.value = found.imageSampleTop || "";
+    } else if (
+      selectedLayer.value === "Bottom" ||
+      selectedLayer.value === "BottomLayer"
+    ) {
+      imageSample.value = found.imageSampleBottom || "";
+    }
 
     fiducialBL.value = found.fiducialBL ? JSON.parse(found.fiducialBL) : null;
 
@@ -1143,161 +1135,6 @@ watch(
   },
   { immediate: true },
 );
-
-const filteredPnP = computed(() => {
-  const list = detailPnP.value || [];
-  return list.filter((p) => {
-    // Nếu đang chọn mặt Top, chấp nhận cả "Top" và "TopLayer"
-    if (selectedLayer.value === "Top" || selectedLayer.value === "WG Top") {
-      return (
-        p.layer === "Top" ||
-        p.layer === "TopLayer" ||
-        p.layer === "TOP" ||
-        p.layer === "TOPLAYER"
-      );
-    }
-    // Nếu đang chọn mặt Bottom, chấp nhận cả "Bottom" và "BottomLayer"
-    if (
-      selectedLayer.value === "Bottom" ||
-      selectedLayer.value === "WG Bottom"
-    ) {
-      return (
-        p.layer === "Bottom" ||
-        p.layer === "BottomLayer" ||
-        p.layer === "BOTTOM" ||
-        p.layer === "BOTTOMLAYER"
-      );
-    }
-    return false;
-  });
-});
-
-const topLayerCount = computed(() => {
-  if (!combineBomQC.value) return 0;
-  return combineBomQC.value.filter(
-    (item) => item.layer === "Top" || item.layer === "TopLayer",
-  ).length;
-});
-
-const bottomLayerCount = computed(() => {
-  if (!combineBomQC.value) return 0;
-  return combineBomQC.value.filter(
-    (item) => item.layer === "Bottom" || item.layer === "BottomLayer",
-  ).length;
-});
-
-const componentsWithSize = computed(() => {
-  if (!filteredPnP.value) return 0;
-  return filteredPnP.value.filter(
-    (p) => p.width && p.length && p.width > 0 && p.length > 0,
-  ).length;
-});
-
-// Legacy currentSvgContent removed
-
-const combinePnPQC = computed(() => {
-  if (selectedLayer.value === "Top") {
-    return combineBomQC.value.filter(
-      (item) =>
-        item.layer === "Top" ||
-        item.layer === "TopLayer" ||
-        item.layer === "top" ||
-        item.layer === "TOPLAYER" ||
-        item.layer === "toplayer" ||
-        item.layer === "TOP",
-    );
-  }
-  if (selectedLayer.value === "Bottom") {
-    return combineBomQC.value.filter(
-      (item) =>
-        item.layer === "Bottom" ||
-        item.layer === "BottomLayer" ||
-        item.layer === "bottom" ||
-        item.layer === "BOTTOMLAYER" ||
-        item.layer === "bottomlayer" ||
-        item.layer === "BOTTOM",
-    );
-  }
-});
-
-const combineRawBomQC = computed(() => {
-  if (selectedLayer.value === "Top") {
-    return rawBomQC.value.filter((item) =>
-      item.layers?.toLowerCase().includes("top"),
-    );
-  }
-
-  if (selectedLayer.value === "Bottom") {
-    return rawBomQC.value.filter((item) =>
-      item.layers?.toLowerCase().includes("bottom"),
-    );
-  }
-
-  return rawBomQC.value;
-});
-
-const combineStatusPnPQC = computed(() => {
-  if (selectedLayer.value === "Top") {
-    return combineBomQC.value.filter(
-      (item) =>
-        ["Top", "TopLayer", "top", "TOPLAYER", "toplayer", "TOP"].includes(
-          item.layer,
-        ) && item.status === "Done",
-    );
-  }
-
-  if (selectedLayer.value === "Bottom") {
-    return combineBomQC.value.filter(
-      (item) =>
-        [
-          "Bottom",
-          "BottomLayer",
-          "bottom",
-          "BOTTOMLAYER",
-          "bottomlayer",
-          "BOTTOM",
-        ].includes(item.layer) && item.status === "Done",
-    );
-  }
-
-  return [];
-});
-
-function navigatePnP(direction) {
-  if (!combinePnPQC.value.length) return;
-
-  if (direction === "next") {
-    currentIndex.value = (currentIndex.value + 1) % combinePnPQC.value.length;
-  } else {
-    currentIndex.value =
-      (currentIndex.value - 1 + combinePnPQC.value.length) %
-      combinePnPQC.value.length;
-  }
-
-  const targetItem = combinePnPQC.value[currentIndex.value];
-  if (targetItem) {
-    GetZoomPnP(targetItem.id);
-    GetZoomPnPSample(targetItem.id);
-  }
-}
-
-function navigateBom(direction) {
-  if (!combineRawBomQC.value.length) return;
-
-  if (direction === "next") {
-    currentIndexBom.value =
-      (currentIndexBom.value + 1) % combineRawBomQC.value.length;
-  } else {
-    currentIndexBom.value =
-      (currentIndexBom.value - 1 + combineRawBomQC.value.length) %
-      combineRawBomQC.value.length;
-  }
-
-  const targetItem = combineRawBomQC.value[currentIndexBom.value];
-  if (targetItem) {
-    GetZoomPnPGroup(targetItem.id);
-  }
-}
 
 function toggleAlignMode() {
   isAlignMode.value = !isAlignMode.value;
@@ -1381,165 +1218,6 @@ onMounted(() => {
   window.addEventListener("resize", updateImageSize);
 });
 
-// ======================================
-// MM -> PIXEL
-// ======================================
-
-const svgPoints = computed(() => {
-  if (!imageWidth.value || !imageHeight.value || !combinePnPQC.value?.length) {
-    return [];
-  }
-
-  return combinePnPQC.value
-    .filter(
-      (item) =>
-        item.x !== null &&
-        item.y !== null &&
-        !isNaN(Number(item.x)) &&
-        !isNaN(Number(item.y)),
-    )
-    .map((item) => {
-      const mmX = Number(item.x) + Number(manualOffsetX.value || 0);
-      const mmY = Number(item.y) + Number(manualOffsetY.value || 0);
-
-      let px, py;
-
-      if (
-        fiducialTL.value &&
-        fiducialTR.value &&
-        fiducialBL.value &&
-        fiducialBR.value
-      ) {
-        // Căng chỉnh theo 4 điểm sử dụng Bilinear Interpolation
-        // U: Tỷ lệ theo trục X (0 ở trái, 1 ở phải)
-        // V: Tỷ lệ theo trục Y (0 ở dưới, 1 ở trên)
-        const u = mmX / boardWidthMM.value;
-        const v = mmY / boardHeightMM.value;
-
-        // Nội suy tọa độ X và Y
-        px =
-          (1 - u) * (1 - v) * fiducialBL.value.x +
-          u * (1 - v) * fiducialBR.value.x +
-          (1 - u) * v * fiducialTL.value.x +
-          u * v * fiducialTR.value.x;
-
-        py =
-          (1 - u) * (1 - v) * fiducialBL.value.y +
-          u * (1 - v) * fiducialBR.value.y +
-          (1 - u) * v * fiducialTL.value.y +
-          u * v * fiducialTR.value.y;
-      } else {
-        // Mặc định căng chỉnh theo kích thước ảnh
-        px = (mmX / boardWidthMM.value) * imageWidth.value;
-
-        // Nếu ảnh PCB được chụp từ TOP VIEW
-        py =
-          imageHeight.value - (mmY / boardHeightMM.value) * imageHeight.value;
-      }
-
-      return {
-        ...item,
-        px,
-        py,
-      };
-    });
-});
-
-// ======================================
-// Zoom Component
-// ======================================
-
-function GetZoomPnP(componentId) {
-  GetIDPnP.value = componentId;
-  const foundStatus = combinePnPQC.value.find((val) => val.id === componentId);
-  StatusPnP.value = foundStatus?.status;
-  if (width.value == 0 || height.value == 0)
-    return (
-      (DialogFailed.value = true),
-      (MessageErrorDialog.value =
-        "Chưa có dữ liệu chiều dài hoặc chiều rộng PCB")
-    );
-  const point = svgPoints.value.find(
-    (p) => String(p.id) === String(componentId),
-  );
-
-  if (!point) {
-    DialogFailed.value = true;
-    MessageErrorDialog.value = "Không tìm thấy linh kiện";
-    return;
-  }
-
-  activePointId.value = componentId;
-  activeGroupPointIds.value = [];
-  activeGrid.value = null;
-
-  if (combinePnPQC.value && combinePnPQC.value.length) {
-    const index = combinePnPQC.value.findIndex(
-      (p) => String(p.id) === String(componentId),
-    );
-    if (index !== -1) {
-      currentIndex.value = index;
-      nextTick(() => {
-        if (pnpTable.value) {
-          pnpTable.value.scrollToIndex(index);
-        }
-      });
-    }
-  }
-
-  const img = pcbImg.value;
-
-  if (!img) return;
-
-  const canvas = document.createElement("canvas");
-
-  const cropSize = 300;
-
-  canvas.width = cropSize;
-  canvas.height = cropSize;
-
-  const ctx = canvas.getContext("2d");
-
-  // Pixel trên ảnh gốc
-  const natX = (point.px / imageWidth.value) * img.naturalWidth;
-
-  const natY = (point.py / imageHeight.value) * img.naturalHeight;
-
-  const scaleX = img.naturalWidth / imageWidth.value;
-
-  const cropHalf = 30 * scaleX;
-
-  let sx = natX - cropHalf;
-  let sy = natY - cropHalf;
-
-  let sw = cropHalf * 2;
-  let sh = cropHalf * 2;
-
-  if (sx < 0) {
-    sw += sx;
-    sx = 0;
-  }
-
-  if (sy < 0) {
-    sh += sy;
-    sy = 0;
-  }
-
-  if (sx + sw > img.naturalWidth) {
-    sw = img.naturalWidth - sx;
-  }
-
-  if (sy + sh > img.naturalHeight) {
-    sh = img.naturalHeight - sy;
-  }
-
-  ctx.clearRect(0, 0, cropSize, cropSize);
-
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cropSize, cropSize);
-
-  dialogImageUrl.value = canvas.toDataURL("image/png");
-}
-
 // ===============================
 // PCB GOLDEN IMAGE (SAMPLE)
 // ===============================
@@ -1551,52 +1229,6 @@ const dialogSampleImageUrl = ref("");
 // Board Size (mm)
 const boardSampleWidthMM = computed(() => width.value);
 const boardSampleHeightMM = computed(() => height.value);
-
-// ======================================
-// Zoom Component
-// ======================================
-
-function GetZoomPnPGroup(componentId) {
-  if (width.value == 0 || height.value == 0) {
-    DialogFailed.value = true;
-    MessageErrorDialog.value = "Chưa có dữ liệu chiều dài hoặc chiều rộng PCB";
-    return;
-  }
-
-  const bomItem = combineRawBomQC.value.find(
-    (p) => String(p.id) === String(componentId),
-  );
-
-  if (!bomItem) {
-    DialogFailed.value = true;
-    MessageErrorDialog.value = "Không tìm thấy BOM item";
-    return;
-  }
-
-  const designators = bomItem.designator
-    ? bomItem.designator.split(",").map((d) => d.trim())
-    : [];
-
-  const matchedPoints = combinePnPQC.value.filter((p) =>
-    designators.includes(p.designator),
-  );
-
-  if (matchedPoints.length === 0) {
-    DialogFailed.value = true;
-    MessageErrorDialog.value =
-      "Không tìm thấy tọa độ linh kiện nào trong danh sách PnP";
-    return;
-  }
-
-  currentGroupZoomIndex.value = 0;
-
-  // Zoom vào linh kiện đầu tiên để hiển thị ở 2 bảng PCB Test/Sample
-  GetZoomPnP(matchedPoints[0].id);
-  GetZoomPnPSample(matchedPoints[0].id);
-
-  // Đặt danh sách group các id sau khi gọi GetZoomPnP để không bị clear
-  activeGroupPointIds.value = matchedPoints.map((p) => p.id);
-}
 
 function NavigateGroupZoom(direction) {
   if (activeGroupPointIds.value.length <= 1) return;
@@ -1617,80 +1249,6 @@ function NavigateGroupZoom(direction) {
   GetZoomPnPSample(pointId);
 
   activeGroupPointIds.value = groupIds;
-}
-
-function GetZoomPnPSample(componentId) {
-  if (width.value == 0 || height.value == 0) {
-    DialogFailed.value = true;
-    MessageErrorDialog.value = "Chưa có dữ liệu chiều dài hoặc chiều rộng PCB";
-    return;
-  }
-  const point = combinePnPQC.value.find(
-    (p) => String(p.id) === String(componentId),
-  );
-
-  if (!point) {
-    DialogFailed.value = true;
-    MessageErrorDialog.value = "Không tìm thấy linh kiện";
-    return;
-  }
-
-  activeSamplePointId.value = componentId;
-
-  const img = pcbSampleImg.value;
-
-  if (!img || !img.naturalWidth) return;
-
-  const canvas = document.createElement("canvas");
-
-  const cropSize = 300;
-
-  canvas.width = cropSize;
-  canvas.height = cropSize;
-
-  const ctx = canvas.getContext("2d");
-
-  const mmX = Number(point.x);
-  const mmY = Number(point.y);
-
-  // Pixel trên ảnh gốc
-  const natX = (mmX / boardSampleWidthMM.value) * img.naturalWidth;
-  const natY = (1 - mmY / boardSampleHeightMM.value) * img.naturalHeight;
-
-  const displayWidth = imageWidth.value > 0 ? imageWidth.value : 800;
-  const scaleX = img.naturalWidth / displayWidth;
-
-  const cropHalf = 80 * scaleX;
-
-  let sx = natX - cropHalf;
-  let sy = natY - cropHalf;
-
-  let sw = cropHalf * 2;
-  let sh = cropHalf * 2;
-
-  if (sx < 0) {
-    sw += sx;
-    sx = 0;
-  }
-
-  if (sy < 0) {
-    sh += sy;
-    sy = 0;
-  }
-
-  if (sx + sw > img.naturalWidth) {
-    sw = img.naturalWidth - sx;
-  }
-
-  if (sy + sh > img.naturalHeight) {
-    sh = img.naturalHeight - sy;
-  }
-
-  ctx.clearRect(0, 0, cropSize, cropSize);
-
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cropSize, cropSize);
-
-  dialogSampleImageUrl.value = canvas.toDataURL("image/png");
 }
 
 /**
@@ -1737,6 +1295,54 @@ const uploadPNP = async () => {
     DialogFailed.value = true;
     MessageErrorDialog.value = "Upload Pick&Place thất bại";
     console.error("Lỗi upload PickPlace:", error);
+    DialogLoading.value = false;
+  }
+};
+
+/**
+ * Upload file Pick & Place (.xlsx) lên server và cập nhật tọa độ linh kiện
+ */
+const uploadImageTop = async () => {
+  DialogLoading.value = true;
+  try {
+    const formData = new FormData();
+    formData.append("imageSampleTop", ImageTop.value);
+    await axios.put(
+      `${Url}/SettingPCB-QC/Upload-image-sample-top/${id}`,
+      formData,
+    );
+    DialogSuccess.value = true;
+    MessageDialog.value = "Upload file top thành công";
+    DialogAddImageTop.value = false;
+    ImageTop.value = null;
+    DialogLoading.value = false;
+  } catch (error) {
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Upload file top thất bại";
+    DialogLoading.value = false;
+  }
+};
+
+/**
+ * Upload file Pick & Place (.xlsx) lên server và cập nhật tọa độ linh kiện
+ */
+const uploadImageBottom = async () => {
+  DialogLoading.value = true;
+  try {
+    const formData = new FormData();
+    formData.append("imageSampleBottom", ImageBottom.value);
+    await axios.put(
+      `${Url}/SettingPCB-QC/Upload-image-sample-bottom/${id}`,
+      formData,
+    );
+    DialogSuccess.value = true;
+    MessageDialog.value = "Upload file bottom thành công";
+    DialogAddImageBottom.value = false;
+    ImageBottom.value = null;
+    DialogLoading.value = false;
+  } catch (error) {
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Upload file bottom thất bại";
     DialogLoading.value = false;
   }
 };

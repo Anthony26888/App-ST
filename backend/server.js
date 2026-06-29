@@ -279,7 +279,7 @@ const uploadImageQC = multer({
     fileSize: 100 * 1024 * 1024, // 100MB
   },
   fileFilter: (req, file, cb) => {
-    const allowedExt = [".png", ".jpg", ".jpeg", ".webp", ".heic"];
+    const allowedExt = [".png", ".jpg", ".jpeg", ".webp", ".heic", ".pdf"];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowedExt.includes(ext)) {
       cb(null, true);
@@ -1618,7 +1618,19 @@ io.on("connection", (socket) => {
     }),
     socket.on("getCombineBomQC", async (id) => {
       try {
-        const query = `SELECT DISTINCT * FROM PickplaceQC WHERE project_id = ?`;
+        const query = `SELECT DISTINCT 
+                          a.id,
+                          a.designator,
+                          a.layer,
+                          a.mpn,
+                          a.x,
+                          a.y,
+                          a.rotation,
+                          a.status,
+                          b.description
+                        FROM PickplaceQC a
+                        LEFT JOIN BOMQC  b ON a.mpn = b.mpn
+                        WHERE a.project_id = ?`;
         db.all(query, [id], (err, rows) => {
           if (err) return socket.emit("CombineBomQCError", err);
           socket.emit("CombineBomQCData", rows);
@@ -6472,7 +6484,8 @@ app.post("/api/SettingPCBQC/Add-item", (req, res) => {
         });
       }
 
-      io.emit("SettingPCBUpdate");
+      io.emit("SettingPCBQCUpdate");
+      io.emit("CombineBomQCUpdate");
 
       res.json({ message: "SettingPCB created" });
     },
@@ -6480,23 +6493,119 @@ app.post("/api/SettingPCBQC/Add-item", (req, res) => {
 });
 
 // Put value in table SettingPCB QC table
+app.put("/api/SettingPCB-QC/Edit-item/:id", (req, res) => {
+  const { id } = req.params;
+  const { width, height } = req.body;
+  db.run(
+    `UPDATE SettingPCBQC
+     SET width = ?,
+         height = ?
+     WHERE project_id = ?`,
+    [Number(width), Number(height), id],
+    function (err) {
+      if (err) {
+        console.error("SQLite Error:", err);
+
+        return res.status(500).json({
+          success: false,
+          error: err.message,
+        });
+      }
+      io.emit("SettingPCBQCUpdate");
+      io.emit("CombineBomQCUpdate");
+
+      res.json({
+        success: true,
+        changes: this.changes,
+      });
+    },
+  );
+});
+
+// Put value file top in table SettingPCB QC table
 app.put(
-  "/api/SettingPCB-QC/Edit-item/:id",
-  uploadImageQC.single("image"),
+  "/api/SettingPCB-QC/Upload-file-top/:id",
+  uploadImageQC.single("fileTop"),
   (req, res) => {
     const { id } = req.params;
-    const { width, height } = req.body;
+    // Tên file sau khi upload
+    const file = req.file ? `uploads/qc/${req.file.filename}` : null;
 
+    db.run(
+      `UPDATE SettingPCBQC
+       SET fileTop = ?
+       WHERE project_id = ?`,
+      [file, id],
+      (err) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({
+            error: "Database error",
+            details: err.message,
+          });
+        }
+
+        io.emit("SettingPCBQCUpdate");
+        io.emit("CombineBomQCUpdate");
+
+        res.json({
+          success: true,
+          file,
+        });
+      },
+    );
+  },
+);
+
+// Put value file bottom in table SettingPCB QC table
+app.put(
+  "/api/SettingPCB-QC/Upload-file-bottom/:id",
+  uploadImageQC.single("fileBottom"),
+  (req, res) => {
+    const { id } = req.params;
+    // Tên file sau khi upload
+    const file = req.file ? `uploads/qc/${req.file.filename}` : null;
+
+    db.run(
+      `UPDATE SettingPCBQC
+       SET fileBottom = ?
+       WHERE project_id = ?`,
+      [file, id],
+      (err) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({
+            error: "Database error",
+            details: err.message,
+          });
+        }
+
+        io.emit("SettingPCBQCUpdate");
+        io.emit("CombineBomQCUpdate");
+
+        res.json({
+          success: true,
+          file,
+        });
+      },
+    );
+  },
+);
+
+// Put value image sample top in table SettingPCB QC table
+app.put(
+  "/api/SettingPCB-QC/Upload-image-sample-top/:id",
+  uploadImageQC.single("imageSampleTop"),
+  (req, res) => {
+    const { id } = req.params;
     // Tên file sau khi upload
     const image = req.file ? `uploads/qc/${req.file.filename}` : null;
 
     db.run(
       `UPDATE SettingPCBQC
-       SET width = ?,
-           height = ?,
-           image = ?
+       SET imageSampleTop = ?
        WHERE project_id = ?`,
-      [width, height, image, id],
+      [image, id],
       (err) => {
         if (err) {
           console.error(err);
@@ -6518,14 +6627,45 @@ app.put(
   },
 );
 
+// Put value image sample bottom in table SettingPCB QC table
+app.put(
+  "/api/SettingPCB-QC/Upload-image-sample-bottom/:id",
+  uploadImageQC.single("imageSampleBottom"),
+  (req, res) => {
+    const { id } = req.params;
+    // Tên file sau khi upload
+    const image = req.file ? `uploads/qc/${req.file.filename}` : null;
+
+    db.run(
+      `UPDATE SettingPCBQC
+       SET imageSampleBottom = ?
+       WHERE project_id = ?`,
+      [image, id],
+      (err) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({
+            error: "Database error",
+            details: err.message,
+          });
+        }
+
+        io.emit("SettingPCBQCUpdate");
+        io.emit("CombineBomQCUpdate");
+
+        res.json({
+          success: true,
+          image,
+        });
+      },
+    );
+  },
+);
+
 // Put value in table SettingPCB QC table
 app.put("/api/SettingPCB-QC/apply-align/:id", (req, res) => {
   const { id } = req.params;
   const { fiducialBL, fiducialTR, fiducialTL, fiducialBR } = req.body;
-  console.log("BL =", fiducialBL);
-  console.log("TR =", fiducialTR);
-  console.log("TL =", fiducialTL);
-  console.log("BR =", fiducialBR);
   db.run(
     `UPDATE SettingPCBQC
    SET fiducialBL = ?,
@@ -6673,7 +6813,7 @@ app.post(
         db.serialize(() => {
           const stmt = db.prepare(`
           INSERT INTO PickplaceQC (designator, layer, mpn, x, y, rotation, project_id, status, note)
-          VALUES (?, ?, ?, ?, ?, ?, ?, 'Watting', ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 'Waiting', ?)
         `);
 
           for (const r of uniqueRows) {

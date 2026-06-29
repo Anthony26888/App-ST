@@ -13,9 +13,12 @@
             :value="combineBom.length || 0"
             icon="mdi-chip"
             color="primary"
-            :totalSMT="statsBom.total.smt"
-            :totalTHT="statsBom.total.handSolder"
-            :totalPickup="statsBom.total.handPlace"
+            :totalLabel1="statsBom.total.smt"
+            :totalLabel2="statsBom.total.handSolder"
+            :totalLabel3="statsBom.total.handPlace"
+            label1="SMT"
+            label2="Hàn tay"
+            label3="Pick&Place"
           >
           </CardStatistic>
         </v-col>
@@ -35,9 +38,12 @@
             "
             icon="mdi-arrow-collapse-up"
             color="success"
-            :totalSMT="statsBom.top.smt"
-            :totalTHT="statsBom.top.handSolder"
-            :totalPickup="statsBom.top.handPlace"
+            :totalLabel1="statsBom.top.smt"
+            :totalLabel2="statsBom.top.handSolder"
+            :totalLabel3="statsBom.top.handPlace"
+            label1="SMT"
+            label2="Hàn tay"
+            label3="Pick&Place"
           >
           </CardStatistic>
         </v-col>
@@ -57,9 +63,12 @@
             "
             icon="mdi-arrow-collapse-down"
             color="error"
-            :totalSMT="statsBom.bottom.smt"
-            :totalTHT="statsBom.bottom.handSolder"
-            :totalPickup="statsBom.bottom.handPlace"
+            :totalLabel1="statsBom.bottom.smt"
+            :totalLabel2="statsBom.bottom.handSolder"
+            :totalLabel3="statsBom.bottom.handPlace"
+            label1="SMT"
+            label2="Hàn tay"
+            label3="Pick&Place"
           >
           </CardStatistic>
         </v-col>
@@ -369,6 +378,14 @@
                   >
                     <v-list-item-title class="text-caption"
                       >Tải file Top</v-list-item-title
+                    >
+                  </v-list-item>
+                  <v-list-item
+                    @click="DownloadPnP()"
+                    prepend-icon="mdi-download"
+                  >
+                    <v-list-item-title class="text-caption"
+                      >Tải file chung</v-list-item-title
                     >
                   </v-list-item>
                 </v-list>
@@ -3668,7 +3685,7 @@ const DownloadPnP = async () => {
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = `PickPlace.xlsx`;
+    a.download = `PnP_TOPbot.xlsx`;
     document.body.appendChild(a);
     a.click();
 
@@ -3691,7 +3708,7 @@ const DownloadPnPTop = async () => {
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = `PickPlace_Top.xlsx`;
+    a.download = `PickPlace_TOP.xlsx`;
     document.body.appendChild(a);
     a.click();
 
@@ -3714,7 +3731,7 @@ const DownloadPnPBottom = async () => {
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = `PickPlace_Bottom.xlsx`;
+    a.download = `PickPlace_bot.xlsx`;
     document.body.appendChild(a);
     a.click();
 

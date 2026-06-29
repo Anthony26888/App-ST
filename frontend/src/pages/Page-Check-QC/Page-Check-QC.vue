@@ -13,6 +13,10 @@
             :value="combineBomQC.length || 0"
             icon="mdi-chip"
             color="primary"
+            :totalLabel2="topLayerCountWaiting + bottomLayerCountWaiting"
+            :totalLabel3="topLayerCountDone + bottomLayerCountDone"
+            label2="Chưa kiểm tra"
+            label3="Đã kiểm tra"
           >
           </CardStatistic>
         </v-col>
@@ -32,6 +36,10 @@
             "
             icon="mdi-arrow-collapse-up"
             color="success"
+            :totalLabel2="topLayerCountWaiting"
+            :totalLabel3="topLayerCountDone"
+            label2="Chưa kiểm tra"
+            label3="Đã kiểm tra"
           >
           </CardStatistic>
         </v-col>
@@ -51,6 +59,10 @@
             "
             icon="mdi-arrow-collapse-down"
             color="error"
+            :totalLabel2="bottomLayerCountWaiting"
+            :totalLabel3="bottomLayerCountDone"
+            label2="Chưa kiểm tra"
+            label3="Đã kiểm tra"
           >
           </CardStatistic>
         </v-col>
@@ -77,7 +89,7 @@
               <v-list density="compact">
                 <v-list-item
                   @click="DialogAddPnP = true"
-                  prepend-icon="mdi-plus"
+                  prepend-icon="mdi-file-document-plus-outline"
                 >
                   <v-list-item-title class="text-caption"
                     >File Pick&Place</v-list-item-title
@@ -85,10 +97,26 @@
                 </v-list-item>
                 <v-list-item
                   @click="DialogAddBom = true"
-                  prepend-icon="mdi-plus"
+                  prepend-icon="mdi-file-document-plus-outline"
                 >
                   <v-list-item-title class="text-caption"
                     >File BOM</v-list-item-title
+                  >
+                </v-list-item>
+                <v-list-item
+                  @click="DialogAddFileTop = true"
+                  prepend-icon="mdi-format-vertical-align-top"
+                >
+                  <v-list-item-title class="text-caption"
+                    >File PCB Mặt Top</v-list-item-title
+                  >
+                </v-list-item>
+                <v-list-item
+                  @click="DialogAddFileBottom = true"
+                  prepend-icon="mdi-format-vertical-align-bottom"
+                >
+                  <v-list-item-title class="text-caption"
+                    >File PCB Mặt Bottom</v-list-item-title
                   >
                 </v-list-item>
               </v-list>
@@ -110,7 +138,7 @@
               <v-list density="compact">
                 <v-list-item
                   @click="DialogDeleteBom = true"
-                  prepend-icon="mdi-delete"
+                  prepend-icon="mdi-file-document-remove-outline"
                 >
                   <v-list-item-title class="text-caption"
                     >File Bom
@@ -118,7 +146,7 @@
                 </v-list-item>
                 <v-list-item
                   @click="DialogDeletePickPlace = true"
-                  prepend-icon="mdi-delete"
+                  prepend-icon="mdi-file-document-remove-outline"
                 >
                   <v-list-item-title class="text-caption"
                     >File Pick&Place</v-list-item-title
@@ -126,7 +154,7 @@
                 </v-list-item>
                 <v-list-item
                   @click="DialogDeleteSetting = true"
-                  prepend-icon="mdi-delete"
+                  prepend-icon="mdi-cog-off-outline"
                 >
                   <v-list-item-title class="text-caption"
                     >Dữ liệu cài đặt</v-list-item-title
@@ -137,10 +165,10 @@
             <v-tooltip text="Kiểm tra hình ảnh pcb">
               <template v-slot:activator="{ props }">
                 <v-btn
-                  color="primary"
+                  color="success"
                   variant="tonal"
                   class="text-caption ms-2"
-                  prepend-icon="mdi-history"
+                  prepend-icon="mdi-file-document-check-outline"
                   v-bind="props"
                   @click="$router.push(`/Kiem-tra-image-qc/${id}`)"
                 >
@@ -160,7 +188,7 @@
               prepend-icon="mdi-tune"
               variant="outlined"
               color="secondary"
-              class="text-none font-weight-medium me-3"
+              class="text-caption me-3"
               title="Cài đặt tọa độ"
               @click="DialogSettings = true"
             >
@@ -205,24 +233,79 @@
                 />
 
                 <div v-if="imageUrl" class="pcb-wrapper">
-                  <!-- Căn chỉnh Fiducial Toolbar -->
+                  <!-- Grid Toolbar -->
+                  <!-- Floating Toolbar -->
                   <div
-                    class="d-flex align-center bg-white rounded-lg px-2 py-1 elevation-2 position-absolute"
-                    style="top: 8px; left: 400px; z-index: 10"
+                    class="d-flex align-center bg-white rounded-lg px-2 py-1 opacity-80 elevation-3 position-absolute text-caption"
+                    style="top: 8px; left: 8px; z-index: 10; gap: 12px"
                   >
+                    <!-- Grid -->
+                    <v-switch
+                      v-model="isGridMode"
+                      label="Lưới"
+                      size="small"
+                      true-icon="mdi-check"
+                      false-icon="mdi-close"
+                      hide-details
+                      density="compact"
+                      color="primary"
+                      class="ma-0 pa-0 align-self-center"
+                    />
+
+                    <template v-if="isGridMode">
+                      <v-text-field
+                        v-model.number="gridRows"
+                        type="number"
+                        density="compact"
+                        variant="outlined"
+                        hide-details
+                        label="Hàng"
+                        style="width: 80px"
+                        min="1"
+                      />
+                      <v-text-field
+                        v-model.number="gridCols"
+                        type="number"
+                        density="compact"
+                        variant="outlined"
+                        hide-details
+                        label="Cột"
+                        style="width: 80px"
+                        min="1"
+                      />
+                    </template>
+
+                    <v-divider vertical class="mx-2"></v-divider>
+
+                    <v-switch
+                      v-model="isShowAllWaiting"
+                      label="Kiểm tra"
+                      size="small"
+                      hide-details
+                      density="compact"
+                      color="primary"
+                      true-icon="mdi-check"
+                      false-icon="mdi-close"
+                      class="ma-0 pa-0 align-self-center"
+                    />
+
+                    <v-divider vertical class="mx-2"></v-divider>
+
+                    <!-- Align -->
                     <v-btn
                       :color="isAlignMode ? 'primary' : 'default'"
-                      variant="text"
-                      density="comfortable"
+                      :variant="isAlignMode ? 'flat' : 'text'"
                       prepend-icon="mdi-crosshairs-gps"
-                      @click="toggleAlignMode"
+                      density="comfortable"
                       class="text-caption"
+                      @click="toggleAlignMode"
                     >
                       Căn chỉnh
                     </v-btn>
+
                     <span
                       v-if="isAlignMode"
-                      class="text-caption ms-2"
+                      class="text-caption"
                       :class="
                         alignStep === 5
                           ? 'text-success font-weight-bold'
@@ -230,17 +313,17 @@
                       "
                     >
                       {{
-                        alignStep === 1
-                          ? "1. Chọn điểm Trái Trên"
-                          : alignStep === 2
-                          ? "2. Chọn điểm Phải Trên"
-                          : alignStep === 3
-                          ? "3. Chọn điểm Trái Dưới"
-                          : alignStep === 4
-                          ? "4. Chọn điểm Phải Dưới"
-                          : "Hoàn tất căn chỉnh"
+                        [
+                          "",
+                          "Trái Trên",
+                          "Phải Trên",
+                          "Trái Dưới",
+                          "Phải Dưới",
+                          "Hoàn tất",
+                        ][alignStep]
                       }}
                     </span>
+
                     <v-btn
                       v-if="isAlignMode && alignStep > 1"
                       icon="mdi-refresh"
@@ -248,19 +331,16 @@
                       size="small"
                       color="error"
                       @click="resetAlign"
-                      class="ms-2"
-                      title="Làm lại"
-                    ></v-btn>
+                    />
+
                     <v-btn
                       v-if="isAlignMode && alignStep === 5"
                       icon="mdi-check"
-                      variant="text"
+                      variant="flat"
                       size="small"
                       color="success"
-                      @click="ApplyAlign()"
-                      class="ms-2"
-                      title="Áp dụng"
-                    ></v-btn>
+                      @click="ApplyAlign"
+                    />
                   </div>
 
                   <img
@@ -282,6 +362,50 @@
                     :height="imageHeight"
                     v-if="imageWidth"
                   >
+                    <!-- Lưới Grid -->
+                    <g v-if="isGridMode">
+                      <!-- Vertical lines -->
+                      <line
+                        v-for="i in gridCols > 1 ? gridCols - 1 : 0"
+                        :key="'v-' + i"
+                        :x1="(i / gridCols) * imageWidth"
+                        :y1="0"
+                        :x2="(i / gridCols) * imageWidth"
+                        :y2="imageHeight"
+                        stroke="rgba(0, 255, 0, 0.5)"
+                        stroke-width="1"
+                        stroke-dasharray="4"
+                      />
+                      <!-- Horizontal lines -->
+                      <line
+                        v-for="i in gridRows > 1 ? gridRows - 1 : 0"
+                        :key="'h-' + i"
+                        :x1="0"
+                        :y1="(i / gridRows) * imageHeight"
+                        :x2="imageWidth"
+                        :y2="(i / gridRows) * imageHeight"
+                        stroke="rgba(0, 255, 0, 0.5)"
+                        stroke-width="1"
+                        stroke-dasharray="4"
+                      />
+                      <!-- Clickable Cells -->
+                      <template v-for="r in gridRows" :key="'row-' + r">
+                        <rect
+                          v-for="c in gridCols"
+                          :key="'col-' + c + '-' + r"
+                          :x="((c - 1) / gridCols) * imageWidth"
+                          :y="((r - 1) / gridRows) * imageHeight"
+                          :width="(1 / gridCols) * imageWidth"
+                          :height="(1 / gridRows) * imageHeight"
+                          fill="transparent"
+                          stroke="transparent"
+                          style="cursor: pointer"
+                          @click.stop="onGridCellClick(r, c)"
+                          class="grid-cell-hover"
+                        />
+                      </template>
+                    </g>
+
                     <!-- Fiducial Markers -->
                     <g v-if="fiducialTL">
                       <line
@@ -428,7 +552,7 @@
                       <!-- Crosshair -->
 
                       <line
-                        v-if="isActivePoint(item.id)"
+                        v-if="isActivePoint(item)"
                         :x1="item.px - 20"
                         :y1="item.py"
                         :x2="item.px + 20"
@@ -438,7 +562,7 @@
                       />
 
                       <line
-                        v-if="isActivePoint(item.id)"
+                        v-if="isActivePoint(item)"
                         :x1="item.px"
                         :y1="item.py - 20"
                         :x2="item.px"
@@ -454,7 +578,7 @@
                         :cy="item.py"
                         r="2"
                         :fill="getPointColor(item.id)"
-                        v-if="isActivePoint(item.id)"
+                        v-if="isActivePoint(item)"
                       />
 
                       <!-- Selected -->
@@ -476,7 +600,7 @@
                       <!-- Designator -->
 
                       <text
-                        v-if="isActivePoint(item.id)"
+                        v-if="isActivePoint(item)"
                         :x="item.px + 12"
                         :y="item.py - 12"
                         font-size="20"
@@ -742,7 +866,6 @@
                 variant="outlined"
                 class="rounded-lg overflow-hidden d-flex flex-column align-center justify-center bg-grey-lighten-5"
                 style="height: calc(50vh - 45px)"
-                v-if="imageSample == null || imageSample == ''"
               >
                 <div
                   v-if="dialogImageUrl"
@@ -795,7 +918,7 @@
                       max-width="100%"
                       max-height="100%"
                       aspect-ratio="1/1"
-                      class="rounded-lg elevation-1"
+                      class="rounded-lg elevation-1 position-relative"
                       alt="Component Preview"
                     >
                       <template #placeholder>
@@ -805,10 +928,73 @@
                           <v-progress-circular indeterminate color="primary" />
                         </div>
                       </template>
+                      <template #default>
+                        <svg
+                          v-if="zoomedGridBox && isGridMode"
+                          style="
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 100%;
+                            z-index: 10;
+                          "
+                          :viewBox="`0 0 ${zoomedGridBox.w} ${zoomedGridBox.h}`"
+                          preserveAspectRatio="xMidYMid meet"
+                        >
+                          <g
+                            v-for="item in gridCellPoints"
+                            :key="'zoomed-' + item.id"
+                          >
+                            <!-- Crosshair inside -->
+                            <line
+                              :x1="item.px - zoomedGridBox.x - 5"
+                              :y1="item.py - zoomedGridBox.y"
+                              :x2="item.px - zoomedGridBox.x + 5"
+                              :y2="item.py - zoomedGridBox.y"
+                              :stroke="
+                                activePointId === item.id
+                                  ? 'blue'
+                                  : item.status === 'Waiting'
+                                  ? 'red'
+                                  : 'green'
+                              "
+                              :stroke-width="activePointId === item.id ? 2 : 1"
+                              @click="GetZoomPnP(item.id)"
+                            />
+                            <line
+                              :x1="item.px - zoomedGridBox.x"
+                              :y1="item.py - zoomedGridBox.y - 5"
+                              :x2="item.px - zoomedGridBox.x"
+                              :y2="item.py - zoomedGridBox.y + 5"
+                              :stroke="
+                                activePointId === item.id
+                                  ? 'blue'
+                                  : item.status === 'Waiting'
+                                  ? 'red'
+                                  : 'green'
+                              "
+                              :stroke-width="activePointId === item.id ? 2 : 1"
+                              @click="GetZoomPnP(item.id)"
+                            />
+                            <!-- <text
+                              :x="item.px - zoomedGridBox.x + 15"
+                              :y="item.py - zoomedGridBox.y - 15"
+                              font-size="8"
+                              :fill="activePointId === item.id ? 'blue' : 'red'"
+                              stroke="black"
+                              stroke-width="0.3"
+                            >
+                              {{ item.designator }}
+                            </text> -->
+                          </g>
+                        </svg>
+                      </template>
                     </v-img>
 
                     <!-- Crosshair -->
                     <div
+                      v-if="!zoomedGridBox"
                       style="
                         position: absolute;
                         top: 50%;
@@ -848,6 +1034,7 @@
 
                     <!-- Save Button Overlay -->
                     <div
+                      v-if="GetIDPnP"
                       style="
                         position: absolute;
                         bottom: 0;
@@ -864,7 +1051,7 @@
                       "
                     >
                       <v-btn
-                        v-if="StatusPnP == 'Watting'"
+                        v-if="StatusPnP == 'Waiting' || openSubmit == true"
                         class="text-subtitle-2 font-weight-bold"
                         block
                         size="large"
@@ -898,184 +1085,6 @@
                   class="text-grey-darken-1"
                 />
               </v-card>
-              <v-row v-else>
-                <v-col cols="6">
-                  <v-card
-                    variant="outlined"
-                    class="rounded-lg overflow-hidden d-flex flex-column align-center justify-center bg-grey-lighten-5"
-                    style="height: calc(50vh - 45px)"
-                  >
-                    <v-card-title
-                      class="text-center w-100 text-subtitle-1 text-primary"
-                      >PCB Test</v-card-title
-                    >
-                    <div
-                      v-if="dialogImageUrl"
-                      class="pa-3 fill-height w-100 d-flex align-center justify-center bg-white"
-                    >
-                      <div
-                        class="position-relative d-flex align-center justify-center"
-                        style="width: 100%; height: 100%"
-                      >
-                        <v-img
-                          :src="dialogImageUrl"
-                          max-width="100%"
-                          max-height="100%"
-                          aspect-ratio="1/1"
-                          class="rounded-lg elevation-1"
-                          alt="Component Preview"
-                        >
-                          <template v-slot:placeholder>
-                            <div
-                              class="d-flex align-center justify-center fill-height bg-grey-lighten-4"
-                            >
-                              <v-progress-circular
-                                indeterminate
-                                color="primary"
-                              ></v-progress-circular>
-                            </div>
-                          </template>
-                        </v-img>
-
-                        <div
-                          style="
-                            position: absolute;
-                            top: 50%;
-                            left: 50%;
-                            transform: translate(-50%, -50%);
-                            width: 100px;
-                            height: 100px;
-                            pointer-events: none;
-                            z-index: 10;
-                          "
-                        >
-                          <svg
-                            width="100"
-                            height="100"
-                            viewBox="0 0 100 100"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <line
-                              x1="0"
-                              y1="50"
-                              x2="100"
-                              y2="50"
-                              stroke="#D32F2F"
-                              stroke-width="1"
-                            />
-                            <line
-                              x1="50"
-                              y1="0"
-                              x2="50"
-                              y2="100"
-                              stroke="#D32F2F"
-                              stroke-width="1"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-
-                    <v-card-text v-else>
-                      <v-empty-state
-                        title="Không có hình ảnh"
-                        text="Chọn hoặc xem chi tiết linh kiện để hiển thị ảnh thực tế."
-                        icon="mdi-image-off-outline"
-                        class="text-grey-darken-1"
-                      />
-                    </v-card-text>
-                  </v-card>
-                </v-col>
-                <v-col cols="6">
-                  <v-card
-                    variant="outlined"
-                    class="rounded-lg overflow-hidden d-flex flex-column align-center justify-center bg-grey-lighten-5"
-                    style="height: calc(50vh - 45px)"
-                  >
-                    <v-card-title
-                      class="text-center w-100 text-subtitle-1 text-success"
-                      >PCB Mẫu</v-card-title
-                    >
-                    <div
-                      v-if="dialogSampleImageUrl"
-                      class="pa-3 fill-height w-100 d-flex align-center justify-center bg-white"
-                    >
-                      <div
-                        class="position-relative d-flex align-center justify-center"
-                        style="width: 100%; height: 100%"
-                      >
-                        <v-img
-                          :src="dialogSampleImageUrl"
-                          max-width="100%"
-                          max-height="100%"
-                          aspect-ratio="1/1"
-                          class="rounded-lg elevation-1"
-                          alt="Component Preview"
-                        >
-                          <template v-slot:placeholder>
-                            <div
-                              class="d-flex align-center justify-center fill-height bg-grey-lighten-4"
-                            >
-                              <v-progress-circular
-                                indeterminate
-                                color="primary"
-                              ></v-progress-circular>
-                            </div>
-                          </template>
-                        </v-img>
-
-                        <div
-                          style="
-                            position: absolute;
-                            top: 50%;
-                            left: 50%;
-                            transform: translate(-50%, -50%);
-                            width: 100px;
-                            height: 100px;
-                            pointer-events: none;
-                            z-index: 10;
-                          "
-                        >
-                          <svg
-                            width="100"
-                            height="100"
-                            viewBox="0 0 100 100"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <line
-                              x1="0"
-                              y1="50"
-                              x2="100"
-                              y2="50"
-                              stroke="#D32F2F"
-                              stroke-width="1"
-                            />
-                            <line
-                              x1="50"
-                              y1="0"
-                              x2="50"
-                              y2="100"
-                              stroke="#D32F2F"
-                              stroke-width="1"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-
-                    <v-card-text v-else>
-                      <v-empty-state
-                        title="Không có hình ảnh"
-                        text="Chọn hoặc xem chi tiết linh kiện để hiển thị ảnh thực tế."
-                        icon="mdi-image-off-outline"
-                        class="text-grey-darken-1"
-                      />
-                    </v-card-text>
-                  </v-card>
-                </v-col>
-              </v-row>
             </v-col>
           </v-row>
         </v-card-text>
@@ -1133,7 +1142,7 @@
     v-model="DialogAddBom"
     width="600"
     title="Thêm dữ liệu BOM"
-    icon="mdi-plus"
+    icon="mdi-file-document-plus-outline"
   >
     <InputFiles
       label="Nhập file Bom (.xlsx)"
@@ -1150,7 +1159,7 @@
     v-model="DialogAddPnP"
     width="700"
     title="Thêm dữ liệu Pick & Place"
-    icon="mdi-plus"
+    icon="mdi-file-document-plus-outline"
   >
     <InputFiles
       label="Nhập file Pick & Place (.xlsx)"
@@ -1172,7 +1181,40 @@
       <ButtonSave @save="uploadPNP" />
     </template>
   </BaseDialog>
-
+  <BaseDialog
+    v-model="DialogAddFileTop"
+    width="600"
+    title="Thêm file PCB mặt Top"
+    icon="mdi-format-vertical-align-top"
+  >
+    <InputFiles
+      label="Nhập file PCB mặt Top (.pdf)"
+      class="mt-2"
+      v-model="FileTop"
+      name="fileTop"
+    />
+    <template #actions>
+      <ButtonCancel @cancel="DialogAddFileTop = false" />
+      <ButtonSave @save="uploadFileTop()" />
+    </template>
+  </BaseDialog>
+  <BaseDialog
+    v-model="DialogAddFileBottom"
+    width="600"
+    title="Thêm file PCB mặt Bottom"
+    icon="mdi-format-vertical-align-bottom"
+  >
+    <InputFiles
+      label="Nhập file PCB mặt Bottom (.pdf)"
+      class="mt-2"
+      v-model="FileBottom"
+      name="fileBottom"
+    />
+    <template #actions>
+      <ButtonCancel @cancel="DialogAddFileBottom = false" />
+      <ButtonSave @save="uploadFileBottom()" />
+    </template>
+  </BaseDialog>
   <BaseDialog
     v-model="DialogSettings"
     width="700"
@@ -1234,28 +1276,6 @@
             variant="outlined"
             step="0.01"
           />
-        </v-col>
-      </v-row>
-    </div>
-
-    <p class="text-caption text-grey mb-2">3. Hình ảnh PCB Mẫu:</p>
-
-    <div class="ga-2">
-      <v-row>
-        <v-col cols="8">
-          <InputFiles
-            v-model="FileGoldenImage"
-            label="Chọn ảnh mẫu PCB"
-            name="imageSample"
-            accept=".png,.jpg,.jpeg"
-          />
-        </v-col>
-        <v-col v-if="imageSample" cols="4" class="mx-auto">
-          <v-img
-            :src="`${Url_Image}/${imageSample}`"
-            max-height="100px"
-            rounded
-          ></v-img>
         </v-col>
       </v-row>
     </div>
@@ -1373,6 +1393,8 @@ const { rawBomQC } = useRawBomQC(id);
 // --- Dialog & UI States ---
 const DialogAddBom = ref(false);
 const DialogAddPnP = ref(false);
+const DialogAddFileTop = ref(false);
+const DialogAddFileBottom = ref(false);
 const DialogAddGerber = ref(false);
 const DialogSettingPCB = ref(false);
 const DialogSettings = ref(false);
@@ -1390,6 +1412,8 @@ const MessageErrorDialog = ref("");
 const project_name = ref(localStorage.getItem("ProjectQC"));
 const FileBom = ref(null);
 const FilePnP = ref(null);
+const FileTop = ref(null);
+const FileBottom = ref(null);
 const FileGoldenImage = ref(0);
 
 // File image trong database
@@ -1435,9 +1459,9 @@ const HeadersBomQC = [
 ];
 const HeaderHistoryPnPQC = [
   { title: "STT", key: "stt" },
-  { title: "Designator", key: "designator", width: "500px" },
-  { title: "MPN", key: "mpn", width: "300px" },
-  { title: "Description", key: "description", width: "300px" },
+  { title: "Designator", key: "designator" },
+  { title: "MPN", key: "mpn" },
+  { title: "Description", key: "description", width: "500px" },
   { title: "Trạng thái", key: "status" },
 ];
 const searchPnPQC = ref("");
@@ -1461,6 +1485,11 @@ const pdfPage = shallowRef(null);
 const imageWidth = ref(0);
 const imageHeight = ref(0);
 
+const isGridMode = ref(false);
+const isShowAllWaiting = ref(false);
+const gridRows = ref(5);
+const gridCols = ref(5);
+
 const activePointId = ref(null);
 const activeGroupPointIds = ref([]);
 const currentGroupZoomIndex = ref(0);
@@ -1468,10 +1497,27 @@ const dialogImageUrl = ref("");
 const GetIDPnP = ref(null);
 const StatusPnP = ref(null);
 
-const isActivePoint = (id) => {
+const zoomedGridBox = ref(null);
+
+const gridCellPoints = computed(() => {
+  if (!zoomedGridBox.value || !isGridMode.value) return [];
+  const box = zoomedGridBox.value;
+  return svgPoints.value.filter((p) => {
+    return (
+      p.px >= box.x &&
+      p.px <= box.x + box.w &&
+      p.py >= box.y &&
+      p.py <= box.y + box.h
+    );
+  });
+});
+
+const isActivePoint = (item) => {
   return (
-    String(activePointId.value) === String(id) ||
-    activeGroupPointIds.value.includes(id)
+    String(activePointId.value) === String(item.id) ||
+    activeGroupPointIds.value.includes(item.id) ||
+    (isShowAllWaiting.value &&
+      (item.status === "Waiting" || item.status === "Waiting"))
   );
 };
 
@@ -1507,15 +1553,27 @@ const fiducialBR = ref(null); // { x, y } in px
 // 4. COMPUTED PROPERTIES
 // ==========================================
 watch(
-  detailSettingQC,
-  (val) => {
+  [detailSettingQC, selectedLayer],
+  async ([val]) => {
     if (!val?.length) return;
 
     const found = val[0];
 
     width.value = Number(found.width) || 0;
     height.value = Number(found.height) || 0;
-    imageSample.value = found.image || "";
+
+    let pcbFile = "";
+
+    if (selectedLayer.value === "Top" || selectedLayer.value === "TopLayer") {
+      pcbFile = found.fileTop || "";
+    } else if (
+      selectedLayer.value === "Bottom" ||
+      selectedLayer.value === "BottomLayer"
+    ) {
+      pcbFile = found.fileBottom || "";
+    }
+
+    await loadPcb(pcbFile);
 
     fiducialBL.value = found.fiducialBL ? JSON.parse(found.fiducialBL) : null;
 
@@ -1525,7 +1583,6 @@ watch(
 
     fiducialTR.value = found.fiducialTR ? JSON.parse(found.fiducialTR) : null;
 
-    // Nếu đủ 4 điểm thì đánh dấu đã align xong
     if (
       fiducialTL.value &&
       fiducialTR.value &&
@@ -1533,11 +1590,14 @@ watch(
       fiducialBR.value
     ) {
       alignStep.value = 5;
+    } else {
+      alignStep.value = 1;
     }
   },
-  { immediate: true },
+  {
+    immediate: true,
+  },
 );
-
 const filteredPnP = computed(() => {
   const list = detailPnP.value || [];
   return list.filter((p) => {
@@ -1566,17 +1626,40 @@ const filteredPnP = computed(() => {
   });
 });
 
-const topLayerCount = computed(() => {
+const topLayerCountWaiting = computed(() => {
   if (!combineBomQC.value) return 0;
+
   return combineBomQC.value.filter(
-    (item) => item.layer === "Top" || item.layer === "TopLayer",
+    (item) =>
+      (item.layer === "Top" || item.layer === "TopLayer") &&
+      item.status === "Waiting",
   ).length;
 });
 
-const bottomLayerCount = computed(() => {
+const bottomLayerCountWaiting = computed(() => {
   if (!combineBomQC.value) return 0;
   return combineBomQC.value.filter(
-    (item) => item.layer === "Bottom" || item.layer === "BottomLayer",
+    (item) =>
+      (item.layer === "Bottom" || item.layer === "BottomLayer") &&
+      item.status === "Waiting",
+  ).length;
+});
+
+const bottomLayerCountDone = computed(() => {
+  if (!combineBomQC.value) return 0;
+  return combineBomQC.value.filter(
+    (item) =>
+      (item.layer === "Bottom" || item.layer === "BottomLayer") &&
+      item.status === "Done",
+  ).length;
+});
+
+const topLayerCountDone = computed(() => {
+  if (!combineBomQC.value) return 0;
+  return combineBomQC.value.filter(
+    (item) =>
+      (item.layer === "Top" || item.layer === "TopLayer") &&
+      item.status === "Done",
   ).length;
 });
 
@@ -1740,52 +1823,91 @@ function onImageClick(event) {
 // Upload PCB Image
 // ======================================
 
-function onPcbImageSelected(event) {
+async function renderPdf(arrayBuffer) {
+  const typedArray = new Uint8Array(arrayBuffer);
+
+  const pdf = await pdfjsLib.getDocument(typedArray).promise;
+  const page = await pdf.getPage(1);
+
+  pdfPage.value = page;
+
+  const scale = 2;
+
+  const viewport = page.getViewport({ scale });
+
+  const canvas = document.createElement("canvas");
+
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+
+  const ctx = canvas.getContext("2d");
+
+  await page.render({
+    canvasContext: ctx,
+    viewport,
+  }).promise;
+
+  imageUrl.value = canvas.toDataURL("image/png");
+}
+const baseURL = import.meta.env.VITE_API_URL;
+// Ví dụ:
+// http://192.168.1.10:3000
+
+async function loadPcb(source) {
+  try {
+    if (!source) {
+      imageUrl.value = "";
+      pdfPage.value = null;
+      return;
+    }
+
+    // ========= Upload từ máy =========
+    if (source instanceof File) {
+      if (source.type === "application/pdf") {
+        const arrayBuffer = await source.arrayBuffer();
+        await renderPdf(arrayBuffer);
+      } else {
+        pdfPage.value = null;
+        imageUrl.value = URL.createObjectURL(source);
+      }
+    }
+
+    // ========= Load từ Database =========
+    else if (typeof source === "string") {
+      const fileUrl = `${baseURL}/${source}`;
+
+      if (source.toLowerCase().endsWith(".pdf")) {
+        const response = await fetch(fileUrl);
+
+        if (!response.ok) {
+          throw new Error("Không tải được file PDF");
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+
+        await renderPdf(arrayBuffer);
+      } else {
+        pdfPage.value = null;
+        imageUrl.value = fileUrl;
+      }
+    }
+
+    activePointId.value = null;
+    dialogImageUrl.value = "";
+  } catch (err) {
+    console.error(err);
+
+    imageUrl.value = "";
+    pdfPage.value = null;
+  }
+}
+async function onPcbImageSelected(event) {
   const file = event.target.files?.[0];
 
   if (!file) return;
 
-  if (file.type === "application/pdf") {
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const typedarray = new Uint8Array(e.target.result);
-      const loadingTask = pdfjsLib.getDocument(typedarray);
-      const pdf = await loadingTask.promise;
-      const page = await pdf.getPage(1);
-      pdfPage.value = page;
-
-      const scale = 2.0;
-      const viewport = page.getViewport({ scale });
-      const canvas = document.createElement("canvas");
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      const ctx = canvas.getContext("2d");
-
-      const renderContext = {
-        canvasContext: ctx,
-        viewport: viewport,
-      };
-
-      await page.render(renderContext).promise;
-      imageUrl.value = canvas.toDataURL("image/png");
-      activePointId.value = null;
-      dialogImageUrl.value = "";
-    };
-    reader.readAsArrayBuffer(file);
-  } else {
-    pdfPage.value = null;
-    const reader = new FileReader();
-
-    reader.onload = (e) => {
-      imageUrl.value = e.target.result;
-      activePointId.value = null;
-      dialogImageUrl.value = "";
-    };
-
-    reader.readAsDataURL(file);
-  }
+  await loadPcb(file);
 }
-
 // ======================================
 // Get Actual Display Size
 // ======================================
@@ -1797,6 +1919,145 @@ function updateImageSize() {
 
   imageWidth.value = rect.width;
   imageHeight.value = rect.height;
+}
+
+function onGridCellClick(row, col) {
+  const img = pcbImg.value;
+  if (!img) return;
+
+  const rows = Math.max(1, gridRows.value);
+  const cols = Math.max(1, gridCols.value);
+
+  // Xóa các điểm đã chọn trước đó
+  activePointId.value = null;
+  activeGroupPointIds.value = [];
+  GetIDPnP.value = null;
+  StatusPnP.value = null;
+
+  const displayCellW = imageWidth.value / cols;
+  const displayCellH = imageHeight.value / rows;
+  zoomedGridBox.value = {
+    x: (col - 1) * displayCellW,
+    y: (row - 1) * displayCellH,
+    w: displayCellW,
+    h: displayCellH,
+  };
+
+  if (pdfPage.value) {
+    dialogImageUrl.value = "";
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    const pdfViewport = pdfPage.value.getViewport({ scale: 1 });
+
+    // Kích thước cell trên tọa độ gốc PDF
+    const cellPdfWidth = pdfViewport.width / cols;
+    const cellPdfHeight = pdfViewport.height / rows;
+
+    const pdfX = (col - 1) * cellPdfWidth;
+    const pdfY = (row - 1) * cellPdfHeight;
+
+    // Render với kích thước hiển thị tối đa ~800px để không bị nặng
+    const maxRenderSize = 800;
+    let renderScale = 1;
+    if (cellPdfWidth > maxRenderSize || cellPdfHeight > maxRenderSize) {
+      renderScale = Math.min(
+        maxRenderSize / cellPdfWidth,
+        maxRenderSize / cellPdfHeight,
+      );
+    } else {
+      renderScale = Math.max(
+        1,
+        Math.min(maxRenderSize / cellPdfWidth, maxRenderSize / cellPdfHeight),
+      );
+    }
+
+    canvas.width = cellPdfWidth * renderScale;
+    canvas.height = cellPdfHeight * renderScale;
+
+    const cropViewport = pdfPage.value.getViewport({
+      scale: renderScale,
+      offsetX: -pdfX * renderScale,
+      offsetY: -pdfY * renderScale,
+    });
+
+    const renderContext = {
+      canvasContext: ctx,
+      viewport: cropViewport,
+    };
+
+    pdfPage.value
+      .render(renderContext)
+      .promise.then(() => {
+        dialogImageUrl.value = canvas.toDataURL("image/png");
+      })
+      .catch((err) => {
+        console.error("Lỗi render PDF grid:", err);
+      });
+    return;
+  }
+
+  // Zoom cho file Image
+  const natCellW = img.naturalWidth / cols;
+  const natCellH = img.naturalHeight / rows;
+  const natX = (col - 1) * natCellW;
+  const natY = (row - 1) * natCellH;
+
+  const maxCanvasSize = 800;
+  let scale = 1;
+  if (natCellW > maxCanvasSize || natCellH > maxCanvasSize) {
+    scale = Math.min(maxCanvasSize / natCellW, maxCanvasSize / natCellH);
+  } else {
+    scale = Math.max(
+      1,
+      Math.min(maxCanvasSize / natCellW, maxCanvasSize / natCellH),
+    );
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = natCellW * scale;
+  canvas.height = natCellH * scale;
+
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ctx.drawImage(
+    img,
+    natX,
+    natY,
+    natCellW,
+    natCellH,
+    0,
+    0,
+    canvas.width,
+    canvas.height,
+  );
+
+  dialogImageUrl.value = canvas.toDataURL("image/png");
+}
+
+function onZoomedGridPointClick(componentId) {
+  GetIDPnP.value = componentId;
+  const foundStatus = combinePnPQC.value.find((val) => val.id === componentId);
+  StatusPnP.value = foundStatus?.status;
+
+  activePointId.value = componentId;
+  activeGroupPointIds.value = [];
+
+  if (combinePnPQC.value && combinePnPQC.value.length) {
+    const index = combinePnPQC.value.findIndex(
+      (p) => String(p.id) === String(componentId),
+    );
+    if (index !== -1) {
+      currentIndex.value = index;
+      nextTick(() => {
+        if (pnpTable.value) {
+          pnpTable.value.scrollToIndex(index);
+        }
+      });
+    }
+  }
 }
 
 function onImageLoad() {
@@ -1876,6 +2137,7 @@ const svgPoints = computed(() => {
 // ======================================
 
 function GetZoomPnP(componentId) {
+  zoomedGridBox.value = null;
   GetIDPnP.value = componentId;
   const foundStatus = combinePnPQC.value.find((val) => val.id === componentId);
   StatusPnP.value = foundStatus?.status;
@@ -2028,6 +2290,7 @@ const boardSampleHeightMM = computed(() => height.value);
 // ======================================
 
 function GetZoomPnPGroup(componentId) {
+  zoomedGridBox.value = null;
   if (width.value == 0 || height.value == 0) {
     DialogFailed.value = true;
     MessageErrorDialog.value = "Chưa có dữ liệu chiều dài hoặc chiều rộng PCB";
@@ -2164,6 +2427,10 @@ function GetZoomPnPSample(componentId) {
   dialogSampleImageUrl.value = canvas.toDataURL("image/png");
 }
 
+const GetPnP = (id) => {
+  GetIDPnP.value = id;
+};
+
 /**
  * Upload file BOM (.xlsx) lên server và cập nhật danh sách BOM cho project
  */
@@ -2212,6 +2479,48 @@ const uploadPNP = async () => {
   }
 };
 
+/**
+ * Upload file Pick & Place (.xlsx) lên server và cập nhật tọa độ linh kiện
+ */
+const uploadFileTop = async () => {
+  DialogLoading.value = true;
+  try {
+    const formData = new FormData();
+    formData.append("fileTop", FileTop.value);
+    await axios.put(`${Url}/SettingPCB-QC/Upload-file-top/${id}`, formData);
+    DialogSuccess.value = true;
+    MessageDialog.value = "Upload file top thành công";
+    DialogAddFileTop.value = false;
+    FileTop.value = null;
+    DialogLoading.value = false;
+  } catch (error) {
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Upload file top thất bại";
+    DialogLoading.value = false;
+  }
+};
+
+/**
+ * Upload file Pick & Place (.xlsx) lên server và cập nhật tọa độ linh kiện
+ */
+const uploadFileBottom = async () => {
+  DialogLoading.value = true;
+  try {
+    const formData = new FormData();
+    formData.append("fileBottom", FileBottom.value);
+    await axios.put(`${Url}/SettingPCB-QC/Upload-file-bottom/${id}`, formData);
+    DialogSuccess.value = true;
+    MessageDialog.value = "Upload file bottom thành công";
+    DialogAddFileBottom.value = false;
+    FileBottom.value = null;
+    DialogLoading.value = false;
+  } catch (error) {
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Upload file bottom thất bại";
+    DialogLoading.value = false;
+  }
+};
+
 // --- 7.2 Data Edit/Update Handlers ---
 
 /**
@@ -2245,6 +2554,12 @@ const SaveSettingPCB = async () => {
     return;
   }
 
+  if (isNaN(Number(width.value)) || isNaN(Number(height.value))) {
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Width hoặc Height không hợp lệ";
+    return;
+  }
+
   DialogLoading.value = true;
 
   try {
@@ -2256,30 +2571,23 @@ const SaveSettingPCB = async () => {
       layer: currentLayer,
     };
 
-    // FormData cho SettingPCB
-    const formData = new FormData();
+    const settingPayload = {
+      width: Number(width.value),
+      height: Number(height.value),
+    };
 
-    formData.append("width", width.value);
-    formData.append("height", height.value);
+    console.log("Setting Payload:", settingPayload);
 
-    // giữ ảnh cũ nếu không upload mới
-    formData.append("oldImage", imageSample.value || "");
-
-    if (FileGoldenImage.value) {
-      formData.append("image", FileGoldenImage.value);
-    }
-
-    const [resOffset, resSetting] = await Promise.all([
+    await Promise.all([
       axios.put(
         `${Url}/PickPlaceQC/Edit-offset/${route.params.id}`,
         offsetPayload,
       ),
 
-      axios.put(`${Url}/SettingPCB-QC/Edit-item/${route.params.id}`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }),
+      axios.put(
+        `${Url}/SettingPCB-QC/Edit-item/${route.params.id}`,
+        settingPayload,
+      ),
     ]);
 
     DialogSuccess.value = true;
@@ -2451,5 +2759,14 @@ export default {
 
 .pcb-upload-btn:hover {
   opacity: 1;
+}
+
+.grid-cell-hover {
+  pointer-events: auto;
+}
+.grid-cell-hover:hover {
+  fill: rgba(0, 255, 0, 0.2) !important;
+  stroke: rgba(0, 255, 0, 0.8) !important;
+  stroke-width: 2px !important;
 }
 </style>

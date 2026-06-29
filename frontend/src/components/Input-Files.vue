@@ -3,7 +3,7 @@
     clearable
     label="Nhập file Excel"
     variant="solo-filled"
-    accept=".xlsx, .csv"
+    accept=".xlsx, .csv, .pdf, .jpg, .png, .jpeg"
     show-size
     class="file-input-wrap"
     :model-value="modelValue"

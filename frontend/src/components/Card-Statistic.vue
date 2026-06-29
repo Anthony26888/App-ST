@@ -32,48 +32,54 @@
           <slot name="value-append">
             <div
               v-if="
-                totalSMT !== undefined ||
-                totalTHT !== undefined ||
-                totalPickup !== undefined
+                totalLabel1 !== undefined ||
+                totalLabel2 !== undefined ||
+                totalLabel3 !== undefined
               "
               class="d-flex align-center flex-wrap ga-3"
             >
               <div
-                v-if="totalSMT !== undefined"
+                v-if="totalLabel1 !== undefined"
                 class="d-flex align-center ga-1"
               >
                 <v-icon size="10" color="primary" icon="mdi-circle" />
 
-                <span class="text-caption text-medium-emphasis"> SMT </span>
+                <span class="text-caption text-medium-emphasis">
+                  {{ label1 }}
+                </span>
 
                 <span class="text-body-2 font-weight-bold">
-                  {{ totalSMT }}
+                  {{ totalLabel1 }}
                 </span>
               </div>
 
               <div
-                v-if="totalTHT !== undefined"
+                v-if="totalLabel2 !== undefined"
                 class="d-flex align-center ga-1"
               >
                 <v-icon size="10" color="pink" icon="mdi-circle" />
 
-                <span class="text-caption text-medium-emphasis"> Hàn tay </span>
+                <span class="text-caption text-medium-emphasis">
+                  {{ label2 }}
+                </span>
 
                 <span class="text-body-2 font-weight-bold">
-                  {{ totalTHT }}
+                  {{ totalLabel2 }}
                 </span>
               </div>
 
               <div
-                v-if="totalPickup !== undefined"
+                v-if="totalLabel3 !== undefined"
                 class="d-flex align-center ga-1"
               >
                 <v-icon size="10" color="green" icon="mdi-circle" />
 
-                <span class="text-caption text-medium-emphasis"> Gắp tay </span>
+                <span class="text-caption text-medium-emphasis">
+                  {{ label3 }}
+                </span>
 
                 <span class="text-body-2 font-weight-bold">
-                  {{ totalPickup }}
+                  {{ totalLabel3 }}
                 </span>
               </div>
             </div>
@@ -119,17 +125,32 @@ defineProps({
     default: "",
   },
 
-  totalSMT: {
+  label1: {
+    type: String,
+    default: "",
+  },
+
+  label2: {
+    type: String,
+    default: "",
+  },
+
+  label3: {
+    type: String,
+    default: "",
+  },
+
+  totalLabel1: {
     type: Number,
     default: undefined,
   },
 
-  totalTHT: {
+  totalLabel2: {
     type: Number,
     default: undefined,
   },
 
-  totalPickup: {
+  totalLabel3: {
     type: Number,
     default: undefined,
   },

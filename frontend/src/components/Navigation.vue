@@ -1,11 +1,12 @@
 <template lang="">
   <v-navigation-drawer expand-on-hover permanent rail color="#ffffff">
     <!-- User Profile Section -->
-    <v-list class="pa-0">
+    <v-list class="profile-section">
       <v-list-item
         prepend-avatar="@/assets/avatar-ST.jpg"
         :subtitle="LevelUser"
         :title="UserInfo"
+        class="profile-item"
       >
       </v-list-item>
     </v-list>
@@ -13,9 +14,95 @@
     <v-divider></v-divider>
 
     <!-- Navigation Menu -->
-    <v-list nav class="mt-4">
+    <v-list nav class="mt-1">
+      <v-list-subheader>Kiểm tra dữ liệu</v-list-subheader>
+
       <v-list-item
-        v-for="(item, i) in visibleMenuItems"
+        v-for="(item, i) in menuCheck"
+        :key="i"
+        :prepend-icon="item.icon"
+        :title="item.title"
+        :value="item.value"
+        :to="item.to"
+      >
+        <template v-slot:prepend>
+          <v-icon class="me-3">{{ item.icon }}</v-icon>
+        </template>
+        <template v-slot:title>
+          <span>{{ item.title }}</span>
+        </template>
+      </v-list-item>
+      <v-list-subheader>Kho</v-list-subheader>
+      <v-list-item
+        v-for="(item, i) in menuWareHouse"
+        :key="i"
+        :prepend-icon="item.icon"
+        :title="item.title"
+        :value="item.value"
+        :to="item.to"
+      >
+        <template v-slot:prepend>
+          <v-icon class="me-3">{{ item.icon }}</v-icon>
+        </template>
+        <template v-slot:title>
+          <span>{{ item.title }}</span>
+        </template>
+      </v-list-item>
+      <v-list-subheader>Sản xuất</v-list-subheader>
+
+      <v-list-item
+        v-for="(item, i) in menuManufacture"
+        :key="i"
+        :prepend-icon="item.icon"
+        :title="item.title"
+        :value="item.value"
+        :to="item.to"
+      >
+        <template v-slot:prepend>
+          <v-icon class="me-3">{{ item.icon }}</v-icon>
+        </template>
+        <template v-slot:title>
+          <span>{{ item.title }}</span>
+        </template>
+      </v-list-item>
+      <v-list-subheader>Bảo trì</v-list-subheader>
+
+      <v-list-item
+        v-for="(item, i) in menuMaintenance"
+        :key="i"
+        :prepend-icon="item.icon"
+        :title="item.title"
+        :value="item.value"
+        :to="item.to"
+      >
+        <template v-slot:prepend>
+          <v-icon class="me-3">{{ item.icon }}</v-icon>
+        </template>
+        <template v-slot:title>
+          <span>{{ item.title }}</span>
+        </template>
+      </v-list-item>
+      <v-list-subheader>Công việc</v-list-subheader>
+
+      <v-list-item
+        v-for="(item, i) in menuListWork"
+        :key="i"
+        :prepend-icon="item.icon"
+        :title="item.title"
+        :value="item.value"
+        :to="item.to"
+      >
+        <template v-slot:prepend>
+          <v-icon class="me-3">{{ item.icon }}</v-icon>
+        </template>
+        <template v-slot:title>
+          <span>{{ item.title }}</span>
+        </template>
+      </v-list-item>
+      <v-list-subheader>Hệ thống</v-list-subheader>
+
+      <v-list-item
+        v-for="(item, i) in menuSetting"
         :key="i"
         :prepend-icon="item.icon"
         :title="item.title"
@@ -33,12 +120,13 @@
 
     <!-- Logout Button -->
     <template v-slot:append>
-      <v-list>
+      <v-list class="logout-section">
         <v-list-item
           prepend-icon="mdi-logout"
           title="Đăng xuất"
           value="Đăng xuất"
           @click="LogOut()"
+          class="logout-item"
         ></v-list-item>
       </v-list>
     </template>
@@ -240,6 +328,7 @@ const isActiveRoute = (to) => {
 
 const menuItems = computed(() => [
   {
+    group: "Kiểm tra dữ liệu",
     icon: "mdi-chart-box-outline",
     title: "Kiểm tra số liệu",
     value: "Check",
@@ -247,6 +336,7 @@ const menuItems = computed(() => [
     disabled: StatusOption_1.value,
   },
   {
+    group: "Kho",
     icon: "mdi-shopping-outline",
     title: "Tình trạng đơn hàng",
     value: "Orders",
@@ -254,6 +344,7 @@ const menuItems = computed(() => [
     disabled: StatusOption_4.value,
   },
   {
+    group: "Kiểm tra dữ liệu",
     icon: "mdi-package-variant-closed",
     title: "Pick & Place",
     value: "CheckPnP",
@@ -261,6 +352,7 @@ const menuItems = computed(() => [
     disabled: StatusOption_12.value,
   },
   {
+    group: "Kiểm tra dữ liệu",
     icon: "mdi-check-decagram-outline",
     title: "Pick & Place QC",
     value: "CheckPnPQC",
@@ -268,21 +360,15 @@ const menuItems = computed(() => [
     disabled: StatusOption_13.value,
   },
   {
+    group: "Kho",
     icon: "mdi-warehouse",
     title: "Tồn Kho",
     value: "WareHouse",
     to: "/Ton-kho",
     disabled: StatusOption_2.value,
   },
-  // {
-  //   icon: "mdi-database-outline",
-  //   title: "Tồn Kho Misa",
-  //   value: "WareHouse2",
-  //   to: "/Ton-kho-2",
-  //   disabled: StatusOption_3.value,
-  // },
-
   {
+    group: "Sản xuất",
     icon: "mdi-briefcase-outline",
     title: "Dự án",
     value: "Project",
@@ -290,6 +376,7 @@ const menuItems = computed(() => [
     disabled: StatusOption_5.value,
   },
   {
+    group: "Sản xuất",
     icon: "mdi-factory",
     title: "Sản xuất",
     value: "Manufacture",
@@ -297,20 +384,15 @@ const menuItems = computed(() => [
     disabled: StatusOption_7.value,
   },
   {
+    group: "Sản xuất",
     icon: "mdi-file-chart-outline",
     title: "Báo cáo",
     value: "Summary",
     to: "/Bao-cao-san-xuat",
     disabled: StatusOption_8.value,
   },
-  // {
-  //   icon: "mdi-clipboard-list-outline",
-  //   title: "Danh sách công việc",
-  //   value: "ListWork",
-  //   to: "/Danh-sach-cong-viec",
-  //   disabled: StatusOption_11.value,
-  // },
   {
+    group: "Bảo trì",
     icon: "mdi-wrench-outline",
     title: "Bảo trì",
     value: "Maintenance",
@@ -318,6 +400,7 @@ const menuItems = computed(() => [
     disabled: StatusOption_6.value,
   },
   {
+    group: "Công việc",
     icon: "mdi-clipboard-list-outline",
     title: "Danh sách công việc",
     value: "ListWork",
@@ -325,6 +408,7 @@ const menuItems = computed(() => [
     disabled: StatusOption_11.value,
   },
   {
+    group: "Hệ thống",
     icon: "mdi-cog-outline",
     title: "Cài đặt",
     value: "Setting",
@@ -333,8 +417,23 @@ const menuItems = computed(() => [
   },
 ]);
 
-const visibleMenuItems = computed(() =>
-  menuItems.value.filter((item) => !item.disabled),
+const menuCheck = computed(() =>
+  menuItems.value.filter((item) => item.group === "Kiểm tra dữ liệu"),
+);
+const menuWareHouse = computed(() =>
+  menuItems.value.filter((item) => item.group === "Kho"),
+);
+const menuManufacture = computed(() =>
+  menuItems.value.filter((item) => item.group === "Sản xuất"),
+);
+const menuMaintenance = computed(() =>
+  menuItems.value.filter((item) => item.group === "Bảo trì"),
+);
+const menuListWork = computed(() =>
+  menuItems.value.filter((item) => item.group === "Công việc"),
+);
+const menuSetting = computed(() =>
+  menuItems.value.filter((item) => item.group === "Hệ thống"),
 );
 </script>
 
@@ -352,12 +451,51 @@ export default {
   background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
   border-right: 1px solid rgba(0, 0, 0, 0.08);
 
+  /* Khi drawer thu nhỏ (rail mode) và không hover */
+  &.v-navigation-drawer--rail:not(.v-navigation-drawer--is-hovering) {
+    .v-list-subheader {
+      opacity: 0;
+      visibility: hidden;
+      height: 0;
+      min-height: 0;
+      margin: 0;
+      padding: 0;
+    }
+
+    .profile-item {
+      padding-left: 8px !important;
+      padding-right: 8px !important;
+      margin-left: 4px;
+      margin-right: 4px;
+      justify-content: center;
+
+      :deep(.v-avatar) {
+        margin-inline-end: 0 !important;
+      }
+    }
+  }
+
+  .v-list-subheader {
+    transition: opacity 0.2s ease, height 0.2s ease;
+    color: #1867c0;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding-left: 20px;
+    min-height: 28px !important;
+    line-height: 28px;
+    margin-bottom: -4px;
+  }
+
   .v-list {
     background: transparent;
+    padding-top: 4px;
+    padding-bottom: 4px;
 
     .v-list-item {
-      color: rgba(0, 0, 0, 0.6);
-      margin: 4px 8px;
+      color: rgba(0, 0, 0, 0.7);
+      margin: 4px 12px;
       border-radius: 8px;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       position: relative;
@@ -369,32 +507,32 @@ export default {
         left: 0;
         top: 0;
         height: 100%;
-        width: 3px;
-        background: linear-gradient(180deg, #a52a2a 0%, #ff9500 100%);
+        width: 4px;
+        background: linear-gradient(180deg, #1867c0 0%, #5cbbf6 100%);
         transform: scaleY(0);
         transform-origin: center;
         transition: transform 0.3s ease;
+        border-radius: 4px;
       }
 
       &:hover {
-        background: rgba(165, 42, 42, 0.08);
-        color: #1a1a1a;
-        transform: translateX(8px);
+        background: rgba(24, 103, 192, 0.08);
+        color: #1867c0;
 
         &::before {
           transform: scaleY(1);
         }
 
         .v-icon {
-          color: #ff9500 !important;
-          transform: scale(1.2);
+          color: #1867c0 !important;
+          transform: scale(1.1);
         }
       }
 
       &.v-list-item--active {
-        background: linear-gradient(135deg, #a52a2a 0%, #ff9500 100%);
+        background: linear-gradient(135deg, #1867c0 0%, #5cbbf6 100%);
         color: #ffffff;
-        border-left: none;
+        box-shadow: 0 4px 12px rgba(24, 103, 192, 0.2);
 
         .v-icon {
           color: #ffffff !important;
@@ -415,26 +553,31 @@ export default {
         color: rgba(0, 0, 0, 0.5) !important;
       }
     }
+  }
 
-    .v-list-item:first-child {
-      background: linear-gradient(135deg, #a52a2a 0%, #ff9500 100%);
-      margin: 8px;
-      padding: 12px 8px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(165, 42, 42, 0.2);
+  .profile-section {
+    padding: 12px 8px;
 
-      &:hover::before {
-        transform: scaleY(0);
-      }
+    .profile-item {
+      background: linear-gradient(135deg, #1867c0 0%, #5cbbf6 100%);
+      margin: 0 4px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(24, 103, 192, 0.2);
+      transition: all 0.3s ease;
 
       &:hover {
-        background: linear-gradient(135deg, #8b2222 0%, #e68900 100%);
-        transform: none;
-        box-shadow: 0 6px 16px rgba(165, 42, 42, 0.3);
+        background: linear-gradient(135deg, #1355a3 0%, #4aa1d6 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(24, 103, 192, 0.3);
       }
 
-      .v-icon {
-        color: #ffffff !important;
+      &::before {
+        display: none;
+      }
+
+      :deep(.v-avatar) {
+        border: 2px solid rgba(255, 255, 255, 0.8);
       }
 
       :deep(.v-list-item-title) {
@@ -451,8 +594,34 @@ export default {
     }
   }
 
+  .logout-section {
+    padding-bottom: 12px;
+
+    .logout-item {
+      color: #d32f2f !important;
+
+      .v-icon {
+        color: #d32f2f !important;
+      }
+
+      &::before {
+        background: linear-gradient(180deg, #d32f2f 0%, #ef5350 100%);
+      }
+
+      &:hover {
+        background: rgba(211, 47, 47, 0.08);
+        color: #b71c1c !important;
+
+        .v-icon {
+          color: #b71c1c !important;
+        }
+      }
+    }
+  }
+
   .v-divider {
     border-color: rgba(0, 0, 0, 0.08);
+    margin: 0 16px;
   }
 }
 
