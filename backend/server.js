@@ -39,12 +39,28 @@ const { nanoid } = require("nanoid");
 const deliveryChatRouter = require("./routes/AI/ai-project.js");
 const XLSX = require("xlsx");
 const ExcelJS = require("exceljs");
-
-// const {queryWithLangChain } = require("./Ollama-AI/queryEngine.js");
-// const queryMap = require("./Ollama-AI/queryMap")
 const fetch = require("node-fetch");
 
-// const https = require("https"); // XÓA: không dùng SSL nữa
+// Import Socket
+//=========== Manufacture =================
+const getManufactureCountingSocket = require("./socket/Manufacture/GetManufactureCounting.socket.js");
+const getHistorySocket = require("./socket/Manufacture/GetHistory.socket.js");
+const getHistoryPartSocket = require("./socket/Manufacture/GetHistoryPart.socket.js");
+//=========== Summary =================
+const getSummarySocket = require("./socket/Summary/GetSummary.socket.js");
+//=========== Check PnP =================
+const getProjectBomSocket = require("./socket/Check-PCB/GetProjectBom.socket.js");
+const getCombineBomSocket = require("./socket/Check-PCB/GetCombineBom.socket.js");
+const getRawBomHighlightSocket = require("./socket/Check-PCB/GetRawBomHighlight.socket.js");
+const getBomHighlightSocket = require("./socket/Check-PCB/GetBomHighlight.socket.js");
+const getGerberFileSocket = require("./socket/Check-PCB/GetGerberFile.socket.js");
+const getPnPFileSocket = require("./socket/Check-PCB/GetPnPFile.socket.js");
+const getSettingPCB = require("./socket/Check-PCB/settingPCB.socket.js");
+//=========== Check QC =================
+const getProjectQCSocket = require("./socket/Check-QC/ProjectQC.socket.js");
+const getCombineBomQCSocket = require("./socket/Check-QC/CombineBomQC.socket.js");
+const getRawBomQCSocket = require("./socket/Check-QC/RawBomQC.socket.js");
+const getSettingQCSocket = require("./socket/Check-QC/SettingQC.socket.js");
 
 // Add processing flags at the top of the file
 const processingRequests = new Set();
@@ -1130,458 +1146,49 @@ io.on("connection", (socket) => {
       userProjects.set(socket.id, id);
     }));
 
-  (socket.on("getManufactureCounting", async (id) => {
-    try {
-      const query = `SELECT 
-                            id,
-                            PartNumber,
-                            Status,
-                            Quantity,
-                            TimestampRW,
-                            Note,
-                            Timestamp
-                          FROM ManufactureCounting
-                          WHERE HistoryID = ?
-                          ORDER BY Timestamp DESC`;
-      db.all(query, [id], (err, rows) => {
-        if (err) return socket.emit("ManufactureCountingError", err);
-        socket.emit("ManufactureCountingData", rows);
-      });
-    } catch (error) {
-      socket.emit("ManufactureCountingError", error);
-    }
-  }),
-    socket.on("getSummary", async (endDay) => {
+  // socket.on("deleteGerberFile", async (id) => {
+  //   try {
+  //     const query = `DELETE FROM GerberData WHERE id = ?`;
+  //     db.run(query, [id], function (err) {
+  //       if (err) return socket.emit("GerberFileError", err);
+  //       socket.emit("GerberFileUpdate");
+  //     });
+  //   } catch (error) {
+  //     socket.emit("GerberFileError", error);
+  //   }
+  // }),
+  // ================ Manufacture ===================
+  (getManufactureCountingSocket(socket),
+    getHistorySocket(socket),
+    getHistoryPartSocket(socket),
+    // ================ Summary =======================
+    getSummarySocket(socket),
+    // ================ Check PnP =====================
+    getProjectBomSocket(socket),
+    getCombineBomSocket(socket),
+    getRawBomHighlightSocket(socket),
+    getBomHighlightSocket(socket),
+    getGerberFileSocket(socket),
+    getPnPFileSocket(socket),
+    getSettingPCB(socket),
+    // ================ Check QC =====================
+    getProjectQCSocket(socket),
+    getCombineBomQCSocket(socket),
+    getRawBomQCSocket(socket),
+    getSettingQCSocket(socket),
+    socket.on("getToDo", () => {
       try {
         const query = `SELECT *,
-                          a.Quantity AS Quantity_Counting,
-                          ROUND((CAST(a.Quantity AS REAL) * 100.0 / b.Quantity_Plan), 0) AS Percent
-                        FROM ManufactureCounting a
-                        LEFT JOIN Summary b ON a.HistoryID = b.id
-						            LEFT JOIN PlanManufacture c ON b.PlanID = c.id
-                        WHERE a.Timestamp = ?`;
-        db.all(query, [endDay], (err, rows) => {
-          if (err) return socket.emit("SummaryError", err);
-          socket.emit("SummaryData", rows);
+                          strftime('%d-%m-%Y', createdAt, 'unixepoch', 'localtime') AS createdAt,
+                          strftime('%Y-%m-%d', createdAt, 'unixepoch', 'localtime') AS updatedAt
+                        FROM ToDos
+                        ORDER BY id DESC`;
+        db.all(query, (err, rows) => {
+          if (err) return socket.emit("todoError", err);
+          socket.emit("todoData", rows);
         });
       } catch (error) {
-        socket.emit("SummaryError", error);
-      }
-    }),
-    socket.on("getCompareSummary", async (endDay) => {
-      try {
-        const query = `
-                    WITH TodayData AS (
-                      SELECT
-                        COUNT(DISTINCT a.PONumber) AS Today_Total_PONumber,
-                        COUNT(DISTINCT a.Category) AS Today_Total_Category
-                      FROM Summary a
-                      WHERE strftime('%Y-%m-%d', a.Created_At, 'unixepoch', '+7 hours') =
-                            strftime('%Y-%m-%d', ?, 'unixepoch', '+7 hours')
-                    ),
-                    
-                    YesterdayData AS (
-                      SELECT
-                        COUNT(DISTINCT a.PONumber) AS Yesterday_Total_PONumber,
-                        COUNT(DISTINCT a.Category) AS Yesterday_Total_Category
-                      FROM Summary a
-                      WHERE strftime('%Y-%m-%d', a.Created_At, 'unixepoch', '+7 hours') =
-                            strftime('%Y-%m-%d', ?, 'unixepoch', '+7 hours', '-1 day')
-                    )
-              
-                    SELECT
-                      T.Today_Total_PONumber,
-                      Y.Yesterday_Total_PONumber,
-                      ROUND(
-                        (T.Today_Total_PONumber - Y.Yesterday_Total_PONumber) * 100.0
-                        / NULLIF(Y.Yesterday_Total_PONumber, 0),
-                      1) AS PONumber_Trend_Percent,
-              
-                      T.Today_Total_Category,
-                      Y.Yesterday_Total_Category,
-                      ROUND(
-                        (T.Today_Total_Category - Y.Yesterday_Total_Category) * 100.0
-                        / NULLIF(Y.Yesterday_Total_Category, 0),
-                      1) AS Category_Trend_Percent
-                    FROM TodayData T CROSS JOIN YesterdayData Y;
-                  `;
-
-        db.all(query, [endDay, endDay], (err, rows) => {
-          if (err) return socket.emit("CompareSummaryError", err.message);
-          socket.emit("CompareSummaryData", rows);
-        });
-      } catch (error) {
-        socket.emit("CompareSummaryError", error.message);
-      }
-    }),
-    socket.on("getHistory", async (id) => {
-      try {
-        const query = `WITH CountingData AS (
-                        SELECT 
-                          HistoryID,
-                          CASE
-                            WHEN Status = 'pass'
-                            THEN SUM(Quantity) ELSE 0 
-                          END AS pass_count
-                        FROM ManufactureCounting
-                        GROUP BY HistoryID
-                      )
-                      SELECT 
-                        a.id,
-                        a.Type,
-                        a.Category,
-                        a.Quantity_Plan,
-                        a.PlanID,
-                        c.Name_Order,
-                        c.DelaySMT,
-                        a.PONumber,
-                        a.Line_SMT,
-                        a.Time_Plan,
-                        a.CycleTime_Plan,
-                        a.Action,
-                        c.Quantity,
-                        a.Surface,
-                        a.Note,
-						            a.Created_At,
-                        COALESCE(b.pass_count, 0) AS Quantity_Real,
-                        ROUND(COALESCE(b.pass_count, 0) * 100.0 / NULLIF(a.Quantity_Plan, 0.0), 1) AS Percent
-                        
-                      FROM Summary a
-                      LEFT JOIN CountingData b ON b.HistoryID = a.id
-                      LEFT JOIN PlanManufacture c ON a.PlanID = c.id
-
-                      WHERE a.PlanID = ?
-
-                      GROUP BY 
-                        a.id,
-                        a.Type,
-                        a.Category,
-                        a.Quantity_Plan,
-                        a.PlanID,
-                        a.PONumber,
-                        a.Line_SMT,
-                        a.Time_Plan,
-                        a.CycleTime_Plan,
-                        a.Created_At
-
-                      ORDER BY a.Created_At DESC
-                      `;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("HistoryError", err);
-          socket.emit("HistoryData", rows);
-        });
-      } catch (error) {
-        socket.emit("HistoryError", error);
-      }
-    }),
-    socket.on("getHistoryPart", async (id) => {
-      try {
-        const query = `
-                      SELECT 
-                          c.id,
-                          c.PlanID,
-                          c.PartNumber,
-						              c.HistoryID,
-                          c.Type AS Source,
-                          c.Status,
-                          c.Timestamp,
-                          c.Note,
-                          c.Quantity,
-                          c.Surface
-                      FROM ManufactureCounting c
-                      WHERE c.PlanID = ?`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("HistoryPartError", err);
-          socket.emit("HistoryPartData", rows);
-        });
-      } catch (error) {
-        socket.emit("HistoryPartError", error);
-      }
-    }),
-    socket.on("getFilterBom", async (id) => {
-      try {
-        const query = `SELECT 
-					            *,				
-                      strftime('%d-%m-%Y', created_at, 'unixepoch', 'localtime') AS Created_at_unixepoch,
-                      strftime('%Y-%m-%d', created_at, 'unixepoch', 'localtime') AS Created_at
-                      FROM FilterBom
-                      ORDER BY id DESC`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("FilterBomError", err);
-          socket.emit("FilterBomData", rows);
-        });
-      } catch (error) {
-        socket.emit("FiterBomError", error);
-      }
-    }),
-    socket.on("getCombineBom", async (id) => {
-      try {
-        const query = `WITH pm_match AS (
-                        SELECT 
-                            b.project_id,
-                            b.designator, 
-                            pm.package,
-                            pm.width,
-                            pm.length,
-                            pm.id,
-                            LENGTH(pm.package) AS match_len,
-                            ROW_NUMBER() OVER (
-                                PARTITION BY b.project_id, b.designator
-                                ORDER BY LENGTH(pm.package) DESC
-                            ) AS rn
-                        FROM Bom b
-                        JOIN Components pm 
-                            ON UPPER(b.description) LIKE '%' || UPPER(pm.package) || '%'
-                    )
-
-                    SELECT 
-                        p.id,
-                        p.project_id,
-                        o.id AS id_components_overrides,
-                        pm.id AS id_component,
-                        p.designator,
-                        ROUND(p.x, 2) AS x,
-                        ROUND(p.y, 2) AS y,
-                        p.rotation, 
-                        p.layer,
-                        p.type,
-                        b.mpn,
-                        b.description AS description_bom,
-                        b.note,
-                        COALESCE(o.width, pm.width)  AS width,
-                        COALESCE(o.length, pm.length) AS length,
-                        pm.package AS package,
-
-                        -- SOURCE
-                        CASE
-                            WHEN o.mpn IS NOT NULL THEN 'override'
-                            WHEN pm.package IS NOT NULL THEN 'package_map'
-                            ELSE 'missing'
-                        END AS source
-
-                    FROM Pickplace p
-
-                    LEFT JOIN Bom b
-                        ON p.designator = b.designator 
-                      AND p.project_id = b.project_id
-
-                    LEFT JOIN pm_match pm
-                        ON b.designator = pm.designator 
-                      AND b.project_id = pm.project_id 
-                      AND pm.rn = 1
-
-                    LEFT JOIN Component_overrides o
-                        ON b.mpn = o.mpn
-
-                    WHERE p.project_id = ?`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("CombineBomError", err);
-          socket.emit("CombineBomData", rows);
-        });
-      } catch (error) {
-        socket.emit("CombineBomError", error);
-      }
-    }),
-    socket.on("getRawBomHighlight", async (id) => {
-      try {
-        const query = `SELECT 
-                          B.id,
-                          B.description,
-                          B.mpn,
-                          CASE 
-                            WHEN M.mount_type IS NOT NULL THEN M.mount_type
-                            ELSE B.type
-                          END AS type,
-                          B.designator,
-                          B.quantity,
-                          M.image AS image,
-                          B.project_id,
-                          B.note,
-                          M.created_by,
-                          F.project_name
-                      FROM BomHighlight B
-                      LEFT JOIN MPNMountType M
-                          ON TRIM(LOWER(B.mpn)) = TRIM(LOWER(M.mpn))
-                      LEFT JOIN FilterBom F
-                          ON TRIM(M.project_id) = F.id
-                      WHERE B.project_id = ?;`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("RawBomHighlightError", err);
-          socket.emit("RawBomHighlightData", rows);
-        });
-      } catch (error) {
-        socket.emit("RawBomHighlightError", error);
-      }
-    }),
-    socket.on("getBomHighlight", (project_id) => {
-      const ppQuery = `
-        SELECT designator, LOWER(TRIM(layer)) as layer
-        FROM Pickplace
-        WHERE project_id = ?
-      `;
-
-      db.all(ppQuery, [project_id], (err, ppRows) => {
-        if (err) return socket.emit("error", err.message);
-
-        // Map designator -> layer
-        const map = new Map();
-        ppRows.forEach((r) => {
-          const key = String(r.designator || "")
-            .trim()
-            .toUpperCase();
-
-          map.set(key, r.layer);
-        });
-
-        const bomQuery = `
-          SELECT * FROM Bom
-          WHERE project_id = ?
-        `;
-
-        db.all(bomQuery, [project_id], (err, bomRows) => {
-          if (err) return socket.emit("error", err.message);
-
-          const result = bomRows.map((row) => {
-            const original = String(row.designator || "");
-
-            const parts = original.split(",").map((s) => s.trim());
-
-            const parsed = parts.map((p) => {
-              const key = p.toUpperCase();
-              const layer = map.get(key);
-
-              let status = "normal";
-
-              if (!layer) {
-                status = "missing"; // (optional)
-              } else if (layer === "bottom" || layer === "bottomlayer") {
-                status = "bottom"; // 🔴
-              }
-
-              return {
-                text: p, // giữ nguyên text
-                status,
-              };
-            });
-
-            return {
-              ...row,
-              designatorParsed: parsed,
-            };
-          });
-
-          socket.emit("BomHighlightData", result);
-        });
-      });
-    }),
-    socket.on("deleteGerberFile", async (id) => {
-      try {
-        const query = `DELETE FROM GerberData WHERE id = ?`;
-        db.run(query, [id], function (err) {
-          if (err) return socket.emit("GerberFileError", err);
-          socket.emit("GerberFileUpdate");
-        });
-      } catch (error) {
-        socket.emit("GerberFileError", error);
-      }
-    }),
-    socket.on("getGerberFile", async (id) => {
-      try {
-        const query = `SELECT DISTINCT  *
-                      FROM GerberData
-                      WHERE project_id = ?`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("GerberFileError", err);
-          socket.emit("GerberFileData", rows);
-        });
-      } catch (error) {
-        socket.emit("GerberFileError", error);
-      }
-    }),
-    socket.on("getPnPFile", async (id) => {
-      try {
-        const query = `WITH pm_match AS (
-                          SELECT 
-                              b.project_id,
-                              b.designator, 
-                              pm.package,
-                              pm.width,
-                              pm.length,
-                              LENGTH(pm.package) AS match_len,
-                              ROW_NUMBER() OVER (
-                                  PARTITION BY b.project_id, b.designator
-                                  ORDER BY LENGTH(pm.package) DESC
-                              ) AS rn
-                          FROM Bom b
-                          JOIN Components pm 
-                              ON b.description LIKE '%' || pm.package || '%'
-                      )
-                      SELECT 
-                          p.id,
-                          p.project_id,
-                          p.designator,
-                          ROUND(p.x, 2) AS x,
-                          ROUND(p.y, 2) AS y,
-                          p.rotation, 
-                          p.layer,
-                          p.type,
-                          b.description AS description_bom,
-                          b.mpn,
-                          COALESCE(o.width, pm.width)  AS width,
-                          COALESCE(o.length, pm.length) AS length,   -- sửa theo field của bạn
-                          COALESCE(o.package, pm.package) AS package,
-                          b.note,
-                          CASE
-                              WHEN o.mpn IS NOT NULL THEN 'override'
-                              WHEN pm.package IS NOT NULL THEN 'package_map'
-                              ELSE 'missing'
-                          END AS source
-
-                      FROM Pickplace p
-                      LEFT JOIN Bom b
-                          ON p.designator = b.designator 
-                        AND p.project_id = b.project_id
-                      LEFT JOIN pm_match pm
-                          ON b.designator = pm.designator 
-                        AND b.project_id = pm.project_id 
-                        AND pm.rn = 1
-                      LEFT JOIN Component_overrides o
-                          ON b.mpn = o.mpn
-                      WHERE p.project_id = ?`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("PnPFileError", err);
-          socket.emit("PnPFileData", rows);
-        });
-      } catch (error) {
-        socket.emit("PnPFileError", error);
-      }
-    }),
-    socket.on("getSettingPCB", async (id) => {
-      try {
-        const query = `SELECT DISTINCT  *
-                      FROM SettingPCB
-                      WHERE project_id = ?`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("SettingPCBError", err);
-          socket.emit("SettingPCBData", rows);
-        });
-      } catch (error) {
-        socket.emit("SettingPCBError", error);
-      }
-    }),
-    socket.on("getFilterBomQC", async (id) => {
-      try {
-        const query = `SELECT 
-					            *,				
-                      created_at AS Created_at
-                      FROM FilterBomQC
-                      ORDER BY id DESC`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("FilterBomQCError", err);
-          socket.emit("FilterBomQCData", rows);
-        });
-      } catch (error) {
-        socket.emit("FilterBomQCError", error);
+        socket.emit("todoError", error);
       }
     }),
     socket.on("getOrderTracking", async (id) => {
@@ -1614,93 +1221,6 @@ io.on("connection", (socket) => {
         });
       } catch (error) {
         socket.emit("OrderTrackingError", error);
-      }
-    }),
-    socket.on("getCombineBomQC", async (id) => {
-      try {
-        const query = `SELECT DISTINCT 
-                          a.id,
-                          a.designator,
-                          a.layer,
-                          a.mpn,
-                          a.x,
-                          a.y,
-                          a.rotation,
-                          a.status,
-                          b.description
-                        FROM PickplaceQC a
-                        LEFT JOIN BOMQC  b ON a.mpn = b.mpn
-                        WHERE a.project_id = ?`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("CombineBomQCError", err);
-          socket.emit("CombineBomQCData", rows);
-        });
-      } catch (error) {
-        socket.emit("CombineBomQCError", error);
-      }
-    }),
-    socket.on("getRawBomQC", async (id) => {
-      try {
-        const query = `SELECT
-                          b.id,
-                          b.description,
-                          b.mpn,
-                          b.designator,
-                          b.quantity,
-
-                          GROUP_CONCAT(p.designator) AS pnp_designators,
-                          GROUP_CONCAT(p.x) AS xs,
-                          GROUP_CONCAT(p.y) AS ys,
-                          GROUP_CONCAT(p.rotation) AS rotations,
-                          GROUP_CONCAT(p.layer) AS layers
-
-                      FROM BomQC b
-                      LEFT JOIN PickplaceQC p
-                          ON ',' || REPLACE(b.designator,' ','') || ','
-                            LIKE '%,' || p.designator || ',%'
-
-                      WHERE b.project_id = ?
-
-                      GROUP BY
-                          b.id,
-                          b.description,
-                          b.mpn,
-                          b.designator,
-                          b.quantity;`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("RawBomQCError", err);
-          socket.emit("RawBomQCData", rows);
-        });
-      } catch (error) {
-        socket.emit("RawBomQCError", error);
-      }
-    }),
-    socket.on("getSettingPCBQC", async (id) => {
-      try {
-        const query = `SELECT DISTINCT  *
-                      FROM SettingPCBQC
-                      WHERE project_id = ?`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("SettingPCBQCError", err);
-          socket.emit("SettingPCBQCData", rows);
-        });
-      } catch (error) {
-        socket.emit("SettingPCBQCError", error);
-      }
-    }),
-    socket.on("getToDo", () => {
-      try {
-        const query = `SELECT *,
-                          strftime('%d-%m-%Y', createdAt, 'unixepoch', 'localtime') AS createdAt,
-                          strftime('%Y-%m-%d', createdAt, 'unixepoch', 'localtime') AS updatedAt
-                        FROM ToDos
-                        ORDER BY id DESC`;
-        db.all(query, (err, rows) => {
-          if (err) return socket.emit("todoError", err);
-          socket.emit("todoData", rows);
-        });
-      } catch (error) {
-        socket.emit("todoError", error);
       }
     }),
     // socket.on("ask", async (message) => {
@@ -4381,90 +3901,6 @@ app.delete("/api/PlanManufacture/Delete/:id", async (req, res) => {
   });
 });
 
-// app.post("/api/esp-config", async (req, res) => {
-//   const { project_id, delay, plan_id } = req.body;
-//   try {
-//     const response = await axios.post(
-//       `${ESP32_IP_LINE1}/set-project-delay`,
-//       {
-//         project_id,
-//         delay,
-//         plan_id,
-//       },
-//       {
-//         headers: { "Content-Type": "application/json" },
-//       }
-//     );
-
-//     res.json({
-//       status: "project_id sent to esp32",
-//       esp32Response: response.data,
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       error: "Failed to send project_id to esp32",
-//       detail: error.message,
-//     });
-//   }
-// });
-
-// app.post("/api/esp-config-line2", async (req, res) => {
-//   const { project_id, delay, plan_id } = req.body;
-//   try {
-//     const response = await axios.post(
-//       `${ESP32_IP_LINE2}/set-project-delay`,
-//       {
-//         project_id,
-//         delay,
-//         plan_id,
-//       },
-//       {
-//         headers: { "Content-Type": "application/json" },
-//       }
-//     );
-
-//     res.json({
-//       status: "project_id sent to esp32",
-//       esp32Response: response.data,
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       error: "Failed to send project_id to esp32",
-//       detail: error.message,
-//     });
-//   }
-// });
-
-// app.post("/api/send-config-to-device", async (req, res) => {
-//   const { project_id, plan_id, delay = 0, line = 1 } = req.body || {};
-
-//   // if (!project_id || !plan_id) {
-//   //   return res.status(400).json({ error: "project_id và plan_id là bắt buộc" });
-//   // }
-
-//   try {
-//     const response = await axios.post(
-//       `${GATEWAY_URL}/api/send-config`,
-//       { project_id, plan_id, delay, line },
-//       { headers: { "Content-Type": "application/json" } }
-//     );
-
-//     console.log("✅ Config sent to Gateway:", response.data);
-
-//     res.json({
-//       status: "Sent to Gateway",
-//       gatewayResponse: response.data,
-//     });
-//   } catch (error) {
-//     console.error("❌ Failed to send to Gateway:", error.message);
-
-//     res.status(502).json({
-//       error: "Gateway unreachable",
-//       detail: error.response?.data || error.message,
-//     });
-//   }
-// });
-
 // ========== ADD CONFIG ==========
 app.post("/api/add-config", (req, res) => {
   const { project_id, plan_id, delay = 0, line = 1 } = req.body || {};
@@ -6470,10 +5906,9 @@ app.post("/api/SettingPCBQC/Add-item", (req, res) => {
     `INSERT INTO SettingPCBQC (
         project_id,
         width,
-        height,
-        image
+        height
      )
-     VALUES (?, 0, 0, '')`,
+     VALUES (?, 0, 0)`,
     [project_id],
     (err) => {
       if (err) {
