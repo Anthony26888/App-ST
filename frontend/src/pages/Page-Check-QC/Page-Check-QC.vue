@@ -176,6 +176,113 @@
                 </v-btn>
               </template>
             </v-tooltip>
+            <div
+              class="d-flex align-center bg-white rounded-lg px-4 py-1 opacity-80 elevation-3 text-caption ms-2"
+              style="gap: 12px"
+            >
+              <!-- Grid -->
+              <v-switch
+                v-model="isGridMode"
+                label="Lưới"
+                size="small"
+                true-icon="mdi-check"
+                false-icon="mdi-close"
+                hide-details
+                density="compact"
+                color="primary"
+                class="ma-0 pa-0 align-self-center"
+              />
+
+              <template v-if="isGridMode">
+                <v-text-field
+                  v-model.number="gridRows"
+                  type="number"
+                  density="compact"
+                  variant="outlined"
+                  hide-details
+                  label="Hàng"
+                  style="width: 80px"
+                  min="1"
+                />
+                <v-text-field
+                  v-model.number="gridCols"
+                  type="number"
+                  density="compact"
+                  variant="outlined"
+                  hide-details
+                  label="Cột"
+                  style="width: 80px"
+                  min="1"
+                />
+              </template>
+
+              <v-divider vertical class="mx-2"></v-divider>
+
+              <v-switch
+                v-model="isShowAllWaiting"
+                label="Kiểm tra"
+                size="small"
+                hide-details
+                density="compact"
+                color="primary"
+                true-icon="mdi-check"
+                false-icon="mdi-close"
+                class="ma-0 pa-0 align-self-center"
+              />
+
+              <v-divider vertical class="mx-2"></v-divider>
+
+              <!-- Align -->
+              <v-btn
+                :color="isAlignMode ? 'primary' : 'default'"
+                :variant="isAlignMode ? 'flat' : 'text'"
+                prepend-icon="mdi-crosshairs-gps"
+                density="comfortable"
+                class="text-caption"
+                @click="toggleAlignMode"
+              >
+                Căn chỉnh
+              </v-btn>
+
+              <span
+                v-if="isAlignMode"
+                class="text-caption"
+                :class="
+                  alignStep === 5
+                    ? 'text-success font-weight-bold'
+                    : 'text-primary'
+                "
+              >
+                {{
+                  [
+                    "",
+                    "Trái Trên",
+                    "Phải Trên",
+                    "Trái Dưới",
+                    "Phải Dưới",
+                    "Hoàn tất",
+                  ][alignStep]
+                }}
+              </span>
+
+              <v-btn
+                v-if="isAlignMode && alignStep > 1"
+                icon="mdi-refresh"
+                variant="text"
+                size="small"
+                color="error"
+                @click="resetAlign"
+              />
+
+              <v-btn
+                v-if="isAlignMode && alignStep === 5"
+                icon="mdi-check"
+                variant="text"
+                size="small"
+                color="success"
+                @click="ApplyAlign"
+              />
+            </div>
           </div>
 
           <v-spacer></v-spacer>
@@ -233,116 +340,6 @@
                 />
 
                 <div v-if="imageUrl" class="pcb-wrapper">
-                  <!-- Grid Toolbar -->
-                  <!-- Floating Toolbar -->
-                  <div
-                    class="d-flex align-center bg-white rounded-lg px-2 py-1 opacity-80 elevation-3 position-absolute text-caption"
-                    style="top: 8px; left: 8px; z-index: 10; gap: 12px"
-                  >
-                    <!-- Grid -->
-                    <v-switch
-                      v-model="isGridMode"
-                      label="Lưới"
-                      size="small"
-                      true-icon="mdi-check"
-                      false-icon="mdi-close"
-                      hide-details
-                      density="compact"
-                      color="primary"
-                      class="ma-0 pa-0 align-self-center"
-                    />
-
-                    <template v-if="isGridMode">
-                      <v-text-field
-                        v-model.number="gridRows"
-                        type="number"
-                        density="compact"
-                        variant="outlined"
-                        hide-details
-                        label="Hàng"
-                        style="width: 80px"
-                        min="1"
-                      />
-                      <v-text-field
-                        v-model.number="gridCols"
-                        type="number"
-                        density="compact"
-                        variant="outlined"
-                        hide-details
-                        label="Cột"
-                        style="width: 80px"
-                        min="1"
-                      />
-                    </template>
-
-                    <v-divider vertical class="mx-2"></v-divider>
-
-                    <v-switch
-                      v-model="isShowAllWaiting"
-                      label="Kiểm tra"
-                      size="small"
-                      hide-details
-                      density="compact"
-                      color="primary"
-                      true-icon="mdi-check"
-                      false-icon="mdi-close"
-                      class="ma-0 pa-0 align-self-center"
-                    />
-
-                    <v-divider vertical class="mx-2"></v-divider>
-
-                    <!-- Align -->
-                    <v-btn
-                      :color="isAlignMode ? 'primary' : 'default'"
-                      :variant="isAlignMode ? 'flat' : 'text'"
-                      prepend-icon="mdi-crosshairs-gps"
-                      density="comfortable"
-                      class="text-caption"
-                      @click="toggleAlignMode"
-                    >
-                      Căn chỉnh
-                    </v-btn>
-
-                    <span
-                      v-if="isAlignMode"
-                      class="text-caption"
-                      :class="
-                        alignStep === 5
-                          ? 'text-success font-weight-bold'
-                          : 'text-primary'
-                      "
-                    >
-                      {{
-                        [
-                          "",
-                          "Trái Trên",
-                          "Phải Trên",
-                          "Trái Dưới",
-                          "Phải Dưới",
-                          "Hoàn tất",
-                        ][alignStep]
-                      }}
-                    </span>
-
-                    <v-btn
-                      v-if="isAlignMode && alignStep > 1"
-                      icon="mdi-refresh"
-                      variant="text"
-                      size="small"
-                      color="error"
-                      @click="resetAlign"
-                    />
-
-                    <v-btn
-                      v-if="isAlignMode && alignStep === 5"
-                      icon="mdi-check"
-                      variant="flat"
-                      size="small"
-                      color="success"
-                      @click="ApplyAlign"
-                    />
-                  </div>
-
                   <img
                     ref="pcbImg"
                     :src="imageUrl"
@@ -407,34 +404,39 @@
                     </g>
 
                     <!-- Fiducial Markers -->
-                    <g v-if="fiducialTL">
+                    <g
+                      v-if="fiducialTL"
+                      :transform="`translate(${getFiducialX(
+                        fiducialTL,
+                      )}, ${getFiducialY(fiducialTL)})`"
+                    >
                       <line
-                        :x1="fiducialTL.x - 30"
-                        :y1="fiducialTL.y"
-                        :x2="fiducialTL.x + 30"
-                        :y2="fiducialTL.y"
+                        x1="-30"
+                        y1="0"
+                        x2="30"
+                        y2="0"
                         stroke="blue"
                         stroke-width="2"
                       />
                       <line
-                        :x1="fiducialTL.x"
-                        :y1="fiducialTL.y - 30"
-                        :x2="fiducialTL.x"
-                        :y2="fiducialTL.y + 30"
+                        x1="0"
+                        y1="-30"
+                        x2="0"
+                        y2="30"
                         stroke="blue"
                         stroke-width="2"
                       />
                       <circle
-                        :cx="fiducialTL.x"
-                        :cy="fiducialTL.y"
+                        cx="0"
+                        cy="0"
                         r="4"
                         fill="transparent"
                         stroke="blue"
                         stroke-width="2"
                       />
                       <text
-                        :x="fiducialTL.x + 30"
-                        :y="fiducialTL.y - 30"
+                        x="30"
+                        y="-30"
                         fill="blue"
                         font-size="14"
                         font-weight="bold"
@@ -442,34 +444,39 @@
                         Trái Trên
                       </text>
                     </g>
-                    <g v-if="fiducialTR">
+                    <g
+                      v-if="fiducialTR"
+                      :transform="`translate(${getFiducialX(
+                        fiducialTR,
+                      )}, ${getFiducialY(fiducialTR)})`"
+                    >
                       <line
-                        :x1="fiducialTR.x - 30"
-                        :y1="fiducialTR.y"
-                        :x2="fiducialTR.x + 30"
-                        :y2="fiducialTR.y"
+                        x1="-30"
+                        y1="0"
+                        x2="30"
+                        y2="0"
                         stroke="blue"
                         stroke-width="2"
                       />
                       <line
-                        :x1="fiducialTR.x"
-                        :y1="fiducialTR.y - 30"
-                        :x2="fiducialTR.x"
-                        :y2="fiducialTR.y + 30"
+                        x1="0"
+                        y1="-30"
+                        x2="0"
+                        y2="30"
                         stroke="blue"
                         stroke-width="2"
                       />
                       <circle
-                        :cx="fiducialTR.x"
-                        :cy="fiducialTR.y"
+                        cx="0"
+                        cy="0"
                         r="4"
                         fill="transparent"
                         stroke="blue"
                         stroke-width="2"
                       />
                       <text
-                        :x="fiducialTR.x + 10"
-                        :y="fiducialTR.y - 10"
+                        x="10"
+                        y="-10"
                         fill="blue"
                         font-size="14"
                         font-weight="bold"
@@ -477,34 +484,39 @@
                         Phải Trên
                       </text>
                     </g>
-                    <g v-if="fiducialBL">
+                    <g
+                      v-if="fiducialBL"
+                      :transform="`translate(${getFiducialX(
+                        fiducialBL,
+                      )}, ${getFiducialY(fiducialBL)})`"
+                    >
                       <line
-                        :x1="fiducialBL.x - 30"
-                        :y1="fiducialBL.y"
-                        :x2="fiducialBL.x + 30"
-                        :y2="fiducialBL.y"
+                        x1="-30"
+                        y1="0"
+                        x2="30"
+                        y2="0"
                         stroke="blue"
                         stroke-width="2"
                       />
                       <line
-                        :x1="fiducialBL.x"
-                        :y1="fiducialBL.y - 30"
-                        :x2="fiducialBL.x"
-                        :y2="fiducialBL.y + 30"
+                        x1="0"
+                        y1="-30"
+                        x2="0"
+                        y2="30"
                         stroke="blue"
                         stroke-width="2"
                       />
                       <circle
-                        :cx="fiducialBL.x"
-                        :cy="fiducialBL.y"
+                        cx="0"
+                        cy="0"
                         r="4"
                         fill="transparent"
                         stroke="blue"
                         stroke-width="2"
                       />
                       <text
-                        :x="fiducialBL.x + 30"
-                        :y="fiducialBL.y - 30"
+                        x="30"
+                        y="-30"
                         fill="blue"
                         font-size="14"
                         font-weight="bold"
@@ -512,34 +524,39 @@
                         Trái Dưới
                       </text>
                     </g>
-                    <g v-if="fiducialBR">
+                    <g
+                      v-if="fiducialBR"
+                      :transform="`translate(${getFiducialX(
+                        fiducialBR,
+                      )}, ${getFiducialY(fiducialBR)})`"
+                    >
                       <line
-                        :x1="fiducialBR.x - 30"
-                        :y1="fiducialBR.y"
-                        :x2="fiducialBR.x + 30"
-                        :y2="fiducialBR.y"
+                        x1="-30"
+                        y1="0"
+                        x2="30"
+                        y2="0"
                         stroke="blue"
                         stroke-width="2"
                       />
                       <line
-                        :x1="fiducialBR.x"
-                        :y1="fiducialBR.y - 30"
-                        :x2="fiducialBR.x"
-                        :y2="fiducialBR.y + 30"
+                        x1="0"
+                        y1="-30"
+                        x2="0"
+                        y2="30"
                         stroke="blue"
                         stroke-width="2"
                       />
                       <circle
-                        :cx="fiducialBR.x"
-                        :cy="fiducialBR.y"
+                        cx="0"
+                        cy="0"
                         r="4"
                         fill="transparent"
                         stroke="blue"
                         stroke-width="2"
                       />
                       <text
-                        :x="fiducialBR.x + 10"
-                        :y="fiducialBR.y - 10"
+                        x="10"
+                        y="-10"
                         fill="blue"
                         font-size="14"
                         font-weight="bold"
@@ -1804,17 +1821,20 @@ function onImageClick(event) {
   const x = event.clientX - rect.left;
   const y = event.clientY - rect.top;
 
+  const rx = x / rect.width;
+  const ry = y / rect.height;
+
   if (alignStep.value === 1) {
-    fiducialTL.value = { x, y };
+    fiducialTL.value = { x: rx, y: ry };
     alignStep.value = 2;
   } else if (alignStep.value === 2) {
-    fiducialTR.value = { x, y };
+    fiducialTR.value = { x: rx, y: ry };
     alignStep.value = 3;
   } else if (alignStep.value === 3) {
-    fiducialBL.value = { x, y };
+    fiducialBL.value = { x: rx, y: ry };
     alignStep.value = 4;
   } else if (alignStep.value === 4) {
-    fiducialBR.value = { x, y };
+    fiducialBR.value = { x: rx, y: ry };
     alignStep.value = 5;
   }
 }
@@ -2072,6 +2092,16 @@ onMounted(() => {
 // MM -> PIXEL
 // ======================================
 
+function getFiducialX(f) {
+  if (!f) return 0;
+  return f.x > 1 ? f.x : f.x * imageWidth.value;
+}
+
+function getFiducialY(f) {
+  if (!f) return 0;
+  return f.y > 1 ? f.y : f.y * imageHeight.value;
+}
+
 const svgPoints = computed(() => {
   if (!imageWidth.value || !imageHeight.value || !combinePnPQC.value?.length) {
     return [];
@@ -2105,16 +2135,16 @@ const svgPoints = computed(() => {
 
         // Nội suy tọa độ X và Y
         px =
-          (1 - u) * (1 - v) * fiducialBL.value.x +
-          u * (1 - v) * fiducialBR.value.x +
-          (1 - u) * v * fiducialTL.value.x +
-          u * v * fiducialTR.value.x;
+          (1 - u) * (1 - v) * getFiducialX(fiducialBL.value) +
+          u * (1 - v) * getFiducialX(fiducialBR.value) +
+          (1 - u) * v * getFiducialX(fiducialTL.value) +
+          u * v * getFiducialX(fiducialTR.value);
 
         py =
-          (1 - u) * (1 - v) * fiducialBL.value.y +
-          u * (1 - v) * fiducialBR.value.y +
-          (1 - u) * v * fiducialTL.value.y +
-          u * v * fiducialTR.value.y;
+          (1 - u) * (1 - v) * getFiducialY(fiducialBL.value) +
+          u * (1 - v) * getFiducialY(fiducialBR.value) +
+          (1 - u) * v * getFiducialY(fiducialTL.value) +
+          u * v * getFiducialY(fiducialTR.value);
       } else {
         // Mặc định căng chỉnh theo kích thước ảnh
         px = (mmX / boardWidthMM.value) * imageWidth.value;
