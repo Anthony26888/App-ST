@@ -858,8 +858,8 @@ import { saveAs } from "file-saver";
 // 1. CONSTANTS & API CONFIG
 // ==========================================
 const Url = import.meta.env.VITE_API_URL;
-// const Url_Image = "https://api.erpst.io.vn";
-const Url_Image = import.meta.env.VITE_API_URL;
+const Url_Image = "https://api.erpst.io.vn";
+// const Url_Image = import.meta.env.VITE_API_URL;
 const route = useRoute();
 const id = route.params.id;
 
