@@ -6370,7 +6370,8 @@ app.put("/api/SettingPCB-QC/Delete-item/:id", (req, res) => {
       SET 
       width = 0, 
       height = 0,
-      image = '',
+      fileTop = '',
+      fileBottom = '',
       fiducialBL = '',
       fiducialBR = '',
       fiducialTL = '',
