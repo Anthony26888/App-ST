@@ -6310,6 +6310,28 @@ app.put("/api/PickplaceQC/Edit-item-status/:id", (req, res) => {
   );
 });
 
+// Put value status in table PickplaceQC
+app.put("/api/PickplaceQC/Change-all-status/:id", (req, res) => {
+  const { id } = req.params;
+  db.run(
+    `UPDATE PickplaceQC 
+    SET 
+      status = 'Waiting'
+    WHERE project_id = ?`,
+    [id],
+    (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("CombineBomQCUpdate");
+      res.json({ message: "Summary received" });
+    },
+  );
+});
+
 // Delete all item in BomQC table
 app.delete("/api/BomQC/Delete-item/:id", (req, res) => {
   const { id } = req.params;

@@ -160,6 +160,14 @@
                     >Dữ liệu cài đặt</v-list-item-title
                   >
                 </v-list-item>
+                <v-list-item
+                  @click="DialogDeleteAllCheckData = true"
+                  prepend-icon="mdi-list-status"
+                >
+                  <v-list-item-title class="text-caption">
+                    Toàn bộ dữ liệu kiểm tra</v-list-item-title
+                  >
+                </v-list-item>
               </v-list>
             </v-menu>
             <v-tooltip text="Kiểm tra hình ảnh pcb">
@@ -177,8 +185,8 @@
               </template>
             </v-tooltip>
             <div
-              class="d-flex align-center bg-white rounded-lg px-4 py-1 opacity-80 elevation-3 text-caption ms-2"
-              style="gap: 12px"
+              class="d-flex align-center bg-white rounded-lg px-3 border elevation-1 text-caption ms-2"
+              style="gap: 12px; height: 40px"
             >
               <!-- Grid -->
               <v-switch
@@ -1111,6 +1119,35 @@
           <v-icon color="primary">mdi-history</v-icon>
           <p class="text-h6 ms-2">Lịch sử kiểm tra</p>
           <v-spacer></v-spacer>
+
+          <v-select
+            v-model="filterStatusHistory"
+            :items="['Tất cả', 'Hoàn thành', 'Chưa hoàn thành']"
+            label="Trạng thái"
+            density="compact"
+            variant="outlined"
+            hide-details
+            class="me-3"
+            style="max-width: 170px"
+          />
+
+          <v-select
+            v-model="sortDesignatorHistory"
+            :items="[
+              { title: 'Mặc định', value: 'default' },
+              { title: 'A-Z', value: 'asc' },
+              { title: 'Z-A', value: 'desc' },
+            ]"
+            item-title="title"
+            item-value="value"
+            label="Designator"
+            density="compact"
+            variant="outlined"
+            hide-details
+            class="me-3"
+            style="max-width: 150px"
+          />
+
           <InputSearch
             v-model="searchHistoryQC"
             placeholder="Tìm kiếm linh kiện"
@@ -1340,6 +1377,18 @@
       <ButtonDelete @delete="DeleteSetting()" />
     </template>
   </BaseDialog>
+  <BaseDialog
+    v-model="DialogDeleteAllCheckData"
+    width="600"
+    title="Xoá toàn bộ dữ liệu kiểm tra"
+    icon="mdi-delete"
+  >
+    <v-card-text> Bạn có chắc xoá toàn bộ dữ liệu kiểm tra này? </v-card-text>
+    <template #actions>
+      <ButtonCancel @cancel="DialogDeleteAllCheckData = false" />
+      <ButtonDelete @delete="DeleteAllCheckData()" />
+    </template>
+  </BaseDialog>
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarCaution v-model="DialogCaution" :message="MessageCautionDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
@@ -1422,6 +1471,7 @@ const DialogSuccess = ref(false);
 const DialogDeletePickPlace = ref(false);
 const DialogDeleteBom = ref(false);
 const DialogDeleteSetting = ref(false);
+const DialogDeleteAllCheckData = ref(false);
 const MessageDialog = ref("");
 const MessageErrorDialog = ref("");
 
@@ -1483,6 +1533,8 @@ const HeaderHistoryPnPQC = [
 ];
 const searchPnPQC = ref("");
 const searchHistoryQC = ref("");
+const filterStatusHistory = ref("Tất cả");
+const sortDesignatorHistory = ref("default");
 const selectedPnPQC = ref([]);
 const searchBomQC = ref("");
 const searchHistoryBomQC = ref("");
@@ -1752,11 +1804,40 @@ const combineStatusPnPQC = computed(() => {
     );
   }
 
-  return [...data].sort((a, b) => {
-    if (a.status === "Done" && b.status !== "Done") return -1;
-    if (a.status !== "Done" && b.status === "Done") return 1;
-    return 0;
-  });
+  if (filterStatusHistory.value === "Hoàn thành") {
+    data = data.filter((item) => item.status === "Done");
+  } else if (filterStatusHistory.value === "Chưa hoàn thành") {
+    data = data.filter((item) => item.status !== "Done");
+  }
+
+  let result = [...data];
+  if (sortDesignatorHistory.value === "asc") {
+    result.sort((a, b) => {
+      const nameA = a.designator || "";
+      const nameB = b.designator || "";
+      return nameA.localeCompare(nameB, undefined, {
+        numeric: true,
+        sensitivity: "base",
+      });
+    });
+  } else if (sortDesignatorHistory.value === "desc") {
+    result.sort((a, b) => {
+      const nameA = a.designator || "";
+      const nameB = b.designator || "";
+      return nameB.localeCompare(nameA, undefined, {
+        numeric: true,
+        sensitivity: "base",
+      });
+    });
+  } else {
+    result.sort((a, b) => {
+      if (a.status === "Done" && b.status !== "Done") return -1;
+      if (a.status !== "Done" && b.status === "Done") return 1;
+      return 0;
+    });
+  }
+
+  return result;
 });
 
 function navigatePnP(direction) {
@@ -2733,6 +2814,23 @@ const DeleteSetting = async () => {
     DialogFailed.value = true;
     MessageErrorDialog.value = "Xóa dữ liệu thất bại";
     DialogDeleteSetting.value = false;
+  } finally {
+    DialogLoading.value = false;
+  }
+};
+
+// Delete All Check Data
+const DeleteAllCheckData = async () => {
+  DialogLoading.value = true;
+  try {
+    await axios.put(`${Url}/PickPlaceQC/Change-all-status/${id}`);
+    DialogSuccess.value = true;
+    MessageDialog.value = "Xóa dữ liệu thành công";
+    DialogDeleteAllCheckData.value = false;
+  } catch (error) {
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Xóa dữ liệu thất bại";
+    DialogDeleteAllCheckData.value = false;
   } finally {
     DialogLoading.value = false;
   }
