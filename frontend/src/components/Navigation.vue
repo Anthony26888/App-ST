@@ -250,9 +250,11 @@ const FetchUser = async () => {
       } else if (LevelUser.value == "Quản lý bảo trì") {
         StatusOption_1.value = true;
         StatusOption_4.value = true;
+        StatusOption_5.value = true;
       } else if (LevelUser.value == "Quản lý sản xuất") {
         StatusOption_1.value = true;
         StatusOption_3.value = true;
+        StatusOption_5.value = true;
       } else if (LevelUser.value == "Admin") {
         StatusOption_1.value = true;
         StatusOption_2.value = true;

@@ -1,5 +1,5 @@
 const db = require("../../database.js");
-const { getCompareWareHouse } = require("../../models/Check-Bom/Check-Bom.js");
+const { getCompareWareHouse } = require("../../utils/compareWareHouse.js");
 
 module.exports = (socket) => {
   socket.on("getCompare", async (id) => {
