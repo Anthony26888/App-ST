@@ -1910,9 +1910,12 @@ const RemoveItem = async () => {
     );
     MessageDialog.value = "Xoá dữ liệu thành công";
     DialogSuccess.value = true;
+    DialogRemove.value = false;
+    DialogLoading.value = false;
   } catch (error) {
     MessageErrorDialog.value = "Xoá dữ liệu thất bạị";
     DialogFailed.value = true;
+    DialogLoading.value = false;
   }
 };
 

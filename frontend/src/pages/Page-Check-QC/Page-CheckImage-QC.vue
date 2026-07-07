@@ -73,6 +73,102 @@
                 </v-list-item>
               </v-list>
             </v-menu>
+            <v-divider vertical class="mx-2"></v-divider>
+            <div
+              class="d-flex align-center rounded-lg text-caption ms-3"
+              style="gap: 12px; height: 40px"
+            >
+              <!-- Grid -->
+              <v-switch
+                v-model="isGridMode"
+                label="Lưới"
+                size="small"
+                true-icon="mdi-check"
+                false-icon="mdi-close"
+                hide-details
+                density="compact"
+                color="primary"
+                class="ma-0 pa-0 align-self-center"
+              />
+
+              <template v-if="isGridMode">
+                <v-text-field
+                  v-model.number="gridRows"
+                  type="number"
+                  density="compact"
+                  hide-details
+                  variant="outlined"
+                  style="width: 70px"
+                  class="text-caption me-2"
+                  label="Hàng"
+                  min="1"
+                ></v-text-field>
+                <v-text-field
+                  v-model.number="gridCols"
+                  type="number"
+                  density="compact"
+                  hide-details
+                  variant="outlined"
+                  style="width: 70px"
+                  class="text-caption"
+                  label="Cột"
+                  min="1"
+                ></v-text-field>
+              </template>
+
+              <v-divider vertical class="mx-2"></v-divider>
+
+              <!-- Align -->
+              <v-btn
+                :color="isAlignMode ? 'primary' : 'default'"
+                :variant="isAlignMode ? 'flat' : 'text'"
+                prepend-icon="mdi-crosshairs-gps"
+                density="comfortable"
+                class="text-caption"
+                @click="toggleAlignMode"
+              >
+                Căn chỉnh
+              </v-btn>
+
+              <span
+                v-if="isAlignMode"
+                class="text-caption"
+                :class="
+                  alignStep === 5
+                    ? 'text-success font-weight-bold'
+                    : 'text-primary'
+                "
+              >
+                {{
+                  [
+                    "",
+                    "Trái Trên",
+                    "Phải Trên",
+                    "Trái Dưới",
+                    "Phải Dưới",
+                    "Hoàn tất",
+                  ][alignStep]
+                }}
+              </span>
+
+              <v-btn
+                v-if="isAlignMode && alignStep > 1"
+                icon="mdi-refresh"
+                variant="text"
+                size="small"
+                color="error"
+                @click="resetAlign"
+              />
+
+              <v-btn
+                v-if="isAlignMode && alignStep === 5"
+                icon="mdi-check"
+                variant="text"
+                size="small"
+                color="success"
+                @click="ApplyAlign"
+              />
+            </div>
           </div>
 
           <v-spacer></v-spacer>
@@ -119,106 +215,6 @@
                 />
 
                 <div v-if="imageUrl" class="pcb-wrapper">
-                  <!-- Grid Toolbar -->
-                  <div
-                    v-if="imageUrl && imageSample"
-                    class="d-flex align-center bg-white opacity-80 rounded-lg px-2 py-2 elevation-2 position-absolute"
-                    style="top: 8px; left: 10px; z-index: 10"
-                  >
-                    <v-btn
-                      :color="isGridMode ? 'primary' : 'default'"
-                      variant="text"
-                      density="comfortable"
-                      prepend-icon="mdi-grid"
-                      @click="isGridMode = !isGridMode"
-                      class="text-caption me-2"
-                    >
-                      Lưới
-                    </v-btn>
-                    <template v-if="isGridMode">
-                      <v-text-field
-                        v-model.number="gridRows"
-                        type="number"
-                        density="compact"
-                        hide-details
-                        variant="outlined"
-                        style="width: 70px"
-                        class="text-caption me-2"
-                        label="Hàng"
-                        min="1"
-                      ></v-text-field>
-                      <v-text-field
-                        v-model.number="gridCols"
-                        type="number"
-                        density="compact"
-                        hide-details
-                        variant="outlined"
-                        style="width: 70px"
-                        class="text-caption"
-                        label="Cột"
-                        min="1"
-                      ></v-text-field>
-                    </template>
-                  </div>
-
-                  <!-- Căn chỉnh Fiducial Toolbar -->
-                  <div
-                    class="d-flex align-center bg-white opacity-80 rounded-lg px-2 py-2 elevation-2 position-absolute"
-                    style="top: 8px; left: 300px; z-index: 10"
-                  >
-                    <v-btn
-                      :color="isAlignMode ? 'primary' : 'default'"
-                      variant="text"
-                      density="comfortable"
-                      prepend-icon="mdi-crosshairs-gps"
-                      @click="toggleAlignMode"
-                      class="text-caption"
-                    >
-                      Căn chỉnh
-                    </v-btn>
-                    <span
-                      v-if="isAlignMode"
-                      class="text-caption ms-2"
-                      :class="
-                        alignStep === 5
-                          ? 'text-success font-weight-bold'
-                          : 'text-primary'
-                      "
-                    >
-                      {{
-                        alignStep === 1
-                          ? "1. Chọn điểm Trái Trên"
-                          : alignStep === 2
-                          ? "2. Chọn điểm Phải Trên"
-                          : alignStep === 3
-                          ? "3. Chọn điểm Trái Dưới"
-                          : alignStep === 4
-                          ? "4. Chọn điểm Phải Dưới"
-                          : "Hoàn tất căn chỉnh"
-                      }}
-                    </span>
-                    <v-btn
-                      v-if="isAlignMode && alignStep > 1"
-                      icon="mdi-refresh"
-                      variant="text"
-                      size="small"
-                      color="error"
-                      @click="resetAlign"
-                      class="ms-2"
-                      title="Làm lại"
-                    ></v-btn>
-                    <v-btn
-                      v-if="isAlignMode && alignStep === 5"
-                      icon="mdi-check"
-                      variant="text"
-                      size="small"
-                      color="success"
-                      @click="ApplyAlign()"
-                      class="ms-2"
-                      title="Áp dụng"
-                    ></v-btn>
-                  </div>
-
                   <img
                     ref="pcbImg"
                     :src="imageUrl"
@@ -1252,54 +1248,6 @@ function NavigateGroupZoom(direction) {
 }
 
 /**
- * Upload file BOM (.xlsx) lên server và cập nhật danh sách BOM cho project
- */
-const uploadBOM = async () => {
-  DialogLoading.value = true;
-  try {
-    const formData = new FormData();
-    formData.append("FileBom", FileBom.value);
-
-    // Bây giờ Backend đã phản hồi, await sẽ kết thúc tại đây
-    await axios.post(`${Url}/upload-bom-qc/${id}`, formData);
-
-    DialogSuccess.value = true;
-    MessageDialog.value = "Upload Bom thành công";
-    DialogAddBom.value = false;
-    FileBom.value = null;
-  } catch (error) {
-    console.error(error);
-    DialogFailed.value = true;
-    MessageErrorDialog.value = "Upload Bom thất bại";
-  } finally {
-    // Luôn luôn tắt Loading dù thành công hay lỗi
-    DialogLoading.value = false;
-  }
-};
-
-/**
- * Upload file Pick & Place (.xlsx) lên server và cập nhật tọa độ linh kiện
- */
-const uploadPNP = async () => {
-  DialogLoading.value = true;
-  try {
-    const formData = new FormData();
-    formData.append("FilePnP", FilePnP.value);
-    await axios.post(`${Url}/upload-pickplace-qc/${id}`, formData);
-    DialogSuccess.value = true;
-    MessageDialog.value = "Upload Pick&Place thành công";
-    DialogAddPnP.value = false;
-    FilePnP.value = null;
-    DialogLoading.value = false;
-  } catch (error) {
-    DialogFailed.value = true;
-    MessageErrorDialog.value = "Upload Pick&Place thất bại";
-    console.error("Lỗi upload PickPlace:", error);
-    DialogLoading.value = false;
-  }
-};
-
-/**
  * Upload file Pick & Place (.xlsx) lên server và cập nhật tọa độ linh kiện
  */
 const uploadImageTop = async () => {
@@ -1307,10 +1255,7 @@ const uploadImageTop = async () => {
   try {
     const formData = new FormData();
     formData.append("imageSampleTop", ImageTop.value);
-    await axios.put(
-      `${Url}/SettingPCB-QC/Upload-image-sample-top/${id}`,
-      formData,
-    );
+    await axios.put(`${Url}/UploadQC/Upload-image-sample-top/${id}`, formData);
     DialogSuccess.value = true;
     MessageDialog.value = "Upload file top thành công";
     DialogAddImageTop.value = false;
@@ -1332,7 +1277,7 @@ const uploadImageBottom = async () => {
     const formData = new FormData();
     formData.append("imageSampleBottom", ImageBottom.value);
     await axios.put(
-      `${Url}/SettingPCB-QC/Upload-image-sample-bottom/${id}`,
+      `${Url}/UploadQC/Upload-image-sample-bottom/${id}`,
       formData,
     );
     DialogSuccess.value = true;

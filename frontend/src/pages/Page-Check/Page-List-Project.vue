@@ -174,7 +174,7 @@ const requiredRule = [(v) => !!v || "Dữ liệu này không được bỏ trố
 const Headers = [
   { key: "project_name", title: "Tên dự án" },
   { key: "created_by", title: "Người tạo" },
-  { key: "Created_at_unixepoch", title: "Ngày tạo" },
+  { key: "created_at", title: "Ngày tạo" },
   { key: "note", title: "Ghi chú" },
   { key: "id", title: "Thao tác" },
 ];
@@ -210,7 +210,7 @@ const SaveAdd = async () => {
 
   try {
     // 👉 1. tạo FilterBom
-    const res1 = await axios.post(`${Url}/FilterBom/Add-item`, formData);
+    const res1 = await axios.post(`${Url}/ProjectPCB/Add-item`, formData);
 
     const project_id = res1.data.id; // 👈 lấy id
     // 👉 2. tạo SettingPCB
@@ -239,7 +239,7 @@ const SaveEdit = async () => {
   });
   try {
     const response = await axios.put(
-      `${Url}/FilterBom/Edit-item/${GetID.value}`,
+      `${Url}/ProjectPCB/Edit-item/${GetID.value}`,
       formData,
     );
     Reset();
@@ -256,7 +256,7 @@ const RemoveItem = async () => {
   DialogLoading.value = true;
   try {
     const response = await axios.delete(
-      `${Url}/FilterBom/Delete-item/${GetID.value}`,
+      `${Url}/ProjectPCB/Delete-item/${GetID.value}`,
     );
     console.log(response.data.message);
     MessageDialog.value = "Xoá dữ liệu thành công";

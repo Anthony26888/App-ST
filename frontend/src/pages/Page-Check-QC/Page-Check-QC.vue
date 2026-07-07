@@ -184,8 +184,9 @@
                 </v-btn>
               </template>
             </v-tooltip>
+            <v-divider vertical class="mx-2"></v-divider>
             <div
-              class="d-flex align-center bg-white rounded-lg px-3 border elevation-1 text-caption ms-2"
+              class="d-flex align-center rounded-lg text-caption ms-3"
               style="gap: 12px; height: 40px"
             >
               <!-- Grid -->
@@ -832,12 +833,12 @@
                       </v-toolbar>
 
                       <v-data-table-virtual
-                        ref="pnpTableBom"
+                        ref="pnpTable"
                         density="compact"
-                        :headers="HeadersBomQC"
-                        :items="combineRawBomQC"
-                        :search="searchBomQC"
-                        v-model="selectedBomQC"
+                        :headers="HeadersPnPQC"
+                        :items="combinePnPQC"
+                        :search="searchPnPQC"
+                        v-model="selectedPnPQC"
                         item-value="id"
                         :loading="DialogLoading"
                         loading-text="Đang tải dữ liệu linh kiện..."
@@ -846,37 +847,78 @@
                         fixed-header
                         height="calc(50vh - 220px)"
                         :row-props="rowProps"
+                        class="table-pnp"
                       >
+                        <!-- STT -->
                         <template v-slot:item.stt="{ index }">
-                          <span class="text-grey font-weight-medium">{{
-                            (pagePCBTopLayer - 1) * itemPerPCBTopLayer +
-                            index +
-                            1
-                          }}</span>
+                          <span class="text-grey font-weight-medium">
+                            {{
+                              (pagePCBTopLayer - 1) * itemPerPCBTopLayer +
+                              index +
+                              1
+                            }}
+                          </span>
                         </template>
 
-                        <template v-slot:item.x="{ item }"
-                          ><code>{{ item.x }}</code></template
-                        >
-                        <template v-slot:item.y="{ item }"
-                          ><code>{{ item.y }}</code></template
-                        >
+                        <!-- X -->
+                        <template v-slot:item.x="{ item }">
+                          <code>{{ item.x }}</code>
+                        </template>
 
+                        <!-- Y -->
+                        <template v-slot:item.y="{ item }">
+                          <code>{{ item.y }}</code>
+                        </template>
+
+                        <!-- MPN -->
+                        <template v-slot:item.mpn="{ item }">
+                          <v-tooltip :text="item.mpn" location="top">
+                            <template #activator="{ props }">
+                              <div
+                                v-bind="props"
+                                class="text-truncate"
+                                style="max-width: 220px"
+                              >
+                                {{ item.mpn }}
+                              </div>
+                            </template>
+                          </v-tooltip>
+                        </template>
+
+                        <!-- Description -->
+                        <template v-slot:item.description="{ item }">
+                          <v-tooltip :text="item.description" location="top">
+                            <template #activator="{ props }">
+                              <div
+                                v-bind="props"
+                                class="text-truncate"
+                                style="max-width: 300px"
+                              >
+                                {{ item.description }}
+                              </div>
+                            </template>
+                          </v-tooltip>
+                        </template>
+
+                        <!-- Button -->
                         <template v-slot:item.id="{ item }">
-                          <div class="d-flex align-center justify-end">
+                          <div class="d-flex justify-center">
                             <v-tooltip
                               text="Xem chi tiết trên bản vẽ"
                               location="top"
                             >
-                              <template v-slot:activator="{ props }">
+                              <template #activator="{ props }">
                                 <v-btn
                                   v-bind="props"
-                                  size="small"
                                   icon="mdi-eye-outline"
-                                  @click="GetZoomPnPGroup(item.id)"
+                                  size="small"
                                   color="primary"
                                   variant="text"
-                                ></v-btn>
+                                  @click="
+                                    GetZoomPnP(item.id);
+                                    GetZoomPnPSample(item.id);
+                                  "
+                                />
                               </template>
                             </v-tooltip>
                           </div>
@@ -986,6 +1028,7 @@
                               "
                               :stroke-width="activePointId === item.id ? 2 : 1"
                               @click="GetZoomPnP(item.id)"
+                              style="cursor: pointer"
                             />
                             <line
                               :x1="item.px - zoomedGridBox.x"
@@ -1001,6 +1044,7 @@
                               "
                               :stroke-width="activePointId === item.id ? 2 : 1"
                               @click="GetZoomPnP(item.id)"
+                              style="cursor: pointer"
                             />
                             <!-- <text
                               :x="item.px - zoomedGridBox.x + 15"
@@ -1075,29 +1119,45 @@
                         );
                       "
                     >
-                      <v-btn
-                        v-if="StatusPnP == 'Waiting' || openSubmit == true"
-                        class="text-subtitle-2 font-weight-bold"
-                        block
-                        size="large"
-                        color="success"
-                        prepend-icon="mdi-check-circle"
-                        :loading="loadingAlign"
-                        @click="SaveStatusPnP()"
-                      >
-                        Xác nhận linh kiện
-                      </v-btn>
-                      <v-btn
-                        v-else
-                        class="text-subtitle-2 font-weight-bold"
-                        disabled
-                        block
-                        size="large"
-                        color="grey"
-                        prepend-icon="mdi-check-circle"
-                      >
-                        Đã kiểm tra
-                      </v-btn>
+                      <v-row dense>
+                        <v-col cols="8">
+                          <v-btn
+                            v-if="StatusPnP == 'Waiting' || openSubmit == true"
+                            class="text-subtitle-2 font-weight-bold"
+                            block
+                            size="large"
+                            color="success"
+                            prepend-icon="mdi-check-circle"
+                            :loading="loadingAlign"
+                            @click="SaveStatusPnP()"
+                          >
+                            Xác nhận linh kiện
+                          </v-btn>
+                          <v-btn
+                            v-else
+                            class="text-subtitle-2 font-weight-bold"
+                            block
+                            size="large"
+                            color="error"
+                            prepend-icon="mdi-close-circle"
+                            @click="CancelStatusPnP()"
+                          >
+                            Huỷ
+                          </v-btn>
+                        </v-col>
+                        <v-col cols="4">
+                          <v-btn
+                            class="text-subtitle-2 font-weight-bold"
+                            block
+                            size="large"
+                            color="grey-darken-3"
+                            prepend-icon="mdi-arrow-left-circle"
+                            @click="handleBackClick()"
+                          >
+                            Quay lại
+                          </v-btn>
+                        </v-col>
+                      </v-row>
                     </div>
                   </div>
                 </div>
@@ -1513,10 +1573,28 @@ const rowProps = (data) => {
 };
 
 const HeadersPnPQC = [
-  { title: "STT", key: "stt" },
-  { title: "Designator", key: "designator" },
-  { title: "MPN", key: "mpn", width: "200px" },
-  { title: "Thao tác", key: "id", sortable: false },
+  {
+    title: "Designator",
+    key: "designator",
+    width: "120px",
+  },
+  {
+    title: "MPN",
+    key: "mpn",
+    width: "220px",
+  },
+  {
+    title: "Description",
+    key: "description",
+    width: "300px",
+  },
+  {
+    title: "Thao tác",
+    key: "id",
+    width: "90px",
+    sortable: false,
+    align: "center",
+  },
 ];
 const HeadersBomQC = [
   { title: "STT", key: "stt" },
@@ -1528,7 +1606,7 @@ const HeaderHistoryPnPQC = [
   { title: "STT", key: "stt" },
   { title: "Designator", key: "designator" },
   { title: "MPN", key: "mpn" },
-  { title: "Description", key: "description", width: "500px" },
+  { title: "Description", key: "description" },
   { title: "Trạng thái", key: "status" },
 ];
 const searchPnPQC = ref("");
@@ -1558,6 +1636,8 @@ const isGridMode = ref(false);
 const isShowAllWaiting = ref(false);
 const gridRows = ref(5);
 const gridCols = ref(5);
+const activeGridRow = ref(null);
+const activeGridCol = ref(null);
 
 const activePointId = ref(null);
 const activeGroupPointIds = ref([]);
@@ -2022,9 +2102,23 @@ function updateImageSize() {
   imageHeight.value = rect.height;
 }
 
+const handleBackClick = () => {
+  GetIDPnP.value = null;
+  StatusPnP.value = null;
+  if (isGridMode.value && activeGridRow.value && activeGridCol.value) {
+    onGridCellClick(activeGridRow.value, activeGridCol.value);
+  } else {
+    dialogImageUrl.value = "";
+    zoomedGridBox.value = null;
+  }
+};
+
 function onGridCellClick(row, col) {
   const img = pcbImg.value;
   if (!img) return;
+
+  activeGridRow.value = row;
+  activeGridCol.value = col;
 
   const rows = Math.max(1, gridRows.value);
   const cols = Math.max(1, gridCols.value);
@@ -2552,7 +2646,7 @@ const uploadBOM = async () => {
     formData.append("FileBom", FileBom.value);
 
     // Bây giờ Backend đã phản hồi, await sẽ kết thúc tại đây
-    await axios.post(`${Url}/upload-bom-qc/${id}`, formData);
+    await axios.post(`${Url}/UploadQC/upload-bom-qc/${id}`, formData);
 
     DialogSuccess.value = true;
     MessageDialog.value = "Upload Bom thành công";
@@ -2576,7 +2670,7 @@ const uploadPNP = async () => {
   try {
     const formData = new FormData();
     formData.append("FilePnP", FilePnP.value);
-    await axios.post(`${Url}/upload-pickplace-qc/${id}`, formData);
+    await axios.post(`${Url}/UploadQC/upload-pickplace-qc/${id}`, formData);
     DialogSuccess.value = true;
     MessageDialog.value = "Upload Pick&Place thành công";
     DialogAddPnP.value = false;
@@ -2598,7 +2692,7 @@ const uploadFileTop = async () => {
   try {
     const formData = new FormData();
     formData.append("fileTop", FileTop.value);
-    await axios.put(`${Url}/SettingPCB-QC/Upload-file-top/${id}`, formData);
+    await axios.put(`${Url}/UploadQC/Upload-file-top/${id}`, formData);
     DialogSuccess.value = true;
     MessageDialog.value = "Upload file top thành công";
     DialogAddFileTop.value = false;
@@ -2619,7 +2713,7 @@ const uploadFileBottom = async () => {
   try {
     const formData = new FormData();
     formData.append("fileBottom", FileBottom.value);
-    await axios.put(`${Url}/SettingPCB-QC/Upload-file-bottom/${id}`, formData);
+    await axios.put(`${Url}/UploadQC/Upload-file-bottom/${id}`, formData);
     DialogSuccess.value = true;
     MessageDialog.value = "Upload file bottom thành công";
     DialogAddFileBottom.value = false;
@@ -2691,7 +2785,7 @@ const SaveSettingPCB = async () => {
 
     await Promise.all([
       axios.put(
-        `${Url}/PickPlaceQC/Edit-offset/${route.params.id}`,
+        `${Url}/Pickplace-BomQC/Edit-offset/${route.params.id}`,
         offsetPayload,
       ),
 
@@ -2754,10 +2848,9 @@ const SaveStatusPnP = async () => {
   DialogLoading.value = true;
   try {
     const response = await axios.put(
-      `${Url}/PickPlaceQC/Edit-item-status/${GetIDPnP.value}`,
+      `${Url}/Pickplace-BomQC/Edit-item-status/${GetIDPnP.value}`,
     );
     DialogLoading.value = false;
-    GetIDPnP.value = null;
     StatusPnP.value = "Done";
     DialogSuccess.value = true;
     MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
@@ -2768,11 +2861,29 @@ const SaveStatusPnP = async () => {
   }
 };
 
+// Cancel Status in Pickplace QC table
+const CancelStatusPnP = async () => {
+  DialogLoading.value = true;
+  try {
+    const response = await axios.put(
+      `${Url}/Pickplace-BomQC/Cancel-item-status/${GetIDPnP.value}`,
+    );
+    DialogLoading.value = false;
+    StatusPnP.value = "Waiting";
+    DialogSuccess.value = true;
+    MessageDialog.value = "Huỷ dữ liệu thành công";
+  } catch (error) {
+    DialogLoading.value = false;
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Huỷ dữ liệu thất bại";
+  }
+};
+
 // Delete Bom
 const DeleteAllBom = async () => {
   DialogLoading.value = true;
   try {
-    await axios.delete(`${Url}/BomQC/Delete-item/${id}`);
+    await axios.delete(`${Url}/Pickplace-BomQC/Delete-item-bom/${id}`);
     DialogSuccess.value = true;
     MessageDialog.value = "Xóa dữ liệu thành công";
     DialogDeleteBom.value = false;
@@ -2789,7 +2900,7 @@ const DeleteAllBom = async () => {
 const DeleteAllPickPlace = async () => {
   DialogLoading.value = true;
   try {
-    await axios.delete(`${Url}/PickPlaceQC/Delete-item/${id}`);
+    await axios.delete(`${Url}/Pickplace-BomQC/Delete-item-pickplace/${id}`);
     DialogSuccess.value = true;
     MessageDialog.value = "Xóa dữ liệu thành công";
     DialogDeletePickPlace.value = false;
@@ -2823,7 +2934,7 @@ const DeleteSetting = async () => {
 const DeleteAllCheckData = async () => {
   DialogLoading.value = true;
   try {
-    await axios.put(`${Url}/PickPlaceQC/Change-all-status/${id}`);
+    await axios.put(`${Url}/PickPlace-BomQC/Change-all-status/${id}`);
     DialogSuccess.value = true;
     MessageDialog.value = "Xóa dữ liệu thành công";
     DialogDeleteAllCheckData.value = false;
@@ -2896,5 +3007,25 @@ export default {
   fill: rgba(0, 255, 0, 0.2) !important;
   stroke: rgba(0, 255, 0, 0.8) !important;
   stroke-width: 2px !important;
+}
+
+.table-pnp .text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Giữ cột thao tác luôn nhìn thấy */
+.table-pnp th:last-child,
+.table-pnp td:last-child {
+  position: sticky;
+  right: 0;
+  background: rgb(var(--v-theme-surface));
+  z-index: 2;
+}
+
+/* Header của cột thao tác */
+.table-pnp th:last-child {
+  z-index: 3;
 }
 </style>

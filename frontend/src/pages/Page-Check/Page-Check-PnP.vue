@@ -18,7 +18,7 @@
             :totalLabel3="statsBom.total.handPlace"
             label1="SMT"
             label2="Hàn tay"
-            label3="Pick&Place"
+            label3="Gắp tay"
           >
           </CardStatistic>
         </v-col>
@@ -43,7 +43,7 @@
             :totalLabel3="statsBom.top.handPlace"
             label1="SMT"
             label2="Hàn tay"
-            label3="Pick&Place"
+            label3="Gắp tay"
           >
           </CardStatistic>
         </v-col>
@@ -68,7 +68,7 @@
             :totalLabel3="statsBom.bottom.handPlace"
             label1="SMT"
             label2="Hàn tay"
-            label3="Pick&Place"
+            label3="Gắp tay"
           >
           </CardStatistic>
         </v-col>
@@ -1229,11 +1229,11 @@
   <BaseDialog
     v-model="DialogAddBomMountType"
     width="600"
-    title="Thêm dữ liệu BOM"
+    title="Thêm dữ liệu BOM Highlight"
     icon="mdi-plus"
   >
     <InputFiles
-      label="Nhập file Bom (.xlsx)"
+      label="Nhập file Bom Highlight (.xlsx)"
       class="mt-2"
       v-model="FileBomMountType"
       name="bom"
@@ -1895,7 +1895,7 @@
               variant="text"
               color="error"
               size="small"
-              @click="deleteGerberFile(item.id)"
+              @click="RemoveGerberData(item.id)"
             ></v-btn>
           </template>
         </v-list-item>
@@ -1925,7 +1925,7 @@
         <InputFiles
           v-model="MPN_Image_Edit"
           label="Hình ảnh linh kiện"
-          :multiple="false"
+          :multiple="true"
           :accept="'.jpg,.jpeg,.png'"
           prepend-icon="mdi-camera"
         />
@@ -2971,7 +2971,7 @@ const uploadBOM = async () => {
   try {
     const formData = new FormData();
     formData.append("FileBom", FileBom.value);
-    await axios.post(`${Url}/upload-bom/${id}`, formData);
+    await axios.post(`${Url}/UploadPCB/upload-bom-pcb/${id}`, formData);
     DialogSuccess.value = true;
     MessageDialog.value = "Upload Bom thành công";
     DialogAddBom.value = false;
@@ -2992,7 +2992,7 @@ const uploadBOMMountType = async () => {
     const formData = new FormData();
     formData.append("FileBomMountType", FileBomMountType.value);
     formData.append("created_by", localStorage.getItem("Username"));
-    await axios.post(`${Url}/MPNMountType/Import-Bomlist/${id}`, formData);
+    await axios.post(`${Url}/UploadPCB/upload-bom-highlight/${id}`, formData);
     DialogSuccess.value = true;
     MessageDialog.value = "Upload Bom thành công";
     DialogAddBomMountType.value = false;
@@ -3000,7 +3000,6 @@ const uploadBOMMountType = async () => {
   } catch (error) {
     DialogFailed.value = true;
     MessageErrorDialog.value = "Upload Bom thất bại";
-    console.error("Lỗi upload BOM:", error);
     DialogLoading.value = false;
   } finally {
     DialogLoading.value = false;
@@ -3015,7 +3014,7 @@ const uploadPNP = async () => {
   try {
     const formData = new FormData();
     formData.append("FilePnP", FilePnP.value);
-    await axios.post(`${Url}/upload-pickplace/${id}`, formData);
+    await axios.post(`${Url}/UploadPCB/upload-pickplace-pcb/${id}`, formData);
     DialogSuccess.value = true;
     MessageDialog.value = "Upload Pick&Place thành công";
     DialogAddPnP.value = false;
@@ -3231,7 +3230,7 @@ const SaveEditPnP = async () => {
 
   try {
     const response = await axios.put(
-      `${Url}/PickPlace/Edit-item/${GetIDPnP.value}`,
+      `${Url}/Pickplace-BomPCB/Edit-item-pickplace/${GetIDPnP.value}`,
       formData,
     );
     DialogLoading.value = false;
@@ -3265,7 +3264,7 @@ const SaveEditType = async () => {
     }
 
     await axios.put(
-      `${Url}/BomHighlight/Edit-type/${GetIDPnP.value}`,
+      `${Url}/Pickplace-BomPCB/Edit-item-bomhighlight/${GetIDPnP.value}`,
       formData,
       {
         headers: {
@@ -3302,18 +3301,22 @@ const SaveEditType = async () => {
         formDataMountType.append("image", MPN_Image_Edit.value);
       }
 
-      await axios.post(`${Url}/MPNMountType/Add-item`, formDataMountType, {
-        headers: {
-          "Content-Type": "multipart/form-data",
+      await axios.post(
+        `${Url}/Pickplace-BomPCB/Add-item-mpntype`,
+        formDataMountType,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         },
-      });
+      );
     }
 
     // =========================
     // DELETE (Chạy khi có yêu cầu xóa ảnh và KHÔNG upload thêm ảnh mới)
     // =========================
     if (MPN_Type_Edit.value === "SMT" && !hasNewImages && ImageToDelete.value) {
-      await axios.delete(`${Url}/MPNMountType/Delete-image`, {
+      await axios.delete(`${Url}/Pickplace-BomPCB/Delete-item-mpntype-image`, {
         data: {
           mpnName: MPN_Name_Edit.value,
           image: ImageToDelete.value,
@@ -3321,6 +3324,17 @@ const SaveEditType = async () => {
       });
     }
 
+    const noImage =
+      MPN_Image_Edit.value == null ||
+      (Array.isArray(MPN_Image_Edit.value) &&
+        MPN_Image_Edit.value.length === 0);
+
+    if (MPN_Type_Edit.value !== "SMT" && noImage) {
+      await axios.delete(
+        `${Url}/Pickplace-BomPCB/Delete-item-mpntype/${MPN_Name_Edit.value}`,
+      );
+    }
+    console.log(MPN_Name_Edit.value);
     DialogLoading.value = false;
     DialogEditType.value = false;
     DialogSuccess.value = true;
@@ -3350,7 +3364,7 @@ const SaveOffsetPnP = async () => {
     }
 
     const response = await axios.put(
-      `${Url}/PickPlace/Edit-offset/${route.params.id}`,
+      `${Url}/PickPlace-BomPCB/Edit-item-offset/${route.params.id}`,
       payload,
     );
 
@@ -3429,7 +3443,9 @@ const SaveSettingPCB = async () => {
 const DeleteAllBomHighlight = async () => {
   DialogLoading.value = true;
   try {
-    await axios.delete(`${Url}/BomHighlight/Delete-item/${id}`);
+    await axios.delete(
+      `${Url}/Pickplace-BomPCB/Delete-item-bomhighlight/${id}`,
+    );
     DialogSuccess.value = true;
     MessageDialog.value = "Xóa dữ liệu thành công";
     rawBomHighlight.value = [];
@@ -3446,7 +3462,7 @@ const DeleteAllBomHighlight = async () => {
 const DeleteAllPickPlace = async () => {
   DialogLoading.value = true;
   try {
-    await axios.delete(`${Url}/PickPlace/Delete-item/${id}`);
+    await axios.delete(`${Url}/Pickplace-BomPCB/Delete-item-pickplace/${id}`);
     DialogSuccess.value = true;
     MessageDialog.value = "Xóa dữ liệu thành công";
     DialogDeletePickPlace.value = false;
@@ -3464,7 +3480,7 @@ const RemoveImage = async () => {
 
   try {
     await axios.delete(
-      `${Url}/MPNMountType/Delete-image/${MPN_Name_Edit.value}`,
+      `${Url}/Pickplace-BomPCB/Delete-item-mpntype-image/${MPN_Name_Edit.value}`,
       {
         data: {
           image: ImageToDelete.value,
@@ -3476,11 +3492,25 @@ const RemoveImage = async () => {
     MessageDialog.value = "Xóa ảnh thành công";
     DialogRemoveImage.value = false;
     ImageToDelete.value = "";
-    DialogEditType.value = false;
   } catch (error) {
     DialogFailed.value = true;
     MessageErrorDialog.value = "Xóa ảnh thất bại";
     DialogRemoveImage.value = false;
+  } finally {
+    DialogLoading.value = false;
+  }
+};
+
+const RemoveGerberData = async (id) => {
+  DialogLoading.value = true;
+  try {
+    await axios.delete(`${Url}/Pickplace-BomPCB/Delete-item-gerber/${id}`);
+
+    DialogSuccess.value = true;
+    MessageDialog.value = "Xóa dữ liệu thành công";
+  } catch (error) {
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Xóa dữ liệu thất bại";
   } finally {
     DialogLoading.value = false;
   }
@@ -3677,7 +3707,9 @@ const downloadExcelPnP = async () => {
  */
 const DownloadPnP = async () => {
   try {
-    const response = await fetch(`${Url}/PickPlace/download/${id}`);
+    const response = await fetch(
+      `${Url}/DownloadPCB/download-pickplace-all/${id}`,
+    );
     if (!response.ok) throw new Error("Download failed");
 
     const blob = await response.blob();
@@ -3700,7 +3732,9 @@ const DownloadPnP = async () => {
 /** Tải file Pick & Place chỉ dành cho mặt Top từ server */
 const DownloadPnPTop = async () => {
   try {
-    const response = await fetch(`${Url}/PickPlaceTop/download/${id}`);
+    const response = await fetch(
+      `${Url}/DownloadPCB/download-pickplace-top/${id}`,
+    );
     if (!response.ok) throw new Error("Download failed");
 
     const blob = await response.blob();
@@ -3723,7 +3757,9 @@ const DownloadPnPTop = async () => {
 /** Tải file Pick & Place chỉ dành cho mặt Bottom từ server */
 const DownloadPnPBottom = async () => {
   try {
-    const response = await fetch(`${Url}/PickPlaceBottom/download/${id}`);
+    const response = await fetch(
+      `${Url}/DownloadPCB/download-pickplace-bottom/${id}`,
+    );
     if (!response.ok) throw new Error("Download failed");
 
     const blob = await response.blob();
@@ -3751,7 +3787,7 @@ const DownloadBomHighlight = async () => {
     );
 
     const response = await fetch(
-      `${Url}/BomHighlight/download/${id}?title=${title}`,
+      `${Url}/DownloadPCB/download-bom-highlight/${id}?title=${title}`,
     );
 
     if (!response.ok) throw new Error("Download failed");

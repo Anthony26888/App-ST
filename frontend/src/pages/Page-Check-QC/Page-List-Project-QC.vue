@@ -214,7 +214,7 @@ const SaveAdd = async () => {
 
     const project_id = res1.data.id; // 👈 lấy id
     // 👉 2. tạo SettingPCB
-    await axios.post(`${Url}/SettingPCBQC/Add-item`, {
+    await axios.post(`${Url}/SettingPCB-QC/Add-item`, {
       project_id: project_id,
     });
 

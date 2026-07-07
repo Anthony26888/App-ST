@@ -41,27 +41,6 @@ const XLSX = require("xlsx");
 const ExcelJS = require("exceljs");
 const fetch = require("node-fetch");
 
-// Import Socket
-//=========== Manufacture =================
-const getManufactureCountingSocket = require("./socket/Manufacture/GetManufactureCounting.socket.js");
-const getHistorySocket = require("./socket/Manufacture/GetHistory.socket.js");
-const getHistoryPartSocket = require("./socket/Manufacture/GetHistoryPart.socket.js");
-//=========== Summary =================
-const getSummarySocket = require("./socket/Summary/GetSummary.socket.js");
-//=========== Check PnP =================
-const getProjectBomSocket = require("./socket/Check-PCB/GetProjectBom.socket.js");
-const getCombineBomSocket = require("./socket/Check-PCB/GetCombineBom.socket.js");
-const getRawBomHighlightSocket = require("./socket/Check-PCB/GetRawBomHighlight.socket.js");
-const getBomHighlightSocket = require("./socket/Check-PCB/GetBomHighlight.socket.js");
-const getGerberFileSocket = require("./socket/Check-PCB/GetGerberFile.socket.js");
-const getPnPFileSocket = require("./socket/Check-PCB/GetPnPFile.socket.js");
-const getSettingPCB = require("./socket/Check-PCB/settingPCB.socket.js");
-//=========== Check QC =================
-const getProjectQCSocket = require("./socket/Check-QC/ProjectQC.socket.js");
-const getCombineBomQCSocket = require("./socket/Check-QC/CombineBomQC.socket.js");
-const getRawBomQCSocket = require("./socket/Check-QC/RawBomQC.socket.js");
-const getSettingQCSocket = require("./socket/Check-QC/SettingQC.socket.js");
-
 // Add processing flags at the top of the file
 const processingRequests = new Set();
 const GATEWAY_URL = "http://192.168.1.201:8080";
@@ -83,12 +62,7 @@ const allowedOrigins = new Set([
   "http://localhost",
 
   // LAN
-  "http://192.168.100.200",
-  "http://192.168.1.200",
-  "http://192.168.2.200",
-  "http://192.168.1.201",
-  "http://192.168.2.201",
-  "http://192.168.2.74",
+  "http://192.168.205.12",
 
   // Production domain – **đầy đủ biến thể**
   "http://erpst.io.vn",
@@ -324,990 +298,218 @@ const uploadMachine = multer({
 });
 
 const userProjects = new Map();
+
+// Import Socket
+//=========== Check Bom =================
+const getCompareSocket = require("./socket/Check-Bom/GetCompare.socket.js");
+const getCheckBomSocket = require("./socket/Check-Bom/GetCheckBom.socket.js");
+const getDetailBomSocket = require("./socket/Check-Bom/GetDetailBom.socket.js");
+
+//=========== Orders =================
+const getOrdersSocket = require("./socket/Orders/GetOrders.socket.js");
+
+//=========== WareHouse =================
+const getWareHouseSocket = require("./socket/WareHouse/GetWareHouse.socket.js");
+const getWareHouseFindSocket = require("./socket/WareHouse/GetWareHouseFind.socket.js");
+const getTemporaryWareHouseSocket = require("./socket/WareHouse/GetTemporaryWareHouse.socket.js");
+const getWareHouseLogSocket = require("./socket/WareHouse/GetWareHouseLog.socket.js");
+//=========== Project =================
+const getProjectSocket = require("./socket/Project/GetProject.socket.js");
+const getNotificationSocket = require("./socket/Project/GetNotification.socket.js");
+const getProjectFindSocket = require("./socket/Project/GetProjectFind.socket.js");
+const getDetailProjectSocket = require("./socket/Project/GetDetailProject.socket.js");
+const getDetailProjectPOSocket = require("./socket/Project/GetDetailProjectPO.socket.js");
+//=========== Setting =================
+const getInforUserSocket = require("./socket/Setting/GetInfoUser.socket.js");
+const getUserSocket = require("./socket/Setting/GetSetting.socket.js");
+//=========== Maintaince =================
+const getMachineSocket = require("./socket/Maintaince/GetMachine.socket.js");
+const getMaintainceSocket = require("./socket/Maintaince/GetMaintaince.socket.js");
+const getMaintenanceScheduleSocket = require("./socket/Maintaince/GetMaintainceSchedule.socket.js");
+const getSparePartUsageSocket = require("./socket/Maintaince/GetSparePartUsage.socket.js");
+//=========== Manufacture =================
+const getManufactureSocket = require("./socket/Manufacture/GetManufacture.socket.js");
+const getManufactureDetailsSocket = require("./socket/Manufacture/GetManufactureDetails.socket.js");
+const getManufactureCountingSocket = require("./socket/Manufacture/GetManufactureCounting.socket.js");
+const getHistorySocket = require("./socket/Manufacture/GetHistory.socket.js");
+const getHistoryPartSocket = require("./socket/Manufacture/GetHistoryPart.socket.js");
+//=========== Summary =================
+const getSummarySocket = require("./socket/Summary/GetSummary.socket.js");
+//=========== Check PnP =================
+const getProjectBomSocket = require("./socket/Check-PCB/GetProjectBom.socket.js");
+const getCombineBomSocket = require("./socket/Check-PCB/GetCombineBom.socket.js");
+const getRawBomHighlightSocket = require("./socket/Check-PCB/GetRawBomHighlight.socket.js");
+const getBomHighlightSocket = require("./socket/Check-PCB/GetBomHighlight.socket.js");
+const getGerberFileSocket = require("./socket/Check-PCB/GetGerberFile.socket.js");
+const getPnPFileSocket = require("./socket/Check-PCB/GetPnPFile.socket.js");
+const getSettingPCB = require("./socket/Check-PCB/settingPCB.socket.js");
+//=========== Check QC =================
+const getProjectQCSocket = require("./socket/Check-QC/GetProjectQC.socket.js");
+const getCombineBomQCSocket = require("./socket/Check-QC/GetCombineBomQC.socket.js");
+const getRawBomQCSocket = require("./socket/Check-QC/GetRawBomQC.socket.js");
+const getSettingQCSocket = require("./socket/Check-QC/GetSettingQC.socket.js");
+
+//=========== To Do =================
+const getTodoSocket = require("./socket/Todo/GetTodo.socket.js");
+
+// Import Route and controoler
+//=========== Summary =================
+const ProjectSummaryRoutes = require("./routes/Manufacture/Summary.routes.js");
+
+app.use("/api/Summary", ProjectSummaryRoutes(io));
+
+//=========== Check PCB =================
+const ProjectPCBRoutes = require("./routes/Check-PCB/ProjectPCB.routes.js");
+const UploadPCBRoutes = require("./routes/Check-PCB/UploadPCB.routes.js");
+const DownloadPCBRoutes = require("./routes/Check-PCB/DownloadPCB.routes.js");
+const SettingPCBRoutes = require("./routes/Check-PCB/SettingPCB.routes.js");
+const PickplaceBomPCBRoutes = require("./routes/Check-PCB/Pickplace-Bom-GerberPCB.routes.js");
+
+app.use("/api/ProjectPCB", ProjectPCBRoutes(io));
+app.use("/api/UploadPCB", UploadPCBRoutes(io));
+app.use("/api/DownloadPCB", DownloadPCBRoutes(io));
+app.use("/api/SettingPCB", SettingPCBRoutes(io));
+app.use("/api/Pickplace-BomPCB", PickplaceBomPCBRoutes(io));
+
+//=========== Check QC =================
+const ProjectQCRoutes = require("./routes/Check-QC/ProjectQC.routes.js");
+const SettingQCRoutes = require("./routes/Check-QC/SettingPCB-QC.routes.js");
+const UploadQCRoutes = require("./routes/Check-QC/UploadQC.routes.js");
+const PickplaceQCRoutes = require("./routes/Check-QC/Pickplace-BomQC.routes.js");
+
+app.use("/api/FilterBomQC", ProjectQCRoutes(io));
+app.use("/api/SettingPCB-QC", SettingQCRoutes(io));
+app.use("/api/UploadQC", UploadQCRoutes(io));
+app.use("/api/Pickplace-BomQC", PickplaceQCRoutes(io));
+
 // Khi client kết nối
 io.on("connection", (socket) => {
-  console.log("Client connected:", socket.id);
   if (!sessions[socket.id]) sessions[socket.id] = [];
-  (socket.on("getInforUser", async (id) => {
-    try {
-      const query = `SSELECT * FROM Users WHERE Username = ?`;
-      db.all(query, [id], (err, rows) => {
-        if (err) return socket.emit("InforUserError", err);
-        socket.emit("InforUserData", rows);
-      });
-    } catch (error) {
-      socket.emit("InforUserError", error);
-    }
-  }),
-    socket.on("getCompare", async (id) => {
-      try {
-        const query = await getCompareWareHouse(id);
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("compareError", err);
-          socket.emit("compareData", rows);
-        });
-      } catch (error) {
-        socket.emit("compareError", error);
-      }
-    }),
-    socket.on("getCheckBOM", async (id) => {
-      try {
-        const query = await getPivotQuery(id);
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("checkBOMError", err);
-          socket.emit("checkBOMData", rows);
-        });
-      } catch (error) {
-        socket.emit("checkBOMError", error);
-      }
-    }),
-    socket.on("getDetailBom", async () => {
-      try {
-        const query = `SELECT DISTINCT id, PO, Bom, COUNT(Bom) AS SL_LK, SL_Board, Creater, TimeStamp FROM CheckBOM GROUP BY PO, Bom ORDER BY id DESC`;
-        db.all(query, [], (err, rows) => {
-          if (err) return socket.emit("detailBomError", err);
-          socket.emit("detailBomData", rows);
-        });
-      } catch (error) {
-        socket.emit("detailBomError", error);
-      }
-    }),
-    socket.on("getOrders", async () => {
-      try {
-        const query = `SELECT DISTINCT * FROM Orders ORDER BY id DESC`;
-        db.all(query, [], (err, rows) => {
-          if (err) return socket.emit("ordersError", err);
-          socket.emit("ordersData", rows);
-        });
-      } catch (error) {
-        socket.emit("ordersError", error);
-      }
-    }),
-    socket.on("getWareHouse", async () => {
-      try {
-        const query = `SELECT DISTINCT 
-                        id,
-                        Description,
-                        PartNumber_1,
-                        PartNumber_2,
-                        Input,
-                        Output,
-                        CASE 
-                          WHEN Input >= Output THEN IFNULL(Input, 0) - IFNULL(Output, 0)
-                          ELSE 0
-                        END AS Inventory,
-                        Customer,
-                        Location,
-                        Note,
-                        Note_Output
-                      FROM WareHouse ORDER BY id ASC`;
-        db.all(query, [], (err, rows) => {
-          if (err) return socket.emit("WareHouseError", err);
-          socket.emit("WareHouseData", rows);
-        });
-      } catch (error) {
-        socket.emit("WareHouseError", error);
-      }
-    }),
-    socket.on("getWareHouse2", async () => {
-      try {
-        const query = `SELECT DISTINCT * FROM WareHouse2 ORDER BY id ASC`;
-        db.all(query, [], (err, rows) => {
-          if (err) return socket.emit("WareHouse2Error", err);
-          socket.emit("WareHouse2Data", rows);
-        });
-      } catch (error) {
-        socket.emit("WareHouse2Error", error);
-      }
-    }),
-    socket.on("getWareHouseFind", async (id) => {
-      try {
-        const query = `SELECT DISTINCT 
-                        Customer,
-                        CASE
-                          WHEN (Input - Output) > 0 THEN IFNULL((Input - Output), 0)
-                          ELSE 0 
-                        END AS SL_Ton_Kho
-                      FROM WareHouse WHERE PartNumber_1 = ? ORDER BY id ASC`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("WareHouseFindError", err);
-          socket.emit("WareHouseFindData", rows);
-        });
-      } catch (error) {
-        socket.emit("WareHouseFindError", error);
-      }
-    }),
-    socket.on("getWareHouse2Find", async (id) => {
-      try {
-        const query = `SELECT DISTINCT 
-                        Customer,
-                        CASE
-                          WHEN (Input - Output) > 0 THEN IFNULL((Input - Output), 0)
-                          ELSE 0 
-                        END AS SL_Ton_Kho_Misa
-                      FROM WareHouse2 WHERE PartNumber_1 = ? ORDER BY id ASC`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("WareHouse2FindError", err);
-          socket.emit("WareHouse2FindData", rows);
-        });
-      } catch (error) {
-        socket.emit("WareHouse2FindError", error);
-      }
-    }),
-    socket.on("getTemporaryWareHouse", async () => {
-      try {
-        const query = `SELECT 
-                        a.id,
-                        a.PartNumber_1,
-                        a.Description,
-                        a.Location AS Location_1,
-                        b.Location AS Location_2,
-                        CASE
-                          WHEN (b.Input - b.Output) > 0 THEN (b.Input - b.Output)
-                          ELSE 0
-                        END AS Inventory,
-                        CASE
-                          WHEN b.PartNumber_1 IS NULL OR b.Description IS NULL OR b.Location IS NULL THEN 'Chưa xác minh'
-                          ELSE 'Đã xác minh'
-                        END AS Status,
-                        a.Input,
-                        CASE
-                          WHEN (b.Input - (b.Output + a.Input)) > 0 THEN (b.Input - (b.Output + a.Input))
-                          ELSE 0
-                        END AS Quantity_Amount,
-                        a.Note
-                      FROM Temporary_WareHouse a
-                      LEFT JOIN (
-                        SELECT 
-                          PartNumber_1,
-                          Description,
-                          Location,
-                          Inventory,
-                          Input,
-                          Output,
-                          Note
-                        FROM WareHouse 
-                      ) AS b 
-                      ON a.PartNumber_1 = b.PartNumber_1 
-                        AND a.Description = b.Description 
-                        AND a.Location = b.Location;`;
-        db.all(query, [], (err, rows) => {
-          if (err) return socket.emit("TemporaryWareHouseError", err);
-          socket.emit("TemporaryWareHouseData", rows);
-        });
-      } catch (error) {
-        socket.emit("TemporaryWareHouseError", error);
-      }
-    }),
-    socket.on("getTemporaryWareHouse2", async () => {
-      try {
-        const query = `SELECT 
-                        a.id,
-                        a.PartNumber_1,
-                        a.Description,
-                        a.Location AS Location_1,
-                        b.Location AS Location_2,
-                        (b.Input - b.Output) AS Inventory,
-                        CASE
-                          WHEN b.PartNumber_1 IS NULL OR b.Description IS NULL OR b.Location IS NULL THEN 'Chưa xác minh'
-                          ELSE 'Đã xác minh'
-                        END AS Status,
-                        a.Input,
-                        (b.Input - (b.Output + a.Input)) AS Quantity_Amount,
-                        a.Note
-                      FROM Temporary_WareHouse_2 a
-                      LEFT JOIN (
-                        SELECT 
-                          PartNumber_1,
-                          Description,
-                          Location,
-                          Inventory,
-                          Input,
-                          Output,
-                          Note
-                        FROM WareHouse2 
-                      ) AS b 
-                      ON a.PartNumber_1 = b.PartNumber_1 
-                        AND a.Description = b.Description 
-                        AND a.Location = b.Location;`;
-        db.all(query, [], (err, rows) => {
-          if (err) return socket.emit("TemporaryWareHouse2Error", err);
-          socket.emit("TemporaryWareHouse2Data", rows);
-        });
-      } catch (error) {
-        socket.emit("TemporaryWareHouse2Error", error);
-      }
-    }),
-    socket.on("getWareHouseLog", async () => {
-      try {
-        const query = `SELECT DISTINCT 
-                        id,
-                        PartNumber,
-                        Customer,
-                        Location,
-                        ActionType,
-                        Quantity,
-                        Updated_by,
-                        Created_at
-                      FROM WareHouseLog
-                      ORDER BY id DESC`;
-        db.all(query, [], (err, rows) => {
-          if (err) return socket.emit("WareHouseLogError", err);
-          socket.emit("WareHouseLogData", rows);
-        });
-      } catch (error) {
-        socket.emit("WareHouseLogError", error);
-      }
-    }),
-    socket.on("getWareHouse2Log", async () => {
-      try {
-        const query = `SELECT DISTINCT 
-                        id,
-                        PartNumber,
-                        Customer,
-                        Location,
-                        ActionType,
-                        Quantity,
-                        Updated_by,
-                        Created_at
-                      FROM WareHouse2Log
-                      ORDER BY id DESC`;
-        db.all(query, [], (err, rows) => {
-          if (err) return socket.emit("WareHouse2LogError", err);
-          socket.emit("WareHouse2LogData", rows);
-        });
-      } catch (error) {
-        socket.emit("WareHouse2LogError", error);
-      }
-    }),
-    socket.on("getProject", async () => {
-      try {
-        const query = `
-              SELECT 
-                  c.id,
-                  c.CustomerName AS Customer,
-                  c.id as CustomerID,
-                  COUNT(DISTINCT pd.id) as Quantity_Orders,
-                  COUNT(DISTINCT pd.POID) as Quantity_PO,
-                  SUM(CASE WHEN pd.QuantityAmount = 0 THEN 1 ELSE 0 END) as Quantity_Completed,
-                  ROUND(
-                      SUM(CASE WHEN pd.QuantityAmount = 0 THEN 1 ELSE 0 END) * 100.0 / 
-                      NULLIF(COUNT(DISTINCT pd.id), 0), 
-                      2
-                  ) as Percent_Completed,
-                  CASE 
-                      WHEN COUNT(DISTINCT pd.POID) = 0 THEN 'Chưa có PO'
-                      WHEN SUM(CASE WHEN pd.QuantityAmount > 0 THEN 1 ELSE 0 END) > 0 THEN 'Đang sản xuất'
-                      WHEN SUM(CASE WHEN pd.QuantityAmount = 0 THEN 1 ELSE 0 END) > 0 
-                          AND SUM(CASE WHEN pd.QuantityAmount > 0 THEN 1 ELSE 0 END) = 0 THEN 'Hoàn thành'
-                      ELSE 'Chưa có PO'
-                  END AS Status,
-                  c.Note
-              FROM Customers c
-              LEFT JOIN ProductDetails pd ON c.id = pd.CustomerID
-              GROUP BY c.id, c.CustomerName
-              ORDER BY c.CustomerName ASC;`;
-        db.all(query, [], (err, rows) => {
-          if (err) return socket.emit("ProjectError", err);
-          socket.emit("ProjectData", rows);
-        });
-      } catch (error) {
-        socket.emit("ProjectError", error);
-      }
-    }),
-    socket.on("get-notifications", async () => {
-      try {
-        const query = `
-        SELECT 
-          vn.id,
-          vn.ItemId,
-          vn.Title,
-          vn.Message,
-          vn.Quantity,
-          vn.Icon,
-          vn.Color,
-          vn.Status,
-          vn.DaysRemaining,
-          sd.DeliveryDate,
-          sd.DeliveryQuantity,
-          sd.DeliveryStatus,
-          vn.IsRead
-        FROM vw_NotificationDelivery vn
-        LEFT JOIN ScheduleDelivery sd ON vn.id = sd.id
-        WHERE vn.Title IS NOT NULL     
-        ORDER BY vn.DaysRemaining ASC
-      `;
 
-        db.all(query, (err, rows) => {
-          if (err) {
-            socket.emit("notifications-error", { error: err.message });
-            return;
-          }
-          socket.emit("notifications-update", rows || []);
-        });
-      } catch (error) {
-        socket.emit("notifications-error", { error: error.message });
-      }
-    }));
+  // ================ Check Bom ===================
+  getCompareSocket(socket);
+  getCheckBomSocket(socket);
+  getDetailBomSocket(socket);
 
-  // Client request statistics
-  socket.on("get-statistics", async () => {
-    try {
-      const query = `
-        SELECT 
-          COUNT(*) AS Total,
-          SUM(CASE WHEN CAST((DeliveryDate - (strftime('%s', 'now', 'localtime'))) / 86400 AS INTEGER) = 0 THEN 1 ELSE 0 END) AS Today,
-          SUM(CASE WHEN CAST((DeliveryDate - (strftime('%s', 'now', 'localtime'))) / 86400 AS INTEGER) = 1 THEN 1 ELSE 0 END) AS Tomorrow,
-          SUM(CASE WHEN CAST((DeliveryDate - (strftime('%s', 'now', 'localtime'))) / 86400 AS INTEGER) IN (2, 3) THEN 1 ELSE 0 END) AS SoonAfter
-        FROM ScheduleDelivery
-        WHERE DeliveryStatus = 'Chưa giao'
-          AND CAST((DeliveryDate - (strftime('%s', 'now', 'localtime'))) / 86400 AS INTEGER) BETWEEN 0 AND 3
-      `;
+  // ================ Orders ===================
+  getOrdersSocket(socket);
 
-      db.all(query, (err, rows) => {
-        if (err) {
-          socket.emit("statistics-error", { error: err.message });
-          return;
-        }
-        socket.emit("statistics-update", rows[0] || {});
-      });
-    } catch (error) {
-      socket.emit("statistics-error", { error: error.message });
-    }
-  });
+  // ================ WareHouse ===================
+  getWareHouseSocket(socket);
+  getWareHouseFindSocket(socket);
+  getTemporaryWareHouseSocket(socket);
+  getWareHouseLogSocket(socket);
 
-  // Mark notification as read
-  socket.on("mark-notification-read", async (notificationId) => {
-    try {
-      const query = `
-        INSERT OR IGNORE INTO NotificationReadStatus (notification_id)
-        VALUES (?)
-      `;
+  // ================ Project ===================
+  getProjectSocket(socket);
+  getNotificationSocket(socket);
+  getProjectFindSocket(socket);
+  getDetailProjectSocket(socket);
+  getDetailProjectPOSocket(socket);
 
-      db.run(query, [notificationId], (err) => {
-        if (err) {
-          console.error("❌ Error marking notification as read:", err.message);
-          socket.emit("notification-read-error", { error: err.message });
-          return;
-        }
+  // ================ Setting ===================
+  getInforUserSocket(socket);
+  getUserSocket(socket);
 
-        console.log(`✅ Notification #${notificationId} marked as read`);
+  // ================ Maintaince ===================
+  getMachineSocket(socket);
+  getMaintainceSocket(socket);
+  getSparePartUsageSocket(socket);
+  getMaintenanceScheduleSocket(socket);
 
-        // Broadcast to all clients to refresh notifications
-        io.emit("notification-marked-read", { id: notificationId });
-      });
-    } catch (error) {
-      console.error("❌ Error:", error.message);
-      socket.emit("notification-read-error", { error: error.message });
-    }
-  });
-
-  // Mark all notifications as read
-  socket.on("mark-all-notifications-read", async () => {
-    try {
-      // Get all unread notification IDs
-      const getUnreadQuery = `
-        SELECT id FROM vw_NotificationDelivery WHERE IsRead = 0
-      `;
-
-      db.all(getUnreadQuery, [], (err, rows) => {
-        if (err) {
-          socket.emit("notification-read-error", { error: err.message });
-          return;
-        }
-
-        if (rows.length === 0) {
-          io.emit("all-notifications-marked-read");
-          return;
-        }
-
-        // Insert all notification IDs into NotificationReadStatus
-        const placeholders = rows.map(() => "(?)").join(",");
-        const insertQuery = `
-          INSERT OR IGNORE INTO NotificationReadStatus (notification_id)
-          VALUES ${placeholders}
-        `;
-        const ids = rows.map((row) => row.id);
-
-        db.run(insertQuery, ids, (err) => {
-          if (err) {
-            console.error(
-              "❌ Error marking all notifications as read:",
-              err.message,
-            );
-            socket.emit("notification-read-error", { error: err.message });
-            return;
-          }
-
-          console.log(`✅ Marked ${rows.length} notifications as read`);
-
-          // Broadcast to all clients to refresh notifications
-          io.emit("all-notifications-marked-read");
-        });
-      });
-    } catch (error) {
-      console.error("❌ Error:", error.message);
-      socket.emit("notification-read-error", { error: error.message });
-    }
-  });
-
-  (socket.on("getProjectFind", async () => {
-    try {
-      const query = `
-          SELECT 
-            a.id,
-            c.POID,
-            c.id AS ProductID,
-            c.ProductDetail,
-            a.CustomerName,
-			      c.POID,
-            strftime('%Y-%m-%d', s.DeliveryDate, 'unixepoch', 'localtime') AS DeliveryDateUnixpoch,
-            strftime('%d-%m-%Y', s.DeliveryDate, 'unixepoch', 'localtime') AS DeliveryDate,
-            s.DeliveryQuantity,
-            s.DeliveryStatus,
-            c.ProductDetail,
-            c.CustomerID,
-            CASE
-              WHEN c.QuantityAmount  =  0  THEN 'Hoàn thành'
-              WHEN c.QuantityAmount > 0 THEN 'Đang sản xuất'
-              ELSE 'Chưa có đơn hàng'
-            END AS Status
-          FROM Customers a
-          LEFT JOIN ProductDetails c ON a.id = c.CustomerID
-          LEFT JOIN ScheduleDelivery s ON c.id = s.ItemId`;
-      db.all(query, [], (err, rows) => {
-        if (err) return socket.emit("ProjectError", err);
-        socket.emit("ProjectFindData", rows);
-      });
-    } catch (error) {
-      socket.emit("ProjectFindError", error);
-    }
-  }),
-    socket.on("getDetailProject", async (id) => {
-      try {
-        const query = `
-          SELECT DISTINCT 
-            p.id, 
-            p.PONumber AS PO, 
-            CASE
-              WHEN SUM(o.QuantityProduct) =  SUM(o.QuantityDelivered) AND SUM(o.QuantityProduct) > 0 THEN 'Hoàn thành'
-              WHEN COUNT(o.id) = 0 THEN 'Chưa có đơn hàng'
-              ELSE 'Đang sản xuất'
-            END AS Status,
-            COUNT(o.id) AS Total_Product, 
-            p.DateCreated AS Date_Created, 
-            p.DateDelivery AS Date_Delivery,
-            p.Note AS Note
-          FROM PurchaseOrders p 
-          LEFT JOIN ProductDetails o ON p.id = o.POID 
-          WHERE p.CustomerID = ? 
-          GROUP BY p.PONumber 
-          ORDER BY Date_Created DESC
-        `;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("DetailProjectError", err);
-          socket.emit("DetailProjectData", rows);
-        });
-      } catch (error) {
-        socket.emit("DetailProjectError", error);
-      }
-    }),
-    socket.on("getDetailProjectPO", async (id) => {
-      try {
-        const query = `SELECT 
-                          a.id,
-                          a.POID,
-                          a.ProductDetail AS Product_Detail,
-                          a.QuantityProduct AS Quantity_Product, 
-                          IFNULL(a.QuantityDelivered, 0) AS Quantity_Delivered, 
-                          IFNULL(a.QuantityProduct - a.QuantityDelivered, 0) AS Quantity_Amount,
-                          ROUND(
-                              IFNULL(a.QuantityDelivered, 0) * 100.0 / 
-                              NULLIF(a.QuantityProduct, 0), 
-                              2
-                          ) AS Percent_Delivered,
-
-                          COALESCE(
-                              COUNT(DISTINCT CASE 
-                                  WHEN LOWER(TRIM(c.Type)) = 'thành phẩm' THEN c.id 
-                              END), 
-                          0) AS Quantity_Manufacture,
-
-                          a.Note AS Note,
-
-                          CASE
-                              WHEN a.QuantityProduct = a.QuantityDelivered THEN 'Hoàn thành'
-                              ELSE 'Đang sản xuất'
-                          END AS Status,
-
-                          COALESCE(
-                              GROUP_CONCAT(
-                                  json_object(
-                                      'id', d.id,
-                                      'DeliveryDate', strftime('%Y-%m-%d', d.DeliveryDate, 'localtime'),
-                                      'DeliveryDateConvert', strftime('%d-%m-%Y', d.DeliveryDate, 'localtime'),
-                                      'DeliveryQuantity', d.DeliveryQuantity,
-                                      'DeliveryCheck', d.DeliveryStatus,
-
-                                      'DeliveryStatus', CASE
-                                          WHEN d.DeliveryDate IS NULL THEN 'Chưa có lịch'
-                                          WHEN datetime(d.DeliveryDate, 'localtime') < datetime('now', 'localtime') THEN 'Trễ hạn'
-                                          ELSE 'Chưa đến hạn'
-                                      END,
-
-                                      'DaysRemaining', CAST(
-                                          ROUND(
-                                              (julianday(d.DeliveryDate) - julianday('now'))
-                                          ) AS INTEGER
-                                      )
-                                  ), ','
-                              ),
-                              ''
-                          ) AS DeliverySchedules
-
-                      FROM ProductDetails a
-                      LEFT JOIN PlanManufacture b ON b.ProjectID = a.id
-                      LEFT JOIN ManufactureCounting c ON c.PlanID = b.id
-                      LEFT JOIN ScheduleDelivery d ON d.ItemId = a.id
-
-                      WHERE a.CustomerID = ?
-
-                      GROUP BY 
-                          a.id, a.POID, a.ProductDetail, 
-                          a.QuantityProduct, a.QuantityDelivered, 
-                          a.Note
-
-                      ORDER BY Status DESC, Product_Detail ASC;`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("DetailProjectPOError", err);
-          socket.emit("DetailProjectPOData", rows);
-        });
-      } catch (error) {
-        socket.emit("DetailProjectPOError", error);
-      }
-    }),
-    socket.on("getUsers", async () => {
-      try {
-        const query = `SELECT DISTINCT * FROM Users ORDER BY id DESC`;
-        db.all(query, [], (err, rows) => {
-          if (err) return socket.emit("usersError", err);
-          socket.emit("usersData", rows);
-        });
-      } catch (error) {
-        socket.emit("usersError", error);
-      }
-    }),
-    socket.on("getMachine", async () => {
-      try {
-        const query = `SELECT 
-                        a.MachineCode,
-                        a.MaThietBi, 
-                        a.TenThietBi, 
-                        a.LoaiThietBi, 
-                        a.NhaSanXuat, 
-                        strftime('%Y-%m-%d', a.NgayMua, 'unixepoch', 'localtime') AS NgayMuaUnixpoch,
-                        strftime('%d-%m-%Y', a.NgayMua, 'unixepoch', 'localtime') AS NgayMuaConvert,
-                        a.ViTri, 
-                        a.MoTa, 
-                        a.Image,
-                        a.Condition,
-                        MIN(b.LoaiBaoTri) as LoaiBaoTri,
-                        MIN(b.ChuKyBaoTri) as ChuKyBaoTri,
-                        MIN(b.DonViChuKy) as DonViChuKy,
-                        b.GhiChu,
-                        strftime('%Y-%m-%d', MIN(b.NgayBatDau), 'unixepoch', 'localtime') AS NgayBaoTriUnixepoch,
-                        strftime('%d-%m-%Y', MIN(b.NgayBatDau), 'unixepoch', 'localtime') AS NgayBaoTriConvert,
-                        strftime('%Y-%m-%d', MIN(b.NgayBaoTriTiepTheo), 'unixepoch', 'localtime') AS NgayBaoTriTiepTheoUnixepoch,
-                        strftime('%d-%m-%Y', MIN(b.NgayBaoTriTiepTheo), 'unixepoch', 'localtime') AS NgayBaoTriTiepTheoConvert,
-                        CASE
-                          WHEN CAST((MIN(b.NgayBaoTriTiepTheo) - strftime('%s', 'now', 'localtime')) / 86400 AS INTEGER) > 15 THEN 'Chưa tới hạn'
-                          ELSE 'Cần bảo trì'
-                        END AS Status,
-                        COALESCE(
-                            GROUP_CONCAT(DISTINCT
-                                json_object(
-                                    'MaLich', b.MaLich,
-                                    'LoaiBaoTri', b.LoaiBaoTri,
-                                    'ChuKyBaoTri', b.ChuKyBaoTri,
-                                    'DonViChuKy', b.DonViChuKy,
-                                    'NgayBaoTriTiepTheo', strftime('%d-%m-%Y', b.NgayBaoTriTiepTheo, 'unixepoch', 'localtime'),
-                                    'GhiChu', b.GhiChu,
-                                    'Status', CASE
-                                        WHEN CAST((b.NgayBaoTriTiepTheo - strftime('%s', 'now', 'localtime')) / 86400 AS INTEGER) > 15 THEN 'Chưa tới hạn'
-                                        ELSE 'Cần bảo trì'
-                                    END
-                                )
-                            ), '[]'
-                        ) as Schedules
-                      FROM Machine a 
-                      LEFT JOIN MaintenanceSchedule b 
-                      ON a.MaThietBi = b.MaThietBi
-                      LEFT JOIN Maintenance m ON a.MaThietBi = m.MaThietBi
-                      GROUP BY a.MaThietBi 
-                      ORDER BY a.ViTri ASC`;
-        db.all(query, [], (err, rows) => {
-          if (err) {
-            console.error("MachineError", err);
-            return socket.emit("MachineError", err);
-          }
-          // SQLite GROUP_CONCAT returns a comma-separated string of JSON objects, which is NOT valid JSON array [{},{}]
-          // We need to fix it here or in frontend.
-          // However, simpler is to do it in frontend as we did before.
-          // BUT wait, DISTINCT json_object might NOT work if json_object returns varying strings?
-          // Actually, json_object returns string. DISTINCT works on strings.
-
-          socket.emit("MachineData", rows);
-        });
-      } catch (error) {
-        socket.emit("MachineError", error);
-      }
-    }),
-    socket.on("getMaintenance", async (id) => {
-      try {
-        const query = `SELECT 
-                          m.*,
-                          strftime('%d-%m-%Y', m.NgayBaoTri, 'unixepoch', 'localtime') AS NgayBaoTriConvert,
-                          strftime('%Y-%m-%d', m.NgayBaoTri, 'unixepoch', 'localtime') AS NgayBaoTriUnixepoch,
-                          strftime('%d-%m-%Y', m.NgayHoanThanh, 'unixepoch', 'localtime') AS NgayHoanThanhConvert,
-                          strftime('%Y-%m-%d', m.NgayHoanThanh, 'unixepoch', 'localtime') AS NgayHoanThanhUnixepoch,
-                          COALESCE(
-                              '[' || GROUP_CONCAT(
-                                  CASE WHEN s.MaSuDung IS NOT NULL THEN
-                                    json_object(
-                                        'id', s.MaSuDung,
-                                        'TenPhuTung', s.TenPhuTung,
-                                        'SoLuongSuDung', s.SoLuongSuDung,
-                                        'DonVi', s.DonVi,
-                                        'GhiChu', s.GhiChu
-                                    )
-                                  END
-                              ) || ']',
-                              '[]'
-                          ) AS Accessories
-                      FROM Maintenance m
-                      LEFT JOIN SparePartUsage s ON m.MaBaoTri = s.MaBaoTri
-                      WHERE m.MaThietBi = ? 
-                      GROUP BY m.MaBaoTri
-                      ORDER BY m.NgayBaoTri DESC`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("MaintenanceError", err);
-          socket.emit("MaintenanceData", rows);
-        });
-      } catch (error) {
-        socket.emit("MaintenanceError", error);
-      }
-    }),
-    socket.on("getMaintenanceSchedule", async (id) => {
-      try {
-        const query = `SELECT DISTINCT *,  
-                     CAST(
-                        (NgayBaoTriTiepTheo - strftime('%s', 'now', 'localtime')) / 86400
-                        AS INTEGER
-                      ) AS SoNgayConLai,
-                      strftime('%d-%m-%Y', NgayBatDau, 'unixepoch', 'localtime') AS NgayBatDauConvert,
-                      strftime('%Y-%m-%d', NgayBatDau, 'unixepoch', 'localtime') AS NgayBatDauUnixepoch,
-                      strftime('%d-%m-%Y', NgayBaoTriTiepTheo, 'unixepoch', 'localtime') AS NgayBaoTriTiepTheoConvert,
-                      strftime('%Y-%m-%d', NgayBaoTriTiepTheo, 'unixepoch', 'localtime') AS NgayBaoTriTiepTheoUnixepoch
-                      FROM MaintenanceSchedule 
-                      WHERE MaThietBi = ?
-                      ORDER BY NgayBaoTriTiepTheo ASC`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("MaintenanceScheduleError", err);
-          socket.emit("MaintenanceScheduleData", rows);
-        });
-      } catch (error) {
-        socket.emit("MaintenanceScheduleError", error);
-      }
-    }),
-    socket.on("getSparePartUsage", async (id) => {
-      try {
-        const query = `SELECT DISTINCT * FROM SparePartUsage WHERE MaBaoTri = ?`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("SparePartUsageError", err);
-          socket.emit("SparePartUsageData", rows);
-        });
-      } catch (error) {
-        socket.emit("SparePartUsageError", error);
-      }
-    }),
-    socket.on("getManufacture", async () => {
-      try {
-        const query = `SELECT 
-                        z.id,
-                        z.Name,
-                        z.Name_Order,
-                        z.Total,
-
-                        -- Tổng thành phẩm
-                        COALESCE(SUM(CASE 
-                            WHEN LOWER(TRIM(b.Type)) = 'thành phẩm' THEN b.Quantity
-                            ELSE 0 
-                        END), 0) AS Total_Output,
-
-                        -- Trạng thái
-                        CASE
-                            WHEN z.Total = COALESCE(SUM(CASE 
-                                WHEN LOWER(TRIM(b.Type)) = 'thành phẩm' THEN 1 
-                                ELSE 0 
-                            END), 0)
-                            THEN 'Hoàn thành'
-                            ELSE 'Đang sản xuất'
-                        END AS Status_Output,
-
-                        z.Level,
-                        z.Date AS Date,
-
-                        -- Progress phải viết lại công thức
-                        (
-                            COALESCE(SUM(CASE 
-                                WHEN LOWER(TRIM(b.Type)) = 'thành phẩm' THEN b.Quantity
-                                ELSE 0 
-                            END), 0) * 100.0
-                            / z.Total
-                        ) AS Progress,
-
-                        z.Note,
-                        z.Creater,
-                        z.DelaySMT,
-                        z.Quantity
-
-                    FROM PlanManufacture z
-                    LEFT JOIN ManufactureCounting b ON z.id = b.PlanID
-
-                    GROUP BY 
-                        z.id,
-                        z.Name,
-                        z.Name_Order,
-                        z.Total,
-                        z.Level,
-                        z.Date,
-                        z.Note,
-                        z.Creater,
-                        z.DelaySMT,
-                        z.Quantity
-
-                    ORDER BY z.Date DESC;`;
-        db.all(query, [], (err, rows) => {
-          if (err) return socket.emit("ManufactureError", err);
-          socket.emit("ManufactureData", rows);
-        });
-      } catch (error) {
-        socket.emit("ManufactureError", error);
-      }
-    }),
-    socket.on("getManufactureDetails", async (id) => {
-      try {
-        const query = `
-                    SELECT 
-                      a.id,
-                      a.Name,
-                      a.Name_Order,
-                      a.Total,
-                      a.DelaySMT,
-                      a.Quantity,
-                      a.Level,
-                      a.Date,
-                      COALESCE(cnt.Quantity_Pass, 0) AS Quantity_Pass
-
-                    FROM PlanManufacture a
-                    LEFT JOIN (
-                      SELECT 
-                        PlanID,
-                        SUM(CASE WHEN Type = 'Thành phẩm' AND Status = 'pass' THEN 1 ELSE 0 END) AS Quantity_Pass
-                      FROM ManufactureCounting
-                      GROUP BY PlanID
-                    ) cnt ON cnt.PlanID = a.id
-
-                    WHERE a.id = ?
-                  `;
-        db.get(query, [id], (err, row) => {
-          if (err) return socket.emit("ManufactureDetailsError", err);
-          socket.emit("ManufactureDetailsData", row);
-        });
-      } catch (error) {
-        socket.emit("ManufactureDetailsError", error);
-      }
-    }));
-
-  (socket.on("getConfigs", async () => {
-    try {
-      const query = `SELECT * FROM configs ORDER BY id DESC`;
-      db.all(query, [], (err, rows) => {
-        if (err) return socket.emit("ConfigsError", err);
-        socket.emit("ConfigsData", rows);
-      });
-    } catch (error) {
-      socket.emit("ManufactureDetailsError", error);
-    }
-  }),
-    // ========== SET PROJECT ==========
-    socket.on("setProject", (id) => {
-      console.log(`Client ${socket.id} chọn project_id = ${id}`);
-      userProjects.set(socket.id, id);
-    }));
-
-  // socket.on("deleteGerberFile", async (id) => {
-  //   try {
-  //     const query = `DELETE FROM GerberData WHERE id = ?`;
-  //     db.run(query, [id], function (err) {
-  //       if (err) return socket.emit("GerberFileError", err);
-  //       socket.emit("GerberFileUpdate");
-  //     });
-  //   } catch (error) {
-  //     socket.emit("GerberFileError", error);
-  //   }
-  // }),
   // ================ Manufacture ===================
-  (getManufactureCountingSocket(socket),
-    getHistorySocket(socket),
-    getHistoryPartSocket(socket),
-    // ================ Summary =======================
-    getSummarySocket(socket),
-    // ================ Check PnP =====================
-    getProjectBomSocket(socket),
-    getCombineBomSocket(socket),
-    getRawBomHighlightSocket(socket),
-    getBomHighlightSocket(socket),
-    getGerberFileSocket(socket),
-    getPnPFileSocket(socket),
-    getSettingPCB(socket),
-    // ================ Check QC =====================
-    getProjectQCSocket(socket),
-    getCombineBomQCSocket(socket),
-    getRawBomQCSocket(socket),
-    getSettingQCSocket(socket),
-    socket.on("getToDo", () => {
-      try {
-        const query = `SELECT *,
-                          strftime('%d-%m-%Y', createdAt, 'unixepoch', 'localtime') AS createdAt,
-                          strftime('%Y-%m-%d', createdAt, 'unixepoch', 'localtime') AS updatedAt
-                        FROM ToDos
-                        ORDER BY id DESC`;
-        db.all(query, (err, rows) => {
-          if (err) return socket.emit("todoError", err);
-          socket.emit("todoData", rows);
-        });
-      } catch (error) {
-        socket.emit("todoError", error);
-      }
-    }),
-    socket.on("getOrderTracking", async (id) => {
-      try {
-        const query = `SELECT 
-                          a.ProductDetail AS customer,
-                          a.QuantityProduct AS totalAmount,
-                          a.QuantityDelivered AS totalDelivered,
-                          b.DateCreated AS createdDate,
-                          b.DateDelivery AS deliveryDate,
-                          b.PONumber AS orderId,
-                          CASE
-                            WHEN a.QuantityDelivered IS NULL OR a.QuantityDelivered = '' THEN 'Đang xử lý'
-                            WHEN a.QuantityDelivered = a.QuantityProduct THEN 'Hoàn thành'
-                            WHEN b.DateDelivery IS NOT NULL 
-                              AND b.DateDelivery <> '' 
-                              AND DATETIME('now') > b.DateDelivery 
-                              AND a.QuantityDelivered < a.QuantityProduct THEN 'Trễ hạn'
-                            WHEN b.DateDelivery IS NULL 
-                              OR b.DateDelivery = '' 
-                              OR (DATETIME('now') <= b.DateDelivery AND a.QuantityDelivered < a.QuantityProduct) THEN 'Đang sản xuất'
-                          END AS status,
-                          IFNULL((a.QuantityDelivered * 100) / a.QuantityProduct , 0) AS progress
-                        FROM ProductDetails a
-                        LEFT JOIN PurchaseOrders b ON a.POID = b.id
-                        WHERE a.CustomerID = ?`;
-        db.all(query, [id], (err, rows) => {
-          if (err) return socket.emit("OrderTrackingError", err);
-          socket.emit("OrderTrackingData", rows);
-        });
-      } catch (error) {
-        socket.emit("OrderTrackingError", error);
-      }
-    }),
-    // socket.on("ask", async (message) => {
-    //   try {
-    //     const result = await queryWithLangChain(message);
-    //     socket.emit("answer", result);
-    //   } catch (err) {
-    //     socket.emit("answer", { error: err.message });
-    //   }
-    // });
+  getManufactureSocket(socket);
+  getManufactureDetailsSocket(socket);
+  getManufactureCountingSocket(socket);
+  getHistorySocket(socket);
+  getHistoryPartSocket(socket);
 
-    socket.on("disconnect", () => {
-      console.log("🔌 Client disconnected");
-    }));
+  // ================ Summary =======================
+  getSummarySocket(socket);
+
+  // ================ Check PnP ====================
+  getProjectBomSocket(socket);
+  getCombineBomSocket(socket);
+  getRawBomHighlightSocket(socket);
+  getBomHighlightSocket(socket);
+  getGerberFileSocket(socket);
+  getPnPFileSocket(socket);
+  getSettingPCB(socket);
+
+  // ================ Check QC =====================
+  getProjectQCSocket(socket);
+  getCombineBomQCSocket(socket);
+  getRawBomQCSocket(socket);
+  getSettingQCSocket(socket);
+
+  // ================ To do =====================
+  getTodoSocket(socket);
 
   socket.on("disconnect", () => {
-    console.log("Client disconnected:", socket.id);
+    console.log("🔌 Client disconnected:", socket.id);
   });
 });
 
-// // 🧠 Hàm tách tên bảng từ prompt
-// function extractTableName(prompt) {
-//   const match =
-//     prompt.match(/\bbảng\s+([A-Za-z0-9_]+)/i) ||
-//     prompt.match(/\bfrom\s+([A-Za-z0-9_]+)/i);
-//   return match?.[1] || null;
-// }
-const getPivotQuery = async (id) => {
-  return new Promise((resolve, reject) => {
-    db.all(
-      `SELECT DISTINCT Bom FROM CheckBOM WHERE PO= ?`,
-      [id],
-      (err, Boms) => {
-        if (err) return reject(err);
+// const getPivotQuery = async (id) => {
+//   return new Promise((resolve, reject) => {
+//     db.all(
+//       `SELECT DISTINCT Bom FROM CheckBOM WHERE PO= ?`,
+//       [id],
+//       (err, Boms) => {
+//         if (err) return reject(err);
 
-        // Create dynamic column aggregation
-        const columns = Boms.map(
-          (bom) =>
-            `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE NULL END) AS [${bom.Bom}]`,
-        ).join(", ");
+//         // Create dynamic column aggregation
+//         const columns = Boms.map(
+//           (bom) =>
+//             `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE NULL END) AS [${bom.Bom}]`,
+//         ).join(", ");
 
-        // Tạo biểu thức tổng từ các cột động
-        const sumColumns = Boms.map(
-          (bom) =>
-            `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE 0 END)`,
-        ).join(" + ");
+//         // Tạo biểu thức tổng từ các cột động
+//         const sumColumns = Boms.map(
+//           (bom) =>
+//             `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE 0 END)`,
+//         ).join(" + ");
 
-        // Full SQL query
-        const query = `
-          SELECT 
-            a.Description, 
-            a.Manufacturer_1,
-            a.PartNumber_1,
-            a.Manufacturer_2,
-            a.PartNumber_2,
-            a.Manufacturer_3,
-            a.PartNumber_3,  
-            ${columns},
-            ROUND((${sumColumns}), 2) AS SL_Tổng,
-            CASE
-              WHEN (b.Input - b.Output) > 0 THEN IFNULL((b.Input - b.Output), 0)
-              ELSE 0 
-            END AS SL_Tồn_Kho,
-            b.Customer AS Mã_Kho,
-            CASE
-              WHEN (c.Input - c.Output) > 0 THEN IFNULL((c.Input - c.Output), 0)
-              ELSE 0 
-            END AS SL_Tồn_Kho_Misa,
-            c.Customer AS Mã_Kho_Misa,
-            IFNULL(a.Du_Toan_Hao_Phi, 0) AS Dự_Toán_Hao_Phí,
-            IFNULL(a.Hao_Phi_Thuc_Te, 0) AS Hao_Phi_Thuc_Te,
-            a.So_Luong,
-            a.SL_Board,
-            a.Bom,
-            a.PO,
-            a.id AS Sửa
-          FROM CheckBOM a
-          LEFT JOIN WareHouse b ON a.PartNumber_1 = b.PartNumber_1
-          LEFT JOIN WareHouse2 c ON a.PartNumber_1 = c.PartNumber_1
-          WHERE a.PO = ?
-          GROUP BY a.PartNumber_1;
-        `;
-        resolve(query);
-      },
-    );
-  });
-};
+//         // Full SQL query
+//         const query = `
+//           SELECT
+//             a.Description,
+//             a.Manufacturer_1,
+//             a.PartNumber_1,
+//             a.Manufacturer_2,
+//             a.PartNumber_2,
+//             a.Manufacturer_3,
+//             a.PartNumber_3,
+//             ${columns},
+//             ROUND((${sumColumns}), 2) AS SL_Tổng,
+//             CASE
+//               WHEN (b.Input - b.Output) > 0 THEN IFNULL((b.Input - b.Output), 0)
+//               ELSE 0
+//             END AS SL_Tồn_Kho,
+//             b.Customer AS Mã_Kho,
+//             CASE
+//               WHEN (c.Input - c.Output) > 0 THEN IFNULL((c.Input - c.Output), 0)
+//               ELSE 0
+//             END AS SL_Tồn_Kho_Misa,
+//             c.Customer AS Mã_Kho_Misa,
+//             IFNULL(a.Du_Toan_Hao_Phi, 0) AS Dự_Toán_Hao_Phí,
+//             IFNULL(a.Hao_Phi_Thuc_Te, 0) AS Hao_Phi_Thuc_Te,
+//             a.So_Luong,
+//             a.SL_Board,
+//             a.Bom,
+//             a.PO,
+//             a.id AS Sửa
+//           FROM CheckBOM a
+//           LEFT JOIN WareHouse b ON a.PartNumber_1 = b.PartNumber_1
+//           LEFT JOIN WareHouse2 c ON a.PartNumber_1 = c.PartNumber_1
+//           WHERE a.PO = ?
+//           GROUP BY a.PartNumber_1;
+//         `;
+//         resolve(query);
+//       },
+//     );
+//   });
+// };
 
 const getDetailPO = async (id) => {
   return new Promise((resolve, reject) => {
@@ -4302,754 +3504,6 @@ app.put("/api/Summary/Edit-item-action/:id", (req, res) => {
   );
 });
 
-// Post value in table Summary
-app.post("/api/Summary/Add-item", (req, res) => {
-  const {
-    Type,
-    PlanID,
-    PONumber,
-    Category,
-    Line_SMT,
-    Quantity_Plan,
-    CycleTime_Plan,
-    Time_Plan,
-    Note,
-    Timestamp,
-    Surface,
-  } = req.body;
-  // Convert date local
-  const formattedDate = formatDateLocal(Timestamp);
-
-  db.run(
-    `INSERT INTO Summary (Type, PlanID, PONumber, Category, Line_SMT, Quantity_Plan, CycleTime_Plan, Time_Plan, Note, Created_At, Surface)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      Type,
-      PlanID,
-      PONumber,
-      Category,
-      Line_SMT,
-      Quantity_Plan,
-      CycleTime_Plan,
-      Time_Plan,
-      Note,
-      formattedDate,
-      Surface,
-    ],
-    (err) => {
-      if (err) {
-        console.error("Database error:", err);
-        return res
-          .status(500)
-          .json({ error: "Database error", details: err.message });
-      }
-      io.emit("UpdateHistoryFiltered", { PlanID, Type });
-      io.emit("UpdateManufactureSummary", { PlanID, Type });
-      io.emit("UpdateManufactureRW", { PlanID, Type });
-      io.emit("UpdateManufactureCounting");
-      io.emit("updateManufactureDetails");
-      io.emit("UpdateHistory");
-      io.emit("updateHistoryPart");
-      io.emit("UpdateSummary");
-      io.emit("ActivedUpdate");
-      io.emit("updateDetailProjectPO");
-      res.json({ message: "Summary received" });
-    },
-  );
-});
-
-// Update value in table Summary
-app.put("/api/Summary/Edit-item/:id", (req, res) => {
-  const {
-    Type,
-    PlanID,
-    PONumber,
-    Category,
-    Line_SMT,
-    Quantity_Plan,
-    CycleTime_Plan,
-    Time_Plan,
-    Note,
-    Timestamp,
-    Surface,
-  } = req.body;
-  const { id } = req.params;
-  // Convert date local
-  const formattedDate = formatDateLocal(Timestamp);
-
-  db.run(
-    `UPDATE Summary
-      SET Type=?, PONumber=?, Category=?, Line_SMT=?, Quantity_Plan=?, CycleTime_Plan=?, Time_Plan=?, Note=?, Created_At=?, Surface=?
-      WHERE id=?`,
-    [
-      Type,
-      PONumber,
-      Category,
-      Line_SMT,
-      Quantity_Plan,
-      CycleTime_Plan,
-      Time_Plan,
-      Note,
-      formattedDate,
-      Surface,
-      id,
-    ],
-    (err) => {
-      if (err) return res.status(500).json({ error: "Database error" });
-      io.emit("UpdateManufactureCounting");
-      io.emit("updateManufactureDetails");
-      io.emit("UpdateHistory");
-      io.emit("updateHistoryPart");
-      io.emit("UpdateSummary");
-      io.emit("ActivedUpdate");
-      io.emit("updateDetailProjectPO");
-      io.emit("UpdateHistoryFiltered", { PlanID, Type });
-      io.emit("UpdateManufactureSummary", { PlanID, Type });
-      io.emit("UpdateManufactureRW", { PlanID, Type });
-
-      res.json({ message: "Summary received" });
-    },
-  );
-});
-
-// Router delete item in Summary table
-app.delete("/api/Summary/Delete-item/:id", async (req, res) => {
-  const { id } = req.params;
-  const { Type, PlanID } = req.query;
-
-  // Insert data into SQLite database
-  const query = `
-    DELETE FROM Summary WHERE id = ?
-  `;
-  db.run(query, [id], function (err) {
-    if (err) {
-      return res
-        .status(500)
-        .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
-    }
-    io.emit("UpdateManufactureCounting");
-    io.emit("updateManufactureDetails");
-    io.emit("UpdateHistory");
-    io.emit("updateHistoryPart");
-    io.emit("UpdateSummary");
-    io.emit("ActivedUpdate");
-    io.emit("updateDetailProjectPO");
-    io.emit("UpdateManufactureSummary", { PlanID, Type });
-    io.emit("UpdateHistoryFiltered", { PlanID, Type });
-    io.emit("UpdateManufactureRW", { PlanID, Type });
-    res.json({ message: "Đã xoá dữ liệu bảo trì định kỳ thành công" });
-  });
-});
-
-// Bom , Pick&Place table
-
-// Post value in table FilterBom
-app.post("/api/FilterBom/Add-item", function (req, res) {
-  const { project_name, created_by, created_at, note } = req.body;
-
-  let Timestamps = null;
-  if (created_at) {
-    const dateObj = new Date(created_at);
-    if (!isNaN(dateObj.getTime())) {
-      Timestamps = Math.floor(dateObj.getTime() / 1000);
-    } else {
-      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
-    }
-  } else {
-    Timestamps = Math.floor(Date.now() / 1000);
-  }
-
-  db.run(
-    `INSERT INTO FilterBom (project_name, created_by, created_at, note)
-     VALUES (?, ?, ?, ?)`,
-    [project_name, created_by, Timestamps, note],
-    function (err) {
-      if (err) {
-        console.error("Database error:", err);
-        return res.status(500).json({
-          error: "Database error",
-          details: err.message,
-        });
-      }
-
-      const insertedId = this.lastID; // 🔥 QUAN TRỌNG
-
-      io.emit("UpdateFilterBom");
-
-      res.json({
-        message: "Filter Bom received",
-        id: insertedId, // 👈 trả về id
-      });
-    },
-  );
-});
-
-// Put value in table FilterBom
-app.put("/api/FilterBom/Edit-item/:id", (req, res) => {
-  const { id } = req.params;
-  const { project_name, created_at, created_by, note } = req.body;
-  const Timestamps = formatDateLocal(created_at);
-  db.run(
-    `UPDATE FilterBom 
-    SET 
-      project_name = ?, 
-      created_at = ?,
-      created_by = ?,
-      note = ?
-    WHERE id = ?`,
-    [project_name, Timestamps, created_by, note, id],
-    (err) => {
-      if (err) {
-        console.error("Database error:", err);
-        return res
-          .status(500)
-          .json({ error: "Database error", details: err.message });
-      }
-      io.emit("UpdateFilterBom");
-      res.json({ message: "Summary received" });
-    },
-  );
-});
-
-// Router delete item in FilterBom table
-app.delete("/api/FilterBom/Delete-item/:id", async (req, res) => {
-  const { id } = req.params;
-  // Insert data into SQLite database
-  const query = `
-    DELETE FROM FilterBom WHERE id = ?
-  `;
-  db.run(query, [id], function (err) {
-    if (err) {
-      return res
-        .status(500)
-        .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
-    }
-    io.emit("UpdateFilterBom");
-    res.json({ message: "Đã xoá dữ liệu Bom thành công" });
-  });
-});
-
-// Post value in table SettingPCB
-app.post("/api/SettingPCB/Add-item", (req, res) => {
-  const { project_id } = req.body;
-
-  db.run(
-    `INSERT INTO SettingPCB (
-        project_id,
-        manualOffsetX_top,
-        manualOffsetY_top,
-        manualOffsetX_bottom,
-        manualOffsetY_bottom,
-        width,
-        height,
-        edgeX,
-        edgeY,
-        angle
-     )
-     VALUES (?, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)`,
-    [project_id],
-    (err) => {
-      if (err) {
-        console.error("Database error:", err);
-        return res.status(500).json({
-          error: "Database error",
-          details: err.message,
-        });
-      }
-
-      io.emit("SettingPCBUpdate");
-
-      res.json({ message: "SettingPCB created" });
-    },
-  );
-});
-
-// Put value in table SettingPCB table
-app.put("/api/SettingPCB/Edit-item/:id", (req, res) => {
-  const { id } = req.params;
-  const {
-    manualOffsetX_top,
-    manualOffsetY_top,
-    manualOffsetX_bottom,
-    manualOffsetY_bottom,
-    manualOffsetGerberX,
-    manualOffsetGerberY,
-    width,
-    height,
-    edgeX,
-    edgeY,
-    angle,
-  } = req.body;
-  db.run(
-    `UPDATE SettingPCB
-    SET 
-      manualOffsetX_top = ?,
-      manualOffsetY_top = ?,
-      manualOffsetX_bottom = ?,
-      manualOffsetY_bottom = ?,
-      manualOffsetGerberX = ?,
-      manualOffsetGerberY = ?,
-      width = ?,
-      height = ?,
-      edgeX = ?,
-      edgeY = ?,
-      angle = ?
-    WHERE project_id = ?`,
-    [
-      manualOffsetX_top,
-      manualOffsetY_top,
-      manualOffsetX_bottom,
-      manualOffsetY_bottom,
-      manualOffsetGerberX,
-      manualOffsetGerberY,
-      width,
-      height,
-      edgeX,
-      edgeY,
-      angle,
-      id,
-    ],
-    (err) => {
-      if (err) {
-        console.error("Database error:", err);
-        return res
-          .status(500)
-          .json({ error: "Database error", details: err.message });
-      }
-      io.emit("SettingPCBUpdate");
-      res.json({ message: "Đã cập nhật cài đặt PCB" });
-    },
-  );
-});
-
-// Router post item in Bom table
-app.post(
-  "/api/upload-bom/:project_id",
-  uploadPnP.single("FileBom"),
-  async (req, res) => {
-    const projectId = req.params.project_id;
-    const filePath = path.join(__dirname, req.file.path);
-
-    try {
-      const workbook = xlsx.readFile(filePath);
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows = xlsx.utils.sheet_to_json(sheet);
-
-      db.serialize(() => {
-        const stmtBom = db.prepare(`
-          INSERT INTO Bom (description, mpn, designator, quantity, project_id, note)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `);
-
-        const stmtHighlight = db.prepare(`
-          INSERT INTO BomHighlight (description, mpn, mpn2, mpn3, type, designator, quantity, project_id, note)
-          VALUES (?, ?, ?, ?, 'SMT', ?, ?, ?, ?)
-        `);
-
-        const insertedRefs = new Set();
-
-        rows.forEach((row) => {
-          const refs = String(row["Reference(s)"] || row["Designator"] || "")
-            .split(",")
-            .map((r) => r.trim())
-            .filter((r) => r.length > 0);
-
-          refs.forEach((ref) => {
-            if (!insertedRefs.has(ref)) {
-              let mpnValue = row.MPN || row.Comment || "";
-
-              mpnValue = String(mpnValue)
-                .replace(/\s+/g, "")
-                .replace(/,/g, ".");
-
-              stmtBom.run(
-                row.Description || "",
-                mpnValue,
-                ref,
-                1,
-                projectId,
-                row.note || row.Note || row.notes || row.Notes || "",
-              );
-
-              insertedRefs.add(ref);
-            }
-          });
-
-          stmtHighlight.run(
-            row.Description || row.description || "",
-            row.MPN || row.mpn || "",
-            row.MPN2 || row.mpn2 || "",
-            row.MPN3 || row.mpn3 || "",
-            row["Reference(s)"] || row.Designator || row.designator || "",
-            row.Quantity || row.Qty || row.qty || row.QTY || 1,
-            projectId,
-            row.Note || row.note || row.Notes || row.notes || "",
-          );
-        });
-
-        stmtBom.finalize((err) => {
-          if (err) {
-            console.error(err);
-            return res.status(500).json({
-              error: "Finalize BOM lỗi",
-            });
-          }
-
-          stmtHighlight.finalize((err2) => {
-            if (err2) {
-              console.error(err2);
-              return res.status(500).json({
-                error: "Finalize Highlight lỗi",
-              });
-            }
-
-            // 👉 CHỈ emit khi DB ghi xong
-            io.emit("CombineBomUpdate");
-            io.emit("BomHighlightUpdate");
-            io.emit("RawBomHighlightUpdate");
-            io.emit("BomRawHighlightUpdate");
-
-            fs.unlinkSync(filePath);
-
-            // 👉 CHỈ response khi mọi thứ hoàn tất
-            res.json({
-              message: "Upload BOM + Highlight thành công",
-              totalRows: rows.length,
-            });
-          });
-        });
-      });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({
-        error: "Lỗi xử lý file BOM",
-      });
-    }
-  },
-);
-
-// Router post item in Pick & Place table
-app.post(
-  "/api/upload-pickplace/:id",
-  uploadPnP.single("FilePnP"),
-  async (req, res) => {
-    const { id } = req.params;
-
-    try {
-      const ppFile = req.file;
-      if (!ppFile) {
-        return res.status(400).json({ error: "Thiếu file Pick&Place" });
-      }
-
-      // --- 1️⃣ Đọc file Excel
-      const workbook = xlsx.readFile(ppFile.path);
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const ppData = xlsx.utils.sheet_to_json(sheet, {
-        defval: "",
-        raw: false,
-        blankrows: false,
-      });
-
-      // --- 2️⃣ Chuyển đổi và lọc dữ liệu
-      const uniqueRows = [];
-      const seenRefs = new Set();
-      for (const row of ppData) {
-        const designator = (row.Ref || row.Designator)?.trim();
-        if (!designator || seenRefs.has(designator)) continue;
-        seenRefs.add(designator);
-
-        uniqueRows.push({
-          designator,
-          layer: row.Side || row.Layer || "" || row.side || row.layer,
-          posX: parseFloat(row.PosX || 0 || row.posx || row.X || row.x),
-          posY: parseFloat(row.PosY || 0 || row.posy || row.Y || row.y),
-          rotation: parseFloat(
-            row.Rotation || 0 || row.rotation || row.R || row.r,
-          ),
-          project_id: id,
-          note: row.note || "",
-        });
-      }
-
-      // --- 3️⃣ Chèn dữ liệu vào SQLite và CHỜ hoàn tất
-      await new Promise((resolve, reject) => {
-        db.serialize(() => {
-          const stmt = db.prepare(`
-          INSERT INTO Pickplace (designator, layer, x, y, rotation, project_id, type, note)
-          VALUES (?, ?, ?, ?, ?, ?, 'SMT', ?)
-        `);
-
-          for (const r of uniqueRows) {
-            stmt.run(
-              r.designator,
-              r.layer,
-              r.posX,
-              r.posY,
-              r.rotation,
-              r.project_id,
-              r.note,
-            );
-          }
-
-          stmt.finalize((err) => {
-            if (err) reject(err);
-            else resolve();
-          });
-        });
-      });
-
-      // --- 4️⃣ Xóa file tạm
-      fs.unlinkSync(ppFile.path);
-
-      // --- 5️⃣ Emit chỉ sau khi DB insert hoàn tất
-      io.emit("CombineBomUpdate", { project_id: id });
-      io.emit("BomHighlightUpdate", { project_id: id });
-      io.emit("RawBomHighlightUpdate", { project_id: id });
-      io.emit("MPNMountTypeUpdate", { project_id: id });
-
-      // --- 6️⃣ Gửi phản hồi
-      res.json({
-        message: "Pick&Place đã upload & lưu thành công (Excel, mils → mm)",
-        inserted: uniqueRows.length,
-      });
-    } catch (error) {
-      console.error("Lỗi xử lý Pick&Place:", error);
-      res.status(500).json({ error: "Lỗi xử lý file Pick&Place (Excel)" });
-    }
-  },
-);
-
-app.post(
-  "/api/MPNMountType/Import-Bomlist/:id",
-  uploadPnP.single("FileBomMountType"),
-  async (req, res) => {
-    const { id } = req.params;
-    const { created_by } = req.body;
-
-    try {
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          error: "Không tìm thấy file upload",
-        });
-      }
-
-      const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.readFile(req.file.path);
-
-      const worksheet = workbook.getWorksheet(1);
-      if (!worksheet) {
-        return res.status(400).json({
-          success: false,
-          error: "Không tìm thấy sheet đầu tiên",
-        });
-      }
-
-      // 👇 LOG SAU KHI KIỂM TRA SHEET
-      console.log("ExcelJS:", require("exceljs/package.json").version);
-      console.log("File:", req.file.path);
-      console.log("Images:", worksheet.getImages().length);
-      console.log("Media:", workbook.model.media?.length);
-      if (!worksheet) {
-        return res.status(400).json({
-          success: false,
-          error: "Không tìm thấy sheet đầu tiên",
-        });
-      }
-
-      // =========================
-      // CREATE IMAGE DIR
-      // =========================
-      const uploadDir = path.join(process.cwd(), "uploads", "bomhighlight");
-
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-
-      // =========================
-      // MAP IMAGES
-      // =========================
-      const imageMap = {};
-
-      worksheet.getImages().forEach((img) => {
-        try {
-          const rowNumber = img.range.tl.nativeRow + 1;
-
-          const media = workbook.model.media.find(
-            (m) => m.index === img.imageId,
-          );
-
-          if (!media) return;
-
-          const fileName = `${crypto.randomUUID()}.${media.extension}`;
-          const filePath = path.join(uploadDir, fileName);
-
-          fs.writeFileSync(filePath, media.buffer);
-
-          if (!imageMap[rowNumber]) imageMap[rowNumber] = [];
-
-          imageMap[rowNumber].push(`uploads/bomhighlight/${fileName}`);
-        } catch (err) {
-          console.error("Lỗi lưu hình:", err);
-        }
-      });
-
-      // =========================
-      // HEADER MAPPING (FIX ALL CASES)
-      // =========================
-      const normalize = (str) => str?.toString().trim().toLowerCase();
-
-      const aliasMap = {
-        mpn: ["mpn", "part number", "part_no", "partno"],
-        description: ["description", "desc", "item description"],
-        qty: ["qty", "quantity", "quanity"],
-      };
-
-      const header = {};
-
-      worksheet.getRow(1).eachCell((cell, colNumber) => {
-        const key = normalize(cell.value);
-        if (!key) return;
-
-        Object.keys(aliasMap).forEach((field) => {
-          if (aliasMap[field].includes(key)) {
-            header[field] = colNumber;
-          }
-        });
-      });
-
-      console.log("HEADER MAP:", header);
-
-      // =========================
-      // SAFE GET VALUE
-      // =========================
-      const getVal = (cell) => {
-        if (!cell) return null;
-        if (cell.value == null) return null;
-
-        if (typeof cell.value === "object" && cell.value.text) {
-          return cell.value.text.toString().trim();
-        }
-
-        return cell.value.toString().trim();
-      };
-
-      // =========================
-      // READ ROWS
-      // =========================
-      const insertRows = [];
-
-      worksheet.eachRow((row, rowNumber) => {
-        if (rowNumber === 1) return;
-
-        const mpn = getVal(row.getCell(header.mpn));
-        const description = getVal(row.getCell(header.description));
-        const qty = getVal(row.getCell(header.qty));
-
-        if (!mpn) return;
-
-        let mount_type = null;
-
-        const fillColor = row.getCell(1).fill?.fgColor?.argb || "";
-
-        if (fillColor === "FFFFC7CE") {
-          mount_type = "Hàn tay";
-        } else if (fillColor === "FFC6EFCE") {
-          mount_type = "Gắp tay";
-        }
-
-        const imagePaths = imageMap[rowNumber] || [];
-
-        if (!mount_type && imagePaths.length > 0) {
-          mount_type = "SMT";
-        }
-
-        if (!mount_type && imagePaths.length === 0) return;
-
-        insertRows.push({
-          mpn,
-          description,
-          qty,
-          image: JSON.stringify(imagePaths),
-          mount_type,
-        });
-      });
-
-      // =========================
-      // DB UPSERT
-      // =========================
-      const stmt = db.prepare(`
-        INSERT INTO MPNMountType
-        (
-          mpn,
-          mount_type,
-          description,
-          image,
-          project_id,
-          created_by
-        )
-        VALUES (?, ?, ?, ?, ?, ?)
-        ON CONFLICT(mpn)
-        DO UPDATE SET
-          mount_type = excluded.mount_type,
-          description = excluded.description,
-          image = excluded.image,
-          project_id = excluded.project_id,
-          created_by = excluded.created_by
-      `);
-
-      insertRows.forEach((item) => {
-        stmt.run(
-          item.mpn,
-          item.mount_type,
-          item.description,
-          item.image,
-          id,
-          created_by,
-        );
-      });
-
-      stmt.finalize();
-
-      // =========================
-      // CLEAN TEMP FILE
-      // =========================
-      if (req.file?.path && fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
-      }
-
-      // =========================
-      // SOCKET UPDATE
-      // =========================
-      io.emit("MPNMountTypeUpdate");
-      io.emit("CombineBomUpdate");
-      io.emit("BomHighlightUpdate");
-      io.emit("RawBomHighlightUpdate");
-      io.emit("BomRawHighlightUpdate");
-
-      // =========================
-      // RESPONSE
-      // =========================
-      res.json({
-        success: true,
-        imported: insertRows.length,
-        header_map: header,
-      });
-    } catch (err) {
-      console.error(err);
-
-      if (req.file?.path && fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
-      }
-
-      res.status(500).json({
-        success: false,
-        error: err.message,
-      });
-    }
-  },
-);
 // Detect layer by file extension
 function detectLayer(filename) {
   const ext = path.extname(filename).toLowerCase();
@@ -5450,298 +3904,270 @@ app.post(
 );
 
 // Put value in table Pick Place table
-app.put("/api/Pickplace/Edit-item/:id", (req, res) => {
-  const { id } = req.params;
-  const { x, y, rotation, type, layer } = req.body;
-  db.run(
-    `UPDATE Pickplace 
-    SET 
-      x = ?, 
-      y = ?, 
-      rotation = ?,
-      type = ?,
-      layer = ?
-    WHERE id = ?`,
-    [x, y, rotation, type, layer, id],
-    (err) => {
-      if (err) {
-        console.error("Database error:", err);
-        return res
-          .status(500)
-          .json({ error: "Database error", details: err.message });
-      }
-      io.emit("CombineBomUpdate");
-      io.emit("PnPFileUpdate");
-      io.emit("SettingSVGUpdate");
-      res.json({ message: "Summary received" });
-    },
-  );
-});
+// app.put("/api/Pickplace/Edit-item/:id", (req, res) => {
+//   const { id } = req.params;
+//   const { x, y, rotation, type, layer } = req.body;
+//   db.run(
+//     `UPDATE Pickplace
+//     SET
+//       x = ?,
+//       y = ?,
+//       rotation = ?,
+//       type = ?,
+//       layer = ?
+//     WHERE id = ?`,
+//     [x, y, rotation, type, layer, id],
+//     (err) => {
+//       if (err) {
+//         console.error("Database error:", err);
+//         return res
+//           .status(500)
+//           .json({ error: "Database error", details: err.message });
+//       }
+//       io.emit("CombineBomUpdate");
+//       io.emit("PnPFileUpdate");
+//       io.emit("SettingSVGUpdate");
+//       res.json({ message: "Summary received" });
+//     },
+//   );
+// });
 
 // Put value in table BomHighlight table
-app.put("/api/BomHighlight/Edit-type/:id", (req, res) => {
-  const { id } = req.params;
-  const { type } = req.body;
+// app.put("/api/BomHighlight/Edit-type/:id", (req, res) => {
+//   const { id } = req.params;
+//   const { type } = req.body;
 
-  db.run(
-    `UPDATE BomHighlight 
-         SET type = ?
-         WHERE id = ?`,
-    [type, id],
-    (err) => {
-      if (err) {
-        console.error(err);
+//   db.run(
+//     `UPDATE BomHighlight
+//          SET type = ?
+//          WHERE id = ?`,
+//     [type, id],
+//     (err) => {
+//       if (err) {
+//         console.error(err);
 
-        return res.status(500).json({
-          error: err.message,
-        });
-      }
+//         return res.status(500).json({
+//           error: err.message,
+//         });
+//       }
 
-      io.emit("CombineBomUpdate");
-      io.emit("PnPFileUpdate");
-      io.emit("SettingSVGUpdate");
-      io.emit("RawBomHighlightUpdate");
-      io.emit("MPNMountTypeUpdate");
+//       io.emit("CombineBomUpdate");
+//       io.emit("PnPFileUpdate");
+//       io.emit("SettingSVGUpdate");
+//       io.emit("RawBomHighlightUpdate");
+//       io.emit("MPNMountTypeUpdate");
 
-      res.json({
-        message: "Update success",
-      });
-    },
-  );
-});
+//       res.json({
+//         message: "Update success",
+//       });
+//     },
+//   );
+// });
 
 // Delete all item in BomHighlight table
-app.delete("/api/BomHighlight/Delete-item/:id", (req, res) => {
-  const { id } = req.params;
-  db.run(`DELETE FROM BomHighlight WHERE project_id = ?`, [id], (err) => {
-    if (err) {
-      console.error("Database error:", err);
-      return res
-        .status(500)
-        .json({ error: "Database error", details: err.message });
-    }
-    io.emit("CombineBomUpdate");
-    io.emit("RawBomHighlightUpdate");
-    res.json({ message: "Summary received" });
-  });
-});
+// app.delete("/api/BomHighlight/Delete-item/:id", (req, res) => {
+//   const { id } = req.params;
+//   db.run(`DELETE FROM BomHighlight WHERE project_id = ?`, [id], (err) => {
+//     if (err) {
+//       console.error("Database error:", err);
+//       return res
+//         .status(500)
+//         .json({ error: "Database error", details: err.message });
+//     }
+//     io.emit("CombineBomUpdate");
+//     io.emit("RawBomHighlightUpdate");
+//     res.json({ message: "Summary received" });
+//   });
+// });
 
 // Delete all item in PickPlace table
-app.delete("/api/PickPlace/Delete-item/:id", (req, res) => {
-  const { id } = req.params;
-  db.run(`DELETE FROM Pickplace WHERE project_id = ?`, [id], (err) => {
-    if (err) {
-      console.error("Database error:", err);
-      return res
-        .status(500)
-        .json({ error: "Database error", details: err.message });
-    }
-    io.emit("CombineBomUpdate");
-    io.emit("PnPFileUpdate");
-    io.emit("SettingSVGUpdate");
-    res.json({ message: "Summary received" });
-  });
-});
+// app.delete("/api/PickPlace/Delete-item/:id", (req, res) => {
+//   const { id } = req.params;
+//   db.run(`DELETE FROM Pickplace WHERE project_id = ?`, [id], (err) => {
+//     if (err) {
+//       console.error("Database error:", err);
+//       return res
+//         .status(500)
+//         .json({ error: "Database error", details: err.message });
+//     }
+//     io.emit("CombineBomUpdate");
+//     io.emit("PnPFileUpdate");
+//     io.emit("SettingSVGUpdate");
+//     res.json({ message: "Summary received" });
+//   });
+// });
 
 // Post item in MPNMountType table
-app.post(
-  "/api/MPNMountType/Add-item",
-  uploadImageMPN.array("image"), // 🔥 đổi từ single → array
-  (req, res) => {
-    const { mpn, mount_type, description, project_id, created_by } = req.body;
+// app.post(
+//   "/api/MPNMountType/Add-item",
+//   uploadImageMPN.array("image"), // 🔥 đổi từ single → array
+//   (req, res) => {
+//     const { mpn, mount_type, description, project_id, created_by } = req.body;
 
-    const newImages =
-      req.files?.map((file) => `uploads/bomhighlight/${file.filename}`) || [];
+//     const newImages =
+//       req.files?.map((file) => `uploads/bomhighlight/${file.filename}`) || [];
 
-    db.get(
-      "SELECT image FROM MPNMountType WHERE mpn = ?",
-      [mpn],
-      (err, row) => {
-        if (err) {
-          return res.status(500).json(err);
-        }
+//     db.get(
+//       "SELECT image FROM MPNMountType WHERE mpn = ?",
+//       [mpn],
+//       (err, row) => {
+//         if (err) {
+//           return res.status(500).json(err);
+//         }
 
-        let oldImages = [];
+//         let oldImages = [];
 
-        try {
-          oldImages = JSON.parse(row?.image || "[]");
-        } catch (e) {
-          oldImages = [];
-        }
+//         try {
+//           oldImages = JSON.parse(row?.image || "[]");
+//         } catch (e) {
+//           oldImages = [];
+//         }
 
-        // 🔥 merge ảnh cũ + mới
-        const mergedImages = [...oldImages, ...newImages];
+//         // 🔥 merge ảnh cũ + mới
+//         const mergedImages = [...oldImages, ...newImages];
 
-        db.run(
-          `
-          INSERT INTO MPNMountType (
-            mpn,
-            mount_type,
-            description,
-            image,
-            project_id,
-            created_by
-          )
-          VALUES (?, ?, ?, ?, ?, ?)
-          ON CONFLICT(mpn)
-          DO UPDATE SET
-            mount_type = excluded.mount_type,
-            description = excluded.description,
-            image = excluded.image,
-            project_id = excluded.project_id,
-            created_by = excluded.created_by
-          `,
-          [
-            mpn,
-            mount_type,
-            description,
-            JSON.stringify(mergedImages), // 🔥 lưu JSON array
-            project_id,
-            created_by,
-          ],
-          (err2) => {
-            if (err2) return res.status(500).json(err2);
+//         db.run(
+//           `
+//           INSERT INTO MPNMountType (
+//             mpn,
+//             mount_type,
+//             description,
+//             image,
+//             project_id,
+//             created_by
+//           )
+//           VALUES (?, ?, ?, ?, ?, ?)
+//           ON CONFLICT(mpn)
+//           DO UPDATE SET
+//             mount_type = excluded.mount_type,
+//             description = excluded.description,
+//             image = excluded.image,
+//             project_id = excluded.project_id,
+//             created_by = excluded.created_by
+//           `,
+//           [
+//             mpn,
+//             mount_type,
+//             description,
+//             JSON.stringify(mergedImages), // 🔥 lưu JSON array
+//             project_id,
+//             created_by,
+//           ],
+//           (err2) => {
+//             if (err2) return res.status(500).json(err2);
 
-            io.emit("MPNMountTypeUpdate");
-            io.emit("RawBomHighlightUpdate");
-            io.emit("CombineBomUpdate");
-            io.emit("PnPFileUpdate");
-            io.emit("SettingSVGUpdate");
-            res.json({ message: "Saved multi images" });
-          },
-        );
-      },
-    );
-  },
-);
+//             io.emit("MPNMountTypeUpdate");
+//             io.emit("RawBomHighlightUpdate");
+//             io.emit("CombineBomUpdate");
+//             io.emit("PnPFileUpdate");
+//             io.emit("SettingSVGUpdate");
+//             res.json({ message: "Saved multi images" });
+//           },
+//         );
+//       },
+//     );
+//   },
+// );
 
 // Delete item in MPNMountType table
-app.delete("/api/MPNMountType/Delete-item/:mpn", (req, res) => {
-  const { mpn } = req.params;
-  db.run(`DELETE FROM MPNMountType WHERE mpn = ?`, [mpn], (err) => {
-    if (err) {
-      console.error("Database error:", err);
-      return res
-        .status(500)
-        .json({ error: "Database error", details: err.message });
-    }
-    io.emit("MPNMountTypeUpdate");
-    io.emit("RawBomHighlightUpdate");
-    io.emit("CombineBomUpdate");
-    io.emit("PnPFileUpdate");
-    io.emit("SettingSVGUpdate");
-    res.json({ message: "Summary received" });
-  });
-});
+// app.delete("/api/MPNMountType/Delete-item/:mpn", (req, res) => {
+//   const { mpn } = req.params;
+//   db.run(`DELETE FROM MPNMountType WHERE mpn = ?`, [mpn], (err) => {
+//     if (err) {
+//       console.error("Database error:", err);
+//       return res
+//         .status(500)
+//         .json({ error: "Database error", details: err.message });
+//     }
+//     io.emit("MPNMountTypeUpdate");
+//     io.emit("RawBomHighlightUpdate");
+//     io.emit("CombineBomUpdate");
+//     io.emit("PnPFileUpdate");
+//     io.emit("SettingSVGUpdate");
+//     res.json({ message: "Summary received" });
+//   });
+// });
 
 // Delete image in MPNMountType table
 // Thêm dấu * vào sau :mpn để bắt được toàn bộ chuỗi chứa dấu "/"
-app.delete("/api/MPNMountType/Delete-image/:mpn*", (req, res) => {
-  // Express sẽ tách phần sau dấu / đầu tiên vào req.params[0]
-  // Chúng ta cộng chuỗi lại để lấy được đầy đủ "APG1608SURKC/T"
-  const mpn = req.params.mpn + (req.params[0] || "");
-  const { image } = req.body;
+// app.delete("/api/MPNMountType/Delete-image/:mpn*", (req, res) => {
+//   // Express sẽ tách phần sau dấu / đầu tiên vào req.params[0]
+//   // Chúng ta cộng chuỗi lại để lấy được đầy đủ "APG1608SURKC/T"
+//   const mpn = req.params.mpn + (req.params[0] || "");
+//   const { image } = req.body;
 
-  db.get(`SELECT image FROM MPNMountType WHERE mpn = ?`, [mpn], (err, row) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
+//   db.get(`SELECT image FROM MPNMountType WHERE mpn = ?`, [mpn], (err, row) => {
+//     if (err) {
+//       return res.status(500).json({ error: err.message });
+//     }
 
-    // Kiểm tra nếu không tìm thấy MPN trong database
-    if (!row) {
-      return res.status(404).json({ error: "MPN không tồn tại" });
-    }
+//     // Kiểm tra nếu không tìm thấy MPN trong database
+//     if (!row) {
+//       return res.status(404).json({ error: "MPN không tồn tại" });
+//     }
 
-    let images = [];
+//     let images = [];
 
-    try {
-      images = JSON.parse(row.image || "[]");
-    } catch (e) {
-      images = [];
-    }
+//     try {
+//       images = JSON.parse(row.image || "[]");
+//     } catch (e) {
+//       images = [];
+//     }
 
-    // 🔥 remove 1 image
-    images = images.filter((img) => img !== image);
+//     // 🔥 remove 1 image
+//     images = images.filter((img) => img !== image);
 
-    db.run(
-      `UPDATE MPNMountType SET image = ? WHERE mpn = ?`,
-      [JSON.stringify(images), mpn],
-      (err2) => {
-        if (err2) {
-          return res.status(500).json({ error: err2.message });
-        }
+//     db.run(
+//       `UPDATE MPNMountType SET image = ? WHERE mpn = ?`,
+//       [JSON.stringify(images), mpn],
+//       (err2) => {
+//         if (err2) {
+//           return res.status(500).json({ error: err2.message });
+//         }
 
-        io.emit("MPNMountTypeUpdate");
-        io.emit("RawBomHighlightUpdate");
-        io.emit("CombineBomUpdate");
-        io.emit("PnPFileUpdate");
-        io.emit("SettingSVGUpdate");
+//         io.emit("MPNMountTypeUpdate");
+//         io.emit("RawBomHighlightUpdate");
+//         io.emit("CombineBomUpdate");
+//         io.emit("PnPFileUpdate");
+//         io.emit("SettingSVGUpdate");
 
-        res.json({
-          message: "Deleted single image",
-          image: image,
-        });
-      },
-    );
-  });
-});
-
-// Put item in PickPlace table
-app.put("/api/PickPlace/Edit-offset/:id", (req, res) => {
-  const { id } = req.params;
-  const { offsetX, offsetY } = req.body;
-
-  const ox = Number(offsetX) || 0;
-  const oy = Number(offsetY) || 0;
-
-  const query = `
-    UPDATE Pickplace
-    SET x = x + ?, y = y + ?
-    WHERE project_id = ?
-  `;
-
-  db.run(query, [ox, oy, id], function (err) {
-    if (err) {
-      return res.status(500).json({ error: "Update failed" });
-    }
-
-    res.json({
-      success: true,
-      updatedRows: this.changes,
-    });
-    io.emit("CombineBomUpdate");
-    io.emit("PnPFileUpdate");
-    io.emit("SettingSVGUpdate");
-  });
-});
+//         res.json({
+//           message: "Deleted single image",
+//           image: image,
+//         });
+//       },
+//     );
+//   });
+// });
 
 // Put item in PickPlace table
-app.put("/api/PickPlaceQC/Edit-offset/:id", (req, res) => {
-  const { id } = req.params;
-  const { offsetX, offsetY, layer } = req.body;
+// app.put("/api/PickPlace/Edit-offset/:id", (req, res) => {
+//   const { id } = req.params;
+//   const { offsetX, offsetY } = req.body;
 
-  const ox = Number(offsetX) || 0;
-  const oy = Number(offsetY) || 0;
+//   const ox = Number(offsetX) || 0;
+//   const oy = Number(offsetY) || 0;
 
-  const query = `
-    UPDATE PickplaceQC
-    SET x = x + ?, y = y + ?
-    WHERE project_id = ? AND layer = ?
-  `;
+//   const query = `
+//     UPDATE Pickplace
+//     SET x = x + ?, y = y + ?
+//     WHERE project_id = ?
+//   `;
 
-  db.run(query, [ox, oy, id, layer], function (err) {
-    if (err) {
-      return res.status(500).json({ error: "Update failed" });
-    }
+//   db.run(query, [ox, oy, id], function (err) {
+//     if (err) {
+//       return res.status(500).json({ error: "Update failed" });
+//     }
 
-    res.json({
-      success: true,
-      updatedRows: this.changes,
-    });
-    io.emit("CombineBomQCUpdate");
-    io.emit("PnPFileQCUpdate");
-  });
-});
+//     res.json({
+//       success: true,
+//       updatedRows: this.changes,
+//     });
+//     io.emit("CombineBomUpdate");
+//     io.emit("PnPFileUpdate");
+//     io.emit("SettingSVGUpdate");
+//   });
+// });
 
 // Post item in Component overrides
 app.post("/api/Component-overrides/Add-item", (req, res) => {
@@ -5820,573 +4246,6 @@ app.put("/api/Component/Edit-item/:id", (req, res) => {
       io.emit("CombineBomUpdate");
       io.emit("PnPFileUpdate");
       res.json({ message: "Filter Bom received" });
-    },
-  );
-});
-
-// Post value in table FilterBomQC
-app.post("/api/FilterBomQC/Add-item", function (req, res) {
-  const { project_name, created_by, created_at, note } = req.body;
-  const Timestamps = formatDateLocal(created_at);
-  db.run(
-    `INSERT INTO FilterBomQC (project_name, created_by, created_at, note)
-     VALUES (?, ?, ?, ?)`,
-    [project_name, created_by, Timestamps, note],
-    function (err) {
-      if (err) {
-        console.error("Database error:", err);
-        return res.status(500).json({
-          error: "Database error",
-          details: err.message,
-        });
-      }
-
-      const insertedId = this.lastID; // 🔥 QUAN TRỌNG
-
-      io.emit("UpdateFilterBomQC");
-
-      res.json({
-        message: "Filter BomQC received",
-        id: insertedId, // 👈 trả về id
-      });
-    },
-  );
-});
-
-// Put value in table FilterBomQC
-app.put("/api/FilterBomQC/Edit-item/:id", (req, res) => {
-  const { id } = req.params;
-  const { project_name, created_at, created_by, note } = req.body;
-  const Timestamps = formatDateLocal(created_at);
-  db.run(
-    `UPDATE FilterBom 
-    SET 
-      project_name = ?, 
-      created_at = ?, 
-      created_by = ?,
-      note = ?
-    WHERE id = ?`,
-    [project_name, Timestamps, created_by, note, id],
-    (err) => {
-      if (err) {
-        console.error("Database error:", err);
-        return res
-          .status(500)
-          .json({ error: "Database error", details: err.message });
-      }
-      io.emit("UpdateFilterBom");
-      res.json({ message: "Summary received" });
-    },
-  );
-});
-
-// Router delete item in FilterBomQC table
-app.delete("/api/FilterBomQC/Delete-item/:id", async (req, res) => {
-  const { id } = req.params;
-  // Insert data into SQLite database
-  const query = `
-    DELETE FROM FilterBomQC WHERE id = ?
-  `;
-  db.run(query, [id], function (err) {
-    if (err) {
-      return res
-        .status(500)
-        .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
-    }
-    io.emit("UpdateFilterBomQC");
-    res.json({ message: "Đã xoá dữ liệu BomQC thành công" });
-  });
-});
-
-// Post value in table SettingPCB QC
-app.post("/api/SettingPCBQC/Add-item", (req, res) => {
-  const { project_id } = req.body;
-
-  db.run(
-    `INSERT INTO SettingPCBQC (
-        project_id,
-        width,
-        height
-     )
-     VALUES (?, 0, 0)`,
-    [project_id],
-    (err) => {
-      if (err) {
-        console.error("Database error:", err);
-        return res.status(500).json({
-          error: "Database error",
-          details: err.message,
-        });
-      }
-
-      io.emit("SettingPCBQCUpdate");
-      io.emit("CombineBomQCUpdate");
-
-      res.json({ message: "SettingPCB created" });
-    },
-  );
-});
-
-// Put value in table SettingPCB QC table
-app.put("/api/SettingPCB-QC/Edit-item/:id", (req, res) => {
-  const { id } = req.params;
-  const { width, height } = req.body;
-  db.run(
-    `UPDATE SettingPCBQC
-     SET width = ?,
-         height = ?
-     WHERE project_id = ?`,
-    [Number(width), Number(height), id],
-    function (err) {
-      if (err) {
-        console.error("SQLite Error:", err);
-
-        return res.status(500).json({
-          success: false,
-          error: err.message,
-        });
-      }
-      io.emit("SettingPCBQCUpdate");
-      io.emit("CombineBomQCUpdate");
-
-      res.json({
-        success: true,
-        changes: this.changes,
-      });
-    },
-  );
-});
-
-// Put value file top in table SettingPCB QC table
-app.put(
-  "/api/SettingPCB-QC/Upload-file-top/:id",
-  uploadImageQC.single("fileTop"),
-  (req, res) => {
-    const { id } = req.params;
-    // Tên file sau khi upload
-    const file = req.file ? `uploads/qc/${req.file.filename}` : null;
-
-    db.run(
-      `UPDATE SettingPCBQC
-       SET fileTop = ?
-       WHERE project_id = ?`,
-      [file, id],
-      (err) => {
-        if (err) {
-          console.error(err);
-          return res.status(500).json({
-            error: "Database error",
-            details: err.message,
-          });
-        }
-
-        io.emit("SettingPCBQCUpdate");
-        io.emit("CombineBomQCUpdate");
-
-        res.json({
-          success: true,
-          file,
-        });
-      },
-    );
-  },
-);
-
-// Put value file bottom in table SettingPCB QC table
-app.put(
-  "/api/SettingPCB-QC/Upload-file-bottom/:id",
-  uploadImageQC.single("fileBottom"),
-  (req, res) => {
-    const { id } = req.params;
-    // Tên file sau khi upload
-    const file = req.file ? `uploads/qc/${req.file.filename}` : null;
-
-    db.run(
-      `UPDATE SettingPCBQC
-       SET fileBottom = ?
-       WHERE project_id = ?`,
-      [file, id],
-      (err) => {
-        if (err) {
-          console.error(err);
-          return res.status(500).json({
-            error: "Database error",
-            details: err.message,
-          });
-        }
-
-        io.emit("SettingPCBQCUpdate");
-        io.emit("CombineBomQCUpdate");
-
-        res.json({
-          success: true,
-          file,
-        });
-      },
-    );
-  },
-);
-
-// Put value image sample top in table SettingPCB QC table
-app.put(
-  "/api/SettingPCB-QC/Upload-image-sample-top/:id",
-  uploadImageQC.single("imageSampleTop"),
-  (req, res) => {
-    const { id } = req.params;
-    // Tên file sau khi upload
-    const image = req.file ? `uploads/qc/${req.file.filename}` : null;
-
-    db.run(
-      `UPDATE SettingPCBQC
-       SET imageSampleTop = ?
-       WHERE project_id = ?`,
-      [image, id],
-      (err) => {
-        if (err) {
-          console.error(err);
-          return res.status(500).json({
-            error: "Database error",
-            details: err.message,
-          });
-        }
-
-        io.emit("SettingPCBUpdate");
-        io.emit("CombineBomQCUpdate");
-
-        res.json({
-          success: true,
-          image,
-        });
-      },
-    );
-  },
-);
-
-// Put value image sample bottom in table SettingPCB QC table
-app.put(
-  "/api/SettingPCB-QC/Upload-image-sample-bottom/:id",
-  uploadImageQC.single("imageSampleBottom"),
-  (req, res) => {
-    const { id } = req.params;
-    // Tên file sau khi upload
-    const image = req.file ? `uploads/qc/${req.file.filename}` : null;
-
-    db.run(
-      `UPDATE SettingPCBQC
-       SET imageSampleBottom = ?
-       WHERE project_id = ?`,
-      [image, id],
-      (err) => {
-        if (err) {
-          console.error(err);
-          return res.status(500).json({
-            error: "Database error",
-            details: err.message,
-          });
-        }
-
-        io.emit("SettingPCBQCUpdate");
-        io.emit("CombineBomQCUpdate");
-
-        res.json({
-          success: true,
-          image,
-        });
-      },
-    );
-  },
-);
-
-// Put value in table SettingPCB QC table
-app.put("/api/SettingPCB-QC/apply-align/:id", (req, res) => {
-  const { id } = req.params;
-  const { fiducialBL, fiducialTR, fiducialTL, fiducialBR } = req.body;
-  db.run(
-    `UPDATE SettingPCBQC
-   SET fiducialBL = ?,
-       fiducialTR = ?,
-       fiducialTL = ?,
-       fiducialBR = ?
-   WHERE project_id = ?`,
-    [
-      JSON.stringify(fiducialBL),
-      JSON.stringify(fiducialTR),
-      JSON.stringify(fiducialTL),
-      JSON.stringify(fiducialBR),
-      Number(id),
-    ],
-    function (err) {
-      if (err) {
-        console.error("DB ERROR:", err);
-        return res.status(500).json(err);
-      }
-      res.json({
-        success: true,
-        changes: this.changes,
-      });
-    },
-  );
-});
-
-// Upload xlsx to BOM QC table
-app.post(
-  "/api/upload-bom-qc/:project_id",
-  uploadPnP.single("FileBom"),
-  async (req, res) => {
-    const projectId = req.params.project_id;
-    const filePath = path.join(__dirname, req.file.path);
-
-    try {
-      const workbook = xlsx.readFile(filePath);
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows = xlsx.utils.sheet_to_json(sheet);
-
-      db.serialize(() => {
-        const stmtBom = db.prepare(`
-          INSERT INTO BomQC
-          (
-            description,
-            mpn,
-            designator,
-            quantity,
-            project_id,
-            note
-          )
-          VALUES (?, ?, ?, ?, ?, ?)
-        `);
-
-        rows.forEach((row) => {
-          stmtBom.run(
-            row.Description || "",
-            row.MPN || row.Comment || "",
-            row["Reference(s)"] || row.Designator || "",
-            row.Quantity || row.QTY || row.qty || 1,
-            projectId,
-            row.note || row.Note || row.notes || row.Notes || "",
-          );
-        });
-
-        stmtBom.finalize((err) => {
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
-
-          if (err) {
-            console.error(err);
-            return res.status(500).json({
-              error: "Finalize BOM lỗi",
-            });
-          }
-          io.emit("RawBomQCUpdate");
-          io.emit("CombineBomQCUpdate");
-
-          return res.status(200).json({
-            message: "Upload BOM thành công",
-          });
-        });
-      });
-    } catch (err) {
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-
-      console.error(err);
-      return res.status(500).json({
-        error: "Lỗi xử lý file BOM",
-      });
-    }
-  },
-);
-
-// Router post item in Pick & Place QC table
-app.post(
-  "/api/upload-pickplace-qc/:id",
-  uploadPnP.single("FilePnP"),
-  async (req, res) => {
-    const { id } = req.params;
-
-    try {
-      const ppFile = req.file;
-      if (!ppFile) {
-        return res.status(400).json({ error: "Thiếu file Pick&Place" });
-      }
-
-      // --- 1️⃣ Đọc file Excel
-      const workbook = xlsx.readFile(ppFile.path);
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const ppData = xlsx.utils.sheet_to_json(sheet, {
-        defval: "",
-        raw: false,
-        blankrows: false,
-      });
-
-      // --- 2️⃣ Chuyển đổi và lọc dữ liệu
-      const uniqueRows = [];
-      const seenRefs = new Set();
-      for (const row of ppData) {
-        const designator = (row.Ref || row.Designator)?.trim();
-        if (!designator || seenRefs.has(designator)) continue;
-        seenRefs.add(designator);
-
-        uniqueRows.push({
-          designator,
-          layer: row.Side || row.Layer || "" || row.side || row.layer,
-          mpn: row.MPN || row.mpn || "",
-          posX: parseFloat(row.PosX || 0 || row.posx || row.X || row.x),
-          posY: parseFloat(row.PosY || 0 || row.posy || row.Y || row.y),
-          rotation: parseFloat(
-            row.Rotation || 0 || row.rotation || row.R || row.r,
-          ),
-          project_id: id,
-          note: row.note || "",
-        });
-      }
-
-      // --- 3️⃣ Chèn dữ liệu vào SQLite và CHỜ hoàn tất
-      await new Promise((resolve, reject) => {
-        db.serialize(() => {
-          const stmt = db.prepare(`
-          INSERT INTO PickplaceQC (designator, layer, mpn, x, y, rotation, project_id, status, note)
-          VALUES (?, ?, ?, ?, ?, ?, ?, 'Waiting', ?)
-        `);
-
-          for (const r of uniqueRows) {
-            stmt.run(
-              r.designator,
-              r.layer,
-              r.mpn,
-              r.posX,
-              r.posY,
-              r.rotation,
-              r.project_id,
-              r.note,
-            );
-          }
-
-          stmt.finalize((err) => {
-            if (err) reject(err);
-            else resolve();
-          });
-        });
-      });
-
-      // --- 4️⃣ Xóa file tạm
-      fs.unlinkSync(ppFile.path);
-
-      // --- 5️⃣ Emit chỉ sau khi DB insert hoàn tất
-      io.emit("CombineBomQCUpdate", { project_id: id });
-
-      // --- 6️⃣ Gửi phản hồi
-      res.json({
-        message: "Pick&Place đã upload & lưu thành công (Excel, mils → mm)",
-        inserted: uniqueRows.length,
-      });
-    } catch (error) {
-      console.error("Lỗi xử lý Pick&Place:", error);
-      res.status(500).json({ error: "Lỗi xử lý file Pick&Place (Excel)" });
-    }
-  },
-);
-// Put value status in table PickplaceQC
-app.put("/api/PickplaceQC/Edit-item-status/:id", (req, res) => {
-  const { id } = req.params;
-  db.run(
-    `UPDATE PickplaceQC 
-    SET 
-      status = 'Done'
-    WHERE id = ?`,
-    [id],
-    (err) => {
-      if (err) {
-        console.error("Database error:", err);
-        return res
-          .status(500)
-          .json({ error: "Database error", details: err.message });
-      }
-      io.emit("CombineBomQCUpdate");
-      res.json({ message: "Summary received" });
-    },
-  );
-});
-
-// Put value status in table PickplaceQC
-app.put("/api/PickplaceQC/Change-all-status/:id", (req, res) => {
-  const { id } = req.params;
-  db.run(
-    `UPDATE PickplaceQC 
-    SET 
-      status = 'Waiting'
-    WHERE project_id = ?`,
-    [id],
-    (err) => {
-      if (err) {
-        console.error("Database error:", err);
-        return res
-          .status(500)
-          .json({ error: "Database error", details: err.message });
-      }
-      io.emit("CombineBomQCUpdate");
-      res.json({ message: "Summary received" });
-    },
-  );
-});
-
-// Delete all item in BomQC table
-app.delete("/api/BomQC/Delete-item/:id", (req, res) => {
-  const { id } = req.params;
-  db.run(`DELETE FROM BomQC WHERE project_id = ?`, [id], (err) => {
-    if (err) {
-      console.error("Database error:", err);
-      return res
-        .status(500)
-        .json({ error: "Database error", details: err.message });
-    }
-    io.emit("CombineBomQCUpdate");
-    res.json({ message: "Summary received" });
-  });
-});
-
-// Delete all item in PickPlaceQC table
-app.delete("/api/PickPlaceQC/Delete-item/:id", (req, res) => {
-  const { id } = req.params;
-  db.run(`DELETE FROM PickplaceQC WHERE project_id = ?`, [id], (err) => {
-    if (err) {
-      console.error("Database error:", err);
-      return res
-        .status(500)
-        .json({ error: "Database error", details: err.message });
-    }
-    io.emit("CombineBomQCUpdate");
-    res.json({ message: "Summary received" });
-  });
-});
-
-// Delete all item in SettingPCB-QC table
-app.put("/api/SettingPCB-QC/Delete-item/:id", (req, res) => {
-  const { id } = req.params;
-  db.run(
-    `UPDATE SettingPCBQC 
-      SET 
-      width = 0, 
-      height = 0,
-      fileTop = '',
-      fileBottom = '',
-      fiducialBL = '',
-      fiducialBR = '',
-      fiducialTL = '',
-      fiducialTR = ''
-      WHERE project_id = ?`,
-    [id],
-    (err) => {
-      if (err) {
-        console.error("Database error:", err);
-        return res
-          .status(500)
-          .json({ error: "Database error", details: err.message });
-      }
-      io.emit("SettingPCBQCUpdate");
-      res.json({ message: "Summary received" });
     },
   );
 });

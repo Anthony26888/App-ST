@@ -15,9 +15,12 @@
 
     <!-- Navigation Menu -->
     <v-list nav class="mt-1">
-      <v-list-subheader>Kiểm tra dữ liệu</v-list-subheader>
+      <v-list-subheader v-if="StatusOption_1 == true"
+        >Kiểm tra dữ liệu</v-list-subheader
+      >
 
       <v-list-item
+        v-if="StatusOption_1 == true"
         v-for="(item, i) in menuCheck"
         :key="i"
         :prepend-icon="item.icon"
@@ -32,8 +35,9 @@
           <span>{{ item.title }}</span>
         </template>
       </v-list-item>
-      <v-list-subheader>Kho</v-list-subheader>
+      <v-list-subheader v-if="StatusOption_2 == true">Kho</v-list-subheader>
       <v-list-item
+        v-if="StatusOption_2 == true"
         v-for="(item, i) in menuWareHouse"
         :key="i"
         :prepend-icon="item.icon"
@@ -48,9 +52,12 @@
           <span>{{ item.title }}</span>
         </template>
       </v-list-item>
-      <v-list-subheader>Sản xuất</v-list-subheader>
+      <v-list-subheader v-if="StatusOption_3 == true"
+        >Sản xuất</v-list-subheader
+      >
 
       <v-list-item
+        v-if="StatusOption_3 == true"
         v-for="(item, i) in menuManufacture"
         :key="i"
         :prepend-icon="item.icon"
@@ -65,9 +72,10 @@
           <span>{{ item.title }}</span>
         </template>
       </v-list-item>
-      <v-list-subheader>Bảo trì</v-list-subheader>
+      <v-list-subheader v-if="StatusOption_4 == true">Bảo trì</v-list-subheader>
 
       <v-list-item
+        v-if="StatusOption_4 == true"
         v-for="(item, i) in menuMaintenance"
         :key="i"
         :prepend-icon="item.icon"
@@ -82,9 +90,12 @@
           <span>{{ item.title }}</span>
         </template>
       </v-list-item>
-      <v-list-subheader>Công việc</v-list-subheader>
+      <v-list-subheader v-if="StatusOption_5 == true"
+        >Công việc</v-list-subheader
+      >
 
       <v-list-item
+        v-if="StatusOption_5 == true"
         v-for="(item, i) in menuListWork"
         :key="i"
         :prepend-icon="item.icon"
@@ -99,9 +110,12 @@
           <span>{{ item.title }}</span>
         </template>
       </v-list-item>
-      <v-list-subheader>Hệ thống</v-list-subheader>
+      <v-list-subheader v-if="StatusOption_6 == true"
+        >Hệ thống</v-list-subheader
+      >
 
       <v-list-item
+        v-if="StatusOption_6 == true"
         v-for="(item, i) in menuSetting"
         :key="i"
         :prepend-icon="item.icon"
@@ -157,13 +171,6 @@ const StatusOption_3 = ref(false);
 const StatusOption_4 = ref(false);
 const StatusOption_5 = ref(false);
 const StatusOption_6 = ref(false);
-const StatusOption_7 = ref(false);
-const StatusOption_8 = ref(false);
-const StatusOption_9 = ref(false);
-const StatusOption_10 = ref(false);
-const StatusOption_11 = ref(false);
-const StatusOption_12 = ref(false);
-const StatusOption_13 = ref(false);
 const Date_Expired = ref("");
 
 // Dialog
@@ -222,94 +229,47 @@ const FetchUser = async () => {
 
       if (LevelUser.value == "Kinh doanh") {
         StatusOption_1.value = true;
-        StatusOption_4.value = true;
-        StatusOption_6.value = true;
-        StatusOption_7.value = true;
-        StatusOption_8.value = true;
-        StatusOption_9.value = true;
+        StatusOption_2.value = true;
       } else if (LevelUser.value == "Thủ kho") {
-        StatusOption_6.value = true;
-        StatusOption_7.value = true;
-        StatusOption_8.value = true;
-        StatusOption_9.value = true;
-        StatusOption_11.value = true;
-        StatusOption_12.value = true;
+        StatusOption_2.value = true;
+        StatusOption_3.value = true;
       } else if (LevelUser.value == "Kế hoạch") {
         StatusOption_2.value = true;
         StatusOption_3.value = true;
         StatusOption_5.value = true;
         StatusOption_6.value = true;
-        StatusOption_7.value = true;
-        StatusOption_8.value = true;
-        StatusOption_12.value = true;
       } else if (LevelUser.value == "Quản lý tổng") {
-        StatusOption_9.value = true;
+        StatusOption_1.value = true;
+        StatusOption_2.value = true;
+        StatusOption_3.value = true;
+        StatusOption_4.value = true;
+        StatusOption_5.value = true;
       } else if (LevelUser.value == "Quản lý kinh doanh") {
         StatusOption_1.value = true;
         StatusOption_6.value = true;
-        StatusOption_7.value = true;
-        StatusOption_8.value = true;
-        StatusOption_9.value = true;
-        StatusOption_11.value = true;
       } else if (LevelUser.value == "Quản lý bảo trì") {
         StatusOption_1.value = true;
-        StatusOption_9.value = true;
-        StatusOption_11.value = true;
-        StatusOption_7.value = true;
         StatusOption_4.value = true;
       } else if (LevelUser.value == "Quản lý sản xuất") {
         StatusOption_1.value = true;
-        StatusOption_9.value = true;
-        StatusOption_2.value = true;
         StatusOption_3.value = true;
-        StatusOption_4.value = true;
-        StatusOption_6.value = true;
-        StatusOption_12.value = true;
       } else if (LevelUser.value == "Admin") {
-        StatusOption_1.value = false;
-        StatusOption_2.value = false;
-        StatusOption_3.value = false;
-        StatusOption_4.value = false;
-        StatusOption_5.value = false;
-        StatusOption_6.value = false;
-        StatusOption_7.value = false;
-        StatusOption_8.value = false;
-        StatusOption_9.value = false;
-        StatusOption_12.value = false;
-      } else if (LevelUser.value == "Nhân viên") {
         StatusOption_1.value = true;
         StatusOption_2.value = true;
         StatusOption_3.value = true;
         StatusOption_4.value = true;
         StatusOption_5.value = true;
         StatusOption_6.value = true;
-        StatusOption_7.value = true;
-        StatusOption_8.value = true;
-        StatusOption_9.value = true;
-        StatusOption_12.value = true;
+      } else if (LevelUser.value == "Nhân viên") {
+        StatusOption_3.value = true;
       } else if (LevelUser.value == "Quản lý QC") {
         StatusOption_1.value = true;
-        StatusOption_2.value = true;
-        StatusOption_3.value = true;
-        StatusOption_4.value = true;
-        StatusOption_5.value = true;
-        StatusOption_6.value = true;
-        StatusOption_7.value = true;
-        StatusOption_8.value = true;
-        StatusOption_9.value = true;
-        StatusOption_10.value = true;
-        StatusOption_11.value = true;
-        StatusOption_12.value = true;
       } else {
         StatusOption_1.value = true;
         StatusOption_2.value = true;
         StatusOption_3.value = true;
         StatusOption_4.value = true;
         StatusOption_6.value = true;
-        StatusOption_7.value = true;
-        StatusOption_8.value = true;
-        StatusOption_9.value = true;
-        StatusOption_12.value = true;
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
@@ -333,7 +293,6 @@ const menuItems = computed(() => [
     title: "Kiểm tra số liệu",
     value: "Check",
     to: "/Kiem-tra-so-lieu",
-    disabled: StatusOption_1.value,
   },
   {
     group: "Kho",
@@ -341,7 +300,6 @@ const menuItems = computed(() => [
     title: "Tình trạng đơn hàng",
     value: "Orders",
     to: "/Don-hang",
-    disabled: StatusOption_4.value,
   },
   {
     group: "Kiểm tra dữ liệu",
@@ -349,7 +307,6 @@ const menuItems = computed(() => [
     title: "Pick & Place",
     value: "CheckPnP",
     to: "/Danh-sach-pnp",
-    disabled: StatusOption_12.value,
   },
   {
     group: "Kiểm tra dữ liệu",
@@ -357,7 +314,6 @@ const menuItems = computed(() => [
     title: "Pick & Place QC",
     value: "CheckPnPQC",
     to: "/Danh-sach-pnp-qc",
-    disabled: StatusOption_13.value,
   },
   {
     group: "Kho",
@@ -365,7 +321,6 @@ const menuItems = computed(() => [
     title: "Tồn Kho",
     value: "WareHouse",
     to: "/Ton-kho",
-    disabled: StatusOption_2.value,
   },
   {
     group: "Sản xuất",
@@ -373,7 +328,6 @@ const menuItems = computed(() => [
     title: "Dự án",
     value: "Project",
     to: "/Du-an",
-    disabled: StatusOption_5.value,
   },
   {
     group: "Sản xuất",
@@ -381,7 +335,6 @@ const menuItems = computed(() => [
     title: "Sản xuất",
     value: "Manufacture",
     to: "/San-xuat",
-    disabled: StatusOption_7.value,
   },
   {
     group: "Sản xuất",
@@ -389,7 +342,6 @@ const menuItems = computed(() => [
     title: "Báo cáo",
     value: "Summary",
     to: "/Bao-cao-san-xuat",
-    disabled: StatusOption_8.value,
   },
   {
     group: "Bảo trì",
@@ -397,7 +349,6 @@ const menuItems = computed(() => [
     title: "Bảo trì",
     value: "Maintenance",
     to: "/Bao-tri",
-    disabled: StatusOption_6.value,
   },
   {
     group: "Công việc",
@@ -405,7 +356,6 @@ const menuItems = computed(() => [
     title: "Danh sách công việc",
     value: "ListWork",
     to: "/Danh-sach-viec",
-    disabled: StatusOption_11.value,
   },
   {
     group: "Hệ thống",
@@ -413,7 +363,6 @@ const menuItems = computed(() => [
     title: "Cài đặt",
     value: "Setting",
     to: "/Cai-dat",
-    disabled: StatusOption_9.value,
   },
 ]);
 
