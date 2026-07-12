@@ -33,7 +33,7 @@
               title="Đơn hàng hoàn thành"
               :value="
                 manufacture.filter(
-                  (item) => item.Status_Output === 'Hoàn thành'
+                  (item) => item.Status_Output === 'Hoàn thành',
                 ).length
               "
               icon="mdi-check-circle"
@@ -62,7 +62,7 @@
               title="Đơn hàng đang sản xuất"
               :value="
                 manufacture.filter(
-                  (item) => item.Status_Output === 'Đang sản xuất'
+                  (item) => item.Status_Output === 'Đang sản xuất',
                 ).length
               "
               icon="mdi-progress-wrench"
@@ -299,11 +299,7 @@
         </InputField>
       </div>
 
-      <InputDate
-        label="Ngày tạo"
-        class="mt-3"
-        v-model="Date_Edit"
-      />
+      <InputDate label="Ngày tạo" class="mt-3" v-model="Date_Edit" />
       <InputTextarea
         label="Ghi chú"
         :model-value="Note_Edit"
@@ -339,7 +335,6 @@
         :rules="[requiredRule]"
         @update:model-value="Total_Manufacture_Add = $event"
       />
-      
 
       <!-- Thêm input cho quy trình khác -->
       <div>
@@ -540,7 +535,7 @@ const progressManufacture = computed(() => {
     (manufacture.value.filter((item) => item.Status_Output === "Đang sản xuất")
       .length /
       manufacture.value.length) *
-      100
+      100,
   ).toFixed(1);
 });
 
@@ -549,7 +544,7 @@ const progressCompleted = computed(() => {
     (manufacture.value.filter((item) => item.Status_Output === "Hoàn thành")
       .length /
       manufacture.value.length) *
-      100
+      100,
   ).toFixed(1);
 });
 
@@ -730,8 +725,8 @@ const SaveEdit = async () => {
 
   try {
     const response = await axios.put(
-      `${Url}/PlanManufacture/Edit/${GetID.value}`,
-      formData
+      `${Url}/Manufacture/PlanManufacture/Edit-item/${GetID.value}`,
+      formData,
     );
     MessageDialog.value = response.data.message;
     Reset();
@@ -796,7 +791,10 @@ const SaveAdd = async () => {
   };
 
   try {
-    const response = await axios.post(`${Url}/PlanManufacture/Add`, formData);
+    const response = await axios.post(
+      `${Url}/Manufacture/PlanManufacture/Add-item`,
+      formData,
+    );
     MessageDialog.value = "Đã thêm dữ liệu thành công";
     Reset();
   } catch (error) {
@@ -812,7 +810,7 @@ const RemoveItem = async () => {
   DialogLoading.value = true;
   try {
     const response = await axios.delete(
-      `${Url}/PlanManufacture/Delete/${GetID.value}`
+      `${Url}/Manufacture/PlanManufacture/Delete-item/${GetID.value}`,
     );
     MessageDialog.value = response.data.message;
     Reset();

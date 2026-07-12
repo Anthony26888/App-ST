@@ -1,7 +1,7 @@
 <template lang="">
   <v-navigation-drawer expand-on-hover permanent rail color="#ffffff">
     <!-- User Profile Section -->
-    <v-list class="profile-section">
+    <v-list class="profile-section bg-blue-lighten-5">
       <v-list-item
         prepend-avatar="@/assets/avatar-ST.jpg"
         :subtitle="LevelUser"
@@ -133,8 +133,10 @@
     </v-list>
 
     <!-- Logout Button -->
+
     <template v-slot:append>
-      <v-list class="logout-section">
+      <v-divider></v-divider>
+      <v-list class="logout-section bg-blue-lighten-5">
         <v-list-item
           prepend-icon="mdi-logout"
           title="Đăng xuất"

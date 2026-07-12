@@ -4,6 +4,36 @@ const xlsx = require("xlsx");
 const fs = require("fs");
 const path = require("path");
 const ExcelJS = require("exceljs");
+const crypto = require("crypto"); // if crypto is needed anywhere
+
+function normalizeDesignators(input) {
+  if (!input) return [];
+  const parts = input.toString().split(/[,;\s.]+/).map(p => p.trim()).filter(Boolean);
+  const result = [];
+  for (const p of parts) {
+    if (p.includes('-')) {
+      const match = p.match(/^([A-Za-z]+)(\d+)-([A-Za-z]+)?(\d+)$/);
+      if (match) {
+        const prefix = match[1];
+        const start = parseInt(match[2], 10);
+        const end = parseInt(match[4], 10);
+        const prefix2 = match[3] || prefix;
+        if (prefix === prefix2 && start <= end) {
+          for (let i = start; i <= end; i++) {
+            result.push(`${prefix}${i}`);
+          }
+        } else {
+          result.push(p);
+        }
+      } else {
+        result.push(p);
+      }
+    } else {
+      result.push(p);
+    }
+  }
+  return result;
+}
 
 module.exports = (io) => ({
   // ============================
@@ -21,15 +51,45 @@ module.exports = (io) => ({
         });
       }
 
+      const headerRowIndex = parseInt(req.body.headerRowIndex || 0, 10);
+      const columnMapping = req.body.columnMapping ? JSON.parse(req.body.columnMapping) : null;
+      const normalizeDesignator = req.body.normalizeDesignator === 'true';
+
       // --- 1️⃣ Đọc file Excel
       const workbook = xlsx.readFile(bomFile.path);
       const sheetName = workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
-      const rows = xlsx.utils.sheet_to_json(sheet, {
-        defval: "",
-        raw: false,
-        blankrows: false,
-      });
+
+      let rawData = [];
+      if (columnMapping) {
+        const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: "", blankrows: true });
+        for (let i = headerRowIndex + 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row || row.length === 0) continue;
+          rawData.push({
+            Description: (row[columnMapping.description] || "").toString(),
+            MPN: (row[columnMapping.mpn] || "").toString(),
+            MPN2: (row[columnMapping.mpn2] || "").toString(),
+            MPN3: (row[columnMapping.mpn3] || "").toString(),
+            Designator: (row[columnMapping.designator] || "").toString(),
+            Quantity: row[columnMapping.quantity] || 1,
+            Note: (row[columnMapping.note] || "").toString(),
+          });
+        }
+      } else {
+        const rows = xlsx.utils.sheet_to_json(sheet, { defval: "", raw: false, blankrows: false });
+        for (const row of rows) {
+          rawData.push({
+            Description: (row.Description || "").toString(),
+            MPN: (row.MPN || row.Comment || "").toString(),
+            MPN2: (row.MPN2 || "").toString(),
+            MPN3: (row.MPN3 || "").toString(),
+            Designator: (row["Reference(s)"] || row.Designator || "").toString(),
+            Quantity: row.Quantity || row.QTY || row.Qty || row.qty || 1,
+            Note: (row.Note || row.note || row.Notes || row.notes || "").toString(),
+          });
+        }
+      }
 
       // --- 2️⃣ Lưu dữ liệu vào SQLite
       await new Promise((resolve, reject) => {
@@ -48,40 +108,46 @@ module.exports = (io) => ({
 
           const insertedRefs = new Set();
 
-          rows.forEach((row) => {
-            const refs = String(row["Reference(s)"] || row.Designator || "")
+          rawData.forEach((row) => {
+            let refs = String(row.Designator)
               .split(",")
               .map((r) => r.trim())
               .filter(Boolean);
 
+            if (normalizeDesignator) {
+              refs = normalizeDesignators(row.Designator);
+            }
+
             refs.forEach((ref) => {
               if (insertedRefs.has(ref)) return;
 
-              const mpnValue = String(row.MPN || row.Comment || "")
+              const mpnValue = String(row.MPN)
                 .replace(/\s+/g, "")
                 .replace(/,/g, ".");
 
               stmtBom.run(
-                row.Description || "",
+                row.Description,
                 mpnValue,
                 ref,
                 1,
                 project_id,
-                row.note || row.Note || row.notes || row.Notes || "",
+                row.Note,
               );
 
               insertedRefs.add(ref);
             });
 
+            const fullRefs = normalizeDesignator && refs.length > 0 ? refs.join(", ") : String(row.Designator);
+
             stmtHighlight.run(
-              row.Description || "",
-              row.MPN || "",
-              row.MPN2 || "",
-              row.MPN3 || "",
-              row["Reference(s)"] || row.Designator || "",
-              Number(row.Quantity || row.QTY || row.Qty || row.qty || 1),
+              row.Description,
+              row.MPN,
+              row.MPN2,
+              row.MPN3,
+              fullRefs,
+              Number(row.Quantity) || 1,
               project_id,
-              row.Note || row.note || row.Notes || row.notes || "",
+              row.Note,
             );
           });
 
@@ -111,7 +177,7 @@ module.exports = (io) => ({
       // --- 5️⃣ Response
       res.json({
         message: "Upload BOM + Highlight thành công",
-        totalRows: rows.length,
+        totalRows: rawData.length,
       });
     } catch (error) {
       // Xóa file nếu có lỗi
@@ -140,35 +206,75 @@ module.exports = (io) => ({
         return res.status(400).json({ error: "Thiếu file Pick&Place" });
       }
 
+      const headerRowIndex = parseInt(req.body.headerRowIndex || 0, 10);
+      const columnMapping = req.body.columnMapping ? JSON.parse(req.body.columnMapping) : null;
+      const normalizeDesignator = req.body.normalizeDesignator === 'true';
+      const cleanDirtyData = req.body.cleanDirtyData === 'true';
+
+      // Regex chuẩn designator: bắt đầu bằng chữ cái, tiếp theo là số (VD: R1, C10, U5, FB3)
+      const VALID_DESIGNATOR_RE = /^[A-Za-z]+\d+[A-Za-z0-9]*$/;
+
       // --- 1️⃣ Đọc file Excel
       const workbook = xlsx.readFile(ppFile.path);
       const sheetName = workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
-      const ppData = xlsx.utils.sheet_to_json(sheet, {
-        defval: "",
-        raw: false,
-        blankrows: false,
-      });
+      
+      let rawData = [];
+      if (columnMapping) {
+        const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: "", blankrows: true });
+        for (let i = headerRowIndex + 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row || row.length === 0) continue;
+          rawData.push({
+            designator: (row[columnMapping.designator] || "").toString(),
+            layer: (row[columnMapping.layer] || "").toString(),
+            posX: row[columnMapping.posX] || 0,
+            posY: row[columnMapping.posY] || 0,
+            rotation: row[columnMapping.rotation] || 0,
+            note: row[columnMapping.note] || "",
+          });
+        }
+      } else {
+        const rows = xlsx.utils.sheet_to_json(sheet, { defval: "", raw: false, blankrows: false });
+        for (const row of rows) {
+          rawData.push({
+            designator: (row.Ref || row.Designator || "").toString(),
+            layer: (row.Side || row.Layer || row.side || row.layer || "").toString(),
+            posX: row.PosX || row.posx || row.X || row.x || 0,
+            posY: row.PosY || row.posy || row.Y || row.y || 0,
+            rotation: row.Rotation || row.rotation || row.R || row.r || 0,
+            note: row.note || "",
+          });
+        }
+      }
 
       // --- 2️⃣ Chuyển đổi và lọc dữ liệu
       const uniqueRows = [];
       const seenRefs = new Set();
-      for (const row of ppData) {
-        const designator = (row.Ref || row.Designator)?.trim();
-        if (!designator || seenRefs.has(designator)) continue;
-        seenRefs.add(designator);
+      for (const r of rawData) {
+        let designators = [r.designator.trim()];
+        if (normalizeDesignator && r.designator) {
+          designators = normalizeDesignators(r.designator);
+        }
 
-        uniqueRows.push({
-          designator,
-          layer: row.Side || row.Layer || "" || row.side || row.layer,
-          posX: parseFloat(row.PosX || 0 || row.posx || row.X || row.x),
-          posY: parseFloat(row.PosY || 0 || row.posy || row.Y || row.y),
-          rotation: parseFloat(
-            row.Rotation || 0 || row.rotation || row.R || row.r,
-          ),
-          project_id: id,
-          note: row.note || "",
-        });
+        for (const designator of designators) {
+          if (!designator || seenRefs.has(designator)) continue;
+
+          // Lọc bỏ dữ liệu bẩn (designator không đúng định dạng)
+          if (cleanDirtyData && !VALID_DESIGNATOR_RE.test(designator)) continue;
+
+          seenRefs.add(designator);
+
+          uniqueRows.push({
+            designator,
+            layer: r.layer,
+            posX: parseFloat(r.posX) || 0,
+            posY: parseFloat(r.posY) || 0,
+            rotation: parseFloat(r.rotation) || 0,
+            project_id: id,
+            note: r.note || "",
+          });
+        }
       }
 
       // --- 3️⃣ Chèn dữ liệu vào SQLite và CHỜ hoàn tất

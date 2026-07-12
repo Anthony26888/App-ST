@@ -16,7 +16,7 @@ module.exports = (io) => ({
                       SELECT 
                           p.designator,
                           b.mpn,
-                          b.description
+                          b.description,
                           p.layer,
                           p.x,
                           p.y,

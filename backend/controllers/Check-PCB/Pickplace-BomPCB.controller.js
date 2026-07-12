@@ -196,6 +196,21 @@ module.exports = (io) => ({
     });
   },
 
+  deleteItemBom(req, res) {
+    const { id } = req.params;
+    db.run(`DELETE FROM Bom WHERE project_id = ?`, [id], (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("CombineBomUpdate");
+      io.emit("RawBomHighlightUpdate");
+      res.json({ message: "Summary received" });
+    });
+  },
+
   deleteMpnTypeImage(req, res) {
     const mpn = req.params.mpn + (req.params[0] || "");
     const { image } = req.body;

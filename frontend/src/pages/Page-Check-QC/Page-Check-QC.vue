@@ -1254,7 +1254,7 @@
 
   <BaseDialog
     v-model="DialogAddBom"
-    width="600"
+    width="700"
     title="Thêm dữ liệu BOM"
     icon="mdi-file-document-plus-outline"
   >
@@ -1264,6 +1264,102 @@
       v-model="FileBom"
       name="bom"
     />
+
+    <v-expand-transition>
+      <div v-if="FileBom && fileHeadersBom.length > 0" class="mt-4">
+        <p class="text-subtitle-2 font-weight-bold text-primary mb-2">
+          Cấu hình ánh xạ cột (Header Mapping)
+        </p>
+        <v-row dense>
+          <v-col cols="6">
+            <v-select
+              v-model="mappingBom.designator"
+              :items="fileHeadersBom"
+              label="Designator (Ký hiệu) *"
+              density="compact"
+              variant="outlined"
+              hide-details="auto"
+              class="mb-2"
+            />
+          </v-col>
+          <v-col cols="6">
+            <v-select
+              v-model="mappingBom.mpn"
+              :items="fileHeadersBom"
+              label="MPN (Mã linh kiện) *"
+              density="compact"
+              variant="outlined"
+              hide-details="auto"
+              class="mb-2"
+            />
+          </v-col>
+          <v-col cols="6">
+            <v-select
+              v-model="mappingBom.description"
+              :items="fileHeadersBom"
+              label="Description (Mô tả)"
+              density="compact"
+              variant="outlined"
+              hide-details="auto"
+              class="mb-2"
+            />
+          </v-col>
+          <v-col cols="6">
+            <v-select
+              v-model="mappingBom.quantity"
+              :items="fileHeadersBom"
+              label="Quantity (Số lượng)"
+              density="compact"
+              variant="outlined"
+              hide-details="auto"
+              class="mb-2"
+            />
+          </v-col>
+          <v-col cols="12">
+            <v-select
+              v-model="mappingBom.note"
+              :items="fileHeadersBom"
+              label="Note (Ghi chú)"
+              density="compact"
+              variant="outlined"
+              hide-details="auto"
+              class="mb-2"
+            />
+          </v-col>
+        </v-row>
+
+        <p class="text-caption font-weight-bold text-grey-darken-1 mt-2 mb-1">
+          Dữ liệu mẫu sau khi ánh xạ (Xem trước 3 dòng):
+        </p>
+        <v-table density="compact" class="border rounded-lg bg-grey-lighten-5">
+          <thead>
+            <tr>
+              <th class="text-left font-weight-bold text-caption">
+                Designator
+              </th>
+              <th class="text-left font-weight-bold text-caption">MPN</th>
+              <th class="text-left font-weight-bold text-caption">
+                Description
+              </th>
+              <th class="text-left font-weight-bold text-caption">Qty</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(row, idx) in fileRowsBom" :key="idx">
+              <td class="text-caption">
+                {{ row[mappingBom.designator] || "-" }}
+              </td>
+              <td class="text-caption">{{ row[mappingBom.mpn] || "-" }}</td>
+              <td class="text-caption">
+                {{ row[mappingBom.description] || "-" }}
+              </td>
+              <td class="text-caption">{{ row[mappingBom.quantity] || 1 }}</td>
+            </tr>
+          </tbody>
+        </v-table>
+      </div>
+    </v-expand-transition>
+
     <template #actions>
       <ButtonCancel @cancel="DialogAddBom = false" />
       <ButtonSave @save="uploadBOM()" />
@@ -1271,7 +1367,7 @@
   </BaseDialog>
   <BaseDialog
     v-model="DialogAddPnP"
-    width="700"
+    width="750"
     title="Thêm dữ liệu Pick & Place"
     icon="mdi-file-document-plus-outline"
   >
@@ -1281,18 +1377,130 @@
       v-model="FilePnP"
       name="pnp"
     />
-    <div class="">
-      <p class="text-bold text-warning">Lưu ý:</p>
-      <p class="font-weight-light ms-2">
-        Giá trị PosX, PosY cần chuyển về giá trị mm.
-      </p>
-      <p class="font-weight-light ms-2">
-        Giá trị Layer thay thế là Top và Bottom.
-      </p>
-    </div>
+
+    <v-expand-transition>
+      <div v-if="FilePnP && fileHeadersPnP.length > 0" class="mt-2">
+        <p class="text-subtitle-2 font-weight-bold text-primary mb-2">
+          Cấu hình ánh xạ cột (Header Mapping)
+        </p>
+        <v-row dense>
+          <v-col cols="6">
+            <v-select
+              v-model="mappingPnP.designator"
+              :items="fileHeadersPnP"
+              label="Designator (Ký hiệu) *"
+              density="compact"
+              variant="outlined"
+              hide-details="auto"
+              class="mb-2"
+            />
+          </v-col>
+          <v-col cols="6">
+            <v-select
+              v-model="mappingPnP.mpn"
+              :items="fileHeadersPnP"
+              label="MPN (Mã linh kiện)"
+              density="compact"
+              variant="outlined"
+              hide-details="auto"
+              class="mb-2"
+            />
+          </v-col>
+          <v-col cols="6">
+            <v-select
+              v-model="mappingPnP.layer"
+              :items="fileHeadersPnP"
+              label="Layer (Side/Mặt) *"
+              density="compact"
+              variant="outlined"
+              hide-details="auto"
+              class="mb-2"
+            />
+          </v-col>
+          <v-col cols="6">
+            <v-select
+              v-model="mappingPnP.rotation"
+              :items="fileHeadersPnP"
+              label="Rotation (Góc xoay) *"
+              density="compact"
+              variant="outlined"
+              hide-details="auto"
+              class="mb-2"
+            />
+          </v-col>
+          <v-col cols="6">
+            <v-select
+              v-model="mappingPnP.posX"
+              :items="fileHeadersPnP"
+              label="PosX (Tọa độ X) *"
+              density="compact"
+              variant="outlined"
+              hide-details="auto"
+              class="mb-2"
+            />
+          </v-col>
+          <v-col cols="6">
+            <v-select
+              v-model="mappingPnP.posY"
+              :items="fileHeadersPnP"
+              label="PosY (Tọa độ Y) *"
+              density="compact"
+              variant="outlined"
+              hide-details="auto"
+              class="mb-2"
+            />
+          </v-col>
+          <v-col cols="12">
+            <v-select
+              v-model="mappingPnP.note"
+              :items="fileHeadersPnP"
+              label="Note (Ghi chú)"
+              density="compact"
+              variant="outlined"
+              hide-details="auto"
+              class="mb-2"
+            />
+          </v-col>
+        </v-row>
+
+        <p class="text-caption font-weight-bold text-grey-darken-1 mt-2 mb-1">
+          Dữ liệu mẫu sau khi ánh xạ (Xem trước 3 dòng):
+        </p>
+        <v-table
+          density="compact"
+          class="border rounded-lg bg-grey-lighten-5 mb-4"
+        >
+          <thead>
+            <tr>
+              <th class="text-left font-weight-bold text-caption">
+                Designator
+              </th>
+              <th class="text-left font-weight-bold text-caption">MPN</th>
+              <th class="text-left font-weight-bold text-caption">Layer</th>
+              <th class="text-left font-weight-bold text-caption">X, Y, Rot</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(row, idx) in fileRowsPnP" :key="idx">
+              <td class="text-caption">
+                {{ row[mappingPnP.designator] || "-" }}
+              </td>
+              <td class="text-caption">{{ row[mappingPnP.mpn] || "-" }}</td>
+              <td class="text-caption">{{ row[mappingPnP.layer] || "-" }}</td>
+              <td class="text-caption">
+                {{ row[mappingPnP.posX] || 0 }},
+                {{ row[mappingPnP.posY] || 0 }},
+                {{ row[mappingPnP.rotation] || 0 }}
+              </td>
+            </tr>
+          </tbody>
+        </v-table>
+      </div>
+    </v-expand-transition>
+
     <template #actions>
       <ButtonCancel @cancel="DialogAddPnP = false" />
-      <ButtonSave @save="uploadPNP" />
+      <ButtonSave @save="uploadPNP()" />
     </template>
   </BaseDialog>
   <BaseDialog
@@ -1534,6 +1742,8 @@ const DialogDeleteSetting = ref(false);
 const DialogDeleteAllCheckData = ref(false);
 const MessageDialog = ref("");
 const MessageErrorDialog = ref("");
+const DialogCaution = ref(false);
+const MessageCautionDialog = ref("");
 
 // --- File & Project States ---
 const project_name = ref(localStorage.getItem("ProjectQC"));
@@ -1542,6 +1752,29 @@ const FilePnP = ref(null);
 const FileTop = ref(null);
 const FileBottom = ref(null);
 const FileGoldenImage = ref(0);
+
+// --- Custom Header Mapping States ---
+const fileHeadersBom = ref([]);
+const fileRowsBom = ref([]);
+const mappingBom = ref({
+  description: "",
+  mpn: "",
+  designator: "",
+  quantity: "",
+  note: "",
+});
+
+const fileHeadersPnP = ref([]);
+const fileRowsPnP = ref([]);
+const mappingPnP = ref({
+  designator: "",
+  layer: "",
+  mpn: "",
+  posX: "",
+  posY: "",
+  rotation: "",
+  note: "",
+});
 
 // File image trong database
 const selectedLayer = ref("Top");
@@ -2637,13 +2870,203 @@ const GetPnP = (id) => {
 };
 
 /**
+ * Tìm header khớp nhất từ danh sách cột dựa trên các từ khóa gợi ý
+ */
+const findBestMatch = (headers, targets) => {
+  for (const target of targets) {
+    const match = headers.find(
+      (h) =>
+        h.toLowerCase().replace(/[^a-z0-9]/g, "") ===
+        target.toLowerCase().replace(/[^a-z0-9]/g, ""),
+    );
+    if (match) return match;
+  }
+  for (const target of targets) {
+    const match = headers.find((h) =>
+      h.toLowerCase().includes(target.toLowerCase()),
+    );
+    if (match) return match;
+  }
+  return "";
+};
+
+const autoMapBom = (headers) => {
+  mappingBom.value.description = findBestMatch(headers, [
+    "description",
+    "desc",
+    "mô tả",
+    "mo ta",
+    "chi tiết",
+    "chi tiet",
+  ]);
+  mappingBom.value.mpn = findBestMatch(headers, [
+    "mpn",
+    "comment",
+    "mã linh kiện",
+    "ma linh kien",
+    "part number",
+    "partnumber",
+  ]);
+  mappingBom.value.designator = findBestMatch(headers, [
+    "designator",
+    "reference",
+    "ref",
+    "refdes",
+    "ký hiệu",
+    "ky hieu",
+  ]);
+  mappingBom.value.quantity = findBestMatch(headers, [
+    "quantity",
+    "qty",
+    "số lượng",
+    "so luong",
+  ]);
+  mappingBom.value.note = findBestMatch(headers, [
+    "note",
+    "notes",
+    "ghi chú",
+    "ghi chu",
+  ]);
+};
+
+const autoMapPnP = (headers) => {
+  mappingPnP.value.designator = findBestMatch(headers, [
+    "designator",
+    "ref",
+    "refdes",
+    "reference",
+    "ký hiệu",
+    "ky hieu",
+  ]);
+  mappingPnP.value.layer = findBestMatch(headers, [
+    "layer",
+    "side",
+    "mặt",
+    "mat",
+    "layer replacement",
+  ]);
+  mappingPnP.value.mpn = findBestMatch(headers, [
+    "mpn",
+    "comment",
+    "part number",
+    "partnumber",
+  ]);
+  mappingPnP.value.posX = findBestMatch(headers, [
+    "posx",
+    "x",
+    "position x",
+    "tọa độ x",
+    "toa do x",
+  ]);
+  mappingPnP.value.posY = findBestMatch(headers, [
+    "posy",
+    "y",
+    "position y",
+    "tọa độ y",
+    "toa do y",
+  ]);
+  mappingPnP.value.rotation = findBestMatch(headers, [
+    "rotation",
+    "rot",
+    "r",
+    "angle",
+    "góc",
+    "goc",
+  ]);
+  mappingPnP.value.note = findBestMatch(headers, [
+    "note",
+    "notes",
+    "ghi chú",
+    "ghi chu",
+  ]);
+};
+
+const parseHeaders = (file, type) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+        if (rows.length > 0) {
+          const headers = Object.keys(rows[0]);
+          if (type === "bom") {
+            fileHeadersBom.value = headers;
+            fileRowsBom.value = rows.slice(0, 3);
+            autoMapBom(headers);
+          } else {
+            fileHeadersPnP.value = headers;
+            fileRowsPnP.value = rows.slice(0, 3);
+            autoMapPnP(headers);
+          }
+        }
+      } catch (err) {
+        console.error("Lỗi đọc Excel:", err);
+      }
+      resolve();
+    };
+    reader.readAsArrayBuffer(file);
+  });
+};
+
+watch(FileBom, async (newVal) => {
+  if (!newVal) {
+    fileHeadersBom.value = [];
+    fileRowsBom.value = [];
+    mappingBom.value = {
+      description: "",
+      mpn: "",
+      designator: "",
+      quantity: "",
+      note: "",
+    };
+    return;
+  }
+  await parseHeaders(newVal, "bom");
+});
+
+watch(FilePnP, async (newVal) => {
+  if (!newVal) {
+    fileHeadersPnP.value = [];
+    fileRowsPnP.value = [];
+    mappingPnP.value = {
+      designator: "",
+      layer: "",
+      mpn: "",
+      posX: "",
+      posY: "",
+      rotation: "",
+      note: "",
+    };
+    return;
+  }
+  await parseHeaders(newVal, "pnp");
+});
+
+/**
  * Upload file BOM (.xlsx) lên server và cập nhật danh sách BOM cho project
  */
 const uploadBOM = async () => {
+  if (fileHeadersBom.value.length > 0) {
+    if (!mappingBom.value.designator || !mappingBom.value.mpn) {
+      DialogCaution.value = true;
+      MessageCautionDialog.value =
+        "Vui lòng chọn cột Designator và MPN bắt buộc";
+      return;
+    }
+  }
+
   DialogLoading.value = true;
   try {
     const formData = new FormData();
     formData.append("FileBom", FileBom.value);
+    if (fileHeadersBom.value.length > 0) {
+      formData.append("mapping", JSON.stringify(mappingBom.value));
+    }
 
     // Bây giờ Backend đã phản hồi, await sẽ kết thúc tại đây
     await axios.post(`${Url}/UploadQC/upload-bom-qc/${id}`, formData);
@@ -2666,10 +3089,28 @@ const uploadBOM = async () => {
  * Upload file Pick & Place (.xlsx) lên server và cập nhật tọa độ linh kiện
  */
 const uploadPNP = async () => {
+  if (fileHeadersPnP.value.length > 0) {
+    if (
+      !mappingPnP.value.designator ||
+      !mappingPnP.value.layer ||
+      !mappingPnP.value.posX ||
+      !mappingPnP.value.posY ||
+      !mappingPnP.value.rotation
+    ) {
+      DialogCaution.value = true;
+      MessageCautionDialog.value =
+        "Vui lòng chọn đầy đủ các cột bắt buộc: Designator, Layer, PosX, PosY, Rotation";
+      return;
+    }
+  }
+
   DialogLoading.value = true;
   try {
     const formData = new FormData();
     formData.append("FilePnP", FilePnP.value);
+    if (fileHeadersPnP.value.length > 0) {
+      formData.append("mapping", JSON.stringify(mappingPnP.value));
+    }
     await axios.post(`${Url}/UploadQC/upload-pickplace-qc/${id}`, formData);
     DialogSuccess.value = true;
     MessageDialog.value = "Upload Pick&Place thành công";

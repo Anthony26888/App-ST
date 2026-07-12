@@ -687,7 +687,10 @@ const submitBarcode = async () => {
   });
 
   try {
-    const response = await axios.post(`${Url}/ManufactureCounting`, formData);
+    const response = await axios.post(
+      `${Url}/Manufacture/ManufactureCounting/Add-item`,
+      formData,
+    );
     DialogLoading.value = false;
 
     // Reset các giá trị sau khi thành công
@@ -721,38 +724,12 @@ const GetItemHistory = (item) => {
   GetID.value = item.id;
 };
 
-const markAsFixed = async () => {
-  DialogFixed.value = true;
-  const formData = reactive({
-    PlanID: PlanID.value,
-    Type: Type_Manufacture.value,
-  });
-  try {
-    const response = await axios.put(
-      `${Url}/ManufactureCounting/Edit-status-fixed/${GetID.value}`,
-      formData,
-    );
-    // Refresh the data after successful update
-    DialogFixed.value = false;
-    DialogLoading.value = true;
-    DialogSuccess.value = true;
-    MessageDialog.value = "Sản phẩm đã được sửa lỗi hoàn tất";
-  } catch (error) {
-    DialogFixed.value = false;
-    DialogLoading.value = true;
-    DialogFailed.value = true;
-    MessageErrorDialog.value = "Sản phẩm đã được sửa lỗi hoàn tất";
-  } finally {
-    DialogLoading.value = false;
-  }
-};
-
 // Hàm xóa item lịch sử sản xuất
 const RemoveItemHistory = async () => {
   DialogLoading.value = true;
   try {
     const response = await axios.delete(
-      `${Url}/ManufactureCounting/Delete-item-history/${GetID.value}?PlanID=${PlanID.value}&Type=${Type_Manufacture.value}`,
+      `${Url}/Manufacture/ManufactureCounting/Delete-item-history/${GetID.value}?PlanID=${PlanID.value}&Type=${Type_Manufacture.value}`,
     );
     DialogSuccess.value = true;
     DialogLoading.value = false;

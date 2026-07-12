@@ -1807,7 +1807,7 @@ const SaveEdit = async () => {
 
   try {
     const response = await axios.put(
-      `${Url}/Summary/Edit-item/${GetID.value}`,
+      `${Url}/Manufacture/Summary/Edit-item/${GetID.value}`,
       formData,
     );
     MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
@@ -1847,7 +1847,10 @@ const SaveAdd = async () => {
     Surface: Surface_Add.value,
   });
   try {
-    const response = await axios.post(`${Url}/Summary/Add-item`, formData);
+    const response = await axios.post(
+      `${Url}/Manufacture/Summary/Add-item`,
+      formData,
+    );
     MessageDialog.value = "Thêm dữ liệu thành công";
     DialogSuccess.value = true;
     DialogAdd.value = false;
@@ -1884,7 +1887,10 @@ const CompleteItem = async () => {
   });
 
   try {
-    const response = await axios.post(`${Url}/ManufactureCounting`, formData);
+    const response = await axios.post(
+      `${Url}/Manufacture/ManufactureCounting/Add-item`,
+      formData,
+    );
     DialogLoading.value = false;
 
     // Reset các giá trị sau khi thành công
@@ -1906,12 +1912,13 @@ const RemoveItem = async () => {
   DialogLoading.value = true;
   try {
     const response = await axios.delete(
-      `${Url}/Summary/Delete-item/${GetID.value}?PlanID=${route.params.id}&Type=${Type_Edit.value}`,
+      `${Url}/Manufacture/Summary/Delete-item/${GetID.value}?PlanID=${route.params.id}&Type=${Type_Edit.value}`,
     );
     MessageDialog.value = "Xoá dữ liệu thành công";
     DialogSuccess.value = true;
     DialogRemove.value = false;
     DialogLoading.value = false;
+    DialogEdit.value = false;
   } catch (error) {
     MessageErrorDialog.value = "Xoá dữ liệu thất bạị";
     DialogFailed.value = true;
@@ -1924,7 +1931,7 @@ const RemoveItemHistory = async () => {
   DialogLoading.value = true;
   try {
     const response = await axios.delete(
-      `${Url}/Manufacture/Delete-item-history/${GetIDHistory.value}?table=${GetSourceHistory.value}`,
+      `${Url}/Manufacture/ManufactureCounting/Delete-item-history/${GetIDHistory.value}?table=${GetSourceHistory.value}`,
     );
     MessageDialog.value = "Xoá dữ liệu thành công";
     Reset();

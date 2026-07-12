@@ -28,6 +28,15 @@ module.exports = (io) => ({
         blankrows: false,
       });
 
+      let mapping = null;
+      if (req.body.mapping) {
+        try {
+          mapping = JSON.parse(req.body.mapping);
+        } catch (e) {
+          console.error("Lỗi parse mapping BOM:", e);
+        }
+      }
+
       db.serialize(() => {
         const stmtBom = db.prepare(`
         INSERT INTO BomQC
@@ -43,13 +52,27 @@ module.exports = (io) => ({
       `);
 
         rows.forEach((row) => {
+          const descriptionVal = (mapping && mapping.description) ? row[mapping.description] : (row.Description || "");
+          const mpnVal = (mapping && mapping.mpn) ? row[mapping.mpn] : (row.MPN || row.Comment || "");
+          const designatorVal = (mapping && mapping.designator) ? row[mapping.designator] : (row["Reference(s)"] || row.Designator || "");
+          
+          let qtyVal = 1;
+          if (mapping && mapping.quantity) {
+            qtyVal = Number(row[mapping.quantity]);
+          } else {
+            qtyVal = Number(row.Quantity || row.QTY || row.qty || 1);
+          }
+          if (isNaN(qtyVal)) qtyVal = 1;
+
+          const noteVal = (mapping && mapping.note) ? row[mapping.note] : (row.note || row.Note || row.notes || row.Notes || "");
+
           stmtBom.run(
-            row.Description || "",
-            row.MPN || row.Comment || "",
-            row["Reference(s)"] || row.Designator || "",
-            Number(row.Quantity || row.QTY || row.qty || 1),
+            descriptionVal || "",
+            mpnVal || "",
+            designatorVal || "",
+            qtyVal,
             projectId,
-            row.note || row.Note || row.notes || row.Notes || "",
+            noteVal || "",
           );
         });
 
@@ -111,25 +134,40 @@ module.exports = (io) => ({
         blankrows: false,
       });
 
+      let mapping = null;
+      if (req.body.mapping) {
+        try {
+          mapping = JSON.parse(req.body.mapping);
+        } catch (e) {
+          console.error("Lỗi parse mapping PickPlace:", e);
+        }
+      }
+
       // --- 2️⃣ Chuyển đổi và lọc dữ liệu
       const uniqueRows = [];
       const seenRefs = new Set();
       for (const row of ppData) {
-        const designator = (row.Ref || row.Designator)?.trim();
+        const designator = ((mapping && mapping.designator) ? row[mapping.designator] : (row.Ref || row.Designator))?.trim();
         if (!designator || seenRefs.has(designator)) continue;
         seenRefs.add(designator);
 
+        const layerVal = (mapping && mapping.layer) ? row[mapping.layer] : (row.Side || row.Layer || "" || row.side || row.layer);
+        const mpnVal = (mapping && mapping.mpn) ? row[mapping.mpn] : (row.MPN || row.mpn || "");
+        
+        const posXVal = parseFloat((mapping && mapping.posX) ? row[mapping.posX] : (row.PosX || 0 || row.posx || row.X || row.x));
+        const posYVal = parseFloat((mapping && mapping.posY) ? row[mapping.posY] : (row.PosY || 0 || row.posy || row.Y || row.y));
+        const rotationVal = parseFloat((mapping && mapping.rotation) ? row[mapping.rotation] : (row.Rotation || 0 || row.rotation || row.R || row.r));
+        const noteVal = (mapping && mapping.note) ? row[mapping.note] : (row.note || "");
+
         uniqueRows.push({
           designator,
-          layer: row.Side || row.Layer || "" || row.side || row.layer,
-          mpn: row.MPN || row.mpn || "",
-          posX: parseFloat(row.PosX || 0 || row.posx || row.X || row.x),
-          posY: parseFloat(row.PosY || 0 || row.posy || row.Y || row.y),
-          rotation: parseFloat(
-            row.Rotation || 0 || row.rotation || row.R || row.r,
-          ),
+          layer: layerVal || "",
+          mpn: mpnVal || "",
+          posX: isNaN(posXVal) ? 0 : posXVal,
+          posY: isNaN(posYVal) ? 0 : posYVal,
+          rotation: isNaN(rotationVal) ? 0 : rotationVal,
           project_id: id,
-          note: row.note || "",
+          note: noteVal || "",
         });
       }
 

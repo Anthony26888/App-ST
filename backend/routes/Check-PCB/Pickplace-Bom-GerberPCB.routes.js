@@ -29,6 +29,8 @@ module.exports = (io) => {
     controller.deleteItemBomHighlight,
   );
 
+  router.delete("/Delete-item-bom/:id", controller.deleteItemBom);
+
   router.delete(
     "/Delete-item-mpntype-image/:mpn*",
     controller.deleteMpnTypeImage,

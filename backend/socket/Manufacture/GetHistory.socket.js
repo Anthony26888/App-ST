@@ -25,7 +25,6 @@ module.exports = (socket) => {
                           a.Line_SMT,
                           a.Time_Plan,
                           a.CycleTime_Plan,
-                          a.Action,
                           c.Quantity,
                           a.Surface,
                           a.Note,

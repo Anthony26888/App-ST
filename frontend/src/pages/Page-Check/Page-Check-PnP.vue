@@ -77,7 +77,7 @@
 
     <v-card-text>
       <v-card variant="elevated" elevation="0" class="rounded-xl border">
-        <v-tabs v-model="tab" align-tabs="center" color="deep-orange">
+        <v-tabs v-model="tab" align-tabs="center" color="primary">
           <v-tab :value="0" class="text-caption">Bom</v-tab>
           <v-tab :value="1" class="text-caption">Pick & Place</v-tab>
           <v-tab :value="2" class="text-caption">Tính toán PnP</v-tab>
@@ -1168,6 +1168,7 @@
                               fill="none"
                               xmlns="http://www.w3.org/2000/svg"
                             >
+                              <!-- Crosshair lines -->
                               <line
                                 x1="0"
                                 y1="50"
@@ -1186,6 +1187,30 @@
                               />
 
                               <circle cx="50" cy="50" r="2" fill="#D32F2F" />
+
+                              <!-- Directional arrow based on rotation -->
+                              <!-- Arrow group centered at (50,50), rotated per component rotation -->
+                              <!-- 0°=left, 90°=up, 180°=right, 270°=down -->
+                              <g
+                                :transform="`rotate(${dialogRotation}, 50, 50)`"
+                              >
+                                <!-- Arrow pointing LEFT at 0° -->
+                                <!-- Shaft from center to left edge -->
+                                <line
+                                  x1="50"
+                                  y1="50"
+                                  x2="12"
+                                  y2="50"
+                                  stroke="#1565C0"
+                                  stroke-width="2.5"
+                                  stroke-linecap="round"
+                                />
+                                <!-- Arrowhead pointing left -->
+                                <polygon
+                                  points="8,50 16,45 16,55"
+                                  fill="#1565C0"
+                                />
+                              </g>
                             </svg>
                           </div>
                         </div>
@@ -1211,7 +1236,7 @@
 
   <BaseDialog
     v-model="DialogAddBom"
-    width="600"
+    width="800"
     title="Thêm dữ liệu BOM"
     icon="mdi-plus"
   >
@@ -1221,6 +1246,156 @@
       v-model="FileBom"
       name="bom"
     />
+    <div v-if="FileBom" class="mt-4">
+      <v-divider class="mb-4"></v-divider>
+      <div class="d-flex justify-space-between align-center mb-5">
+        <div class="d-flex align-center">
+          <span class="text-caption text-grey me-2">Dòng tiêu đề:</span>
+          <v-select
+            v-model="BomSelectedHeaderRow"
+            :items="
+              [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(
+                (i) => ({ title: `Dòng ${i + 1}`, value: i }),
+              )
+            "
+            density="compact"
+            variant="outlined"
+            hide-details
+            style="max-width: 130px; height: 32px"
+            class="elevation-0"
+          ></v-select>
+        </div>
+      </div>
+      <v-row density="compact" class="mb-1">
+        <v-col cols="6" md="4">
+          <v-select
+            v-model="BomMapping.designator"
+            :items="BomHeaders"
+            item-title="title"
+            item-value="value"
+            label="Designator / Ref"
+            density="compact"
+            variant="outlined"
+            hide-details
+          ></v-select>
+        </v-col>
+        <v-col cols="6" md="4">
+          <v-select
+            v-model="BomMapping.mpn"
+            :items="BomHeaders"
+            item-title="title"
+            item-value="value"
+            label="MPN / Comment"
+            density="compact"
+            variant="outlined"
+            hide-details
+          ></v-select>
+        </v-col>
+        <v-col cols="6" md="4">
+          <v-select
+            v-model="BomMapping.mpn2"
+            :items="BomHeaders"
+            item-title="title"
+            item-value="value"
+            label="MPN 2"
+            density="compact"
+            variant="outlined"
+            hide-details
+            clearable
+          ></v-select>
+        </v-col>
+        <v-col cols="6" md="4">
+          <v-select
+            v-model="BomMapping.mpn3"
+            :items="BomHeaders"
+            item-title="title"
+            item-value="value"
+            label="MPN 3"
+            density="compact"
+            variant="outlined"
+            hide-details
+            clearable
+          ></v-select>
+        </v-col>
+        <v-col cols="6" md="4">
+          <v-select
+            v-model="BomMapping.quantity"
+            :items="BomHeaders"
+            item-title="title"
+            item-value="value"
+            label="Quantity"
+            density="compact"
+            variant="outlined"
+            hide-details
+          ></v-select>
+        </v-col>
+        <v-col cols="6" md="4">
+          <v-select
+            v-model="BomMapping.description"
+            :items="BomHeaders"
+            item-title="title"
+            item-value="value"
+            label="Description"
+            density="compact"
+            variant="outlined"
+            hide-details
+            clearable
+          ></v-select>
+        </v-col>
+        <v-col cols="6" md="4">
+          <v-select
+            v-model="BomMapping.note"
+            :items="BomHeaders"
+            item-title="title"
+            item-value="value"
+            label="Note"
+            density="compact"
+            variant="outlined"
+            hide-details
+            clearable
+          ></v-select>
+        </v-col>
+      </v-row>
+
+      <p class="text-subtitle-2 mb-0 me-4 mt-2">
+        Bản xem trước dữ liệu (Preview)
+      </p>
+      <v-table density="compact" class="border rounded mt-2">
+        <thead>
+          <tr class="bg-grey-lighten-4">
+            <th class="py-2">
+              <span class="text-caption font-weight-bold">Designator</span>
+            </th>
+            <th class="py-2">
+              <span class="text-caption font-weight-bold">MPN</span>
+            </th>
+            <th class="py-2">
+              <span class="text-caption font-weight-bold">Quantity</span>
+            </th>
+            <th class="py-2">
+              <span class="text-caption font-weight-bold">Description</span>
+            </th>
+            <th class="py-2">
+              <span class="text-caption font-weight-bold">Note</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(item, i) in BomPreviewMapped" :key="i">
+            <td class="text-caption">{{ item.designator }}</td>
+            <td class="text-caption">{{ item.mpn }}</td>
+            <td class="text-caption">{{ item.quantity }}</td>
+            <td class="text-caption">{{ item.description }}</td>
+            <td class="text-caption">{{ item.note }}</td>
+          </tr>
+          <tr v-if="BomPreviewMapped.length === 0">
+            <td colspan="5" class="text-center text-grey py-4 text-caption">
+              Không có dữ liệu (Vui lòng kiểm tra lại Dòng tiêu đề)
+            </td>
+          </tr>
+        </tbody>
+      </v-table>
+    </div>
     <template #actions>
       <ButtonCancel @cancel="DialogAddBom = false" />
       <ButtonSave @save="uploadBOM()" />
@@ -1245,7 +1420,7 @@
   </BaseDialog>
   <BaseDialog
     v-model="DialogAddPnP"
-    width="700"
+    width="800"
     title="Thêm dữ liệu Pick & Place"
     icon="mdi-plus"
   >
@@ -1255,13 +1430,182 @@
       v-model="FilePnP"
       name="pnp"
     />
-    <div class="">
+    <div v-if="FilePnP" class="mt-4">
+      <v-divider class="mb-4"></v-divider>
+      <p class="text-subtitle-2 mb-2 me-4">
+        Lựa chọn các cột tương ứng trong file Pickplace
+      </p>
+      <v-row density="compact" class="mb-1">
+        <v-col cols="6" md="4">
+          <v-select
+            v-model="PnPMapping.designator"
+            :items="PnPHeaders"
+            item-title="title"
+            item-value="value"
+            label="Designator / Ref"
+            density="compact"
+            variant="outlined"
+            hide-details
+          ></v-select>
+        </v-col>
+        <v-col cols="6" md="4">
+          <v-select
+            v-model="PnPMapping.layer"
+            :items="PnPHeaders"
+            item-title="title"
+            item-value="value"
+            label="Layer / Side"
+            density="compact"
+            variant="outlined"
+            hide-details
+          ></v-select>
+        </v-col>
+        <v-col cols="6" md="4">
+          <v-select
+            v-model="PnPMapping.posX"
+            :items="PnPHeaders"
+            item-title="title"
+            item-value="value"
+            label="X (mm)"
+            density="compact"
+            variant="outlined"
+            hide-details
+          ></v-select>
+        </v-col>
+        <v-col cols="6" md="4">
+          <v-select
+            v-model="PnPMapping.posY"
+            :items="PnPHeaders"
+            item-title="title"
+            item-value="value"
+            label="Y (mm)"
+            density="compact"
+            variant="outlined"
+            hide-details
+          ></v-select>
+        </v-col>
+        <v-col cols="6" md="4">
+          <v-select
+            v-model="PnPMapping.rotation"
+            :items="PnPHeaders"
+            item-title="title"
+            item-value="value"
+            label="Rotation"
+            density="compact"
+            variant="outlined"
+            hide-details
+          ></v-select>
+        </v-col>
+        <v-col cols="6" md="4">
+          <v-select
+            v-model="PnPMapping.note"
+            :items="PnPHeaders"
+            item-title="title"
+            item-value="value"
+            label="Note (Tuỳ chọn)"
+            density="compact"
+            variant="outlined"
+            hide-details
+            clearable
+          ></v-select>
+        </v-col>
+      </v-row>
+      <div class="d-flex flex-wrap gap-2 align-center">
+        <v-checkbox
+          v-model="PnPNormalizeDesignator"
+          label="Chuẩn hoá Designator (VD: R1-R10)"
+          density="compact"
+          hide-details
+          color="primary"
+        ></v-checkbox>
+        <v-checkbox
+          v-model="PnPCleanDirtyData"
+          density="compact"
+          hide-details
+          color="warning"
+        >
+          <template #label>
+            <span class="text-body-2">
+              Loại bỏ dữ liệu bẩn
+              <v-tooltip location="top" max-width="300">
+                <template #activator="{ props }">
+                  <v-icon v-bind="props" size="14" class="ml-1" color="grey"
+                    >mdi-information-outline</v-icon
+                  >
+                </template>
+                Lọc bỏ các dòng có Designator không đúng định dạng chuẩn (ví dụ:
+                thiếu chữ cái đầu, chứa ký tự đặc biệt không hợp lệ, ô
+                trống...). Chỉ giữ lại các ref hợp lệ như R1, C10, U5...
+              </v-tooltip>
+            </span>
+          </template>
+        </v-checkbox>
+      </div>
+      <v-divider class="mb-4"></v-divider>
+      <p class="text-subtitle-2 mb-0 me-4">Bản xem trước dữ liệu (Preview)</p>
+      <v-table density="compact" class="border rounded">
+        <thead>
+          <tr class="bg-grey-lighten-4">
+            <th class="py-2">
+              <span class="text-caption font-weight-bold"
+                >Designator / Ref</span
+              >
+            </th>
+            <th class="py-2">
+              <span class="text-caption font-weight-bold">Layer / Side</span>
+            </th>
+            <th class="py-2">
+              <span class="text-caption font-weight-bold">X (mm)</span>
+            </th>
+            <th class="py-2">
+              <span class="text-caption font-weight-bold">Y (mm)</span>
+            </th>
+            <th class="py-2">
+              <span class="text-caption font-weight-bold">Rotation</span>
+            </th>
+            <th class="py-2">
+              <span class="text-caption font-weight-bold">Note</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="(item, i) in PnPPreviewMapped"
+            :key="i"
+            :class="{ 'bg-orange-lighten-5': item._dirty }"
+          >
+            <td class="text-caption">
+              <span :class="item._dirty ? 'text-orange-darken-3' : ''">{{
+                item.designator
+              }}</span>
+              <v-chip
+                v-if="item._dirty"
+                size="x-small"
+                color="warning"
+                variant="tonal"
+                class="ml-1"
+                >bẩn</v-chip
+              >
+            </td>
+            <td class="text-caption">{{ item.layer }}</td>
+            <td class="text-caption">{{ item.posX }}</td>
+            <td class="text-caption">{{ item.posY }}</td>
+            <td class="text-caption">{{ item.rotation }}</td>
+            <td class="text-caption">{{ item.note }}</td>
+          </tr>
+          <tr v-if="PnPPreviewMapped.length === 0">
+            <td colspan="6" class="text-center text-grey py-4 text-caption">
+              Không có dữ liệu (Vui lòng kiểm tra lại Dòng tiêu đề)
+            </td>
+          </tr>
+        </tbody>
+      </v-table>
+    </div>
+
+    <div v-else class="mt-4">
       <p class="text-bold text-warning">Lưu ý:</p>
       <p class="font-weight-light ms-2">
-        Giá trị PosX, PosY cần chuyển về giá trị mm.
-      </p>
-      <p class="font-weight-light ms-2">
-        Giá trị Layer thay thế là Top và Bottom.
+        Vui lòng chọn file để tiến hành mapping.
       </p>
     </div>
     <template #actions>
@@ -2287,8 +2631,94 @@ const tab = ref(null);
 // --- File & Project States ---
 const project_name = ref(localStorage.getItem("BomName"));
 const FileBom = ref(null);
+const BomHeaders = ref([]);
+const BomPreviewRows = ref([]);
+const BomSelectedHeaderRow = ref(0);
+const BomMapping = ref({
+  description: "",
+  mpn: "",
+  mpn2: "",
+  mpn3: "",
+  designator: "",
+  quantity: "",
+  note: "",
+});
+const BomNormalizeDesignator = ref(true);
+
+const BomPreviewMapped = computed(() => {
+  if (!BomPreviewRows.value || BomPreviewRows.value.length === 0) return [];
+  const startRow = parseInt(BomSelectedHeaderRow.value) + 1;
+  const rawData = BomPreviewRows.value.slice(startRow);
+  const mapped = [];
+  for (const row of rawData) {
+    if (!row || row.length === 0) continue;
+    mapped.push({
+      description:
+        BomMapping.value.description !== ""
+          ? row[BomMapping.value.description]
+          : "",
+      mpn: BomMapping.value.mpn !== "" ? row[BomMapping.value.mpn] : "",
+      mpn2: BomMapping.value.mpn2 !== "" ? row[BomMapping.value.mpn2] : "",
+      mpn3: BomMapping.value.mpn3 !== "" ? row[BomMapping.value.mpn3] : "",
+      designator:
+        BomMapping.value.designator !== ""
+          ? row[BomMapping.value.designator]
+          : "",
+      quantity:
+        BomMapping.value.quantity !== "" ? row[BomMapping.value.quantity] : "",
+      note: BomMapping.value.note !== "" ? row[BomMapping.value.note] : "",
+    });
+  }
+  return mapped;
+});
+
 const FileBomMountType = ref(null);
 const FilePnP = ref(null);
+const PnPHeaders = ref([]);
+const PnPPreviewRows = ref([]);
+const PnPSelectedHeaderRow = ref(0);
+const PnPMapping = ref({
+  designator: "",
+  layer: "",
+  posX: "",
+  posY: "",
+  rotation: "",
+  note: "",
+});
+const PnPNormalizeDesignator = ref(true);
+const PnPCleanDirtyData = ref(false);
+
+// Regex chuẩn designator: bắt đầu bằng chữ cái, tiếp theo là số (VD: R1, C10, U5, FB3)
+const VALID_DESIGNATOR_RE = /^[A-Za-z]+\d+[A-Za-z0-9]*$/;
+
+const PnPPreviewMapped = computed(() => {
+  if (!PnPPreviewRows.value || PnPPreviewRows.value.length === 0) return [];
+  const startRow = parseInt(PnPSelectedHeaderRow.value) + 1;
+  const rawData = PnPPreviewRows.value.slice(startRow);
+  const mapped = [];
+  for (const row of rawData) {
+    if (!row || row.length === 0) continue;
+    const designator =
+      PnPMapping.value.designator !== ""
+        ? row[PnPMapping.value.designator]
+        : "";
+    const designatorStr = designator != null ? String(designator).trim() : "";
+    const isDirty = !VALID_DESIGNATOR_RE.test(designatorStr);
+    if (PnPCleanDirtyData.value && isDirty) continue;
+    mapped.push({
+      designator: designatorStr,
+      layer: PnPMapping.value.layer !== "" ? row[PnPMapping.value.layer] : "",
+      posX: PnPMapping.value.posX !== "" ? row[PnPMapping.value.posX] : "",
+      posY: PnPMapping.value.posY !== "" ? row[PnPMapping.value.posY] : "",
+      rotation:
+        PnPMapping.value.rotation !== "" ? row[PnPMapping.value.rotation] : "",
+      note: PnPMapping.value.note !== "" ? row[PnPMapping.value.note] : "",
+      _dirty: isDirty,
+    });
+  }
+  return mapped;
+});
+
 const FileGerber = ref(null);
 const LayerGerber = ref("Top");
 const gerberFileList = ref([]);
@@ -2360,6 +2790,7 @@ const ResultSearch = ref(null);
 // --- Diaglog Image States ---
 const dialogOpen = ref(false);
 const dialogImageUrl = ref("");
+const dialogRotation = ref(0);
 
 // --- Table & Data States ---
 const Headers = [
@@ -2971,6 +3402,10 @@ const uploadBOM = async () => {
   try {
     const formData = new FormData();
     formData.append("FileBom", FileBom.value);
+    formData.append("headerRowIndex", BomSelectedHeaderRow.value);
+    formData.append("columnMapping", JSON.stringify(BomMapping.value));
+    formData.append("normalizeDesignator", BomNormalizeDesignator.value);
+
     await axios.post(`${Url}/UploadPCB/upload-bom-pcb/${id}`, formData);
     DialogSuccess.value = true;
     MessageDialog.value = "Upload Bom thành công";
@@ -3014,6 +3449,11 @@ const uploadPNP = async () => {
   try {
     const formData = new FormData();
     formData.append("FilePnP", FilePnP.value);
+    formData.append("headerRowIndex", PnPSelectedHeaderRow.value);
+    formData.append("columnMapping", JSON.stringify(PnPMapping.value));
+    formData.append("normalizeDesignator", PnPNormalizeDesignator.value);
+    formData.append("cleanDirtyData", PnPCleanDirtyData.value);
+
     await axios.post(`${Url}/UploadPCB/upload-pickplace-pcb/${id}`, formData);
     DialogSuccess.value = true;
     MessageDialog.value = "Upload Pick&Place thành công";
@@ -3027,6 +3467,122 @@ const uploadPNP = async () => {
     DialogLoading.value = false;
   }
 };
+
+watch(FilePnP, async (newFile) => {
+  if (newFile) {
+    try {
+      const arrayBuffer = await newFile.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: "array" });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+        header: 1,
+        defval: "",
+        blankrows: true,
+      });
+
+      PnPPreviewRows.value = jsonData.slice(0, 5);
+      PnPSelectedHeaderRow.value = 0;
+      updatePnPHeaders();
+    } catch (error) {
+      console.error("Lỗi đọc file PnP", error);
+    }
+  } else {
+    PnPPreviewRows.value = [];
+    PnPHeaders.value = [];
+  }
+});
+
+watch(FileBom, async (newFile) => {
+  if (newFile) {
+    try {
+      const arrayBuffer = await newFile.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: "array" });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+        header: 1,
+        defval: "",
+        blankrows: true,
+      });
+
+      BomPreviewRows.value = jsonData.slice(0, 5);
+      BomSelectedHeaderRow.value = 0;
+      updateBomHeaders();
+    } catch (error) {
+      console.error("Lỗi đọc file BOM", error);
+    }
+  } else {
+    BomPreviewRows.value = [];
+    BomHeaders.value = [];
+  }
+});
+
+const updateBomHeaders = () => {
+  if (BomPreviewRows.value.length > BomSelectedHeaderRow.value) {
+    const row = BomPreviewRows.value[BomSelectedHeaderRow.value];
+    BomHeaders.value = row
+      ? row.map((h, i) => ({ title: h || `Cột ${i + 1}`, value: i }))
+      : [];
+
+    const getMatch = (h, regex) => regex.test(String(h.title).toLowerCase());
+
+    BomMapping.value = {
+      description:
+        BomHeaders.value.find((h) => getMatch(h, /desc/))?.value ?? "",
+      mpn:
+        BomHeaders.value.find((h) => getMatch(h, /mpn|comment|part/))?.value ??
+        "",
+      mpn2: BomHeaders.value.find((h) => getMatch(h, /mpn2/))?.value ?? "",
+      mpn3: BomHeaders.value.find((h) => getMatch(h, /mpn3/))?.value ?? "",
+      designator:
+        BomHeaders.value.find((h) => getMatch(h, /ref|des|designator/))
+          ?.value ?? "",
+      quantity:
+        BomHeaders.value.find((h) => getMatch(h, /qty|quantity/))?.value ?? "",
+      note:
+        BomHeaders.value.find((h) => getMatch(h, /note|remark/))?.value ?? "",
+    };
+  }
+};
+
+watch(BomSelectedHeaderRow, updateBomHeaders);
+
+const updatePnPHeaders = () => {
+  if (PnPPreviewRows.value.length > PnPSelectedHeaderRow.value) {
+    const row = PnPPreviewRows.value[PnPSelectedHeaderRow.value];
+    PnPHeaders.value = row
+      ? row.map((h, i) => ({ title: h || `Cột ${i + 1}`, value: i }))
+      : [];
+
+    // Auto-map based on common keywords
+    const getMatch = (h, regex) => regex.test(String(h.title).toLowerCase());
+
+    PnPMapping.value = {
+      designator:
+        PnPHeaders.value.find((h) => getMatch(h, /ref|des|designator/))
+          ?.value ?? "",
+      layer:
+        PnPHeaders.value.find((h) => getMatch(h, /layer|side/))?.value ?? "",
+      posX:
+        PnPHeaders.value.find((h) =>
+          getMatch(h, /\bx\b|posx|mid x|ref x|pad x/),
+        )?.value ?? "",
+      posY:
+        PnPHeaders.value.find((h) =>
+          getMatch(h, /\by\b|posy|mid y|ref y|pad y/),
+        )?.value ?? "",
+      rotation:
+        PnPHeaders.value.find((h) => getMatch(h, /\br\b|rot|rotation/))
+          ?.value ?? "",
+      note:
+        PnPHeaders.value.find((h) => getMatch(h, /note|comment|desc/))?.value ??
+        "",
+    };
+  }
+};
+
+watch(PnPSelectedHeaderRow, updatePnPHeaders);
 
 // --- 7.3 Gerber File Dialog Actions ---
 /** Xóa một file Gerber khỏi danh sách theo index
@@ -3446,6 +4002,9 @@ const DeleteAllBomHighlight = async () => {
     await axios.delete(
       `${Url}/Pickplace-BomPCB/Delete-item-bomhighlight/${id}`,
     );
+
+    await axios.delete(`${Url}/Pickplace-BomPCB/Delete-item-bom/${id}`);
+
     DialogSuccess.value = true;
     MessageDialog.value = "Xóa dữ liệu thành công";
     rawBomHighlight.value = [];
@@ -4947,7 +5506,7 @@ async function GetZoomPnP(componentId) {
       );
 
       const croppedDataUrl = cropCanvas.toDataURL("image/png");
-      openImage(croppedDataUrl);
+      openImage(croppedDataUrl, pnp.rotation);
     }
   }
 }
@@ -5109,8 +5668,9 @@ const openRemoveImage = (img) => {
   DialogRemoveImage.value = true;
 };
 
-function openImage(imageUrl) {
+function openImage(imageUrl, rotation = 0) {
   dialogImageUrl.value = imageUrl;
+  dialogRotation.value = Number(rotation) || 0;
 }
 </script>
 <script>
