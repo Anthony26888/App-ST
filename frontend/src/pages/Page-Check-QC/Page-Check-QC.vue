@@ -1807,6 +1807,13 @@ const rowProps = (data) => {
 
 const HeadersPnPQC = [
   {
+    title: "Thao tác",
+    key: "id",
+    width: "90px",
+    sortable: false,
+    align: "center",
+  },
+  {
     title: "Designator",
     key: "designator",
     width: "120px",
@@ -1821,19 +1828,12 @@ const HeadersPnPQC = [
     key: "description",
     width: "300px",
   },
-  {
-    title: "Thao tác",
-    key: "id",
-    width: "90px",
-    sortable: false,
-    align: "center",
-  },
 ];
 const HeadersBomQC = [
+  { title: "Thao tác", key: "id", sortable: false },
   { title: "STT", key: "stt" },
   { title: "MPN", key: "mpn", width: "200px" },
   { title: "Designator", key: "designator" },
-  { title: "Thao tác", key: "id", sortable: false },
 ];
 const HeaderHistoryPnPQC = [
   { title: "STT", key: "stt" },
