@@ -27,23 +27,54 @@ module.exports = (io) => ({
                         AND p.project_id = b.project_id
                       WHERE p.project_id = ?`;
 
-      db.all(query, [id], (err, rows) => {
+      db.all(query, [id], async (err, rows) => {
         if (err) {
           return res.status(500).json({ error: err.message });
         }
-        // Convert data to worksheet
-        const ws = xlsx.utils.json_to_sheet(rows);
-        const wb = xlsx.utils.book_new();
-        xlsx.utils.book_append_sheet(wb, ws, `pickp&place`);
 
-        // Save the file temporarily
-        const filePath = path.join(__dirname, `pick&place.xlsx`);
-        xlsx.writeFile(wb, filePath);
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("pick&place_top");
 
-        // Send the file to the client
-        res.download(filePath, `pick&place.xlsx`, (err) => {
-          if (err) console.error("Error sending file:", err);
-          fs.unlinkSync(filePath); // Delete after sending
+        worksheet.columns = [
+          { header: "Designator", key: "designator", width: 20 },
+          { header: "MPN", key: "mpn", width: 35 },
+          { header: "Description", key: "description", width: 35 },
+          { header: "Layer", key: "layer", width: 15 },
+          { header: "X", key: "x", width: 15 },
+          { header: "Y", key: "y", width: 15 },
+          { header: "Rotation", key: "rotation", width: 15 },
+          { header: "Note", key: "note", width: 30 },
+        ];
+
+        rows.forEach((row) => {
+          const excelRow = worksheet.addRow(row);
+
+          // Nếu MPN rỗng thì tô màu cả dòng
+          if (!row.mpn || row.mpn.trim() === "") {
+            excelRow.eachCell((cell) => {
+              cell.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: "FFF4B183" }, // Cam nhạt
+              };
+
+              cell.font = {
+                bold: true,
+              };
+            });
+          }
+        });
+
+        const filePath = path.join(__dirname, "pick&place_all.xlsx");
+
+        await workbook.xlsx.writeFile(filePath);
+
+        res.download(filePath, "pick&place_all.xlsx", (err) => {
+          if (err) console.error(err);
+
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
         });
       });
     } catch (error) {
@@ -73,23 +104,53 @@ module.exports = (io) => ({
                       WHERE p.project_id = ?
                         AND LOWER(TRIM(p.layer)) IN ('top', 'toplayer');`;
 
-      db.all(query, [id], (err, rows) => {
+      db.all(query, [id], async (err, rows) => {
         if (err) {
           return res.status(500).json({ error: err.message });
         }
-        // Convert data to worksheet
-        const ws = xlsx.utils.json_to_sheet(rows);
-        const wb = xlsx.utils.book_new();
-        xlsx.utils.book_append_sheet(wb, ws, `pickp&place_top`);
 
-        // Save the file temporarily
-        const filePath = path.join(__dirname, `pick&place_top.xlsx`);
-        xlsx.writeFile(wb, filePath);
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("pick&place_top");
 
-        // Send the file to the client
-        res.download(filePath, `pick&place_top.xlsx`, (err) => {
-          if (err) console.error("Error sending file:", err);
-          fs.unlinkSync(filePath); // Delete after sending
+        worksheet.columns = [
+          { header: "Designator", key: "designator", width: 20 },
+          { header: "MPN", key: "mpn", width: 35 },
+          { header: "Layer", key: "layer", width: 15 },
+          { header: "X", key: "x", width: 15 },
+          { header: "Y", key: "y", width: 15 },
+          { header: "Rotation", key: "rotation", width: 15 },
+          { header: "Note", key: "note", width: 30 },
+        ];
+
+        rows.forEach((row) => {
+          const excelRow = worksheet.addRow(row);
+
+          // Nếu MPN rỗng thì tô màu cả dòng
+          if (!row.mpn || row.mpn.trim() === "") {
+            excelRow.eachCell((cell) => {
+              cell.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: "FFF4B183" }, // Cam nhạt
+              };
+
+              cell.font = {
+                bold: true,
+              };
+            });
+          }
+        });
+
+        const filePath = path.join(__dirname, "pick&place_top.xlsx");
+
+        await workbook.xlsx.writeFile(filePath);
+
+        res.download(filePath, "pick&place_top.xlsx", (err) => {
+          if (err) console.error(err);
+
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
         });
       });
     } catch (error) {
@@ -119,23 +180,53 @@ module.exports = (io) => ({
                       WHERE p.project_id = ?
                         AND LOWER(TRIM(p.layer)) IN ('bottom', 'bottomlayer');`;
 
-      db.all(query, [id], (err, rows) => {
+      db.all(query, [id], async (err, rows) => {
         if (err) {
           return res.status(500).json({ error: err.message });
         }
-        // Convert data to worksheet
-        const ws = xlsx.utils.json_to_sheet(rows);
-        const wb = xlsx.utils.book_new();
-        xlsx.utils.book_append_sheet(wb, ws, `pickp&place_bottom`);
 
-        // Save the file temporarily
-        const filePath = path.join(__dirname, `pick&place_bottom.xlsx`);
-        xlsx.writeFile(wb, filePath);
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("pick&place_top");
 
-        // Send the file to the client
-        res.download(filePath, `pick&place_bottom.xlsx`, (err) => {
-          if (err) console.error("Error sending file:", err);
-          fs.unlinkSync(filePath); // Delete after sending
+        worksheet.columns = [
+          { header: "Designator", key: "designator", width: 20 },
+          { header: "MPN", key: "mpn", width: 35 },
+          { header: "Layer", key: "layer", width: 15 },
+          { header: "X", key: "x", width: 15 },
+          { header: "Y", key: "y", width: 15 },
+          { header: "Rotation", key: "rotation", width: 15 },
+          { header: "Note", key: "note", width: 30 },
+        ];
+
+        rows.forEach((row) => {
+          const excelRow = worksheet.addRow(row);
+
+          // Nếu MPN rỗng thì tô màu cả dòng
+          if (!row.mpn || row.mpn.trim() === "") {
+            excelRow.eachCell((cell) => {
+              cell.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: "FFF4B183" }, // Cam nhạt
+              };
+
+              cell.font = {
+                bold: true,
+              };
+            });
+          }
+        });
+
+        const filePath = path.join(__dirname, "pick&place_bottom.xlsx");
+
+        await workbook.xlsx.writeFile(filePath);
+
+        res.download(filePath, "pick&place_bottom.xlsx", (err) => {
+          if (err) console.error(err);
+
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
         });
       });
     } catch (error) {

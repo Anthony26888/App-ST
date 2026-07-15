@@ -352,7 +352,15 @@ const getSettingQCSocket = require("./socket/Check-QC/GetSettingQC.socket.js");
 //=========== To Do =================
 const getTodoSocket = require("./socket/Todo/GetTodo.socket.js");
 
-// Import Route and controoler
+//=================== Import Route and controoler============================
+
+//=========== Maintaince =================
+const SparePartRoutes = require("./routes/Maintenance/SparePart.routes.js");
+const ScheduleRoutes = require("./routes/Maintenance/Schedule.routes.js");
+
+app.use("/api/Maintenance/SparePart", SparePartRoutes(io));
+app.use("/api/Maintenance/Schedule", ScheduleRoutes(io));
+
 //=========== Summary =================
 const ProjectSummaryRoutes = require("./routes/Manufacture/Summary.routes.js");
 const ManufactureCountingRoutes = require("./routes/Manufacture/ManufactureCounting.routes.js");
@@ -2693,221 +2701,221 @@ app.delete("/api/Maintenance/Delete/:id", async (req, res) => {
 });
 
 // Router add new item in MaintenanceSchedule table
-app.post("/api/MaintenanceSchedule/Add", async (req, res) => {
-  const {
-    MaThietBi,
-    LoaiBaoTri,
-    ChuKyBaoTri,
-    DonViChuKy,
-    NgayBatDau,
-    NgayBaoTriTiepTheo,
-    GhiChu,
-  } = req.body;
-  let Timestamps = null;
-  if (NgayBatDau) {
-    const dateObj = new Date(NgayBatDau); // ví dụ "2025-11-15"
-    if (!isNaN(dateObj.getTime())) {
-      Timestamps = Math.floor(dateObj.getTime() / 1000);
-    } else {
-      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
-    }
-  } else {
-    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
-  }
-  let Timestamps2 = null;
-  if (NgayBaoTriTiepTheo) {
-    const dateObj = new Date(NgayBaoTriTiepTheo); // ví dụ "2025-11-15"
-    if (!isNaN(dateObj.getTime())) {
-      Timestamps2 = Math.floor(dateObj.getTime() / 1000);
-    } else {
-      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
-    }
-  } else {
-    Timestamps2 = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
-  }
-  // Insert data into SQLite database
-  const query = `
-    INSERT INTO MaintenanceSchedule (MaThietBi, LoaiBaoTri, ChuKyBaoTri, DonViChuKy, NgayBatDau, NgayBaoTriTiepTheo, GhiChu)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `;
-  db.run(
-    query,
-    [
-      MaThietBi,
-      LoaiBaoTri,
-      ChuKyBaoTri,
-      DonViChuKy,
-      Timestamps,
-      Timestamps2,
-      GhiChu,
-    ],
-    function (err) {
-      if (err) {
-        return res
-          .status(500)
-          .json({ error: "Lỗi khi thêm dữ liệu vào cơ sở dữ liệu" });
-      }
-      io.emit("MaintenanceScheduleUpdate");
-      io.emit("MachineUpdate");
-      res.json({ message: "Đã thêm dữ liệu bảo trì định kỳ thành công" });
-    },
-  );
-});
+// app.post("/api/MaintenanceSchedule/Add", async (req, res) => {
+//   const {
+//     MaThietBi,
+//     LoaiBaoTri,
+//     ChuKyBaoTri,
+//     DonViChuKy,
+//     NgayBatDau,
+//     NgayBaoTriTiepTheo,
+//     GhiChu,
+//   } = req.body;
+//   let Timestamps = null;
+//   if (NgayBatDau) {
+//     const dateObj = new Date(NgayBatDau); // ví dụ "2025-11-15"
+//     if (!isNaN(dateObj.getTime())) {
+//       Timestamps = Math.floor(dateObj.getTime() / 1000);
+//     } else {
+//       return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+//     }
+//   } else {
+//     Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+//   }
+//   let Timestamps2 = null;
+//   if (NgayBaoTriTiepTheo) {
+//     const dateObj = new Date(NgayBaoTriTiepTheo); // ví dụ "2025-11-15"
+//     if (!isNaN(dateObj.getTime())) {
+//       Timestamps2 = Math.floor(dateObj.getTime() / 1000);
+//     } else {
+//       return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+//     }
+//   } else {
+//     Timestamps2 = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+//   }
+//   // Insert data into SQLite database
+//   const query = `
+//     INSERT INTO MaintenanceSchedule (MaThietBi, LoaiBaoTri, ChuKyBaoTri, DonViChuKy, NgayBatDau, NgayBaoTriTiepTheo, GhiChu)
+//     VALUES (?, ?, ?, ?, ?, ?, ?)
+//   `;
+//   db.run(
+//     query,
+//     [
+//       MaThietBi,
+//       LoaiBaoTri,
+//       ChuKyBaoTri,
+//       DonViChuKy,
+//       Timestamps,
+//       Timestamps2,
+//       GhiChu,
+//     ],
+//     function (err) {
+//       if (err) {
+//         return res
+//           .status(500)
+//           .json({ error: "Lỗi khi thêm dữ liệu vào cơ sở dữ liệu" });
+//       }
+//       io.emit("MaintenanceScheduleUpdate");
+//       io.emit("MachineUpdate");
+//       res.json({ message: "Đã thêm dữ liệu bảo trì định kỳ thành công" });
+//     },
+//   );
+// });
 
 // Router update item in MaintenanceSchedule table
-app.put("/api/MaintenanceSchedule/Edit/:id", async (req, res) => {
-  const { id } = req.params;
-  const {
-    MaThietBi,
-    LoaiBaoTri,
-    ChuKyBaoTri,
-    DonViChuKy,
-    NgayBatDau,
-    NgayBaoTriTiepTheo,
-    GhiChu,
-  } = req.body;
-  let Timestamps = null;
-  if (NgayBatDau) {
-    const dateObj = new Date(NgayBatDau); // ví dụ "2025-11-15"
-    if (!isNaN(dateObj.getTime())) {
-      Timestamps = Math.floor(dateObj.getTime() / 1000);
-    } else {
-      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
-    }
-  } else {
-    Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
-  }
-  let Timestamps2 = null;
-  if (NgayBaoTriTiepTheo) {
-    const dateObj = new Date(NgayBaoTriTiepTheo); // ví dụ "2025-11-15"
-    if (!isNaN(dateObj.getTime())) {
-      Timestamps2 = Math.floor(dateObj.getTime() / 1000);
-    } else {
-      return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
-    }
-  } else {
-    Timestamps2 = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
-  }
-  // Insert data into SQLite database
-  const query = `
-    UPDATE MaintenanceSchedule 
-    SET MaThietBi = ?, LoaiBaoTri = ?, ChuKyBaoTri = ?, DonViChuKy = ?, NgayBatDau = ?, NgayBaoTriTiepTheo = ?, GhiChu = ?
-    WHERE MaLich = ?
-  `;
-  db.run(
-    query,
-    [
-      MaThietBi,
-      LoaiBaoTri,
-      ChuKyBaoTri,
-      DonViChuKy,
-      Timestamps,
-      Timestamps2,
-      GhiChu,
-      id,
-    ],
-    function (err) {
-      if (err) {
-        return res
-          .status(500)
-          .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
-      }
-      io.emit("MaintenanceScheduleUpdate");
-      io.emit("MachineUpdate");
-      res.json({ message: "Đã cập nhật dữ liệu bảo trì định kỳ thành công" });
-    },
-  );
-});
+// app.put("/api/MaintenanceSchedule/Edit/:id", async (req, res) => {
+//   const { id } = req.params;
+//   const {
+//     MaThietBi,
+//     LoaiBaoTri,
+//     ChuKyBaoTri,
+//     DonViChuKy,
+//     NgayBatDau,
+//     NgayBaoTriTiepTheo,
+//     GhiChu,
+//   } = req.body;
+//   let Timestamps = null;
+//   if (NgayBatDau) {
+//     const dateObj = new Date(NgayBatDau); // ví dụ "2025-11-15"
+//     if (!isNaN(dateObj.getTime())) {
+//       Timestamps = Math.floor(dateObj.getTime() / 1000);
+//     } else {
+//       return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+//     }
+//   } else {
+//     Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+//   }
+//   let Timestamps2 = null;
+//   if (NgayBaoTriTiepTheo) {
+//     const dateObj = new Date(NgayBaoTriTiepTheo); // ví dụ "2025-11-15"
+//     if (!isNaN(dateObj.getTime())) {
+//       Timestamps2 = Math.floor(dateObj.getTime() / 1000);
+//     } else {
+//       return res.status(400).json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
+//     }
+//   } else {
+//     Timestamps2 = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
+//   }
+//   // Insert data into SQLite database
+//   const query = `
+//     UPDATE MaintenanceSchedule
+//     SET MaThietBi = ?, LoaiBaoTri = ?, ChuKyBaoTri = ?, DonViChuKy = ?, NgayBatDau = ?, NgayBaoTriTiepTheo = ?, GhiChu = ?
+//     WHERE MaLich = ?
+//   `;
+//   db.run(
+//     query,
+//     [
+//       MaThietBi,
+//       LoaiBaoTri,
+//       ChuKyBaoTri,
+//       DonViChuKy,
+//       Timestamps,
+//       Timestamps2,
+//       GhiChu,
+//       id,
+//     ],
+//     function (err) {
+//       if (err) {
+//         return res
+//           .status(500)
+//           .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
+//       }
+//       io.emit("MaintenanceScheduleUpdate");
+//       io.emit("MachineUpdate");
+//       res.json({ message: "Đã cập nhật dữ liệu bảo trì định kỳ thành công" });
+//     },
+//   );
+// });
 
 // Router delete item in MaintenanceSchedule table
-app.delete("/api/MaintenanceSchedule/Delete/:id", async (req, res) => {
-  const { id } = req.params;
-  // Insert data into SQLite database
-  const query = `
-    DELETE FROM MaintenanceSchedule WHERE MaLich = ?
-  `;
-  db.run(query, [id], function (err) {
-    if (err) {
-      return res
-        .status(500)
-        .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
-    }
-    io.emit("MaintenanceScheduleUpdate");
-    io.emit("MachineUpdate");
-    res.json({ message: "Đã xoá dữ liệu bảo trì định kỳ thành công" });
-  });
-});
+// app.delete("/api/MaintenanceSchedule/Delete/:id", async (req, res) => {
+//   const { id } = req.params;
+//   // Insert data into SQLite database
+//   const query = `
+//     DELETE FROM MaintenanceSchedule WHERE MaLich = ?
+//   `;
+//   db.run(query, [id], function (err) {
+//     if (err) {
+//       return res
+//         .status(500)
+//         .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
+//     }
+//     io.emit("MaintenanceScheduleUpdate");
+//     io.emit("MachineUpdate");
+//     res.json({ message: "Đã xoá dữ liệu bảo trì định kỳ thành công" });
+//   });
+// });
 
-// Router add new item in SparePartUsage table
-app.post("/api/SparePartUsage/Add", async (req, res) => {
-  const { MaBaoTri, MaThietBi, TenPhuTung, SoLuongSuDung, DonVi, GhiChu } =
-    req.body;
-  // Insert data into SQLite database
-  const query = `
-    INSERT INTO SparePartUsage (MaBaoTri, MaThietBi, TenPhuTung, SoLuongSuDung, DonVi, GhiChu)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `;
-  db.run(
-    query,
-    [MaBaoTri, MaThietBi, TenPhuTung, SoLuongSuDung, DonVi, GhiChu],
-    function (err) {
-      if (err) {
-        return res
-          .status(500)
-          .json({ error: "Lỗi khi thêm dữ liệu vào cơ sở dữ liệu" });
-      }
-      io.emit("SparePartUsageUpdate");
-      io.emit("MaintenanceUpdate");
-      res.json({ message: "Đã thêm dữ liệu sử dụng phụ tùng thành công" });
-    },
-  );
-});
+// // Router add new item in SparePartUsage table
+// app.post("/api/SparePartUsage/Add", async (req, res) => {
+//   const { MaBaoTri, MaThietBi, TenPhuTung, SoLuongSuDung, DonVi, GhiChu } =
+//     req.body;
+//   // Insert data into SQLite database
+//   const query = `
+//     INSERT INTO SparePartUsage (MaBaoTri, MaThietBi, TenPhuTung, SoLuongSuDung, DonVi, GhiChu)
+//     VALUES (?, ?, ?, ?, ?, ?)
+//   `;
+//   db.run(
+//     query,
+//     [MaBaoTri, MaThietBi, TenPhuTung, SoLuongSuDung, DonVi, GhiChu],
+//     function (err) {
+//       if (err) {
+//         return res
+//           .status(500)
+//           .json({ error: "Lỗi khi thêm dữ liệu vào cơ sở dữ liệu" });
+//       }
+//       io.emit("SparePartUsageUpdate");
+//       io.emit("MaintenanceUpdate");
+//       res.json({ message: "Đã thêm dữ liệu sử dụng phụ tùng thành công" });
+//     },
+//   );
+// });
 
-// Router update item in SparePartUsage table
-app.put("/api/SparePartUsage/Edit/:id", async (req, res) => {
-  const { id } = req.params;
-  const { MaBaoTri, MaThietBi, TenPhuTung, SoLuongSuDung, DonVi, GhiChu } =
-    req.body;
-  // Insert data into SQLite database
-  const query = `
-    UPDATE SparePartUsage 
-    SET MaBaoTri = ?, MaThietBi = ?, TenPhuTung = ?, SoLuongSuDung = ?, DonVi = ?, GhiChu = ?
-    WHERE MaSuDung = ?
-  `;
-  db.run(
-    query,
-    [MaBaoTri, MaThietBi, TenPhuTung, SoLuongSuDung, DonVi, GhiChu, id],
-    function (err) {
-      if (err) {
-        return res
-          .status(500)
-          .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
-      }
-      io.emit("SparePartUsageUpdate");
-      io.emit("MaintenanceUpdate");
-      res.json({ message: "Đã cập nhật dữ liệu sử dụng phụ tùng thành công" });
-    },
-  );
-});
+// // Router update item in SparePartUsage table
+// app.put("/api/SparePartUsage/Edit/:id", async (req, res) => {
+//   const { id } = req.params;
+//   const { MaBaoTri, MaThietBi, TenPhuTung, SoLuongSuDung, DonVi, GhiChu } =
+//     req.body;
+//   // Insert data into SQLite database
+//   const query = `
+//     UPDATE SparePartUsage
+//     SET MaBaoTri = ?, MaThietBi = ?, TenPhuTung = ?, SoLuongSuDung = ?, DonVi = ?, GhiChu = ?
+//     WHERE MaSuDung = ?
+//   `;
+//   db.run(
+//     query,
+//     [MaBaoTri, MaThietBi, TenPhuTung, SoLuongSuDung, DonVi, GhiChu, id],
+//     function (err) {
+//       if (err) {
+//         return res
+//           .status(500)
+//           .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" });
+//       }
+//       io.emit("SparePartUsageUpdate");
+//       io.emit("MaintenanceUpdate");
+//       res.json({ message: "Đã cập nhật dữ liệu sử dụng phụ tùng thành công" });
+//     },
+//   );
+// });
 
-// Router delete item in SparePartUsage table
-app.delete("/api/SparePartUsage/Delete/:id", async (req, res) => {
-  const { id } = req.params;
-  // Insert data into SQLite database
-  const query = `
-    DELETE FROM SparePartUsage WHERE MaSuDung = ?
-  `;
-  db.run(query, [id], function (err) {
-    if (err) {
-      return res
-        .status(500)
-        .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
-    }
-    io.emit("SparePartUsageUpdate");
-    io.emit("MaintenanceUpdate");
-    res.json({ message: "Đã xoá dữ liệu sử dụng phụ tùng thành công" });
-  });
-});
+// // Router delete item in SparePartUsage table
+// app.delete("/api/SparePartUsage/Delete/:id", async (req, res) => {
+//   const { id } = req.params;
+//   // Insert data into SQLite database
+//   const query = `
+//     DELETE FROM SparePartUsage WHERE MaSuDung = ?
+//   `;
+//   db.run(query, [id], function (err) {
+//     if (err) {
+//       return res
+//         .status(500)
+//         .json({ error: "Lỗi khi xoá dữ liệu trong cơ sở dữ liệu" });
+//     }
+//     io.emit("SparePartUsageUpdate");
+//     io.emit("MaintenanceUpdate");
+//     res.json({ message: "Đã xoá dữ liệu sử dụng phụ tùng thành công" });
+//   });
+// });
 
 // Router add new item in PlanManufacture table
 // Format date => YYYY-MM-DD theo local time

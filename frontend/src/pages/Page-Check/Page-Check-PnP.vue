@@ -236,7 +236,7 @@
                 :hover="true"
                 :dense="false"
                 :fixed-header="true"
-                height="57vh"
+                height="59vh"
               >
                 <!-- STT -->
                 <template v-slot:item.stt="{ index }">
@@ -462,7 +462,8 @@
                 :hover="true"
                 :dense="false"
                 :fixed-header="true"
-                height="57vh"
+                :row-props="getRowProps"
+                height="59vh"
               >
                 <template v-slot:bottom>
                   <div class="text-center pt-2">
@@ -1265,6 +1266,28 @@
             class="elevation-0"
           ></v-select>
         </div>
+        <v-checkbox
+          v-model="BomNormalizeDesignator"
+          density="compact"
+          hide-details
+          color="primary"
+        >
+          <template #label>
+            <span class="text-body-2">
+              Chuẩn hoá Designator
+              <v-tooltip location="top" max-width="320">
+                <template #activator="{ props }">
+                  <v-icon v-bind="props" size="14" class="ml-1" color="grey"
+                    >mdi-information-outline</v-icon
+                  >
+                </template>
+                Chuyển đổi dữ liệu bẩn: mở rộng dải ký hiệu (VD: R1-R5 → R1, R2,
+                R3, R4, R5) và xoá bỏ các dấu không cần thiết, chỉ giữ lại dấu
+                phẩy giữa các ký hiệu.
+              </v-tooltip>
+            </span>
+          </template>
+        </v-checkbox>
       </div>
       <v-row density="compact" class="mb-1">
         <v-col cols="6" md="4">
@@ -1432,6 +1455,23 @@
     />
     <div v-if="FilePnP" class="mt-4">
       <v-divider class="mb-4"></v-divider>
+
+      <!-- Lựa chọn dòng tiêu đề -->
+      <p class="text-subtitle-2 mb-2 me-4">Lựa chọn dòng tiêu đề</p>
+      <v-select
+        v-model="PnPSelectedHeaderRow"
+        :items="PnPHeaderRowOptions"
+        item-title="title"
+        item-value="value"
+        label="Dòng tiêu đề (Header Row)"
+        density="compact"
+        variant="outlined"
+        hide-details
+        prepend-inner-icon="mdi-table-row"
+        class="mb-4"
+        style="max-width: 320px"
+      ></v-select>
+
       <p class="text-subtitle-2 mb-2 me-4">
         Lựa chọn các cột tương ứng trong file Pickplace
       </p>
@@ -1570,7 +1610,7 @@
         </thead>
         <tbody>
           <tr
-            v-for="(item, i) in PnPPreviewMapped"
+            v-for="(item, i) in PnPPreviewMapped.slice(0, 5)"
             :key="i"
             :class="{ 'bg-orange-lighten-5': item._dirty }"
           >
@@ -2645,6 +2685,39 @@ const BomMapping = ref({
 });
 const BomNormalizeDesignator = ref(true);
 
+/**
+ * Chuẩn hoá chuỗi designator từ file BOM:
+ * 1. Mở rộng dải: R1-R5 → R1, R2, R3, R4, R5
+ * 2. Xoá các ký tự đặc biệt không cần thiết (giữ lại chữ-số và dấu phẩy)
+ * 3. Chuẩn hoá khoảng trắng quanh dấu phẩy
+ */
+const normalizeBomDesignator = (raw) => {
+  if (raw == null) return "";
+  let str = String(raw).trim();
+  // Bước 1: Mở rộng dải kiểu PREFIX_NUM-NUM (VD: R1-R5, C10-C12, FB1-FB3)
+  str = str.replace(
+    /([A-Za-z]+)(\d+)-\s*\1?(\d+)/g,
+    (match, prefix, start, end) => {
+      const s = parseInt(start, 10);
+      const e = parseInt(end, 10);
+      if (e < s) return match; // bảo toàn nếu không hợp lệ
+      return Array.from(
+        { length: e - s + 1 },
+        (_, i) => `${prefix}${s + i}`,
+      ).join(", ");
+    },
+  );
+  // Bước 2: Xoá các ký tự đặc biệt không phải chữ-số, khoảng trắng hoặc dấu phẩy
+  str = str.replace(/[^A-Za-z0-9,\s]/g, ",");
+  // Bước 3: Chuẩn hoá: tách bởi dấu phẩy, trim từng phần, bỏ phần rỗng, nối lại
+  str = str
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+    .join(", ");
+  return str;
+};
+
 const BomPreviewMapped = computed(() => {
   if (!BomPreviewRows.value || BomPreviewRows.value.length === 0) return [];
   const startRow = parseInt(BomSelectedHeaderRow.value) + 1;
@@ -2652,6 +2725,10 @@ const BomPreviewMapped = computed(() => {
   const mapped = [];
   for (const row of rawData) {
     if (!row || row.length === 0) continue;
+    const rawDesignator =
+      BomMapping.value.designator !== ""
+        ? row[BomMapping.value.designator]
+        : "";
     mapped.push({
       description:
         BomMapping.value.description !== ""
@@ -2660,10 +2737,11 @@ const BomPreviewMapped = computed(() => {
       mpn: BomMapping.value.mpn !== "" ? row[BomMapping.value.mpn] : "",
       mpn2: BomMapping.value.mpn2 !== "" ? row[BomMapping.value.mpn2] : "",
       mpn3: BomMapping.value.mpn3 !== "" ? row[BomMapping.value.mpn3] : "",
-      designator:
-        BomMapping.value.designator !== ""
-          ? row[BomMapping.value.designator]
-          : "",
+      designator: BomNormalizeDesignator.value
+        ? normalizeBomDesignator(rawDesignator)
+        : rawDesignator != null
+        ? String(rawDesignator)
+        : "",
       quantity:
         BomMapping.value.quantity !== "" ? row[BomMapping.value.quantity] : "",
       note: BomMapping.value.note !== "" ? row[BomMapping.value.note] : "",
@@ -2685,9 +2763,22 @@ const PnPMapping = ref({
   rotation: "",
   note: "",
 });
-const PnPNormalizeDesignator = ref(true);
+const PnPNormalizeDesignator = ref(false);
 const PnPCleanDirtyData = ref(false);
 
+// Các tùy chọn dòng tiêu đề: hiển thị 15 dòng đầu tiên của file
+const PnPHeaderRowOptions = computed(() => {
+  return PnPPreviewRows.value.map((row, i) => {
+    const preview = row
+      .filter((cell) => cell !== null && cell !== undefined && cell !== "")
+      .slice(0, 4)
+      .join(" | ");
+    return {
+      title: `Dòng ${i + 1}${preview ? ` — ${preview}` : ""}`,
+      value: i,
+    };
+  });
+});
 // Regex chuẩn designator: bắt đầu bằng chữ cái, tiếp theo là số (VD: R1, C10, U5, FB3)
 const VALID_DESIGNATOR_RE = /^[A-Za-z]+\d+[A-Za-z0-9]*$/;
 
@@ -3481,7 +3572,7 @@ watch(FilePnP, async (newFile) => {
         blankrows: true,
       });
 
-      PnPPreviewRows.value = jsonData.slice(0, 5);
+      PnPPreviewRows.value = jsonData.slice(0, 15);
       PnPSelectedHeaderRow.value = 0;
       updatePnPHeaders();
     } catch (error) {
@@ -5654,6 +5745,12 @@ const getRowClass = (data) => {
   }
 
   return {};
+};
+
+const getRowProps = ({ item }) => {
+  return {
+    class: !item.mpn || item.mpn.trim() === "" ? "bg-orange-lighten-5" : "",
+  };
 };
 
 const safeParse = (value) => {

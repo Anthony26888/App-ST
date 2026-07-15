@@ -8,30 +8,28 @@ const crypto = require("crypto"); // if crypto is needed anywhere
 
 function normalizeDesignators(input) {
   if (!input) return [];
-  const parts = input.toString().split(/[,;\s.]+/).map(p => p.trim()).filter(Boolean);
-  const result = [];
-  for (const p of parts) {
-    if (p.includes('-')) {
-      const match = p.match(/^([A-Za-z]+)(\d+)-([A-Za-z]+)?(\d+)$/);
-      if (match) {
-        const prefix = match[1];
-        const start = parseInt(match[2], 10);
-        const end = parseInt(match[4], 10);
-        const prefix2 = match[3] || prefix;
-        if (prefix === prefix2 && start <= end) {
-          for (let i = start; i <= end; i++) {
-            result.push(`${prefix}${i}`);
-          }
-        } else {
-          result.push(p);
-        }
-      } else {
-        result.push(p);
-      }
-    } else {
-      result.push(p);
+  let str = input.toString().trim();
+
+  // Bước 1: Mở rộng dải kiểu PREFIX_NUM-NUM (VD: R1-R5, C10-C12, FB1-FB3)
+  str = str.replace(
+    /([A-Za-z]+)(\d+)-\s*\1?(\d+)/g,
+    (match, prefix, start, end) => {
+      const s = parseInt(start, 10);
+      const e = parseInt(end, 10);
+      if (e < s) return match;
+      return Array.from({ length: e - s + 1 }, (_, i) => `${prefix}${s + i}`).join(", ");
     }
-  }
+  );
+
+  // Bước 2: Xoá các ký tự đặc biệt không phải chữ-số, khoảng trắng hoặc dấu phẩy
+  str = str.replace(/[^A-Za-z0-9,\s]/g, ",");
+
+  // Bước 3: Tách, trim, bỏ rỗng, nối lại
+  const result = str
+    .split(",")
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+
   return result;
 }
 
