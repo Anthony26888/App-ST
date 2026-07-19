@@ -307,7 +307,7 @@
                 rounded
                 class="rounded-lg"
               >
-                <strong>{{ item.Percent_Completed }}%</strong>
+                <strong>{{ item.Percent_Completed || 0 }}%</strong>
               </v-progress-linear>
             </template>
             <template v-slot:item.id="{ value }">
@@ -365,6 +365,8 @@
       v-model="Note_Edit"
     />
     <template v-slot:actions>
+      <ButtonDelete @delete="DialogRemove = true" />
+      <v-spacer></v-spacer>
       <ButtonCancel @cancel="DialogEdit = false" />
       <ButtonSave @save="SaveEdit()" />
     </template>
@@ -495,10 +497,19 @@
   >
     <div class="chat-container">
       <div class="chat-messages" ref="chatBody">
-        <div v-if="messages.length === 0" class="empty-chat-state d-flex flex-column align-center justify-center py-10">
-          <v-icon size="64" color="grey-lighten-2">mdi-chat-processing-outline</v-icon>
-          <div class="text-h6 text-grey-darken-1 mt-4">Chào mừng bạn đến với Trợ lý AI!</div>
-          <div class="text-body-2 text-grey">Hỏi tôi về tình trạng giao hàng, PO trễ hoặc tóm tắt khách hàng.</div>
+        <div
+          v-if="messages.length === 0"
+          class="empty-chat-state d-flex flex-column align-center justify-center py-10"
+        >
+          <v-icon size="64" color="grey-lighten-2"
+            >mdi-chat-processing-outline</v-icon
+          >
+          <div class="text-h6 text-grey-darken-1 mt-4">
+            Chào mừng bạn đến với Trợ lý AI!
+          </div>
+          <div class="text-body-2 text-grey">
+            Hỏi tôi về tình trạng giao hàng, PO trễ hoặc tóm tắt khách hàng.
+          </div>
         </div>
 
         <div
@@ -507,14 +518,17 @@
           class="message-wrapper"
           :class="msg.role === 'user' ? 'justify-end' : 'justify-start'"
         >
-          <div class="d-flex align-end" :class="msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'">
+          <div
+            class="d-flex align-end"
+            :class="msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'"
+          >
             <v-avatar
               size="36"
               :color="msg.role === 'user' ? 'primary' : 'secondary'"
               class="elevation-2 mx-2 mb-1"
             >
               <v-icon size="20" color="white">
-                {{ msg.role === 'user' ? 'mdi-account' : 'mdi-robot' }}
+                {{ msg.role === "user" ? "mdi-account" : "mdi-robot" }}
               </v-icon>
             </v-avatar>
 
@@ -522,7 +536,9 @@
               class="message-bubble shadow-sm"
               :class="[
                 msg.role === 'user' ? 'user-bubble' : 'ai-bubble',
-                msg.role === 'user' ? 'bg-primary text-white' : 'bg-grey-lighten-4 text-black'
+                msg.role === 'user'
+                  ? 'bg-primary text-white'
+                  : 'bg-grey-lighten-4 text-black',
               ]"
             >
               <div class="text-body-1">{{ msg.text }}</div>
@@ -535,7 +551,10 @@
                   <v-icon size="12" class="me-1">mdi-tag-outline</v-icon>
                   Ý định: {{ msg.meta.intent.type || "-" }}
                 </div>
-                <div v-if="msg.meta?.matchedCustomer" class="d-flex align-center mt-1">
+                <div
+                  v-if="msg.meta?.matchedCustomer"
+                  class="d-flex align-center mt-1"
+                >
                   <v-icon size="12" class="me-1">mdi-account-outline</v-icon>
                   Khách hàng: {{ msg.meta.matchedCustomer }}
                 </div>
@@ -557,7 +576,14 @@
           </div>
         </div>
 
-        <v-alert v-if="error" type="error" variant="tonal" class="mx-4 mt-4" border="start" density="compact">
+        <v-alert
+          v-if="error"
+          type="error"
+          variant="tonal"
+          class="mx-4 mt-4"
+          border="start"
+          density="compact"
+        >
           {{ error }}
         </v-alert>
       </div>
@@ -569,13 +595,19 @@
           <div class="text-caption text-grey-darken-1 mb-2">Gợi ý câu hỏi:</div>
           <div class="d-flex flex-wrap gap-2">
             <v-chip
-              v-for="hint in ['PO nào trễ', 'Tóm tắt khách hàng...', 'Hôm nay giao gì']"
+              v-for="hint in [
+                'PO nào trễ',
+                'Tóm tắt khách hàng...',
+                'Hôm nay giao gì',
+              ]"
               :key="hint"
               size="small"
               variant="outlined"
               color="primary"
               class="cursor-pointer hover-chip"
-              @click="question = hint.includes('...') ? 'Tóm tắt khách hàng' : hint"
+              @click="
+                question = hint.includes('...') ? 'Tóm tắt khách hàng' : hint
+              "
             >
               {{ hint }}
             </v-chip>
@@ -606,7 +638,7 @@
               />
             </template>
           </v-textarea>
-          
+
           <v-btn
             icon="mdi-delete-sweep-outline"
             variant="text"
@@ -627,8 +659,8 @@
 <script setup>
 // ===== IMPORTS =====
 // Core dependencies
-import { nextTick, watch } from 'vue'
-import { useDeliveryChat } from '@/composables/Project/useAIChat'
+import { nextTick, watch } from "vue";
+import { useDeliveryChat } from "@/composables/Project/useAIChat";
 import axios from "axios";
 import { useRouter } from "vue-router";
 import { ref, reactive, computed } from "vue";
@@ -832,7 +864,7 @@ const SaveEdit = async () => {
 
   try {
     const response = await axios.put(
-      `${Url}/Project/Customer/Edit-Customer/${GetID.value}`,
+      `${Url}/Project/Customer/Edit-item/${GetID.value}`,
       formData,
     );
     DialogLoading.value = false;
@@ -860,7 +892,7 @@ const SaveAdd = async () => {
 
   try {
     const response = await axios.post(
-      `${Url}/Project/Customer/Add-Customer`,
+      `${Url}/Project/Customer/Add-item`,
       formData,
     );
     DialogLoading.value = false;
@@ -883,13 +915,18 @@ const RemoveItem = async (id) => {
   DialogLoading.value = true;
   try {
     const response = await axios.delete(
-      `${Url}/Project/Customer/Delete-Customer/${GetID.value}`,
+      `${Url}/Project/Customer/Delete-item/${GetID.value}`,
     );
+    DialogRemove.value = false;
+    DialogSuccess.value = true;
+    DialogLoading.value = false;
+    DialogEdit.value = false;
     MessageDialog.value = "Xoá dữ liệu thành công";
-    Reset();
   } catch (error) {
+    DialogRemove.value = false;
+    DialogLoading.value = false;
+    DialogFailed.value = true;
     MessageErrorDialog.value = "Xoá dữ liệu thất bại";
-    Error();
   }
 };
 
@@ -904,7 +941,10 @@ const ImportFile = async () => {
   formData.append("file", File.value);
 
   try {
-    const response = await axios.post(`${Url}/Project/upload`, formData);
+    const response = await axios.post(
+      `${Url}/Project/Customer/Upload-file`,
+      formData,
+    );
     MessageDialog.value = "Tải file thành công";
     Reset();
   } catch (error) {
@@ -991,37 +1031,30 @@ function Error() {
   DialogLoading.value = false;
 }
 
+const question = ref("");
+const chatBody = ref(null);
 
-
-const question = ref('')
-const chatBody = ref(null)
-
-const {
-  loading,
-  error,
-  messages,
-  sendMessage,
-  clearMessages
-} = useDeliveryChat()
+const { loading, error, messages, sendMessage, clearMessages } =
+  useDeliveryChat();
 
 async function handleSend() {
-  const text = question.value.trim()
-  if (!text || loading.value) return
+  const text = question.value.trim();
+  if (!text || loading.value) return;
 
-  question.value = ''
-  await sendMessage(text)
+  question.value = "";
+  await sendMessage(text);
 }
 
 watch(
   () => messages.value.length,
   async () => {
-    await nextTick()
-    const el = chatBody.value?.$el || chatBody.value
+    await nextTick();
+    const el = chatBody.value?.$el || chatBody.value;
     if (el) {
-      el.scrollTop = el.scrollHeight
+      el.scrollTop = el.scrollHeight;
     }
-  }
-)
+  },
+);
 </script>
 <script>
 export default {
@@ -1134,9 +1167,15 @@ export default {
 }
 
 @keyframes typing {
-  0% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-  100% { transform: translateY(0); }
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+  100% {
+    transform: translateY(0);
+  }
 }
 
 .custom-textarea :deep(.v-field__outline) {

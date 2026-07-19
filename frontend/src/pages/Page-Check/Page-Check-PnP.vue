@@ -2271,7 +2271,10 @@
     <div class="text-body-small pa-3 text-black">
       <p class="text-orange">Lưu ý:</p>
       <p>1. Chữ màu <span style="color: red">đỏ</span> là Bottom.</p>
-      <p>2. Chữ màu <span style="color: orange">cam</span> là thiếu MPN.</p>
+      <p>
+        2. Chữ màu <span style="color: #4eaeea">xanh dương</span> là thiếu
+        Pickplace.
+      </p>
     </div>
     <template #actions>
       <ButtonCancel @cancel="DialogDownloadBomHighlight = false" />
@@ -2936,7 +2939,7 @@ const baseHeaders = [
   { title: "Type", key: "type" },
   { title: "Note", key: "note", width: "100px" },
   { title: "Image", key: "image", width: "200px" },
-  { title: "Thiếu MPN", key: "is_missing", width: "50px" },
+  { title: "Thiếu Pickplace", key: "is_missing", width: "50px" },
   { title: "Thao tác", key: "id", sortable: false },
 ];
 const HeadersRawBomHighlight = computed(() => {
@@ -3000,6 +3003,12 @@ const filterBomHighlightHasImage = ref(null);
 const filterBomHighlightIsMissing = ref(null);
 const filteredBomHighlight = computed(() => {
   let items = rawBomHighlight.value;
+  if (items?.length === 0) {
+    DialogLoading.value = true;
+  } else {
+    DialogLoading.value = false;
+  }
+
   if (filterBomHighlightType.value.length > 0) {
     items = items.filter((item) =>
       filterBomHighlightType.value.includes(item.type || "SMT"),

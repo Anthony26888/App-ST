@@ -34,7 +34,7 @@ module.exports = (socket) => {
                                   json_object(
                                       'id', d.id,
                                       'DeliveryDate', strftime('%Y-%m-%d', d.DeliveryDate, 'localtime'),
-                                      'DeliveryDateConvert', strftime('%d-%m-%Y', d.DeliveryDate, 'localtime'),
+                                      'DeliveryDateConvert', strftime('%Y-%m-%d', d.DeliveryDate, 'localtime'),
                                       'DeliveryQuantity', d.DeliveryQuantity,
                                       'DeliveryCheck', d.DeliveryStatus,
 

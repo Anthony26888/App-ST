@@ -828,7 +828,7 @@ const getScheduleDeliveries = (item) => {
 const getOverdueCount = (item) => {
   const deliveries = getScheduleDeliveries(item);
   return deliveries.filter(
-    (p) => p.DeliveryStatus === "Trễ hạn" && p.DeliveryCheck === "Chưa giao"
+    (p) => p.DeliveryStatus === "Trễ hạn" && p.DeliveryCheck === "Chưa giao",
   ).length;
 };
 
@@ -881,8 +881,8 @@ const SaveEdit = async () => {
   try {
     // Update main item data
     const response = await axios.put(
-      `${Url}/Project/Customer/Edit-Item/${GetID.value}`,
-      formData
+      `${Url}/Project/DetailProject/Edit-Item/${GetID.value}`,
+      formData,
     );
 
     // Update delivery schedules
@@ -890,19 +890,22 @@ const SaveEdit = async () => {
       if (schedule.id) {
         // Update existing schedule
         await axios.put(
-          `${Url}/Project/Customer/Edit-Schedule-Delivery/${schedule.id}`,
+          `${Url}/Project/DetailProject/Edit-item-schedule-delivery/${schedule.id}`,
           {
             DeliveryDate: dateStringToUnix(schedule.DeliveryDate), // Convert to Unix epoch
             DeliveryQuantity: schedule.DeliveryQuantity,
-          }
+          },
         );
       } else {
         // Add new schedule
-        await axios.post(`${Url}/Project/Customer/Add-Schedule-Delivery`, {
-          ItemId: GetID.value,
-          DeliveryDate: dateStringToUnix(schedule.DeliveryDate), // Convert to Unix epoch
-          DeliveryQuantity: schedule.DeliveryQuantity,
-        });
+        await axios.post(
+          `${Url}/Project/DetailProject/Add-item-schedule-delivery`,
+          {
+            ItemId: GetID.value,
+            DeliveryDate: dateStringToUnix(schedule.DeliveryDate), // Convert to Unix epoch
+            DeliveryQuantity: schedule.DeliveryQuantity,
+          },
+        );
       }
     }
 
@@ -945,19 +948,22 @@ const SaveAdd = async () => {
     };
 
     const mainResponse = await axios.post(
-      `${Url}/Project/Customer/Add-Item`,
-      mainData
+      `${Url}/Project/DetailProject/Add-Item`,
+      mainData,
     );
 
     // Lưu lịch giao hàng vào bảng ScheduleDelivery
     const itemId = mainResponse.data.id;
 
     for (const schedule of DeliverySchedules.value) {
-      await axios.post(`${Url}/Project/Customer/Add-Schedule-Delivery`, {
-        ItemId: itemId,
-        DeliveryDate: schedule.delivery_date,
-        DeliveryQuantity: schedule.delivery_quantity,
-      });
+      await axios.post(
+        `${Url}/Project/DetailProject/Add-item-schedule-delivery`,
+        {
+          ItemId: itemId,
+          DeliveryDate: schedule.delivery_date,
+          DeliveryQuantity: schedule.delivery_quantity,
+        },
+      );
     }
 
     DialogSuccess.value = true;
@@ -976,7 +982,7 @@ const ConfirmItem = async () => {
   DialogLoading.value = true;
   try {
     const response = await axios.put(
-      `${Url}/Project/Customer/Confirm-Item/${GetIDConfirm.value}`
+      `${Url}/Project/DetailProject/Confirm-item/${GetIDConfirm.value}`,
     );
     MessageDialog.value = "Xác nhận giao hàng thành công";
     Reset();
@@ -994,7 +1000,7 @@ const RemoveItem = async () => {
   DialogLoading.value = true;
   try {
     const response = await axios.delete(
-      `${Url}/Project/Customer/Delete-Item/${GetID.value}`
+      `${Url}/Project/DetailProject/Delete-Item/${GetID.value}`,
     );
     MessageDialog.value = "Xoá dữ liệu thành công";
     Reset();
@@ -1008,7 +1014,7 @@ const RemoveDeliveryRowEdit = async (index, id) => {
   DeliverySchedules_Edit.value.splice(index, 1);
   try {
     const response = await axios.delete(
-      `${Url}/Project/Customer/Delete-Schedule-Delivery/${id}`
+      `${Url}/Project/DetailProject/Delete-item-schedule-delivery/${id}`,
     );
     DialogSuccess.value = true;
     MessageDialog.value = "Xoá dữ liệu thành công";
@@ -1093,8 +1099,8 @@ const DownloadOrder = async () => {
   try {
     const response = await fetch(
       `${Url}/Project/Customer/Orders/Download/${id}?filename=${encodeURIComponent(
-        NameExcel
-      )}`
+        NameExcel,
+      )}`,
     );
     if (!response.ok) throw new Error("Download failed");
 

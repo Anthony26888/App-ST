@@ -455,7 +455,7 @@ module.exports = (io) => ({
                 name: "Times New Roman",
                 ...(isMissing
                   ? {
-                      color: { argb: "FFA500" },
+                      color: { argb: "FF4EAEEA" },
                       bold: true,
                     }
                   : isBottom

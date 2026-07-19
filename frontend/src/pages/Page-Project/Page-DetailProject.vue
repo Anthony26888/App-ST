@@ -2,7 +2,7 @@
   <v-card variant="text" class="overflow-y-auto" height="100vh">
     <v-card-title class="d-flex" v-if="lgAndUp">
       <ButtonBack to="/Du-an" />
-      <p class="text-h4 font-weight-light ms-3" >Chi tiết PO</p>
+      <p class="text-h4 font-weight-light ms-3">Chi tiết PO</p>
     </v-card-title>
     <v-card-title class="d-flex" v-else>
       <ButtonBack to="/Du-an" />
@@ -178,7 +178,6 @@
           :fixed-header="true"
           height="calc(100vh - 200px)"
         >
-
           <template #item.Status="{ value }">
             <div class="text-start">
               <v-chip
@@ -420,8 +419,8 @@ const SaveEdit = async () => {
 
   try {
     const response = await axios.put(
-      `${Url}/Project/Customer/Edit-Orders/${GetID.value}`,
-      formData
+      `${Url}/Project/DetailProject/Edit-item/${GetID.value}`,
+      formData,
     );
     console.log(response.data.message);
     MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
@@ -449,8 +448,8 @@ const SaveAdd = async () => {
 
   try {
     const response = await axios.post(
-      `${Url}/Project/Customer/Add-Orders`,
-      formData
+      `${Url}/Project/DetailProject/Add-item`,
+      formData,
     );
     console.log(response.data);
     MessageDialog.value = "Thêm dữ liệu thành công";
@@ -470,7 +469,7 @@ const RemoveItem = async (id) => {
   DialogLoading.value = true;
   try {
     const response = await axios.delete(
-      `${Url}/Project/Customer/Delete-Orders/${GetID.value}`
+      `${Url}/Project/DetailProject/Delete-item/${GetID.value}`,
     );
     console.log(response.data.message);
     MessageDialog.value = "Xoá dữ liệu thành công";
