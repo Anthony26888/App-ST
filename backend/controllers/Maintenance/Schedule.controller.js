@@ -15,10 +15,6 @@ module.exports = (io) => ({
       NgayBaoTriTiepTheo,
       GhiChu,
     } = req.body;
-    let Timestamps = formatDateLocal(NgayBatDau);
-    let Timestamps2 = formatDateLocal(NgayBaoTriTiepTheo);
-    console.log(Timestamps);
-    console.log(Timestamps2);
 
     // Insert data into SQLite database
     const query = `
@@ -63,32 +59,6 @@ module.exports = (io) => ({
       NgayBaoTriTiepTheo,
       GhiChu,
     } = req.body;
-    let Timestamps = null;
-    if (NgayBatDau) {
-      const dateObj = new Date(NgayBatDau); // ví dụ "2025-11-15"
-      if (!isNaN(dateObj.getTime())) {
-        Timestamps = Math.floor(dateObj.getTime() / 1000);
-      } else {
-        return res
-          .status(400)
-          .json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
-      }
-    } else {
-      Timestamps = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
-    }
-    let Timestamps2 = null;
-    if (NgayBaoTriTiepTheo) {
-      const dateObj = new Date(NgayBaoTriTiepTheo); // ví dụ "2025-11-15"
-      if (!isNaN(dateObj.getTime())) {
-        Timestamps2 = Math.floor(dateObj.getTime() / 1000);
-      } else {
-        return res
-          .status(400)
-          .json({ error: "Sai định dạng ngày (YYYY-MM-DD)" });
-      }
-    } else {
-      Timestamps2 = Math.floor(Date.now() / 1000); // nếu không truyền thì lấy time hiện tại
-    }
     // Insert data into SQLite database
     const query = `
     UPDATE MaintenanceSchedule 
@@ -102,8 +72,8 @@ module.exports = (io) => ({
         LoaiBaoTri,
         ChuKyBaoTri,
         DonViChuKy,
-        Timestamps,
-        Timestamps2,
+        formatDateLocal(NgayBatDau),
+        formatDateLocal(NgayBaoTriTiepTheo),
         GhiChu,
         id,
       ],

@@ -462,7 +462,7 @@
           </v-col>
           <v-col cols="2">
             <v-img
-              :src="`${Url_Image}/${ImagePreview_Edit}`"
+              :src="`${ImagePreview_Edit}`"
               v-if="ImagePreview_Edit"
               width="100"
               height="100"
@@ -610,6 +610,7 @@ import ButtonRemove from "@/components/Button-Remove.vue";
 // API Configuration
 const Url = import.meta.env.VITE_API_URL;
 const Url_Image = "https://api.erpst.io.vn";
+// const Url_Image = import.meta.env.VITE_API_URL;
 // Router
 const router = useRouter();
 const { mdAndDown, lgAndUp } = useDisplay();
@@ -734,7 +735,7 @@ function GetItem(value) {
   MachineCode_Edit.value = found.MachineCode;
 
   // ✅ preview ảnh từ server
-  ImagePreview_Edit.value = found.Image ? `${API_URL}${found.Image}` : null;
+  ImagePreview_Edit.value = found.Image ? `${Url_Image}${found.Image}` : null;
 }
 
 /**
@@ -762,7 +763,7 @@ const SaveEdit = async () => {
 
   try {
     const response = await axios.put(
-      `${Url}/Machine/Edit/${GetID.value}`,
+      `${Url}/Maintenance/Machine/Edit-item/${GetID.value}`,
       formData,
     );
 
@@ -798,7 +799,7 @@ const SaveAdd = async () => {
   }
 
   try {
-    await axios.post(`${Url}/Machine/Add`, formData, {
+    await axios.post(`${Url}/Maintenance/Machine/Add-item`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
     Reset();
@@ -820,7 +821,9 @@ const SaveAdd = async () => {
 const RemoveItem = async () => {
   DialogLoading.value = true;
   try {
-    const response = await axios.delete(`${Url}/Machine/Delete/${GetID.value}`);
+    const response = await axios.delete(
+      `${Url}/Maintenance/Machine/Delete-item/${GetID.value}`,
+    );
     console.log(response.data.message);
     MessageDialog.value = "Xoá dữ liệu thành công";
     Reset();

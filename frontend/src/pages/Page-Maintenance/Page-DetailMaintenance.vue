@@ -930,7 +930,7 @@ const SaveEdit = async () => {
 
   try {
     const response = await axios.put(
-      `${Url}/Maintenance/Edit/${GetID.value}`,
+      `${Url}/Maintenance/DetailMaintenance/Edit-item/${GetID.value}`,
       formData,
     );
 
@@ -948,7 +948,7 @@ const SaveEdit = async () => {
       if (acc.MaSuDung || acc.id) {
         const idToUpdate = acc.MaSuDung || acc.id;
         await axios.put(
-          `${Url}/Maintenance/SparePartUsage/Edit-item/${idToUpdate}`,
+          `${Url}/Maintenance/SparePart/Edit-item/${idToUpdate}`,
           payload,
         );
       } else {
@@ -989,7 +989,10 @@ const SaveAdd = async () => {
   };
 
   try {
-    const response = await axios.post(`${Url}/Maintenance/Add`, formData);
+    const response = await axios.post(
+      `${Url}/Maintenance/DetailMaintenance/Add-item`,
+      formData,
+    );
     const maintenanceId = response.data.id;
 
     // Lưu phụ tùng
@@ -1024,7 +1027,7 @@ const RemoveItem = async () => {
   DialogLoading.value = true;
   try {
     const response = await axios.delete(
-      `${Url}/Maintenance/Delete/${GetID.value}`,
+      `${Url}/Maintenance/DetailMaintenance/Delete-item/${GetID.value}`,
     );
     MessageDialog.value = "Xoá dữ liệu thành công";
     DialogRemove.value = false;

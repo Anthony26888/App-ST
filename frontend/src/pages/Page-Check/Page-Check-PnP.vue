@@ -208,6 +208,23 @@
                 >
               </v-chip-group>
 
+              <!-- Filter: MPN Thiếu -->
+              <v-chip-group
+                v-model="filterBomHighlightIsMissing"
+                class="ms-1"
+                selected-class="text-error"
+              >
+                <v-chip
+                  :value="true"
+                  size="small"
+                  variant="tonal"
+                  color="error"
+                  filter
+                  prepend-icon="mdi-close-circle"
+                  >Thiếu MPN</v-chip
+                >
+              </v-chip-group>
+
               <InputSearch v-model="searchBomHighlight" class="ms-2" />
             </v-card-title>
             <v-card-text>
@@ -288,6 +305,11 @@
                   >
                     {{ value || "SMT" }}
                   </v-chip>
+                </template>
+
+                <!-- MPN Missing -->
+                <template v-slot:item.is_missing="{ value }">
+                  <p class="text-red">{{ value }}</p>
                 </template>
 
                 <!-- Image -->
@@ -2246,6 +2268,11 @@
     icon="mdi-download"
   >
     <InputField label="Tên tiêu đề file Bom" v-model="titleBomhighlight" />
+    <div class="text-body-small pa-3 text-black">
+      <p class="text-orange">Lưu ý:</p>
+      <p>1. Chữ màu <span style="color: red">đỏ</span> là Bottom.</p>
+      <p>2. Chữ màu <span style="color: orange">cam</span> là thiếu MPN.</p>
+    </div>
     <template #actions>
       <ButtonCancel @cancel="DialogDownloadBomHighlight = false" />
       <ButtonDownload
@@ -2909,6 +2936,7 @@ const baseHeaders = [
   { title: "Type", key: "type" },
   { title: "Note", key: "note", width: "100px" },
   { title: "Image", key: "image", width: "200px" },
+  { title: "Thiếu MPN", key: "is_missing", width: "50px" },
   { title: "Thao tác", key: "id", sortable: false },
 ];
 const HeadersRawBomHighlight = computed(() => {
@@ -2969,6 +2997,7 @@ const searchBom = ref("");
 const searchBomHighlight = ref("");
 const filterBomHighlightType = ref([]);
 const filterBomHighlightHasImage = ref(null);
+const filterBomHighlightIsMissing = ref(null);
 const filteredBomHighlight = computed(() => {
   let items = rawBomHighlight.value;
   if (filterBomHighlightType.value.length > 0) {
@@ -2981,6 +3010,11 @@ const filteredBomHighlight = computed(() => {
       const imgs = safeParse(item.image);
       return Array.isArray(imgs) && imgs.length > 0;
     });
+  }
+  if (filterBomHighlightIsMissing.value === true) {
+    items = items.filter(
+      (item) => item.is_missing && item.is_missing.trim() !== "",
+    );
   }
   return items;
 });

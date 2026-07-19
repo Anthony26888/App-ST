@@ -293,11 +293,17 @@ module.exports = (io) => ({
           B.designator,
           B.quantity,
           B.project_id,
-          B.note
+          B.note,
+          GROUP_CONCAT(CASE WHEN P.designator IS NULL THEN Bom.designator ELSE NULL END, ', ') AS is_missing
       FROM BomHighlight B
+      LEFT JOIN Bom ON Bom.project_id = B.project_id 
+          AND (',' || REPLACE(B.designator, ' ', '') || ',') LIKE ('%,' || TRIM(Bom.designator) || ',%')
       LEFT JOIN MPNMountType M
           ON TRIM(LOWER(B.mpn)) = TRIM(LOWER(M.mpn))
+      LEFT JOIN Pickplace P
+          ON TRIM(LOWER(Bom.designator)) = TRIM(LOWER(P.designator)) AND Bom.project_id = P.project_id
       WHERE B.project_id = ?
+      GROUP BY B.id
     `;
 
       db.all(bomQuery, [id], async (err, bomRows) => {
@@ -431,20 +437,33 @@ module.exports = (io) => ({
           const parts = original.split(",").map((s) => s.trim());
           const richText = [];
 
+          const missingSet = new Set(
+            String(row.is_missing || "")
+              .split(",")
+              .map((s) => normalize(s))
+              .filter(Boolean),
+          );
+
           parts.forEach((p, index) => {
             const key = normalize(p);
+            const isMissing = missingSet.has(key);
             const isBottom = bottomMap.has(key);
 
             richText.push({
               text: p,
               font: {
                 name: "Times New Roman",
-                ...(isBottom
+                ...(isMissing
                   ? {
-                      color: { argb: "FFFF0000" },
+                      color: { argb: "FFA500" },
                       bold: true,
                     }
-                  : {}),
+                  : isBottom
+                    ? {
+                        color: { argb: "FFFF0000" },
+                        bold: true,
+                      }
+                    : {}),
               },
             });
 

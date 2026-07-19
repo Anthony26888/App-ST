@@ -5,10 +5,10 @@ module.exports = (socket) => {
     try {
       const query = `SELECT 
                             m.*,
-                            strftime('%d-%m-%Y', m.NgayBaoTri, 'unixepoch', 'localtime') AS NgayBaoTriConvert,
-                            strftime('%Y-%m-%d', m.NgayBaoTri, 'unixepoch', 'localtime') AS NgayBaoTriUnixepoch,
-                            strftime('%d-%m-%Y', m.NgayHoanThanh, 'unixepoch', 'localtime') AS NgayHoanThanhConvert,
-                            strftime('%Y-%m-%d', m.NgayHoanThanh, 'unixepoch', 'localtime') AS NgayHoanThanhUnixepoch,
+                            CASE WHEN typeof(m.NgayBaoTri) IN ('integer', 'real') THEN strftime('%Y-%m-%d', m.NgayBaoTri, 'unixepoch', 'localtime') ELSE strftime('%Y-%m-%d', m.NgayBaoTri) END AS NgayBaoTriConvert,
+                            CASE WHEN typeof(m.NgayBaoTri) IN ('integer', 'real') THEN strftime('%Y-%m-%d', m.NgayBaoTri, 'unixepoch', 'localtime') ELSE strftime('%Y-%m-%d', m.NgayBaoTri) END AS NgayBaoTriUnixepoch,
+                            CASE WHEN typeof(m.NgayHoanThanh) IN ('integer', 'real') THEN strftime('%Y-%m-%d', m.NgayHoanThanh, 'unixepoch', 'localtime') ELSE strftime('%Y-%m-%d', m.NgayHoanThanh) END AS NgayHoanThanhConvert,
+                            CASE WHEN typeof(m.NgayHoanThanh) IN ('integer', 'real') THEN strftime('%Y-%m-%d', m.NgayHoanThanh, 'unixepoch', 'localtime') ELSE strftime('%Y-%m-%d', m.NgayHoanThanh) END AS NgayHoanThanhUnixepoch,
                             COALESCE(
                                 '[' || GROUP_CONCAT(
                                     CASE WHEN s.MaSuDung IS NOT NULL THEN
