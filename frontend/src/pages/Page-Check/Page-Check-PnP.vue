@@ -208,7 +208,7 @@
                 >
               </v-chip-group>
 
-              <!-- Filter: MPN Thiếu -->
+              <!-- Filter: Pickplace Thiếu -->
               <v-chip-group
                 v-model="filterBomHighlightIsMissing"
                 class="ms-1"
@@ -221,7 +221,7 @@
                   color="error"
                   filter
                   prepend-icon="mdi-close-circle"
-                  >Thiếu MPN</v-chip
+                  >Thiếu Pickplace</v-chip
                 >
               </v-chip-group>
 
@@ -3003,11 +3003,6 @@ const filterBomHighlightHasImage = ref(null);
 const filterBomHighlightIsMissing = ref(null);
 const filteredBomHighlight = computed(() => {
   let items = rawBomHighlight.value;
-  if (items?.length === 0) {
-    DialogLoading.value = true;
-  } else {
-    DialogLoading.value = false;
-  }
 
   if (filterBomHighlightType.value.length > 0) {
     items = items.filter((item) =>
