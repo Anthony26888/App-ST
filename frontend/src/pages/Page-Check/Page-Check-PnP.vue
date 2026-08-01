@@ -142,6 +142,14 @@
                       >Tải file Bom Highlight</v-list-item-title
                     >
                   </v-list-item>
+                  <v-list-item
+                    @click="DialogReportMissing = true"
+                    prepend-icon="mdi-download"
+                  >
+                    <v-list-item-title class="text-caption"
+                      >Report Missing</v-list-item-title
+                    >
+                  </v-list-item>
                 </v-list>
               </v-menu>
 
@@ -457,13 +465,30 @@
                 >Xoá Pickplace</v-btn
               >
               <v-spacer></v-spacer>
+              <v-chip-group
+                v-model="filterCombineBomMPNMissing"
+                class="ms-2"
+                selected-class="text-error"
+                filter
+                column
+              >
+                <v-chip
+                  :value="true"
+                  size="small"
+                  variant="tonal"
+                  color="error"
+                  filter
+                  >Thiếu MPN</v-chip
+                >
+              </v-chip-group>
+
               <InputSearch v-model="searchBom" />
             </v-card-title>
             <v-card-text>
               <v-data-table
                 density="comfortable"
                 :headers="Headers"
-                :items="combineBom"
+                :items="filteredCombineBom"
                 :search="searchBom"
                 :items-per-page="itemsPerPageBom"
                 v-model:page="pageBom"
@@ -491,7 +516,9 @@
                   <div class="text-center pt-2">
                     <v-pagination
                       v-model="pageBom"
-                      :length="Math.ceil(combineBom.length / itemsPerPageBom)"
+                      :length="
+                        Math.ceil(filteredCombineBom.length / itemsPerPageBom)
+                      "
                     ></v-pagination>
                   </div>
                 </template>
@@ -2284,6 +2311,57 @@
       />
     </template>
   </BaseDialog>
+
+  <BaseDialog
+    v-model="DialogReportMissing"
+    width="500"
+    title="Báo cáo Component Thiếu"
+    icon="mdi-chart-bar"
+  >
+    <v-card-text>
+      <div class="d-flex flex-column gap-2 text-body-1">
+        <div class="d-flex justify-space-between">
+          <span class="font-weight-medium">Tổng Designator (BOM):</span>
+          <span>{{ statsReportMissing.totalBOMDesignators }}</span>
+        </div>
+        <div class="d-flex justify-space-between">
+          <span class="font-weight-medium"
+            >Tổng Designator (Pick & Place):</span
+          >
+          <span>{{ statsReportMissing.totalPnPDesignators }}</span>
+        </div>
+        <v-divider class="my-2"></v-divider>
+        <div class="d-flex justify-space-between text-error">
+          <span class="font-weight-medium">Thiếu Pick & Place:</span>
+          <span class="font-weight-bold">{{
+            statsReportMissing.missingPnPCount
+          }}</span>
+        </div>
+        <div class="d-flex justify-space-between text-warning">
+          <span class="font-weight-medium">Thiếu MPN:</span>
+          <span class="font-weight-bold">{{
+            statsReportMissing.missingMPNCount
+          }}</span>
+        </div>
+      </div>
+    </v-card-text>
+    <template #actions>
+      <ButtonCancel @cancel="DialogReportMissing = false" />
+      <v-btn
+        color="success"
+        class="text-caption"
+        variant="tonal"
+        prepend-icon="mdi-file-excel"
+        @click="DownloadMissingExcelReport"
+        :disabled="
+          statsReportMissing.missingPnPCount === 0 &&
+          statsReportMissing.missingMPNCount === 0
+        "
+      >
+        Xuất Excel
+      </v-btn>
+    </template>
+  </BaseDialog>
   <BaseDialog
     v-model="DialogEditGerber"
     width="600"
@@ -2492,6 +2570,7 @@ import ButtonCancel from "@/components/Button-Cancel.vue";
 import Loading from "@/components/Loading.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
 import BaseDialog from "@/components/BaseDialog.vue";
+import Logo from "@/assets/avatar-ST.jpg";
 
 import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
@@ -2688,6 +2767,7 @@ const DialogLoading = ref(false); // Loading state
 const DialogSuccess = ref(false);
 const DialogInfo = ref(false);
 const DialogDownloadBomHighlight = ref(false);
+const DialogReportMissing = ref(false);
 const DialogDeleteBomHighlight = ref(false);
 const DialogRemoveImage = ref(false);
 const ImageToDelete = ref("");
@@ -3001,6 +3081,18 @@ const searchBomHighlight = ref("");
 const filterBomHighlightType = ref([]);
 const filterBomHighlightHasImage = ref(null);
 const filterBomHighlightIsMissing = ref(null);
+const filterCombineBomMPNMissing = ref(null);
+
+const filteredCombineBom = computed(() => {
+  let items = combineBom.value || [];
+  if (filterCombineBomMPNMissing.value === true) {
+    items = items.filter(
+      (item) => !item.mpn || item.mpn.toString().trim() === "",
+    );
+  }
+  return items;
+});
+
 const filteredBomHighlight = computed(() => {
   let items = rawBomHighlight.value;
 
@@ -4496,6 +4588,476 @@ const DownloadBomHighlight = async () => {
   } catch (error) {
     MessageErrorDialog.value = "Tải file thất bại";
     console.error("Error downloading file:", error);
+  }
+};
+
+const statsReportMissing = computed(() => {
+  let missingPnPDsnList = [];
+  let missingMPNDsnList = [];
+
+  // Sheet 1: từ filteredBomHighlight (những component thiếu PickPlace)
+  const bomHighlightItems = filteredBomHighlight.value || [];
+  bomHighlightItems.forEach((item) => {
+    if (item.is_missing && item.is_missing.trim() !== "") {
+      const rawDesignators = (
+        item.designators ||
+        item.designator ||
+        ""
+      ).toString();
+      if (!rawDesignators) return;
+      missingPnPDsnList.push({
+        designator: rawDesignators.trim(),
+        mpn: item.mpn || "",
+        description: item.description || item.description_bom || "",
+        quantity: item.quantity || 1,
+        note: item.note || "",
+        status: "Missing in Pick & Place",
+        remark: "Please verify placement data.",
+      });
+    }
+  });
+
+  // Sheet 2: từ filteredCombineBom (những component thiếu MPN)
+  const combineBomItems = filteredCombineBom.value || [];
+  combineBomItems.forEach((item) => {
+    if (!item.mpn || item.mpn.toString().trim() === "") {
+      const rawDesignators = (
+        item.designators ||
+        item.designator ||
+        ""
+      ).toString();
+      if (!rawDesignators) return;
+      missingMPNDsnList.push({
+        designator: rawDesignators.trim(),
+        mpn: "",
+        description: item.description || item.description_bom || "",
+        quantity: item.quantity || 1,
+        type: item.type || "",
+        note: item.note || "",
+        status: "Missing MPN",
+        remark: "Please provide valid MPN.",
+      });
+    }
+  });
+
+  // Tổng số designator trong BOM
+  let totalBOMDesignators = 0;
+  (combineBom.value || []).forEach((item) => {
+    const dsns = (item.designators || item.designator || "")
+      .toString()
+      .split(/[\s,]+/)
+      .filter((d) => d.trim() !== "");
+    totalBOMDesignators += dsns.length;
+  });
+
+  return {
+    totalBOMDesignators,
+    totalPnPDesignators: filteredPnP.value ? filteredPnP.value.length : 0,
+    missingPnPCount: missingPnPDsnList.length,
+    missingMPNCount: missingMPNDsnList.length,
+    missingPnPDsnList,
+    missingMPNDsnList,
+  };
+});
+
+const DownloadMissingExcelReport = async () => {
+  try {
+    const workbook = new ExcelJS.Workbook();
+
+    const response = await fetch(Logo);
+    const logoBuffer = await response.arrayBuffer();
+
+    const logoId = workbook.addImage({
+      buffer: logoBuffer,
+      extension: "png",
+    });
+    const generateSheet = (worksheet, title, dataList, descriptionText) => {
+      // =========================
+      // Page Setup
+      // =========================
+      worksheet.pageSetup = {
+        paperSize: 9, // A4
+        orientation: "landscape",
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0,
+        horizontalCentered: true,
+        verticalCentered: false,
+        margins: {
+          left: 0.3,
+          right: 0.3,
+          top: 0.5,
+          bottom: 0.5,
+          header: 0.3,
+          footer: 0.3,
+        },
+      };
+
+      worksheet.addImage(logoId, {
+        tl: {
+          col: 0.5,
+          row: 0.8,
+        },
+        ext: {
+          width: 70,
+          height: 70,
+        },
+      });
+      // 1. Title
+      worksheet.mergeCells("A1:E1");
+
+      const titleCell = worksheet.getCell("A1");
+
+      titleCell.value = `${title} Report`;
+
+      titleCell.font = {
+        name: "Calibri",
+        size: 20,
+        bold: true,
+        color: { argb: "FFFFFFFF" },
+      };
+
+      titleCell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF1F4E78" },
+      };
+
+      titleCell.alignment = {
+        horizontal: "center",
+        vertical: "middle",
+      };
+
+      worksheet.getRow(1).height = 80;
+
+      // 2. Subtitle
+      worksheet.mergeCells("A2:E2");
+
+      const sub = worksheet.getCell("A2");
+
+      sub.value = "SMT Assembly Verification Report";
+
+      sub.font = {
+        italic: true,
+        size: 11,
+        color: { argb: "FF666666" },
+      };
+
+      sub.alignment = {
+        horizontal: "center",
+      };
+
+      // 3. Description
+      worksheet.getCell("A4").value = "Description:";
+      worksheet.getCell("A4").font = {
+        name: "Calibri",
+        bold: true,
+      };
+      worksheet.getCell("A4").fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: {
+          argb: "FFF2F2F2",
+        },
+      };
+
+      worksheet.mergeCells("A5:E8");
+
+      const descCell = worksheet.getCell("A5");
+
+      descCell.value = descriptionText;
+
+      descCell.font = {
+        name: "Calibri",
+        size: 11,
+      };
+
+      descCell.alignment = {
+        wrapText: true,
+        vertical: "top",
+        horizontal: "left",
+      };
+
+      worksheet.getRow(5).height = 20;
+      worksheet.getRow(6).height = 20;
+      worksheet.getRow(7).height = 20;
+      worksheet.getRow(8).height = 20;
+
+      // 4. Report Information
+      worksheet.getCell("A10").value = "Report Information";
+
+      worksheet.getCell("A10").font = {
+        bold: true,
+      };
+
+      worksheet.getCell("A10").fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: {
+          argb: "FFF2F2F2",
+        },
+      };
+
+      worksheet.getCell("A11").value = "Report Date";
+      worksheet.getCell("B11").value = new Date().toLocaleDateString();
+
+      worksheet.getCell("A12").value = "Project";
+      worksheet.getCell("B12").value = project_name.value;
+
+      worksheet.getCell("A13").value = "Generated By";
+      worksheet.getCell("B13").value = "PCB Review Assistant";
+
+      worksheet.getCell("A14").value = "Report Type";
+      worksheet.getCell("B14").value = title;
+
+      // 5. Summary
+      worksheet.getCell("A16").value = "Summary";
+      worksheet.getCell("A16").font = {
+        name: "Calibri",
+        bold: true,
+      };
+
+      worksheet.getCell("A16").fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: {
+          argb: "FFF2F2F2",
+        },
+      };
+
+      worksheet.getCell("A17").value = "Total BOM Components";
+      worksheet.getCell("B17").value =
+        statsReportMissing.value.totalBOMDesignators;
+
+      worksheet.getCell("A18").value = "Total Pick & Place Components";
+      worksheet.getCell("B18").value =
+        statsReportMissing.value.totalPnPDesignators;
+
+      worksheet.getCell("A19").value = "Missing Components";
+      worksheet.getCell("B19").value = dataList.length;
+
+      worksheet.getCell("A20").value = "Missing Rate";
+
+      const missingRate =
+        statsReportMissing.value.totalPnPDesignators > 0
+          ? (
+              (dataList.length / statsReportMissing.value.totalPnPDesignators) *
+              100
+            ).toFixed(2) + "%"
+          : "0.00%";
+
+      worksheet.getCell("B20").value = missingRate;
+
+      // Màu đỏ cho Missing Rate
+      worksheet.getCell("B20").font = {
+        name: "Calibri",
+        bold: true,
+        color: {
+          argb: "FFFF0000",
+        },
+      };
+
+      // Căn lề trái toàn bộ Summary
+      for (let row = 16; row <= 20; row++) {
+        worksheet.getCell(`A${row}`).alignment = {
+          horizontal: "left",
+          vertical: "middle",
+        };
+
+        worksheet.getCell(`B${row}`).alignment = {
+          horizontal: "left",
+          vertical: "middle",
+        };
+      }
+      // 6. Table Header (starts at row 16)
+      worksheet.getCell("A22").value = "Missing Designator List";
+
+      worksheet.getCell("A22").font = {
+        bold: true,
+        size: 12,
+      };
+      worksheet.getCell("A22").fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: {
+          argb: "FFF2F2F2",
+        },
+      };
+
+      const headerRowIndex = 23;
+      const headers = ["Designator", "MPN", "Description", "Quantity", "Note"];
+      const headerRow = worksheet.getRow(headerRowIndex);
+      headers.forEach((header, index) => {
+        const cell = headerRow.getCell(index + 1);
+        cell.value = header;
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF1F4E78" },
+        };
+        cell.font = {
+          color: { argb: "F8F9FA" },
+          bold: true,
+          name: "Calibri",
+        };
+        cell.border = {
+          top: { style: "thin", color: { argb: "FFD9D9D9" } },
+          left: { style: "thin", color: { argb: "FFD9D9D9" } },
+          right: { style: "thin", color: { argb: "FFD9D9D9" } },
+          bottom: { style: "thin", color: { argb: "FFD9D9D9" } },
+        };
+        cell.alignment = { vertical: "middle", horizontal: "center" };
+      });
+      worksheet.views = [{ state: "frozen", ySplit: headerRowIndex }];
+
+      // Set columns widths
+      worksheet.columns = [
+        { key: "designator", width: 40 },
+        { key: "mpn", width: 30 },
+        { key: "description", width: 45 },
+        { key: "quantity", width: 10 },
+        { key: "note", width: 25 },
+      ];
+
+      // Add Data
+      dataList.forEach((item, index) => {
+        const row = worksheet.addRow({
+          designator: item.designator,
+          mpn: item.mpn,
+          description: item.description,
+          quantity: item.quantity,
+          type: item.type,
+          note: item.note,
+        });
+
+        row.eachCell((cell) => {
+          cell.font = { name: "Calibri" };
+          cell.border = {
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" },
+          };
+          cell.alignment = {
+            wrapText: true,
+            vertical: "top",
+          };
+          if (index % 2 !== 0) {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFF2F2F2" },
+            };
+          }
+        });
+      });
+
+      worksheet.autoFilter = {
+        from: `A${headerRowIndex}`,
+        to: `E${headerRowIndex}`,
+      };
+      // =========================
+      // Footer
+      // =========================
+
+      const footerStart = worksheet.lastRow.number + 2;
+
+      // Đường kẻ phía trên Footer
+      for (let col = 1; col <= 5; col++) {
+        worksheet.getCell(footerStart - 1, col).border = {
+          top: {
+            style: "medium",
+            color: { argb: "FF1F4E78" },
+          },
+        };
+      }
+
+      // Merge
+      worksheet.mergeCells(`A${footerStart}:E${footerStart}`);
+      worksheet.mergeCells(`A${footerStart + 1}:E${footerStart + 1}`);
+      worksheet.mergeCells(`A${footerStart + 2}:E${footerStart + 2}`);
+      worksheet.mergeCells(`A${footerStart + 3}:E${footerStart + 3}`);
+
+      // End of Report
+      const endCell = worksheet.getCell(`A${footerStart}`);
+      endCell.value = "End of Report";
+      endCell.font = {
+        name: "Calibri",
+        size: 12,
+        bold: true,
+      };
+      endCell.alignment = {
+        horizontal: "center",
+      };
+
+      // Prepared by
+      const preparedCell = worksheet.getCell(`A${footerStart + 1}`);
+      preparedCell.value = "Generated by ERPST system";
+      preparedCell.font = {
+        name: "Calibri",
+        italic: true,
+        color: { argb: "FF666666" },
+      };
+      preparedCell.alignment = {
+        horizontal: "center",
+      };
+
+      // Auto generated
+      const autoCell = worksheet.getCell(`A${footerStart + 2}`);
+      autoCell.value =
+        "This report was automatically generated based on the supplied BOM and Pick & Place files.";
+      autoCell.font = {
+        name: "Calibri",
+        size: 10,
+        color: { argb: "FF808080" },
+      };
+      autoCell.alignment = {
+        horizontal: "center",
+      };
+
+      // Company name
+      const companyCell = worksheet.getCell(`A${footerStart + 3}`);
+      companyCell.value = "© 2026 Super Tec Company. All rights reserved.";
+      companyCell.font = {
+        name: "Calibri",
+        size: 10,
+        color: { argb: "FF808080" },
+      };
+      companyCell.alignment = {
+        horizontal: "center",
+      };
+    };
+
+    // Generate Sheet 1
+    const ws1 = workbook.addWorksheet("Missing PickPlace");
+    generateSheet(
+      ws1,
+      "Missing Pick & Place",
+      statsReportMissing.value.missingPnPDsnList,
+      `This report summarizes all component designators that are listed in the Bill of Materials (BOM) but cannot be found in the supplied Pick & Place file.
+The purpose of this report is to identify missing placement data before SMT production begins, ensuring that all required components have valid placement coordinates and rotation information.
+Please review the listed items and provide an updated Pick & Place file or confirm whether these components are intentionally omitted from assembly.`,
+    );
+
+    // Generate Sheet 2
+    const ws2 = workbook.addWorksheet("Missing MPN");
+    generateSheet(
+      ws2,
+      "Missing MPN",
+      statsReportMissing.value.missingMPNDsnList,
+      [
+        "This report summarizes all component designators for which a valid Manufacturer Part Number (MPN) could not be identified from the supplied Bill of Materials (BOM)",
+        "The purpose of this report is to identify missing or unmatched MPN information before SMT production begins, ensuring that every component can be accurately verified, sourced, and assembled.",
+        "Please review the listed items and provide the correct MPN information or an updated BOM to ensure accurate manufacturing and material traceability.",
+      ].join("\n"),
+    );
+    const excelBuffer = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([excelBuffer]), "Missing_PickPlace_Report.xlsx");
+
+    DialogReportMissing.value = false;
+  } catch (error) {
+    MessageErrorDialog.value = "Xuất báo cáo thất bại";
+    console.error("Error generating report:", error);
   }
 };
 
