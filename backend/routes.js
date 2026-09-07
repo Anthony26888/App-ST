@@ -8,6 +8,7 @@ const jwt = require("jsonwebtoken");
 const path = require("path");
 const fs = require("fs");
 const db = require("./database.js");
+const axios = require("axios");
 const app = express.Router();
 
 const SECRET_KEY = process.env.JWT_SECRET || "default_secret_key";
@@ -363,23 +364,39 @@ const ExcelJS = require("exceljs");
 app.post("/api/Users/login", (req, res) => {
   const { Username, Password } = req.body;
 
-  db.get(`SELECT * FROM Users WHERE Username = ?`, [Username], (err, user) => {
+  db.get(`SELECT * FROM Users WHERE Username = ?`, [Username], async (err, user) => {
     if (err || !user)
       return res.status(400).json({ error: "Tài khoản không tồn tại" });
 
-    bcrypt.compare(Password, user.Password, (err, result) => {
+    bcrypt.compare(Password, user.Password, async (err, result) => {
       if (result) {
-        const token = jwt.sign(
-          { id: user.id, Username: user.Username },
-          SECRET_KEY,
-          { expiresIn: "12h" },
-        );
-        res.json({ message: "Đăng nhập thành công", token });
+        try {
+          const token = jwt.sign(
+            { id: user.id, Username: user.Username },
+            SECRET_KEY,
+            { expiresIn: "12h" },
+          );
+          const { createSession } = require("./middleware/license.js");
+          const sessionId = await createSession(user.Username);
+          res.json({ message: "Đăng nhập thành công", token, sessionId });
+        } catch (e) {
+          console.error("Lỗi tạo phiên đăng nhập:", e.message);
+          res.status(500).json({ error: "Lỗi tạo phiên đăng nhập" });
+        }
       } else {
         res.status(401).json({ error: "Sai mật khẩu" });
       }
     });
   });
+});
+
+// Router logout user (xóa phiên active)
+app.post("/api/Users/logout", (req, res) => {
+  const { deleteSession, resolveRequestUsername } = require("./middleware/license.js");
+  const username =
+    resolveRequestUsername(req) ||
+    (req.body && req.body.Username);
+  deleteSession(username).finally(() => res.json({ message: "Đã đăng xuất" }));
 });
 
 // Router to get detail user

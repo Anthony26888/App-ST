@@ -1,4 +1,5 @@
 require("dotenv").config();
+require("dotenv").config({ path: require("path").join(__dirname, ".env.secrets") });
 const express = require("express");
 const multer = require("multer");
 const xlsx = require("xlsx");
@@ -84,7 +85,13 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "X-Username",
+      "X-Session-Token",
+    ],
   }),
 );
 
@@ -404,6 +411,16 @@ app.use("/api/FilterBomQC", ProjectQCRoutes(io));
 app.use("/api/SettingPCB-QC", SettingQCRoutes(io));
 app.use("/api/UploadQC", UploadQCRoutes(io));
 app.use("/api/Pickplace-BomQC", PickplaceQCRoutes(io));
+
+//=========== License =================
+const LicenseRoutes = require("./routes/License/License.routes.js");
+
+app.use("/api/License", LicenseRoutes(io));
+
+//=========== DigiKey =================
+const DigiKeyRoutes = require("./routes/DigiKey/DigiKey.routes.js");
+
+app.use("/api/DigiKey", DigiKeyRoutes(io));
 
 // Khi client kết nối
 io.on("connection", (socket) => {

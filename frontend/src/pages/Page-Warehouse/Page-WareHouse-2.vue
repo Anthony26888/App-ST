@@ -420,8 +420,6 @@ const router = useRouter();
 const { mdAndDown, lgAndUp } = useDisplay();
 // API Configuration
 const Url = import.meta.env.VITE_API_URL;
-const clientId = import.meta.env.VITE_DIGIKEY_CLIENT_ID;
-const clientSecret = import.meta.env.VITE_DIGIKEY_CLIENT_SECRET;
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs
@@ -764,32 +762,19 @@ const getAccessToken = async (value) => {
   DialogLoading.value = true;
   const found = warehouse2.value.find((v) => v.id === value);
   GetDigikey.value = found.PartNumber_1;
-  const authString = Buffer.from(
-    `${clientId}:${clientSecret}`,
-    "utf-8"
-  ).toString("base64");
-  const tokenUrl = "https://api.digikey.com/v1/oauth2/token";
-  const params = new URLSearchParams();
-  params.append("grant_type", "client_credentials");
 
   try {
-    const response = await axios.post(tokenUrl, params.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Authorization: `Basic ${authString}`,
-      },
-    });
+    const response = await axios.post(`${Url}/DigiKey/token`);
     accessToken.value = response.data.access_token;
     tokenType.value = response.data.token_type;
-    expires_in.value = response.data.expires_in;
+    expires_in.value = response.data.expires_in || 600;
     if (accessToken.value && tokenType.value && GetDigikey.value) {
       return searchProduct();
     }
-    console.log("Đã lấy access token thành công:", accessToken);
+    console.log("Đã lấy access token thành công:", accessToken.value);
     return true;
   } catch (error) {
     console.error(
-      Error(),
       "Lỗi khi lấy access token:",
       error.response ? error.response.data : error.message
     );
@@ -802,21 +787,17 @@ const getAccessToken = async (value) => {
  * Searches for product details using DigiKey API
  */
 const searchProduct = async () => {
-  if (!accessToken.value) {
-    console.error("Chưa có access token. Vui lòng lấy token trước.");
+  if (!GetDigikey.value) {
+    console.error("Chưa có MPN. Vui lòng chọn linh kiện trước.");
     return;
   }
 
-  const searchUrl = `https://api.digikey.com/products/v4/search/${GetDigikey.value}/productdetails`;
+  const searchUrl = `${Url}/DigiKey/search/${encodeURIComponent(
+    GetDigikey.value,
+  )}/productdetails`;
 
   try {
-    const response = await axios.get(searchUrl, {
-      headers: {
-        Authorization: `${tokenType.value} ${accessToken.value}`,
-        "Content-Type": "application/json",
-        "X-DIGIKEY-Client-Id": `${clientId}`,
-      },
-    });
+    const response = await axios.get(searchUrl);
     ResultSearch.value = response.data;
     MessageDialog.value = "Tìm kiếm sản phẩm thành công";
     if (ResultSearch.value) {

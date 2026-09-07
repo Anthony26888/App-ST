@@ -6,7 +6,7 @@
     <v-card-text>
       <v-card variant="elevated" elevation="0" class="rounded-xl border">
         <v-card-title class="d-flex align-center pe-2">
-          <ButtonAdd @add="DialogAdd = true" />
+          <ButtonAdd @add="OnAdd" />
           <p class="text-subtitle-1 font-weight-thin text-subtitle-1 ms-2">
             {{ filterBom.length }} dự án
           </p>
@@ -114,10 +114,19 @@
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
+  <DialogLicense
+    v-model="LicenseDialogVisible"
+    :username="Username"
+    :current-license="CurrentLicense"
+    :remaining-uses="LicenseUse"
+    :project-count="ProjectCount"
+    @activated="GetLicenseInfo"
+  />
 </template>
 <script setup>
 import axios from "axios";
-import { ref, watch } from "vue";
+import { ref, watch, onMounted, onUnmounted, computed } from "vue";
+import { io } from "socket.io-client";
 import { useRouter } from "vue-router";
 import { useDisplay } from "vuetify";
 import { useFilterBom } from "@/composables/CheckBOM/useFilterBom.js";
@@ -139,6 +148,7 @@ import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import BaseDialog from "@/components/BaseDialog.vue";
 import InputDate from "@/components/Input-Date.vue";
+import DialogLicense from "@/components/Dialog-License.vue";
 
 // Data from Composables
 // ===== STATE MANAGEMENT =====
@@ -146,6 +156,7 @@ const { mdAndDown, lgAndUp } = useDisplay();
 const { filterBom, filterBomError } = useFilterBom();
 const Url = import.meta.env.VITE_API_URL;
 const GetID = ref("");
+const Username = ref(localStorage.getItem("Username") || "");
 
 // Router
 const router = useRouter();
@@ -159,6 +170,16 @@ const DialogLoading = ref(false);
 const DialogSuccess = ref(false);
 const MessageDialog = ref("");
 const MessageErrorDialog = ref("");
+const LicenseDialogVisible = ref(false);
+
+// License status
+const CurrentLicense = ref("Starter");
+const LicenseUse = ref(0);
+const ProjectCount = ref(0);
+const hasNoUses = computed(() => {
+  if (CurrentLicense.value === "Enterprise") return false;
+  return (LicenseUse.value ?? 0) <= 0;
+});
 
 // Data
 const FileName = ref("");
@@ -183,6 +204,26 @@ const itemsPerPage = ref(15);
 const page = ref(1);
 
 // Function
+const GetLicenseInfo = async () => {
+  if (!Username.value) return;
+  try {
+    const { data } = await axios.get(`${Url}/License/Info/${Username.value}`);
+    CurrentLicense.value = data.License || "Starter";
+    LicenseUse.value = data.LicenseUse ?? 0;
+    ProjectCount.value = data.ProjectCount || 0;
+  } catch (error) {
+    console.error("Error fetching license:", error);
+  }
+};
+
+const OnAdd = () => {
+  if (hasNoUses.value) {
+    LicenseDialogVisible.value = true;
+    return;
+  }
+  DialogAdd.value = true;
+};
+
 function PushItem(value) {
   router.push(`/Kiem-tra-so-lieu-pnp/${value}`);
   const found = filterBom.value.find((v) => v.id === value);
@@ -199,6 +240,10 @@ const GetItem = (value) => {
 };
 
 const SaveAdd = async () => {
+  if (hasNoUses.value) {
+    LicenseDialogVisible.value = true;
+    return;
+  }
   DialogLoading.value = true;
 
   const formData = {
@@ -283,6 +328,16 @@ function Error() {
   DialogFailed.value = true;
   DialogLoading.value = false;
 }
+
+onMounted(() => {
+  GetLicenseInfo();
+  const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
+  const socket = io(SOCKET_URL);
+  socket.on("UpdateLicense", () => {
+    GetLicenseInfo();
+  });
+  onUnmounted(() => socket.disconnect());
+});
 </script>
 <script>
 export default {

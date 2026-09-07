@@ -142,7 +142,13 @@ onMounted(() => {
   }
 });
 const LogOut = () => {
+  try {
+    axios.post(`${Url}/Users/logout`, {});
+  } catch (e) {
+    console.error(e);
+  }
   localStorage.removeItem("token");
+  localStorage.removeItem("SessionId");
   localStorage.removeItem("CustomersID");
   localStorage.removeItem("PO");
   localStorage.removeItem("Customers");

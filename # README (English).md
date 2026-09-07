@@ -78,15 +78,20 @@ This is the frontend application for the App-ST internal management system, buil
 
     ```env
     # URL of the backend API server
-    VITE_API_URL=http://localhost:3000 # Replace with your actual backend URL
-
-    # Digi-Key API Credentials (for component lookup feature)
-    VITE_DIGIKEY_CLIENT_ID=YOUR_DIGIKEY_CLIENT_ID
-    VITE_DIGIKEY_CLIENT_SECRET=YOUR_DIGIKEY_CLIENT_SECRET
+    VITE_API_URL=http://localhost:3000 # Replace with your actual backend URL (e.g. /api)
     ```
 
     - Replace `http://localhost:3000` with the actual URL where your backend API is running.
-    - Obtain API credentials from the Digi-Key API Portal if you need the component lookup feature.
+
+### Digi-Key API Credentials (component lookup feature)
+
+- Credentials must be configured **server-side** (backend), never in the frontend:
+    ```env
+    DIGIKEY_CLIENT_ID=YOUR_DIGIKEY_CLIENT_ID
+    DIGIKEY_CLIENT_SECRET=YOUR_DIGIKEY_CLIENT_SECRET
+    ```
+- The frontend calls the backend proxy endpoints `POST /api/DigiKey/token` and `GET /api/DigiKey/search/:mpn/productdetails`.
+- Obtain API credentials from the Digi-Key API Portal if you need the component lookup feature.
 
 ## Running the Application
 

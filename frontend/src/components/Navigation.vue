@@ -7,7 +7,18 @@
         :subtitle="LevelUser"
         :title="UserInfo"
         class="profile-item"
+        @click="DialogUserInfo = true"
+        style="cursor: pointer"
       >
+        <template v-slot:append>
+          <v-chip
+            :color="licenseColor"
+            size="small"
+            class="text-white font-weight-bold"
+          >
+            {{ CurrentLicense }}
+          </v-chip>
+        </template>
       </v-list-item>
     </v-list>
 
@@ -149,6 +160,124 @@
   </v-navigation-drawer>
   <SnackbarFailed v-model="DialogFailed" />
   <Loading v-model="DialogLoading" />
+  <DialogLicenseComp
+    v-model="DialogLicense"
+    :username="UserInfo"
+    :current-license="CurrentLicense"
+    :current-expiry="LicenseExpiry"
+    :remaining-uses="LicenseUse"
+    :project-count="ProjectCount"
+    @activated="GetLicenseInfo"
+  />
+
+  <!-- Dialog User Info -->
+  <v-dialog v-model="DialogUserInfo" max-width="380" persistent>
+    <v-card class="rounded-xl overflow-hidden">
+      <!-- Header gradient -->
+      <div class="user-info-header pa-6 pb-10">
+        <div class="d-flex justify-end">
+          <v-btn
+            icon="mdi-close"
+            variant="text"
+            color="white"
+            size="small"
+            @click="DialogUserInfo = false"
+          />
+        </div>
+      </div>
+
+      <!-- Avatar overlapping -->
+      <div class="d-flex justify-center" style="margin-top: -52px">
+        <v-avatar size="96" class="user-avatar-ring">
+          <v-img src="@/assets/avatar-ST.jpg" />
+        </v-avatar>
+      </div>
+
+      <v-card-text class="text-center pt-3 pb-2">
+        <div class="text-h6 font-weight-bold">{{ UserInfo }}</div>
+        <div class="text-caption text-grey-darken-1 mb-3">{{ LevelUser }}</div>
+
+        <!-- License chip -->
+        <div class="d-flex justify-center mb-4">
+          <v-chip
+            :color="licenseColor"
+            class="text-white font-weight-bold px-4"
+            size="small"
+          >
+            <v-icon start size="14">mdi-key-variant</v-icon>
+            Gói {{ CurrentLicense }}
+          </v-chip>
+        </div>
+
+        <!-- License usage info -->
+        <v-sheet class="pa-4 rounded-xl mb-4" color="grey-lighten-5">
+          <div class="d-flex align-center justify-space-between mb-2">
+            <span class="text-caption text-grey-darken-1">Dự án đã tạo</span>
+            <span class="text-body-2 font-weight-bold">{{ ProjectCount }}</span>
+          </div>
+          <div class="d-flex align-center justify-space-between mb-2">
+            <span class="text-caption text-grey-darken-1">Lượt còn lại</span>
+            <v-chip
+              size="x-small"
+              :color="
+                LicenseUse === null
+                  ? 'purple'
+                  : LicenseUse <= 0
+                  ? 'red'
+                  : LicenseUse <= 3
+                  ? 'orange'
+                  : 'green'
+              "
+              class="text-white font-weight-bold"
+            >
+              {{ LicenseUse === null ? "Không giới hạn" : LicenseUse }}
+            </v-chip>
+          </div>
+          <v-progress-linear
+            v-if="LicenseUse !== null && CurrentLicense !== 'Enterprise'"
+            :model-value="licenseUsedPercent"
+            height="6"
+            rounded
+            :color="
+              LicenseUse <= 0 ? 'red' : LicenseUse <= 3 ? 'orange' : 'primary'
+            "
+            class="mt-1"
+          />
+        </v-sheet>
+
+        <!-- Upgrade button (show when 0 or almost out) -->
+        <v-btn
+          v-if="LicenseUse !== null && LicenseUse <= 3"
+          block
+          :color="LicenseUse <= 0 ? 'red' : 'primary'"
+          class="font-weight-bold mb-2"
+          rounded="lg"
+          @click="
+            DialogUserInfo = false;
+            DialogLicense = true;
+          "
+        >
+          <v-icon start>mdi-arrow-up-circle</v-icon>
+          {{ LicenseUse <= 0 ? "Hết lượt — Nâng cấp ngay" : "Nâng cấp gói" }}
+        </v-btn>
+        <v-btn
+          v-else
+          block
+          variant="tonal"
+          color="primary"
+          class="font-weight-bold mb-2 text-caption"
+          rounded="lg"
+          @click="
+            DialogUserInfo = false;
+            DialogLicense = true;
+          "
+        >
+          <v-icon start>mdi-key-change</v-icon>
+          Quản lý License
+        </v-btn>
+      </v-card-text>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup>
@@ -158,6 +287,7 @@ import { useRouter, useRoute } from "vue-router";
 import axios from "axios";
 import Loading from "@/components/Loading.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
+import DialogLicenseComp from "@/components/Dialog-License.vue";
 import { onMounted } from "vue";
 
 const Url = import.meta.env.VITE_API_URL;
@@ -165,6 +295,42 @@ const router = useRouter();
 const route = useRoute();
 const UserInfo = ref(null);
 const LevelUser = ref("");
+
+// License status
+const CurrentLicense = ref("Starter");
+const LicenseExpiry = ref("");
+const LicenseUse = ref(0);
+const ProjectCount = ref(0);
+const DialogLicense = ref(false);
+const DialogUserInfo = ref(false);
+const licenseColor = computed(
+  () =>
+    ({
+      Starter: "grey",
+      Trial: "red-darken-1",
+      Standard: "primary",
+      Business: "amber",
+    }[CurrentLicense.value] || "grey"),
+);
+const licenseUsedPercent = computed(() => {
+  if (LicenseUse.value === null) return 0;
+  const total = ProjectCount.value + LicenseUse.value;
+  if (total <= 0) return 0;
+  return Math.min(100, Math.round((ProjectCount.value / total) * 100));
+});
+
+const GetLicenseInfo = async () => {
+  if (!UserInfo.value) return;
+  try {
+    const { data } = await axios.get(`${Url}/License/Info/${UserInfo.value}`);
+    CurrentLicense.value = data.License || "Starter";
+    LicenseExpiry.value = data.LicenseExpiry || "";
+    LicenseUse.value = data.LicenseUse ?? 0;
+    ProjectCount.value = data.ProjectCount || 0;
+  } catch (error) {
+    console.error("Error fetching license:", error);
+  }
+};
 
 // Status
 const StatusOption_1 = ref(false);
@@ -194,6 +360,7 @@ onMounted(() => {
     if (currentTime >= expirationTime) {
       console.log("Token đã hết hạn sử dụng!");
       localStorage.removeItem("token");
+      localStorage.removeItem("SessionId");
       localStorage.removeItem("Username");
       DialogFailed.value = true;
       router.push("/");
@@ -205,6 +372,7 @@ onMounted(() => {
     localStorage.setItem("Username", UserInfo.value);
     Date_Expired.value = new Date(expirationTime);
     FetchUser();
+    GetLicenseInfo();
   } else {
     console.log("Không tìm thấy token!");
     DialogFailed.value = true;
@@ -213,7 +381,13 @@ onMounted(() => {
 });
 
 const LogOut = () => {
+  try {
+    axios.post(`${Url}/Users/logout`, {});
+  } catch (e) {
+    console.error(e);
+  }
   localStorage.removeItem("token");
+  localStorage.removeItem("SessionId");
   localStorage.removeItem("CustomersID");
   localStorage.removeItem("PO");
   localStorage.removeItem("Customers");
@@ -368,6 +542,14 @@ const menuItems = computed(() => [
     value: "Setting",
     to: "/Cai-dat",
   },
+  {
+    group: "Hệ thống",
+    icon: "mdi-key-change",
+    title: "Quản lý License",
+    value: "License",
+    to: "/Cai-dat/Quan-ly-license",
+    adminOnly: true,
+  },
 ]);
 
 const menuCheck = computed(() =>
@@ -386,7 +568,11 @@ const menuListWork = computed(() =>
   menuItems.value.filter((item) => item.group === "Công việc"),
 );
 const menuSetting = computed(() =>
-  menuItems.value.filter((item) => item.group === "Hệ thống"),
+  menuItems.value.filter(
+    (item) =>
+      item.group === "Hệ thống" &&
+      (!item.adminOnly || LevelUser.value === "Admin"),
+  ),
 );
 </script>
 
@@ -584,5 +770,16 @@ export default {
       margin: 4px 4px !important;
     }
   }
+}
+</style>
+
+<style>
+.user-info-header {
+  background: linear-gradient(135deg, #1867c0 0%, #5cbbf6 100%);
+  min-height: 100px;
+}
+.user-avatar-ring {
+  border: 4px solid white;
+  box-shadow: 0 4px 16px rgba(24, 103, 192, 0.25);
 }
 </style>

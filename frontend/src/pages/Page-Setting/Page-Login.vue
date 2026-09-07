@@ -203,12 +203,26 @@
       </v-col>
     </v-row>
   </v-container>
+  <v-dialog v-model="DialogKicked" max-width="400" persistent>
+    <v-card>
+      <v-card-text class="text-center pa-8">
+        <v-icon size="56" color="warning" class="mb-3">mdi-account-lock-outline</v-icon>
+        <div class="text-h6 mb-1">Phiên đăng nhập đã kết thúc</div>
+        <div class="text-body-2 text-medium-emphasis">
+          Tài khoản của bạn đã đăng nhập ở máy khác. Vui lòng đăng nhập lại để tiếp tục sử dụng.
+        </div>
+      </v-card-text>
+      <v-card-actions class="justify-center pb-6">
+        <v-btn color="primary" rounded="xl" @click="DialogKicked = false">Đăng nhập lại</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
   <Loading v-model="DialogLoading" />
 </template>
 
 <script setup>
 import axios from "axios";
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import InputField from "@/components/Input-Field.vue";
 import Loading from "@/components/Loading.vue";
@@ -224,6 +238,14 @@ const DialogLoading = ref(false);
 const TextError = ref("");
 const rememberMe = ref(false);
 const showPassword = ref(false);
+const DialogKicked = ref(false);
+
+onMounted(() => {
+  if (localStorage.getItem("sessionKicked") === "1") {
+    localStorage.removeItem("sessionKicked");
+    DialogKicked.value = true;
+  }
+});
 
 const login = async () => {
   if (!Username.value || !Password.value) {
@@ -240,6 +262,7 @@ const login = async () => {
   try {
     const res = await axios.post(`${Url}/Users/login`, formData);
     localStorage.setItem("token", res.data.token);
+    localStorage.setItem("SessionId", res.data.sessionId);
     localStorage.setItem("User", Username.value);
     if (rememberMe.value) {
       localStorage.setItem("rememberedUser", Username.value);

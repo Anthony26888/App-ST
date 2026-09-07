@@ -78,14 +78,19 @@
 
     ```env
     # URL của máy chủ API backend
-    VITE_API_URL=http://localhost:3000 # Thay thế bằng URL backend thực tế của bạn
-
-    # Thông tin xác thực API Digi-Key (cho tính năng tra cứu linh kiện)
-    VITE_DIGIKEY_CLIENT_ID=YOUR_DIGIKEY_CLIENT_ID
-    VITE_DIGIKEY_CLIENT_SECRET=YOUR_DIGIKEY_CLIENT_SECRET
+    VITE_API_URL=http://localhost:3000 # Thay thế bằng URL backend thực tế của bạn (vd: /api)
     ```
     *   Thay thế `http://localhost:3000` bằng URL thực tế nơi API backend của bạn đang chạy.
-    *   Lấy thông tin xác thực API từ Cổng API Digi-Key nếu bạn cần tính năng tra cứu linh kiện.
+
+### Thông tin xác thực API Digi-Key (tính năng tra cứu linh kiện)
+
+*   Thông tin xác thực phải cấu hình **phía server (backend)**, không bao giờ ở frontend:
+    ```env
+    DIGIKEY_CLIENT_ID=YOUR_DIGIKEY_CLIENT_ID
+    DIGIKEY_CLIENT_SECRET=YOUR_DIGIKEY_CLIENT_SECRET
+    ```
+*   Frontend gọi proxy backend `POST /api/DigiKey/token` và `GET /api/DigiKey/search/:mpn/productdetails`.
+*   Lấy thông tin xác thực API từ Cổng API Digi-Key nếu bạn cần tính năng tra cứu linh kiện.
 
 ## Chạy Ứng dụng
 

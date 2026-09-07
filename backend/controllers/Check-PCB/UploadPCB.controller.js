@@ -1,5 +1,9 @@
 const db = require("../../database.js");
 const { formatDateLocal } = require("../../utils/date.js"); // hoặc import từ file bạn đang dùng
+const {
+  incrementUploadCount,
+  resolveRequestUsername,
+} = require("../../middleware/license.js");
 const xlsx = require("xlsx");
 const fs = require("fs");
 const path = require("path");
@@ -31,6 +35,21 @@ function normalizeDesignators(input) {
     .filter(s => s.length > 0);
 
   return result;
+}
+
+async function bumpUploadCount(req, projectId) {
+  let username = resolveRequestUsername(req);
+  if (!username && projectId) {
+    const proj = await new Promise((resolvePromise, rejectPromise) =>
+      db.get(
+        "SELECT created_by FROM FilterBom WHERE id = ?",
+        [projectId],
+        (e, row) => (e ? rejectPromise(e) : resolvePromise(row || null)),
+      ),
+    );
+    username = proj && proj.created_by;
+  }
+  if (username) await incrementUploadCount(username);
 }
 
 module.exports = (io) => ({
@@ -166,13 +185,16 @@ module.exports = (io) => ({
         fs.unlinkSync(bomFile.path);
       }
 
-      // --- 4️⃣ Emit sau khi DB ghi xong
+      // --- 4️⃣ Đếm lượt nhập liệu sau khi ghi DB thành công
+      await bumpUploadCount(req, project_id);
+
+      // --- 5️⃣ Emit sau khi DB ghi xong
       io.emit("CombineBomUpdate", { project_id });
       io.emit("BomHighlightUpdate", { project_id });
       io.emit("RawBomHighlightUpdate", { project_id });
       io.emit("BomRawHighlightUpdate", { project_id });
 
-      // --- 5️⃣ Response
+      // --- 6️⃣ Response
       res.json({
         message: "Upload BOM + Highlight thành công",
         totalRows: rawData.length,
@@ -305,13 +327,16 @@ module.exports = (io) => ({
       // --- 4️⃣ Xóa file tạm
       fs.unlinkSync(ppFile.path);
 
-      // --- 5️⃣ Emit chỉ sau khi DB insert hoàn tất
+      // --- 5️⃣ Đếm lượt nhập liệu sau khi ghi DB thành công
+      await bumpUploadCount(req, id);
+
+      // --- 6️⃣ Emit chỉ sau khi DB insert hoàn tất
       io.emit("CombineBomUpdate", { project_id: id });
       io.emit("BomHighlightUpdate", { project_id: id });
       io.emit("RawBomHighlightUpdate", { project_id: id });
       io.emit("MPNMountTypeUpdate", { project_id: id });
 
-      // --- 6️⃣ Gửi phản hồi
+      // --- 7️⃣ Gửi phản hồi
       res.json({
         message: "Pick&Place đã upload & lưu thành công (Excel, mils → mm)",
         inserted: uniqueRows.length,
@@ -526,6 +551,11 @@ module.exports = (io) => ({
       io.emit("BomHighlightUpdate");
       io.emit("RawBomHighlightUpdate");
       io.emit("BomRawHighlightUpdate");
+
+      // =========================
+      // ĐẾM LƯỢT NHẬP LIỆU SAU KHI GHI DB THÀNH CÔNG
+      // =========================
+      await bumpUploadCount(req, id);
 
       // =========================
       // RESPONSE

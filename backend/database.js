@@ -138,8 +138,17 @@ db.serialize(() => {
       FullName TEXT,
       Password TEXT,
       Level TEXT,
+      License TEXT DEFAULT 'Starter',
+      LicenseKey TEXT,
+      LicenseExpiry TEXT,
+      ProjectCount INTEGER DEFAULT 0,
       Date TEXT,
       Email TEXT
+    )`);
+  db.run(`CREATE TABLE IF NOT EXISTS Sessions (
+      Username TEXT PRIMARY KEY,
+      Token TEXT,
+      CreatedAt TEXT
     )`);
   db.run(`CREATE TABLE IF NOT EXISTS Customers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -587,6 +596,10 @@ db.serialize(() => {
       FullName TEXT,
       Password TEXT,
       Level TEXT,
+      License TEXT DEFAULT 'Starter',
+      LicenseKey TEXT,
+      LicenseExpiry TEXT,
+      ProjectCount INTEGER DEFAULT 0,
       Date TEXT,
       Email TEXT
     )
@@ -601,5 +614,85 @@ db.serialize(() => {
       Date TEXT
     )
   `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS LicenseKeys (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      LicenseKey TEXT UNIQUE,
+      LicensePlan TEXT,
+      Status TEXT DEFAULT 'unused',
+      UsedBy TEXT,
+      ExpiryDate TEXT,
+      Months INTEGER DEFAULT 1,
+      Note TEXT,
+      CreatedBy TEXT,
+      Date TEXT
+    )
+  `);
+  // Bảng yêu cầu xác nhận chuyển khoản (mã dùng 1 lần)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS LicenseRequests (
+      Code TEXT PRIMARY KEY,
+      Username TEXT NOT NULL,
+      Plan TEXT NOT NULL,
+      ConfirmAt TEXT NOT NULL,
+      Uses INTEGER DEFAULT 1,
+      Status TEXT DEFAULT 'active',
+      Date TEXT NOT NULL
+    )
+  `);
+  // Patch: thêm cột License cho database cũ nếu chưa có
+  db.run(`ALTER TABLE Users ADD COLUMN License TEXT DEFAULT 'Starter'`, (err) => {
+    // Nếu err => cột đã tồn tại, bỏ qua
+  });
+  db.run(`ALTER TABLE Users ADD COLUMN LicenseKey TEXT`, (err) => {
+    // Nếu err => cột đã tồn tại, bỏ qua
+  });
+  db.run(`ALTER TABLE Users ADD COLUMN LicenseExpiry TEXT`, (err) => {
+    // Nếu err => cột đã tồn tại, bỏ qua
+  });
+  db.run(`ALTER TABLE LicenseKeys ADD COLUMN Note TEXT`, (err) => {
+    // Nếu err => cột đã tồn tại, bỏ qua
+  });
+  db.run(`ALTER TABLE LicenseKeys ADD COLUMN Months INTEGER DEFAULT 1`, (err) => {
+    // Nếu err => cột đã tồn tại, bỏ qua
+  });
+  db.run(`ALTER TABLE Users ADD COLUMN ProjectCount INTEGER DEFAULT 0`, (err) => {
+    // Nếu err => cột đã tồn tại, bỏ qua
+  });
+  db.run(`ALTER TABLE Users ADD COLUMN UploadCount INTEGER DEFAULT 0`, (err) => {
+    // Nếu err => cột đã tồn tại, bỏ qua
+  });
+  db.run(`ALTER TABLE Users ADD COLUMN LicenseUse INTEGER DEFAULT 2`, (err) => {
+    // Nếu err => cột đã tồn tại, bỏ qua
+  });
+  db.run(`ALTER TABLE LicenseKeys ADD COLUMN Uses INTEGER DEFAULT 1`, (err) => {
+    // Nếu err => cột đã tồn tại, bỏ qua
+  });
+  db.run(`ALTER TABLE LicenseKeys ADD COLUMN SourceCode TEXT`, (err) => {
+    // Nếu err => cột đã tồn tại, bỏ qua
+  });
+  // Backfill lượt dùng theo gói hiện tại (giữ nguyên quyền lợi cũ)
+  db.run(
+    `UPDATE Users
+     SET LicenseUse = CASE License
+       WHEN 'Plus' THEN 10
+       WHEN 'Pro' THEN 50
+       WHEN 'Enterprise' THEN NULL
+       ELSE 2
+     END
+     WHERE LicenseUse IS NULL OR LicenseUse = 2`,
+    (err) => {
+      if (err) console.error("Backfill LicenseUse lỗi:", err.message);
+    },
+  );
+  // Backfill một lần: đếm tổng dự án đã tạo theo created_by cho các tài khoản chưa có số liệu
+  db.run(
+    `UPDATE Users
+     SET ProjectCount = (SELECT COUNT(*) FROM FilterBom WHERE FilterBom.created_by = Users.Username)
+     WHERE ProjectCount = 0`,
+    (err) => {
+      if (err) console.error("Backfill ProjectCount lỗi:", err.message);
+    },
+  );
 });
 module.exports = db;

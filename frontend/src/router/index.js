@@ -11,6 +11,7 @@ import PageOrders from "@/pages/Page-Orders/Page-Orders.vue";
 import PageSetting from "@/pages/Page-Setting/Page-Setting.vue";
 import PageLogin from "@/pages/Page-Setting/Page-Login.vue";
 import PageUsers from "@/pages/Page-Setting/Page-Users.vue";
+import PageLicense from "@/pages/Page-Setting/Page-License.vue";
 import PageReg from "@/pages/Page-Setting/Page-Reg.vue";
 import PageEditBom from "@/pages/Page-Check/Page-EditBom.vue";
 import PageDetailOrders from "@/pages/Page-Orders/Page-DetailOrders.vue";
@@ -133,6 +134,12 @@ const routes = [
         name: "Register",
         meta: { requiresAuth: true },
         component: PageReg,
+      },
+      {
+        path: "/Cai-dat/Quan-ly-license",
+        name: "License",
+        meta: { requiresAuth: true },
+        component: PageLicense,
       },
       {
         path: "/Don-hang/:id",
