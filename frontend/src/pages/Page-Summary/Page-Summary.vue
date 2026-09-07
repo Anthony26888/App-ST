@@ -365,11 +365,7 @@
                       Kế hoạch
                     </div>
                     <div class="text-subtitle-1 font-weight-bold text-truncate">
-                      {{
-                        selectedCategoryData.find(
-                          (item) => item.Category === selectedCategory,
-                        )?.Quantity_Plan || 0
-                      }}
+                      {{ planList.reduce((a, b) => a + b, 0) || 0 }}
                       pcs
                     </div>
                   </v-card>
@@ -387,11 +383,7 @@
                       Hoàn thành
                     </div>
                     <div class="text-subtitle-1 font-weight-bold text-truncate">
-                      {{
-                        selectedCategoryData.find(
-                          (item) => item.Category === selectedCategory,
-                        )?.Quantity_Counting || 0
-                      }}
+                      {{ passList.reduce((a, b) => a + b, 0) || 0 }}
                       pcs
                     </div>
                   </v-card>
@@ -749,6 +741,7 @@ import { useCompareSummary } from "@/composables/Summary/useCompareSummary";
 import { useSummaryFail } from "@/composables/Summary/useSummaryFail";
 import { useSummaryAI } from "@/composables/Summary/useSummaryAI";
 import { useHistoryPart } from "@/composables/Manufacture/useHistoryPart";
+import { useHistoryPlan } from "@/composables/Manufacture/useHistoryPlan";
 import { useActived } from "@/composables/Summary/useActived";
 
 // ===== STATE MANAGEMENT =====
@@ -1015,6 +1008,7 @@ const { summaryYesterday, summaryYesterdayError } = useSummaryYesterday(
 const { compareSummary } = useCompareSummary(formattedSelectedDate);
 const { summaryFail, summaryFailError } = useSummaryFail(formattedSelectedDate);
 const { historyPart } = useHistoryPart(selectedPlanID);
+const { historyPlan } = useHistoryPlan(selectedPlanID);
 const {
   aiText,
   loading: aiLoading,
@@ -1298,6 +1292,13 @@ const progress = computed(() =>
 
 const passList = computed(() =>
   categoryDataChart.value.map((item) => Number(item.Quantity || 0)),
+);
+
+// Kế hoạch = Σ Quantity_Plan của category đang chọn (từ bảng plan, không phụ thuộc ngày)
+const planList = computed(() =>
+  historyPlan.value
+    .filter((item) => item.Category === selectedCategory.value)
+    .map((item) => Number(item.Quantity_Plan || 0)),
 );
 
 // Pie chart items

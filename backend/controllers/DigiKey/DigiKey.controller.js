@@ -96,4 +96,42 @@ module.exports = () => ({
       res.status(500).json({ error: error.message });
     }
   },
+
+  // Proxy ảnh (DigiKey/LCSC) → tránh lỗi CORS khi tải về từ trình duyệt
+  async image(req, res) {
+    try {
+      const { url, filename } = req.query;
+      const allowedPrefixes = [
+        "https://mm.digikey.com/",
+        "https://assets.lcsc.com/",
+      ];
+      if (
+        !url ||
+        !allowedPrefixes.some((prefix) => String(url).startsWith(prefix))
+      ) {
+        return res.status(400).json({ error: "URL ảnh không hợp lệ" });
+      }
+
+      const response = await axios.get(url, { responseType: "arraybuffer" });
+      const contentType =
+        response.headers["content-type"] || "image/jpeg";
+      const safeName = String(filename || url.split("/").pop() || "image.jpg")
+        .replace(/[^a-zA-Z0-9._-]/g, "_");
+
+      res.set({
+        "Content-Type": contentType,
+        "Content-Disposition": `attachment; filename="${safeName}"`,
+        "Content-Length": Buffer.byteLength(response.data),
+        "Cache-Control": "public, max-age=86400",
+      });
+      res.send(Buffer.from(response.data));
+    } catch (error) {
+      if (error.response) {
+        return res
+          .status(error.response.status || 500)
+          .json({ error: "Không tải được ảnh từ DigiKey" });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  },
 });

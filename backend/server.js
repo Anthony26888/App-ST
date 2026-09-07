@@ -422,6 +422,11 @@ const DigiKeyRoutes = require("./routes/DigiKey/DigiKey.routes.js");
 
 app.use("/api/DigiKey", DigiKeyRoutes(io));
 
+//=========== LCSC =================
+const LcscRoutes = require("./routes/LCSC/LCSC.routes.js");
+
+app.use("/api/LCSC", LcscRoutes(io));
+
 // Khi client kết nối
 io.on("connection", (socket) => {
   if (!sessions[socket.id]) sessions[socket.id] = [];

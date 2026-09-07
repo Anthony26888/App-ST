@@ -250,7 +250,7 @@
           v-if="LicenseUse !== null && LicenseUse <= 3"
           block
           :color="LicenseUse <= 0 ? 'red' : 'primary'"
-          class="font-weight-bold mb-2"
+          class="font-weight-bold mb-2 text-caption"
           rounded="lg"
           @click="
             DialogUserInfo = false;

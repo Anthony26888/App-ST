@@ -20,9 +20,7 @@ export function useManufactureFail(id) {
     });
 
     socket.on("ManufactureFailData", (data) => {
-      if (Array.isArray(data)) {
-      }
-      manufactureFail.value = data;
+      manufactureFail.value = Array.isArray(data) ? data : [];
     });
 
     socket.on("ManufactureFailError", (message) => {

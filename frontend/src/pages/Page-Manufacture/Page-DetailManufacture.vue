@@ -65,12 +65,12 @@
             >
               <template #value-append>
                 <div class="text-h6 font-weight-medium text-warning mb-1">
-                  {{ PercentError }}%
+                  {{ PercentRemaining }}%
                 </div>
               </template>
               <template #bottom>
                 <v-progress-linear
-                  v-model="PercentError"
+                  v-model="PercentRemaining"
                   height="8"
                   color="warning"
                   rounded
@@ -981,6 +981,21 @@
       </template>
     </BaseDialog>
 
+    <!-- Dialog Remove History -->
+    <BaseDialog
+      v-model="DialogRemoveHistory"
+      title="Xoá lịch sử sản xuất"
+      icon="mdi-trash-can"
+      max-width="500px"
+    >
+      Bạn có chắc chắn muốn xóa bản ghi lịch sử này?
+      <template #actions>
+        <v-spacer />
+        <ButtonCancel @cancel="DialogRemoveHistory = false" />
+        <ButtonDelete @delete="RemoveItemHistory()" />
+      </template>
+    </BaseDialog>
+
     <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
     <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
     <Loading v-model="DialogLoading" />
@@ -1001,7 +1016,6 @@ import axios from "axios";
 import { useRoute, useRouter } from "vue-router";
 import { shallowRef, toRef } from "vue";
 import { debounce } from "lodash-es";
-import Chart from "chart.js/auto";
 import { useDisplay } from "vuetify";
 import InputSearch from "@/components/Input-Search.vue";
 import InputFiles from "@/components/Input-Files.vue";
@@ -1024,7 +1038,6 @@ import Loading from "@/components/Loading.vue";
 import ProcessCard from "@/components/Card-Flow-Proccess.vue";
 import StackedBarChart from "@/components/Chart-StackedBar.vue";
 import StackedBarChartSummary from "@/components/Chart-StackedBar-Summary.vue";
-import PointLineChartSummary from "@/components/Chart-PointLine-Summary.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
 import BaseDialog from "@/components/BaseDialog.vue";
 import InputDate from "@/components/Input-Date.vue";
@@ -1088,12 +1101,19 @@ const totalOutput = computed(() => {
   );
 });
 const PercentOutput = computed(() =>
-  Number.parseFloat((totalOutput.value * 100) / totalInput.value).toFixed(1),
+  Number(Number((totalOutput.value * 100) / totalInput.value).toFixed(1)),
 );
 
 const PercentError = computed(() =>
-  Number.parseFloat((totalError.value * 100) / totalInput.value).toFixed(1),
+  Number(Number((totalError.value * 100) / totalInput.value).toFixed(1)),
 );
+
+const PercentRemaining = computed(() => {
+  if (!totalInput.value) return 0;
+  return Number(
+    Number(((totalInput.value - totalOutput.value) * 100) / totalInput.value).toFixed(1),
+  );
+});
 
 const PercentFixed = computed(
   () => (totalFixed.value * 100) / totalError.value,
@@ -1186,7 +1206,7 @@ const HeadersHistory = [
     align: "center",
     children: [
       { title: "Vòng lập (s)", key: "CycleTime_Plan" },
-      { title: "Thời gian (s)", key: "Time_Plan" },
+      { title: "Thời gian (giờ)", key: "Time_Plan" },
       { title: "Đầu vào", key: "Quantity_Plan" },
     ],
   },
@@ -1272,12 +1292,6 @@ const passListTotal = computed(() => {
     return t === 0 && b === 0 ? o : Math.min(t, b);
   });
 });
-
-const planList = computed(() =>
-  history.value
-    .filter((item) => item.Type === selectedTitle.value)
-    .map((item) => Number(item.Quantity_Plan || 0)),
-);
 
 const passListSummary = computed(() => {
   const grouped = {};
@@ -1385,28 +1399,27 @@ const pieDataTopBottom = computed(() => {
       },
     ];
   }
-  const divisor = pieTop + pieBottom || 1;
+  const divisor = total || 1;
+  const topPercent = Number(((pieTop / divisor) * 100).toFixed(1)) || 0;
+  const bottomPercent = Number(((pieBottom / divisor) * 100).toFixed(1)) || 0;
 
   return [
     {
       key: 1,
       title: "Top",
-      value: Number(((pieTop / divisor) * 100).toFixed(1)) || 0,
+      value: topPercent,
       color: "#1976d2",
     },
     {
       key: 2,
       title: "Bottom",
-      value: Number(((pieBottom / divisor) * 100).toFixed(1)) || 0,
+      value: bottomPercent,
       color: "#ff6361",
     },
     {
       key: 3,
       title: "Còn lại",
-      value:
-        100 -
-        Number(((pieTop / divisor) * 100).toFixed(1)) -
-        Number(((pieBottom / divisor) * 100).toFixed(1)),
+      value: Math.max(100 - topPercent - bottomPercent, 0),
       color: "rgba(var(--v-theme-on-surface), .2)",
       pattern: "url(#pattern-0)",
     },
@@ -1652,14 +1665,6 @@ const pieItems = computed(() => {
   }));
 });
 
-// Computed percent Input and Output
-const percent = computed(() => {
-  if (totalInput.value === 0 || totalWarehouse.value === 0) {
-    return 0;
-  }
-  return Math.round((totalWarehouse.value / totalInput.value) * 100);
-});
-
 const Time_Add = computed(() => {
   if (Quantity_Plan_Add.value === 0 || CycleTime_Add.value === 0) {
     return 0;
@@ -1687,8 +1692,7 @@ const PushItem = (item) => {
   router.push(`/San-xuat/${item.Type}/${item.id}`);
 };
 
-const GetItem = (item) => {
-  DialogEdit.value = true;
+const populateEditFields = (item) => {
   Type_Edit.value = item.Type;
   PONumber_Edit.value = item.PONumber;
   Name_Order_Edit.value = item.Name_Order;
@@ -1700,21 +1704,16 @@ const GetItem = (item) => {
   Time_Edit.value = item.Time_Plan;
   Note_Edit.value = item.Note;
   Date_DetailManufacture_Edit.value = item.Created_At;
+};
+
+const GetItem = (item) => {
+  DialogEdit.value = true;
+  populateEditFields(item);
   GetID.value = item.id;
 };
 
 const GetItemOutput = (item) => {
-  Type_Edit.value = item.Type;
-  PONumber_Edit.value = item.PONumber;
-  Name_Order_Edit.value = item.Name_Order;
-  Category_Edit.value = item.Category;
-  Line_Edit.value = item.Line_SMT;
-  Surface_Edit.value = item.Surface;
-  Quantity_Plan_Edit.value = item.Quantity_Plan;
-  CycleTime_Edit.value = item.CycleTime_Plan;
-  Time_Edit.value = item.Time_Plan;
-  Note_Edit.value = item.Note;
-  Date_DetailManufacture_Edit.value = item.Created_At;
+  populateEditFields(item);
   GetID.value = item.id;
 };
 
@@ -1724,6 +1723,12 @@ const GetItemCategory = (item) => {
   Type_Add.value = item.Type;
   Surface_Add.value = item.Surface;
   Line_Add.value = item.Line_SMT;
+};
+
+const GetItemHistory = (item) => {
+  GetIDHistory.value = item.id;
+  GetSourceHistory.value = item.Source;
+  DialogRemoveHistory.value = true;
 };
 
 const selectCard = (title) => {
@@ -1752,15 +1757,6 @@ const selectCard = (title) => {
     passOneSide.value = historys.value
       .filter((item) => item.Surface === "1 Mặt")
       .reduce((sum, item) => sum + Number(item.Quantity || 0), 0);
-
-    // Nếu TOP hoặc BOTTOM lớn hơn thì dùng giá trị lớn nhất
-    if (passTop.value > passOneSide.value) {
-      passOneSide.value = passBottom.value;
-    }
-
-    if (passBottom.value > passOneSide.value) {
-      passOneSide.value = passTop.value;
-    }
   } else {
     passOneSide.value = historys.value
       .filter((item) => item.Surface === "1 Mặt")
@@ -2073,21 +2069,6 @@ export default {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
-}
-
-/* Chart styles */
-.chart-container {
-  position: relative;
-  height: 400px;
-  width: 100%;
-  background: white;
-  border-radius: 8px;
-  padding: 16px;
-}
-
-.chart-container canvas {
-  max-height: 100%;
-  max-width: 100%;
 }
 
 /* Detail table styles */

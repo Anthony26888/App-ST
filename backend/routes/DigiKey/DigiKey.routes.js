@@ -9,6 +9,7 @@ module.exports = (io) => {
 
   router.post("/token", requireActiveLicense(), controller.token);
   router.get("/search/:mpn/productdetails", requireActiveLicense(), controller.search);
+  router.get("/image", requireActiveLicense(), controller.image);
 
   return router;
 };

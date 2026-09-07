@@ -311,7 +311,7 @@
                       </template>
                     </v-tooltip>
 
-                    <v-tooltip text="Xem linh kiện" location="top">
+                    <!-- <v-tooltip text="Xem linh kiện" location="top">
                       <template v-slot:activator="{ props }">
                         <ButtonSearch
                           @search="getAccessToken(item)"
@@ -319,7 +319,7 @@
                           class="ms-2"
                         />
                       </template>
-                    </v-tooltip>
+                    </v-tooltip> -->
                   </div>
                 </template>
 
@@ -2516,11 +2516,12 @@
           variant="tonal"
           size="small"
           prepend-icon="mdi-close-circle"
+          class="ms-2"
         >
           Không có:
           {{ datasheetResults.filter((r) => !r.datasheetUrl).length }}
         </v-chip>
-        <v-chip color="grey" variant="tonal" size="small">
+        <v-chip color="grey" variant="tonal" size="small" class="ms-2">
           Tổng: {{ datasheetResults.length }}
         </v-chip>
       </div>
@@ -2536,6 +2537,7 @@
               Ảnh
             </th>
             <th class="text-caption font-weight-bold py-3">Manufacturer</th>
+            <th class="text-caption font-weight-bold py-3">Nguồn</th>
             <th class="text-caption font-weight-bold py-3">Link Datasheet</th>
             <th class="text-caption font-weight-bold py-3" style="width: 100px">
               Status
@@ -2558,19 +2560,57 @@
                 height="48"
                 cover
                 class="rounded-lg border"
+                style="cursor: pointer"
+                @click="openDatasheetImage(item)"
               >
                 <template v-slot:error>
                   <div
                     class="d-flex align-center justify-center fill-height bg-grey-lighten-3"
                   >
-                    <v-icon color="grey" size="20">mdi-image-broken-variant</v-icon>
+                    <v-icon color="grey" size="20"
+                      >mdi-image-broken-variant</v-icon
+                    >
                   </div>
                 </template>
               </v-img>
-              <v-icon v-else color="grey" size="20">mdi-image-off-outline</v-icon>
+              <v-icon v-else color="grey" size="20"
+                >mdi-image-off-outline</v-icon
+              >
             </td>
             <td class="text-caption text-grey">
               {{ item.manufacturer || "—" }}
+            </td>
+            <td class="text-caption">
+              <div
+                class="d-flex align-center ga-1"
+                :title="`Datasheet: ${item.dSource || '—'} · Ảnh: ${
+                  item.iSource || '—'
+                }`"
+              >
+                <v-chip
+                  size="x-small"
+                  :color="
+                    item.dSource === 'DigiKey'
+                      ? 'indigo'
+                      : item.dSource === 'LCSC'
+                      ? 'green'
+                      : 'orange'
+                  "
+                  variant="tonal"
+                  prepend-icon="mdi-book-open-page-variant"
+                >
+                  DS
+                </v-chip>
+                <v-chip
+                  v-if="item.iSource"
+                  size="x-small"
+                  :color="item.iSource === 'DigiKey' ? 'indigo' : 'green'"
+                  variant="tonal"
+                  prepend-icon="mdi-image"
+                >
+                  IMG
+                </v-chip>
+              </div>
             </td>
             <td class="text-caption">
               <a
@@ -2601,7 +2641,7 @@
             </td>
           </tr>
           <tr v-if="datasheetResults.length === 0">
-            <td colspan="6" class="text-center text-grey py-6 text-caption">
+            <td colspan="7" class="text-center text-grey py-6 text-caption">
               Không có dữ liệu
             </td>
           </tr>
@@ -2626,6 +2666,54 @@
         :disabled="datasheetResults.length === 0"
         @click="downloadDatasheetExcel()"
         >Tải về (.xlsx)</v-btn
+      >
+    </v-card-actions>
+  </BaseDialog>
+
+  <!-- Dialog xem + tải ảnh sản phẩm -->
+  <BaseDialog
+    v-model="DialogDatasheetImage"
+    width="600"
+    :persistent="true"
+    icon="mdi-image-search-outline"
+    title="Hình ảnh sản phẩm"
+  >
+    <v-card-text class="pa-4 d-flex justify-center">
+      <v-img
+        :src="datasheetImageUrl"
+        :max-height="450"
+        max-width="540"
+        cover
+        class="rounded-lg border"
+        eager
+      >
+        <template v-slot:error>
+          <div
+            class="d-flex align-center justify-center fill-height bg-grey-lighten-3"
+            style="min-height: 300px"
+          >
+            <v-icon color="grey" size="48">mdi-image-broken-variant</v-icon>
+          </div>
+        </template>
+      </v-img>
+    </v-card-text>
+
+    <v-card-actions class="pa-4 pt-0">
+      <v-spacer />
+      <v-btn
+        color="grey"
+        variant="tonal"
+        class="text-caption"
+        @click="DialogDatasheetImage = false"
+        >Đóng</v-btn
+      >
+      <v-btn
+        color="success"
+        variant="tonal"
+        prepend-icon="mdi-download"
+        class="text-caption ms-2"
+        @click="downloadDatasheetImage()"
+        >Tải về</v-btn
       >
     </v-card-actions>
   </BaseDialog>
@@ -2758,6 +2846,9 @@ const tabMissing = ref("mpn");
 const selectedBomRows = ref([]);
 const DialogFindingDatasheet = ref(false);
 const DialogDatasheetResult = ref(false);
+const DialogDatasheetImage = ref(false);
+const datasheetImageUrl = ref("");
+const datasheetImageName = ref("image.jpg");
 const datasheetResults = ref([]);
 
 // Nexar API credentials (from environment variables)
@@ -5304,6 +5395,16 @@ const searchDigikeyProduct = async (mpn) => {
   }
 };
 
+const searchLcscProduct = async (mpn) => {
+  const searchUrl = `${Url}/LCSC/search/${encodeURIComponent(mpn)}`;
+  try {
+    const response = await axios.get(searchUrl);
+    return response.data;
+  } catch (error) {
+    return null;
+  }
+};
+
 /**
  * Hàm chính: lấy MPN từ các row đã chọn → tìm trên Digikey → hiển thị dialog kết quả
  */
@@ -5332,35 +5433,57 @@ const findDatasheets = async () => {
   datasheetResults.value = [];
 
   try {
-    // 1. Lấy token
-    const token = await getDigikeyTokenForDatasheet();
-    if (!token)
-      throw new Error(
-        "Không thể kết nối đến DigiKey API. Vui lòng kiểm tra lại Client ID / Secret.",
-      );
-
-    // 2. Chạy tìm kiếm cho tất cả các MPN
+    // Chạy tìm kiếm cho tất cả các MPN — datasheet & ảnh tra độc lập:
+    // Datasheet: DigiKey → LCSC → Google | Ảnh: DigiKey → LCSC → null
     const promises = mpnList.map(async (mpn) => {
       const result = await searchDigikeyProduct(mpn);
+      const digiOk = result && result.Product;
 
-      // Nếu tìm thấy thông tin trên Digikey
-      if (result && result.Product) {
-        return {
-          mpn: mpn,
-          manufacturer: result.Product.Manufacturer?.Name || "DigiKey",
-          datasheetUrl: result.Product.DatasheetUrl || "",
-          photoUrl: result.Product.PhotoUrl || "",
-        };
+      let datasheetUrl =
+        digiOk && result.Product.DatasheetUrl
+          ? result.Product.DatasheetUrl
+          : "";
+      let photoUrl =
+        digiOk && result.Product.PhotoUrl ? result.Product.PhotoUrl : "";
+      let dSource = digiOk && datasheetUrl ? "DigiKey" : "";
+      let iSource = digiOk && photoUrl ? "DigiKey" : "";
+      let manufacturer = digiOk
+        ? result.Product.Manufacturer?.Name || "DigiKey"
+        : "";
+
+      // Chỉ gọi LCSC khi DigiKey còn thiếu datasheet HOẶC ảnh
+      let lcsc = null;
+      if (dSource !== "DigiKey" || iSource !== "DigiKey") {
+        lcsc = await searchLcscProduct(mpn);
       }
 
-      // Nếu không tìm thấy, fallback sang trang tìm kiếm của Google
+      // Datasheet: DigiKey → LCSC → Google
+      if (!datasheetUrl && lcsc && lcsc.pdfUrl) {
+        datasheetUrl = lcsc.pdfUrl;
+        dSource = "LCSC";
+      }
+      if (!datasheetUrl) {
+        datasheetUrl = `https://www.google.com/search?q=${encodeURIComponent(
+          mpn + " datasheet pdf",
+        )}`;
+        dSource = "Google";
+      }
+
+      // Ảnh: DigiKey → LCSC → null
+      if (!photoUrl && lcsc && lcsc.imageUrl) {
+        photoUrl = lcsc.imageUrl;
+        iSource = "LCSC";
+      }
+
+      if (!manufacturer) manufacturer = lcsc?.manufacturer || "—";
+
       return {
         mpn: mpn,
-        manufacturer: "Not Found (DigiKey)",
-        datasheetUrl: `https://www.google.com/search?q=${encodeURIComponent(
-          mpn + " datasheet pdf",
-        )}`,
-        photoUrl: "",
+        manufacturer,
+        datasheetUrl,
+        photoUrl,
+        dSource,
+        iSource,
       };
     });
 
@@ -5997,6 +6120,28 @@ function openImage(imageUrl, rotation = 0) {
   dialogImageUrl.value = imageUrl;
   dialogRotation.value = Number(rotation) || 0;
 }
+
+const openDatasheetImage = (item) => {
+  datasheetImageUrl.value = item.photoUrl || "";
+  datasheetImageName.value = `${String(item.mpn || "image").replace(
+    /[^a-zA-Z0-9._-]/g,
+    "_",
+  )}.jpg`;
+  DialogDatasheetImage.value = true;
+};
+
+const downloadDatasheetImage = () => {
+  if (!datasheetImageUrl.value) return;
+  const url = `${Url}/DigiKey/image?url=${encodeURIComponent(
+    datasheetImageUrl.value,
+  )}&filename=${encodeURIComponent(datasheetImageName.value)}`;
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = datasheetImageName.value;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+};
 </script>
 <script>
 export default {
