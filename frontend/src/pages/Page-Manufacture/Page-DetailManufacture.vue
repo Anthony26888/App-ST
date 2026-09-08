@@ -521,7 +521,7 @@
                 </v-col>
                 <v-col cols="12">
                   <v-row>
-                    <v-col>
+                    <v-col cols="6">
                       <StackedBarChart
                         :labels="days"
                         :passDataTop="passListTop"
@@ -529,11 +529,11 @@
                         title="Kết quả sản xuất theo ngày Top và Bottom"
                       />
                     </v-col>
-                    <v-col>
+                    <v-col cols="6">
                       <StackedBarChart
-                        :labels="days"
+                        :labels="passCompletionDay ? [passCompletionDay] : []"
                         :passDataOneSide="passListTotal"
-                        title="Kết quả sản xuất theo ngày"
+                        title="Kết quả sản xuất ngày hoàn thành"
                       />
                     </v-col>
                   </v-row>
@@ -546,7 +546,7 @@
         <!-- Chart thống kê công đoạn -->
         <v-row class="mb-6 mt-5">
           <!-- Chart Card -->
-          <v-col cols="12" md="7">
+          <v-col cols="12" md="12">
             <v-card class="rounded-xl h-100 border" elevation="0">
               <v-card-title
                 class="d-flex align-center pa-4 bg-surface border-b"
@@ -574,7 +574,7 @@
           </v-col>
 
           <!-- Chart chi tiết công đoạn -->
-          <v-col cols="12" md="5">
+          <!-- <v-col cols="12" md="5">
             <v-card class="rounded-xl h-100 border" elevation="0">
               <v-card-title
                 class="d-flex align-center pa-4 bg-surface border-b"
@@ -637,7 +637,7 @@
                 </div>
               </v-card-text>
             </v-card>
-          </v-col>
+          </v-col> -->
         </v-row>
 
         <!-- Lịch sử sản xuất -->
@@ -1111,7 +1111,9 @@ const PercentError = computed(() =>
 const PercentRemaining = computed(() => {
   if (!totalInput.value) return 0;
   return Number(
-    Number(((totalInput.value - totalOutput.value) * 100) / totalInput.value).toFixed(1),
+    Number(
+      ((totalInput.value - totalOutput.value) * 100) / totalInput.value,
+    ).toFixed(1),
   );
 });
 
@@ -1224,6 +1226,16 @@ const HeadersHistory = [
 ];
 
 // Chart
+// Group quantity by date for each surface, aligned to `days` order
+const groupQuantityByDate = (items, dayList) => {
+  const map = {};
+  items.forEach((item) => {
+    const date = item.Created_At;
+    map[date] = (map[date] || 0) + Number(item.Quantity_Real || 0);
+  });
+  return dayList.map((d) => map[d] || 0);
+};
+
 const days = computed(() => {
   return [
     ...new Set(
@@ -1235,27 +1247,30 @@ const days = computed(() => {
 });
 
 const passListTop = computed(() =>
-  history.value
-    .filter(
+  groupQuantityByDate(
+    history.value.filter(
       (item) => item.Type === selectedTitle.value && item.Surface === "TOP",
-    )
-    .map((item) => Number(item.Quantity_Real || 0)),
+    ),
+    days.value,
+  ),
 );
 
 const passListBottom = computed(() =>
-  history.value
-    .filter(
+  groupQuantityByDate(
+    history.value.filter(
       (item) => item.Type === selectedTitle.value && item.Surface === "BOTTOM",
-    )
-    .map((item) => Number(item.Quantity_Real || 0)),
+    ),
+    days.value,
+  ),
 );
 
 const passDataOneSide = computed(() =>
-  history.value
-    .filter(
+  groupQuantityByDate(
+    history.value.filter(
       (item) => item.Type === selectedTitle.value && item.Surface === "1 Mặt",
-    )
-    .map((item) => Number(item.Quantity_Real || 0)),
+    ),
+    days.value,
+  ),
 );
 const totalPassTop = computed(() => {
   return passListTop.value.reduce((sum, item) => sum + Number(item || 0), 0);
@@ -1277,20 +1292,55 @@ const passTotal = computed(() => {
 
   return top === 0 && bottom === 0 ? oneSide : Math.min(top, bottom);
 });
+// Ngày hoàn thành = ngày mới nhất của loại sản xuất đang chọn
+const passCompletionDay = computed(() => {
+  const dayList = days.value;
+  if (!dayList.length) return null;
+  return dayList.reduce((max, d) => (d > max ? d : max), dayList[0]);
+});
+
 const passListTotal = computed(() => {
-  const top = passListTop.value;
-  const bottom = passListBottom.value;
-  const oneSide = passDataOneSide.value;
+  const day = passCompletionDay.value;
+  if (day === null) return [];
 
-  const maxLength = Math.max(top.length, bottom.length, oneSide.length);
+  const items = history.value.filter(
+    (item) => item.Type === selectedTitle.value && item.Created_At === day,
+  );
 
-  return Array.from({ length: maxLength }, (_, i) => {
-    const t = Number(top[i] || 0);
-    const b = Number(bottom[i] || 0);
-    const o = Number(oneSide[i] || 0);
+  let top = 0;
+  let bottom = 0;
+  let oneSide = 0;
+  let hasTop = false;
+  let hasBottom = false;
+  let hasOneSide = false;
 
-    return t === 0 && b === 0 ? o : Math.min(t, b);
+  items.forEach((item) => {
+    const qty = Number(item.Quantity_Real || 0);
+    if (item.Surface === "TOP") {
+      top += qty;
+      hasTop = true;
+    } else if (item.Surface === "BOTTOM") {
+      bottom += qty;
+      hasBottom = true;
+    } else if (item.Surface === "1 Mặt") {
+      oneSide += qty;
+      hasOneSide = true;
+    }
   });
+
+  if (hasTop && hasBottom) return [Math.min(top, bottom)];
+  if (hasTop) return [top];
+  if (hasBottom) return [bottom];
+  if (hasOneSide) return [oneSide];
+  return [0];
+});
+
+const historySurfaceMap = computed(() => {
+  const map = {};
+  history.value.forEach((h) => {
+    if (h.id != null) map[h.id] = h.Surface;
+  });
+  return map;
 });
 
 const passListSummary = computed(() => {
@@ -1298,7 +1348,7 @@ const passListSummary = computed(() => {
 
   historyPart.value.forEach((item) => {
     const source = item.Source;
-    const surface = item.Surface;
+    const surface = historySurfaceMap.value[item.HistoryID] ?? item.Surface;
     const qty = Number(item.Quantity || 0);
 
     if (!grouped[source]) {
@@ -1325,20 +1375,16 @@ const passListSummary = computed(() => {
   const result = {};
 
   Object.entries(grouped).forEach(([source, item]) => {
-    const values = [];
-
-    if (item.oneSide > 0) values.push(item.oneSide);
-
-    // Có đủ TOP + BOTTOM
+    // Có đủ TOP + BOTTOM -> lấy min 2 mặt, bỏ qua phần 1 Mặt
     if (item.top > 0 && item.bottom > 0) {
-      values.push(Math.min(item.top, item.bottom));
+      result[source] = Math.min(item.top, item.bottom);
+    } else if (item.top > 0 || item.bottom > 0) {
+      // Chỉ có TOP hoặc chỉ có BOTTOM -> không hiện (cột = 0)
+      result[source] = 0;
     } else {
-      // Chỉ có TOP hoặc chỉ có BOTTOM
-      if (item.top > 0) values.push(item.top);
-      if (item.bottom > 0) values.push(item.bottom);
+      // Chỉ có 1 Mặt -> hiện bình thường
+      result[source] = item.oneSide;
     }
-
-    result[source] = values.length ? Math.min(...values) : 0;
   });
 
   return result;

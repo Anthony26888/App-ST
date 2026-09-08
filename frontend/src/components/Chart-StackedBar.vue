@@ -80,6 +80,26 @@ let chartInstance = null;
 const createDatasets = () => {
   const datasets = [];
 
+  // ===== ONE SIDE =====
+  if (
+    props.passDataOneSide &&
+    props.passDataOneSide.some((v) => v !== null && v !== undefined)
+  ) {
+    datasets.push({
+      label: "Pass",
+      data: props.passDataOneSide,
+
+      backgroundColor: "rgba(0, 200, 83, 0.8)",
+      borderColor: "rgba(0, 200, 83, 1)",
+
+      borderWidth: 1,
+      maxBarThickness: 50,
+
+      stack: "stack1",
+      order: 2,
+    });
+  }
+
   // ===== TOP =====
   if (
     props.passDataTop &&
@@ -95,6 +115,7 @@ const createDatasets = () => {
       borderWidth: 1,
       maxBarThickness: 50,
 
+      stack: "stack1",
       order: 2,
     });
   }
@@ -114,26 +135,32 @@ const createDatasets = () => {
       borderWidth: 1,
       maxBarThickness: 50,
 
+      stack: "stack1",
       order: 2,
     });
   }
 
-  // ===== ONE SIDE =====
+  // ===== PLAN LINE =====
   if (
-    props.passDataOneSide &&
-    props.passDataOneSide.some((v) => v !== null && v !== undefined)
+    props.planData &&
+    props.planData.some((v) => v !== null && v !== undefined)
   ) {
     datasets.push({
-      label: "Pass",
-      data: props.passDataOneSide,
+      type: "line",
+      label: "Kế hoạch",
+      data: props.planData,
 
-      backgroundColor: "rgba(0, 200, 83, 0.8)",
-      borderColor: "rgba(0, 200, 83, 1)",
+      borderColor: "rgba(255, 152, 0, 1)",
+      backgroundColor: "rgba(255, 152, 0, 0.15)",
+      borderWidth: 2,
+      borderDash: [6, 4],
+      pointRadius: 3,
+      pointBackgroundColor: "rgba(255, 152, 0, 1)",
+      tension: 0.3,
+      fill: false,
 
-      borderWidth: 1,
-      maxBarThickness: 50,
-
-      order: 2,
+      order: 1,
+      yAxisID: "y",
     });
   }
 
@@ -179,16 +206,37 @@ const renderChart = () => {
 
           font: {
             size: 18,
+            weight: "bold",
+          },
+
+          padding: {
+            bottom: 16,
           },
         },
 
         legend: {
           position: "bottom",
+
+          labels: {
+            usePointStyle: true,
+            padding: 20,
+            boxWidth: 8,
+          },
         },
 
         tooltip: {
           mode: "index",
           intersect: false,
+
+          callbacks: {
+            footer(items) {
+              const total = items.reduce(
+                (sum, item) => sum + (item.parsed.y || 0),
+                0,
+              );
+              return `Tổng: ${total?.toLocaleString("vi-VN") ?? 0} sp`;
+            },
+          },
         },
       },
 

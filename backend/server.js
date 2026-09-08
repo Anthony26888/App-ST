@@ -1,5 +1,7 @@
 require("dotenv").config();
-require("dotenv").config({ path: require("path").join(__dirname, ".env.secrets") });
+require("dotenv").config({
+  path: require("path").join(__dirname, ".env.secrets"),
+});
 const express = require("express");
 const multer = require("multer");
 const xlsx = require("xlsx");
@@ -63,7 +65,7 @@ const allowedOrigins = new Set([
   "http://localhost",
 
   // LAN
-  "http://192.168.205.12",
+  "http://192.168.205.11",
 
   // Production domain – **đầy đủ biến thể**
   "http://erpst.io.vn",
