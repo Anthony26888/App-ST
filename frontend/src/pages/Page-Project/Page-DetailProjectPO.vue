@@ -1075,7 +1075,10 @@ const SaveAddManufacture = async () => {
     ProjectID: GetIDManufacture.value,
   });
   try {
-    const response = await axios.post(`${Url}/PlanManufacture/Add`, formData);
+    const response = await axios.post(
+      `${Url}/Manufacture/PlanManufacture/Add-item`,
+      formData,
+    );
     DialogLoading.value = false;
     DialogSuccess.value = true;
     DialogAddManufacture.value = false;

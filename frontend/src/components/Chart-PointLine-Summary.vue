@@ -92,7 +92,7 @@ const renderChart = () => {
 
         tension: item.tension ?? 0.4,
 
-        fill: true,
+        fill: item.fill ?? true,
 
         pointRadius: item.pointRadius || 5,
 

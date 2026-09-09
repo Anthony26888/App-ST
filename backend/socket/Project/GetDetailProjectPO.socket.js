@@ -16,11 +16,13 @@ module.exports = (socket) => {
                               2
                           ) AS Percent_Delivered,
 
-                          COALESCE(
-                              COUNT(DISTINCT CASE 
-                                  WHEN LOWER(TRIM(c.Type)) = 'thành phẩm' THEN c.id 
-                              END), 
-                          0) AS Quantity_Manufacture,
+                          COALESCE((
+                              SELECT SUM(mc.Quantity)
+                              FROM PlanManufacture p
+                              JOIN ManufactureCounting mc ON mc.PlanID = p.id
+                              WHERE p.ProjectID = a.id
+                                AND LOWER(TRIM(mc.Type)) = 'thành phẩm'
+                          ), 0) AS Quantity_Manufacture,
 
                           a.Note AS Note,
 

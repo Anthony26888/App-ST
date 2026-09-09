@@ -76,7 +76,7 @@ const internalValue = computed({
     return normalizeToYMD(props.modelValue);
   },
   set(val) {
-    emit("update:modelValue", val);
+    emit("update:modelValue", normalizeToYMD(val));
   },
 });
 

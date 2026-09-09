@@ -15,6 +15,7 @@
             <v-icon icon="mdi-chevron-right"></v-icon>
           </template>
         </v-breadcrumbs>
+        <ButtonDownload title="Tải báo cáo" @download-file="DownloadReport()" />
       </v-card-title>
 
       <v-card-text class="pa-6">
@@ -520,23 +521,11 @@
                   </v-card>
                 </v-col>
                 <v-col cols="12">
-                  <v-row>
-                    <v-col cols="6">
-                      <StackedBarChart
-                        :labels="days"
-                        :passDataTop="passListTop"
-                        :passDataBottom="passListBottom"
-                        title="Kết quả sản xuất theo ngày Top và Bottom"
-                      />
-                    </v-col>
-                    <v-col cols="6">
-                      <StackedBarChart
-                        :labels="passCompletionDay ? [passCompletionDay] : []"
-                        :passDataOneSide="passListTotal"
-                        title="Kết quả sản xuất ngày hoàn thành"
-                      />
-                    </v-col>
-                  </v-row>
+                  <LinePointChart
+                    title="Kết quả sản xuất theo ngày"
+                    :labels="days"
+                    :datasets="passDailyDatasets"
+                  />
                 </v-col>
               </v-row>
             </v-card-text>
@@ -546,7 +535,7 @@
         <!-- Chart thống kê công đoạn -->
         <v-row class="mb-6 mt-5">
           <!-- Chart Card -->
-          <v-col cols="12" md="12">
+          <v-col cols="12" md="8">
             <v-card class="rounded-xl h-100 border" elevation="0">
               <v-card-title
                 class="d-flex align-center pa-4 bg-surface border-b"
@@ -574,7 +563,7 @@
           </v-col>
 
           <!-- Chart chi tiết công đoạn -->
-          <!-- <v-col cols="12" md="5">
+          <v-col cols="12" md="4">
             <v-card class="rounded-xl h-100 border" elevation="0">
               <v-card-title
                 class="d-flex align-center pa-4 bg-surface border-b"
@@ -591,60 +580,32 @@
                   >Tiến trình công đoạn</span
                 >
               </v-card-title>
-              <v-card-text class="pa-4 d-flex justify-center">
-                <v-pie
-                  title="Biểu đồ phần trăm số lượng"
-                  animation
-                  :legend="{
-                    textFormat: '[title] ([value]%)',
-                    position: 'right',
-                  }"
-                  :tooltip="{ subtitleFormat: '[value]%' }"
-                  reveal
-                  rounded="2"
-                  gap="2"
-                  item-key="key"
-                  hide-slice
-                  :items="pieDataProccess"
-                  :size="268"
-                >
-                </v-pie>
-
-                <div class="h-0">
-                  <svg
-                    height="0"
-                    version="1.1"
-                    width="0"
-                    xmlns="http://www.w3.org/2000/svg"
+              <v-card-text class="pa-4 d-flex flex-column justify-center">
+                <template v-for="item in pieDataProccess" :key="item.key">
+                  <div
+                    class="d-flex align-center justify-space-between text-body-2 mb-1"
                   >
-                    <defs>
-                      <pattern
-                        id="pattern-0"
-                        height="20"
-                        patternTransform="rotate(145) scale(.2)"
-                        patternUnits="userSpaceOnUse"
-                        width="20"
-                      >
-                        <path
-                          d="M0 10h20zm0 20h20zm0 20h20zm0 20h20z"
-                          fill="none"
-                          stroke="rgb(var(--v-theme-surface))"
-                          stroke-width="3"
-                        />
-                      </pattern>
-                    </defs>
-                  </svg>
-                </div>
+                    <span class="font-weight-medium">{{ item.title }}</span>
+                    <span class="font-weight-bold">{{ item.value }}%</span>
+                  </div>
+                  <v-progress-linear
+                    :model-value="item.value"
+                    :color="item.color"
+                    height="8"
+                    rounded
+                    class="mb-3"
+                  ></v-progress-linear>
+                </template>
               </v-card-text>
             </v-card>
-          </v-col> -->
+          </v-col>
         </v-row>
 
         <!-- Lịch sử sản xuất -->
         <v-card class="rounded-xl mt-5 border" elevation="0">
           <v-data-table
             :headers="HeadersHistoryPart"
-            :items="historyPart"
+            :items="filteredHistoryPart"
             :search="searchHistory"
             fixed-header
             v-model:page="page"
@@ -683,8 +644,26 @@
 
                 <v-spacer></v-spacer>
 
-                <InputSearch v-model="searchHistory" class="mr-2" />
+                <InputSearch v-model="searchHistory" />
               </v-toolbar>
+              <div class="d-flex align-center ga-2 flex-wrap pa-2 border-b">
+                <span
+                  class="text-caption font-weight-medium text-medium-emphasis ms-1"
+                  >Lọc theo ngày:</span
+                >
+                <InputDate
+                  v-model="dateFromHistory"
+                  label="Từ ngày"
+                  density="compact"
+                  :max="dateToHistory"
+                />
+                <InputDate
+                  v-model="dateToHistory"
+                  label="Đến ngày"
+                  density="compact"
+                  :min="dateFromHistory"
+                />
+              </div>
             </template>
             <template v-slot:item.stt="{ index }">
               {{ (page - 1) * itemsPerPage + index + 1 }}
@@ -1036,8 +1015,10 @@ import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 import ProcessCard from "@/components/Card-Flow-Proccess.vue";
-import StackedBarChart from "@/components/Chart-StackedBar.vue";
 import StackedBarChartSummary from "@/components/Chart-StackedBar-Summary.vue";
+import LinePointChart from "@/components/Chart-PointLine-Summary.vue";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import CardStatistic from "@/components/Card-Statistic.vue";
 import BaseDialog from "@/components/BaseDialog.vue";
 import InputDate from "@/components/Input-Date.vue";
@@ -1164,6 +1145,29 @@ const Quantity_Edit = ref(1);
 
 // Table
 const searchHistory = ref("");
+const dateFromHistory = ref("");
+const dateToHistory = ref("");
+
+const toYMD = (v) => {
+  if (!v) return "";
+  if (typeof v === "string") return v.slice(0, 10);
+  const d = new Date(v);
+  return isNaN(d)
+    ? ""
+    : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+const filteredHistoryPart = computed(() => {
+  const from = toYMD(dateFromHistory.value);
+  const to = toYMD(dateToHistory.value);
+  if (!from && !to) return historyPart.value;
+  return historyPart.value.filter((item) => {
+    const ts = item.Timestamp || "";
+    if (from && ts < from) return false;
+    if (to && ts > to) return false;
+    return true;
+  });
+});
 const page = ref(1);
 const pageDetail = ref(1);
 const pageRW = ref(1);
@@ -1243,7 +1247,7 @@ const days = computed(() => {
         .filter((item) => item.Type === selectedTitle.value)
         .map((item) => item.Created_At),
     ),
-  ];
+  ].sort((a, b) => (a > b ? 1 : -1));
 });
 
 const passListTop = computed(() =>
@@ -1334,6 +1338,33 @@ const passListTotal = computed(() => {
   if (hasOneSide) return [oneSide];
   return [0];
 });
+
+const dailyPassList = computed(() => {
+  const tops = passListTop.value;
+  const bottoms = passListBottom.value;
+  const oneSides = passDataOneSide.value;
+  let runTop = 0;
+  let runBottom = 0;
+  return tops.map((top, index) => {
+    const t = Number(top || 0);
+    const b = Number(bottoms[index] || 0);
+    const o = Number(oneSides[index] || 0);
+    if (t > 0 || b > 0) {
+      runTop += t;
+      runBottom += b;
+      return Math.min(runTop, runBottom);
+    }
+    return o;
+  });
+});
+
+const passDailyDatasets = computed(() => [
+  {
+    label: "Pass",
+    data: dailyPassList.value,
+    color: "#1976D2",
+  },
+]);
 
 const historySurfaceMap = computed(() => {
   const map = {};
@@ -1476,8 +1507,9 @@ const pieDataProccess = computed(() => {
   const total = Number(totalInput.value) || 0;
   const labels = progress.value || [];
   const values = passData.value || [];
+  const sumPass = values.reduce((sum, v) => sum + (Number(v) || 0), 0);
 
-  if (total === 0 || labels.length === 0) {
+  if (total === 0 || sumPass === 0 || labels.length === 0) {
     return [
       {
         key: 1,
@@ -1503,7 +1535,7 @@ const pieDataProccess = computed(() => {
   // Map each stage to a slice
   const items = labels.map((label, index) => {
     const val = Number(values[index]) || 0;
-    const percent = Number(((val / total) * 100).toFixed(1)) || 0;
+    const percent = Number(((val / sumPass) * 100).toFixed(1)) || 0;
     return {
       key: index + 1,
       title: label,
@@ -1511,24 +1543,6 @@ const pieDataProccess = computed(() => {
       color: colors[index % colors.length],
     };
   });
-
-  // Calculate 'Remaining' based on the last stage (highest progress)
-  const maxPass =
-    values.length > 0 ? Math.max(...values.map((v) => Number(v) || 0)) : 0;
-  const remainingPercent = Math.max(
-    100 - Number(((maxPass / total) * 100).toFixed(1)),
-    0,
-  );
-
-  if (remainingPercent > 0.1) {
-    items.push({
-      key: items.length + 1,
-      title: "Còn lại",
-      value: Number(remainingPercent.toFixed(1)),
-      color: "rgba(var(--v-theme-on-surface), .2)",
-      pattern: "url(#pattern-0)",
-    });
-  }
 
   return items;
 });
@@ -1623,6 +1637,14 @@ watch(
     isManufactureDetailsReady.value = true;
   },
   { immediate: true, deep: true },
+);
+
+watch(
+  () => route.params.id,
+  () => {
+    dateFromHistory.value = "";
+    dateToHistory.value = "";
+  },
 );
 
 watch(
@@ -2034,6 +2056,515 @@ async function fetchProductionData() {
     DialogLoading.value = false;
   }
 }
+
+// Tải file báo cáo Excel (trình bày chuẩn để gửi sếp)
+const DownloadReport = async () => {
+  DialogLoading.value = true;
+  try {
+    const wb = new ExcelJS.Workbook();
+    const fontName = "Times New Roman";
+    const reportDate = new Date().toLocaleDateString("vi-VN");
+    const safeName = (NameOrder.value || String(id)).replace(
+      /[\\/:*?"<>|]+/g,
+      "_",
+    );
+
+    const thinBorder = {
+      top: { style: "thin" },
+      left: { style: "thin" },
+      bottom: { style: "thin" },
+      right: { style: "thin" },
+    };
+
+    const addTitleRow = (ws, text, lastCol) => {
+      ws.mergeCells(1, 1, 1, lastCol);
+      const cell = ws.getCell("A1");
+      cell.value = text;
+      cell.font = {
+        name: fontName,
+        size: 20,
+        bold: true,
+        color: { argb: "FFFFFFFF" },
+      };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF1F4E79" },
+      };
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+      ws.getRow(1).height = 32;
+    };
+
+    const setHeaderRow = (ws, rowNum, headers) => {
+      headers.forEach((h, i) => {
+        const cell = ws.getRow(rowNum).getCell(i + 1);
+        cell.value = h;
+        cell.font = {
+          name: fontName,
+          size: 11,
+          bold: true,
+          color: { argb: "FFFFFFFF" },
+        };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF4472C4" },
+        };
+        cell.alignment = {
+          vertical: "middle",
+          horizontal: "center",
+          wrapText: true,
+        };
+        cell.border = thinBorder;
+      });
+      ws.getRow(rowNum).height = 22;
+    };
+
+    const styleDataRow = (row, colCount, zebra) => {
+      for (let i = 1; i <= colCount; i++) {
+        const cell = row.getCell(i);
+        cell.font = { name: fontName, size: 11 };
+        cell.border = thinBorder;
+        if (zebra) {
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FFF2F2F2" },
+          };
+        }
+      }
+    };
+
+    const addMergedBox = (ws, rowNum, col, text, { font, zebra, span = 2 } = {}) => {
+      for (let c = col; c < col + span; c++) {
+        const cell = ws.getRow(rowNum).getCell(c);
+        cell.border = thinBorder;
+        if (zebra) {
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: zebra },
+          };
+        }
+      }
+      const master = ws.getRow(rowNum).getCell(col);
+      master.value = text;
+      master.font = font || { name: fontName, size: 11 };
+      master.alignment = {
+        vertical: "middle",
+        horizontal: "center",
+        wrapText: true,
+      };
+      ws.mergeCells(rowNum, col, rowNum, col + span - 1);
+    };
+
+    const setSectionRow = (ws, rowIdx, colCount, text) => {
+      ws.mergeCells(rowIdx, 1, rowIdx, colCount);
+      const cell = ws.getRow(rowIdx).getCell(1);
+      cell.value = text;
+      cell.font = {
+        name: fontName,
+        size: 13,
+        bold: true,
+        color: { argb: "FFFFFFFF" },
+      };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF2E75B6" },
+      };
+      cell.alignment = { vertical: "middle", horizontal: "left" };
+      cell.border = thinBorder;
+      ws.getRow(rowIdx).height = 24;
+    };
+
+    // ===== SHEET 1: BÁO CÁO SẢN XUẤT =====
+    const reportSheet = wb.addWorksheet("BÁO CÁO SẢN XUẤT");
+    reportSheet.columns = [
+      { width: 20 },
+      { width: 20 },
+      { width: 20 },
+      { width: 20 },
+      { width: 20 },
+    ];
+    addTitleRow(reportSheet, "BÁO CÁO SẢN XUẤT", 5);
+
+    reportSheet.mergeCells("A2:E2");
+    reportSheet.getCell("A2").value = `Đơn hàng: ${
+      NameOrder.value || ""
+    }  |  Số PO: ${NameManufacture || ""}`;
+    reportSheet.getCell("A2").font = { name: fontName, size: 12, bold: true };
+    reportSheet.getCell("A2").alignment = {
+      vertical: "middle",
+      horizontal: "center",
+    };
+    reportSheet.getRow(2).height = 22;
+
+    reportSheet.mergeCells("A3:E3");
+    reportSheet.getCell("A3").value = `Quy trình công đoạn: ${
+      DataManufacture.value || ""
+    }`;
+    reportSheet.getCell("A3").font = { name: fontName, size: 12 };
+    reportSheet.getCell("A3").alignment = {
+      vertical: "middle",
+      horizontal: "center",
+    };
+    reportSheet.getRow(3).height = 22;
+
+    reportSheet.mergeCells("A4:E4");
+    reportSheet.getCell("A4").value = `Ngày xuất báo cáo: ${reportDate}`;
+    reportSheet.getCell("A4").font = {
+      name: fontName,
+      size: 11,
+      italic: true,
+      color: { argb: "FF595959" },
+    };
+    reportSheet.getCell("A4").alignment = {
+      vertical: "middle",
+      horizontal: "center",
+    };
+    reportSheet.getRow(4).height = 20;
+
+    let r = 5;
+    setSectionRow(reportSheet, r, 5, "I. THÔNG TIN TỔNG QUAN");
+    r += 1;
+
+    const outputPct = Number.isFinite(PercentOutput.value)
+      ? PercentOutput.value
+      : 0;
+    const remainingPct = Number.isFinite(PercentRemaining.value)
+      ? PercentRemaining.value
+      : 0;
+    const cards = [
+      {
+        title: "Tổng đầu vào",
+        value: totalInput.value,
+        color: "FF1976D2",
+        fill: "FFE3F2FD",
+      },
+      {
+        title: "Hàng thành phẩm",
+        value: totalOutput.value,
+        color: "FF2E7D32",
+        fill: "FFE8F5E9",
+      },
+      {
+        title: "Còn lại",
+        value: totalInput.value - totalOutput.value,
+        color: "FFEF6C00",
+        fill: "FFFFF3E0",
+      },
+      {
+        title: "Tỷ lệ hoàn thành",
+        value: `${outputPct}%`,
+        color: "FF6A1B9A",
+        fill: "FFF3E5F5",
+      },
+      {
+        title: "Tỷ lệ còn lại",
+        value: `${remainingPct}%`,
+        color: "FF607D8B",
+        fill: "FFECEFF1",
+      },
+    ];
+
+    cards.forEach((card, i) => {
+      const col = i + 1;
+      const valueCell = reportSheet.getRow(r).getCell(col);
+      valueCell.value = card.value;
+      valueCell.font = {
+        name: fontName,
+        size: 22,
+        bold: true,
+        color: { argb: card.color },
+      };
+      valueCell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: card.fill },
+      };
+      valueCell.alignment = { vertical: "middle", horizontal: "center" };
+      valueCell.border = thinBorder;
+      reportSheet.getRow(r).height = 30;
+
+      const labelCell = reportSheet.getRow(r + 1).getCell(col);
+      labelCell.value = card.title;
+      labelCell.font = {
+        name: fontName,
+        size: 10,
+        bold: true,
+        color: { argb: card.color },
+      };
+      labelCell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: card.fill },
+      };
+      labelCell.alignment = { vertical: "middle", horizontal: "center" };
+      labelCell.border = thinBorder;
+      reportSheet.getRow(r + 1).height = 20;
+    });
+    r += 2;
+
+    r += 1;
+    setSectionRow(reportSheet, r, 5, "II. SẢN LƯỢNG PASS THEO CÔNG ĐOẠN");
+    r += 1;
+
+    const passHeaderStyle = {
+      name: fontName,
+      size: 11,
+      bold: true,
+      color: { argb: "FFFFFFFF" },
+    };
+    ["Công đoạn", "Số lượng pass", "Tỷ lệ (%)"].forEach((h, idx) => {
+      const physCol = idx * 2 + 1;
+      const span = idx === 2 ? 1 : 2;
+      addMergedBox(reportSheet, r, physCol, h, { font: passHeaderStyle, span });
+      const master = reportSheet.getRow(r).getCell(physCol);
+      master.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF4472C4" },
+      };
+    });
+    reportSheet.getRow(r).height = 22;
+    r += 1;
+
+    const passEntries = Object.entries(passListSummary.value);
+    const sumPass = passEntries.reduce(
+      (sum, [, qty]) => sum + (Number(qty) || 0),
+      0,
+    );
+
+    if (passEntries.length === 0) {
+      reportSheet.mergeCells(r, 1, r, 5);
+      const nc = reportSheet.getRow(r).getCell(1);
+      nc.value = "Chưa có dữ liệu";
+      nc.alignment = { vertical: "middle", horizontal: "center" };
+      nc.border = thinBorder;
+      r += 1;
+    } else {
+      passEntries.forEach(([stage, qty], i) => {
+        const zebra = i % 2 === 1 ? "FFF2F2F2" : null;
+        addMergedBox(reportSheet, r, 1, stage, { zebra });
+        addMergedBox(reportSheet, r, 3, Number(qty) || 0, { zebra });
+        addMergedBox(
+          reportSheet,
+          r,
+          5,
+          sumPass ? Number(((Number(qty) / sumPass) * 100).toFixed(1)) : 0,
+          { zebra, span: 1 },
+        );
+        reportSheet.getRow(r).getCell(5).numFmt = '0.0"%"';
+        r += 1;
+      });
+
+      addMergedBox(reportSheet, r, 1, "Tổng cộng");
+      addMergedBox(reportSheet, r, 3, sumPass);
+      addMergedBox(reportSheet, r, 5, sumPass ? 100 : 0, { span: 1 });
+      reportSheet.getRow(r).getCell(5).numFmt = '0.0"%"';
+      for (let c = 1; c <= 5; c++) {
+        const cell = reportSheet.getRow(r).getCell(c);
+        cell.font = { name: fontName, size: 11, bold: true };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFDDEBF7" },
+        };
+        cell.alignment = { vertical: "middle", horizontal: "center" };
+      }
+      r += 1;
+    }
+
+    // ===== SHEET 2: KẾ HOẠCH SẢN XUẤT =====
+    const planSheet = wb.addWorksheet("KẾ HOẠCH SẢN XUẤT");
+    planSheet.columns = [
+      { width: 16 },
+      { width: 14 },
+      { width: 12 },
+      { width: 30 },
+      { width: 12 },
+      { width: 12 },
+      { width: 13 },
+      { width: 12 },
+      { width: 12 },
+      { width: 13 },
+      { width: 28 },
+    ];
+    addTitleRow(planSheet, "KẾ HOẠCH SẢN XUẤT", 11);
+    setHeaderRow(planSheet, 2, [
+      "Ngày",
+      "Công đoạn",
+      "Bề mặt",
+      "Tên hạng mục",
+      "Vị trí line",
+      "Vòng lặp (s)",
+      "Thời gian (giờ)",
+      "Đầu vào",
+      "Đầu ra",
+      "Phần trăm (%)",
+      "Ghi chú",
+    ]);
+    planSheet.views = [{ state: "frozen", ySplit: 2 }];
+
+    const levelOrder = (DataManufacture.value || "")
+      .split("-")
+      .map((s) => s.trim());
+    const sortedHistory = [...history.value].sort((a, b) => {
+      const ia = levelOrder.indexOf(a.Type);
+      const ib = levelOrder.indexOf(b.Type);
+      const oa = ia === -1 ? 999 : ia;
+      const ob = ib === -1 ? 999 : ib;
+      return (
+        oa - ob ||
+        String(a.Created_At || "").localeCompare(String(b.Created_At || ""))
+      );
+    });
+
+    sortedHistory.forEach((h, i) => {
+      const pct = Number.isFinite(Number(h.Percent)) ? Number(h.Percent) : 0;
+      const row = planSheet.addRow([
+        h.Created_At || "",
+        h.Type || "",
+        h.Surface || "",
+        h.Category || "",
+        h.Line_SMT || "",
+        h.CycleTime_Plan ?? "",
+        h.Time_Plan ?? "",
+        h.Quantity_Plan ?? "",
+        h.Quantity_Real ?? "",
+        pct,
+        h.Note || "",
+      ]);
+      row.getCell(10).numFmt = '0.0"%"';
+      styleDataRow(row, 11, i % 2 === 1);
+      [6, 7, 8, 9, 10].forEach(
+        (c) =>
+          (row.getCell(c).alignment = {
+            vertical: "middle",
+            horizontal: "center",
+          }),
+      );
+    });
+
+    if (sortedHistory.length > 0) {
+      planSheet.autoFilter = {
+        from: { row: 2, column: 1 },
+        to: { row: sortedHistory.length + 2, column: 11 },
+      };
+
+      let groupItemStart = 0;
+      for (let i = 1; i <= sortedHistory.length; i++) {
+        const boundary =
+          i === sortedHistory.length ||
+          sortedHistory[i].Type !== sortedHistory[i - 1].Type;
+        if (boundary) {
+          const startRow = 3 + groupItemStart;
+          const endRow = 3 + (i - 1);
+          if (endRow > startRow) {
+            planSheet.mergeCells(startRow, 2, endRow, 2);
+            const cell = planSheet.getCell(startRow, 2);
+            cell.font = { name: fontName, size: 12, bold: true };
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFDDEBF7" },
+            };
+            cell.alignment = { vertical: "middle", horizontal: "center" };
+          }
+          groupItemStart = i;
+        }
+      }
+    }
+
+    // ===== SHEET 3: LỊCH SỬ SẢN XUẤT =====
+    const histSheet = wb.addWorksheet("LỊCH SỬ SẢN XUẤT");
+    histSheet.columns = [
+      { width: 6 },
+      { width: 24 },
+      { width: 16 },
+      { width: 12 },
+      { width: 12 },
+      { width: 20 },
+      { width: 12 },
+      { width: 32 },
+    ];
+    addTitleRow(histSheet, "LỊCH SỬ SẢN XUẤT", 8);
+    setHeaderRow(histSheet, 2, [
+      "STT",
+      "Mã hàng",
+      "Vị trí",
+      "Trạng thái",
+      "Số lượng",
+      "Thời gian",
+      "Bề mặt",
+      "Ghi chú",
+    ]);
+    histSheet.views = [{ state: "frozen", ySplit: 2 }];
+
+    historyPart.value.forEach((h, i) => {
+      const statusLabel =
+        h.Status === "fail" ? "Fail" : h.Status === "fixed" ? "Fixed" : "Pass";
+      const row = histSheet.addRow([
+        i + 1,
+        Number(h.PartNumber) === 1 ? NameOrder.value || "" : h.PartNumber || "",
+        h.Source || "",
+        statusLabel,
+        h.Quantity ?? "",
+        h.Timestamp || "",
+        h.Surface || "",
+        h.Note || "",
+      ]);
+      styleDataRow(row, 8, i % 2 === 1);
+      const statusCell = row.getCell(4);
+      statusCell.font = {
+        name: fontName,
+        size: 11,
+        bold: true,
+        color: {
+          argb:
+            statusLabel === "Fail"
+              ? "FFFF0000"
+              : statusLabel === "Fixed"
+              ? "FF2E75B6"
+              : "FF008000",
+        },
+      };
+      statusCell.alignment = { vertical: "middle", horizontal: "center" };
+      row.getCell(1).alignment = {
+        vertical: "middle",
+        horizontal: "center",
+      };
+      row.getCell(5).alignment = {
+        vertical: "middle",
+        horizontal: "center",
+      };
+    });
+
+    if (historyPart.value.length > 0) {
+      histSheet.autoFilter = {
+        from: { row: 2, column: 1 },
+        to: { row: historyPart.value.length + 2, column: 8 },
+      };
+    }
+
+    const buf = await wb.xlsx.writeBuffer();
+    saveAs(
+      new Blob([buf], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      }),
+      `Bao_cao_${safeName}.xlsx`,
+    );
+    MessageDialog.value = "Tải báo cáo thành công";
+    DialogSuccess.value = true;
+  } catch (error) {
+    console.error("Lỗi tải báo cáo:", error);
+    MessageErrorDialog.value = "Tải báo cáo thất bại";
+    DialogFailed.value = true;
+  } finally {
+    DialogLoading.value = false;
+  }
+};
 </script>
 <script>
 export default {
@@ -2049,7 +2580,8 @@ export default {
     SnackbarSuccess,
     SnackbarFailed,
     Loading,
-    StackedBarChart,
+    StackedBarChartSummary,
+    LinePointChart,
     CardStatistic,
   },
 };

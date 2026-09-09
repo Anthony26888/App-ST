@@ -495,7 +495,10 @@ const SaveAddManufacture = async () => {
     Level: Level_Add.value,
   });
   try {
-    const response = await axios.post(`${Url}/PlanManufacture/Add`, formData);
+    const response = await axios.post(
+      `${Url}/PlanManufacture/Add-item`,
+      formData,
+    );
     console.log(response.data);
     MessageDialog.value = response.data.message;
     Reset();
