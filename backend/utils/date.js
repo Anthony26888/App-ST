@@ -14,6 +14,15 @@ function formatDateLocal(dateInput) {
   return `${year}-${month}-${day}`;
 }
 
+function toUnixSeconds(value) {
+  if (!value) return value;
+  if (typeof value === "number") return value;
+  if (/^\d{10}$/.test(String(value).trim())) return Number(value);
+  const time = Math.floor(new Date(value).getTime() / 1000);
+  return Number.isNaN(time) ? null : time;
+}
+
 module.exports = {
   formatDateLocal,
+  toUnixSeconds,
 };

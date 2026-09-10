@@ -11,10 +11,16 @@ module.exports = (socket) => {
                           IFNULL(a.QuantityDelivered, 0) AS Quantity_Delivered, 
                           IFNULL(a.QuantityProduct - a.QuantityDelivered, 0) AS Quantity_Amount,
                           ROUND(
-                              IFNULL(a.QuantityDelivered, 0) * 100.0 / 
-                              NULLIF(a.QuantityProduct, 0), 
+                              COALESCE((
+                                  SELECT SUM(mc.Quantity)
+                                  FROM PlanManufacture p
+                                  JOIN ManufactureCounting mc ON mc.PlanID = p.id
+                                  WHERE p.ProjectID = a.id
+                                    AND LOWER(TRIM(mc.Type)) = 'thành phẩm'
+                              ), 0) * 100.0 /
+                              NULLIF(a.QuantityProduct, 0),
                               2
-                          ) AS Percent_Delivered,
+                          ) AS Percent_Manufacture,
 
                           COALESCE((
                               SELECT SUM(mc.Quantity)
@@ -35,20 +41,20 @@ module.exports = (socket) => {
                               GROUP_CONCAT(
                                   json_object(
                                       'id', d.id,
-                                      'DeliveryDate', strftime('%Y-%m-%d', d.DeliveryDate, 'localtime'),
-                                      'DeliveryDateConvert', strftime('%Y-%m-%d', d.DeliveryDate, 'localtime'),
+                                      'DeliveryDate', strftime('%Y-%m-%d', d.DeliveryDate, 'unixepoch', 'localtime'),
+                                      'DeliveryDateConvert', strftime('%Y-%m-%d', d.DeliveryDate, 'unixepoch', 'localtime'),
                                       'DeliveryQuantity', d.DeliveryQuantity,
                                       'DeliveryCheck', d.DeliveryStatus,
 
                                       'DeliveryStatus', CASE
                                           WHEN d.DeliveryDate IS NULL THEN 'Chưa có lịch'
-                                          WHEN datetime(d.DeliveryDate, 'localtime') < datetime('now', 'localtime') THEN 'Trễ hạn'
+                                          WHEN datetime(d.DeliveryDate, 'unixepoch', 'localtime') < datetime('now', 'localtime') THEN 'Trễ hạn'
                                           ELSE 'Chưa đến hạn'
                                       END,
 
                                       'DaysRemaining', CAST(
                                           ROUND(
-                                              (julianday(d.DeliveryDate) - julianday('now'))
+                                              (julianday(d.DeliveryDate, 'unixepoch') - julianday('now'))
                                           ) AS INTEGER
                                       )
                                   ), ','

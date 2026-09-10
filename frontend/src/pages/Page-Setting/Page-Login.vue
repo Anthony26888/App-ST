@@ -206,14 +206,19 @@
   <v-dialog v-model="DialogKicked" max-width="400" persistent>
     <v-card>
       <v-card-text class="text-center pa-8">
-        <v-icon size="56" color="warning" class="mb-3">mdi-account-lock-outline</v-icon>
+        <v-icon size="56" color="warning" class="mb-3"
+          >mdi-account-lock-outline</v-icon
+        >
         <div class="text-h6 mb-1">Phiên đăng nhập đã kết thúc</div>
         <div class="text-body-2 text-medium-emphasis">
-          Tài khoản của bạn đã đăng nhập ở máy khác. Vui lòng đăng nhập lại để tiếp tục sử dụng.
+          Tài khoản của bạn đã đăng nhập ở máy khác. Vui lòng đăng nhập lại để
+          tiếp tục sử dụng.
         </div>
       </v-card-text>
       <v-card-actions class="justify-center pb-6">
-        <v-btn color="primary" rounded="xl" @click="DialogKicked = false">Đăng nhập lại</v-btn>
+        <v-btn color="primary" rounded="xl" @click="DialogKicked = false"
+          >Đăng nhập lại</v-btn
+        >
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -284,10 +289,10 @@ const FetchUser = async () => {
     const routes = {
       Admin: { path: "/Kiem-tra-so-lieu", title: "Kiểm tra số liệu" },
       "Kế hoạch": { path: "/Kiem-tra-so-lieu", title: "Kiểm tra số liệu" },
-      "Quản lý": { path: "/Kiem-tra-so-lieu", title: "Kiểm tra số liệu" },
-      "Kinh doanh": { path: "/Ton-kho", title: "Tồn kho" },
+      "Quản lý": { path: "/Du-an", title: "Du-an" },
+      "Kinh doanh": { path: "/Du-an", title: "Du-an" },
       "Thủ kho": { path: "/Ton-kho", title: "Tồn kho" },
-      "Quản lý kinh doanh": { path: "/Ton-kho", title: "Tồn kho" },
+      "Quản lý kinh doanh": { path: "/Du-an", title: "Du-an" },
       "Nhân viên": {
         path: "/Danh-sach-cong-viec",
         title: "Danh sách công việc",

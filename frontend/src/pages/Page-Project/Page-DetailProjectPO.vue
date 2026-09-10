@@ -268,15 +268,15 @@
             </div>
           </template>
 
-          <template #[`item.Percent_Delivered`]="{ item }">
+          <template #[`item.Percent_Manufacture`]="{ item }">
             <v-progress-linear
-              v-model="item.Percent_Delivered"
+              v-model="item.Percent_Manufacture"
               height="25"
               color="success"
               rounded
               class="rounded-lg"
             >
-              <strong>{{ item.Percent_Delivered }}%</strong>
+              <strong>{{ Number(item.Percent_Manufacture || 0).toFixed(1) }}%</strong>
             </v-progress-linear>
           </template>
 
@@ -718,7 +718,7 @@ const Headers = ref([
   { key: "Quantity_Delivered", title: "SL đã giao", width: "10%" },
   { key: "Quantity_Amount", title: "SL còn nợ", width: "10%" },
   { key: "Quantity_Manufacture", title: "SL sản xuất", width: "10%" },
-  { key: "Percent_Delivered", title: "Tỷ lệ", width: "10%" },
+  { key: "Percent_Manufacture", title: "Tỷ lệ sản xuất", width: "10%" },
   { key: "Note", title: "Ghi chú", width: "15%" },
   { key: "id", title: "Thao tác", width: "5%" },
 ]);
@@ -960,7 +960,7 @@ const SaveAdd = async () => {
         `${Url}/Project/DetailProject/Add-item-schedule-delivery`,
         {
           ItemId: itemId,
-          DeliveryDate: schedule.delivery_date,
+          DeliveryDate: dateStringToUnix(schedule.delivery_date),
           DeliveryQuantity: schedule.delivery_quantity,
         },
       );

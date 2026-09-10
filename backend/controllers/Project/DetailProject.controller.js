@@ -1,5 +1,5 @@
 const db = require("../../database.js");
-const { formatDateLocal } = require("../../utils/date.js"); // hoặc import từ file bạn đang dùng
+const { toUnixSeconds } = require("../../utils/date.js");
 const path = require("path");
 const fs = require("fs");
 
@@ -133,7 +133,7 @@ module.exports = (io) => ({
 
     db.run(
       query,
-      [ItemId, formatDateLocal(DeliveryDate), DeliveryQuantity, "Chưa giao"],
+      [ItemId, toUnixSeconds(DeliveryDate), DeliveryQuantity, "Chưa giao"],
       function (err) {
         if (err) {
           console.error("Error:", err.message);
@@ -172,7 +172,7 @@ module.exports = (io) => ({
 
     db.run(
       query,
-      [formatDateLocal(DeliveryDate), DeliveryQuantity, id],
+      [toUnixSeconds(DeliveryDate), DeliveryQuantity, id],
       function (err) {
         if (err) {
           console.error("Error:", err.message);
