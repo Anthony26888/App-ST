@@ -16,8 +16,9 @@ export default {
 .bg-gradient {
   background: linear-gradient(
     135deg,
-    rgb(var(--v-theme-primary)),
-    rgb(var(--v-theme-secondary))
+    #a52a2a 0%,
+    #d2691e 50%,
+    #ff9500 100%
   );
   color: white;
 }

@@ -8,15 +8,13 @@
   >
     <v-card class="rounded-xl overflow-hidden shadow-2xl">
       <!-- HEADER -->
-      <v-card-title class="d-flex align-center pa-4 bg-gradient text-white">
-        <v-avatar color="white" variant="tonal" size="40" class="me-3">
-          <v-icon icon="mdi-shield-key-outline" color="white" size="24" />
+      <v-card-title class="d-flex align-center pa-4">
+        <v-avatar variant="tonal" size="40" class="me-3">
+          <v-icon icon="mdi-shield-key-outline" size="24" />
         </v-avatar>
         <div>
-          <div class="text-h6 font-weight-bold lh-1 text-white">
-            Nâng Cấp Gói Dịch Vụ
-          </div>
-          <div class="text-caption text-white opacity-80">
+          <div class="text-h6 font-weight-bold lh-1">Nâng Cấp Gói Dịch Vụ</div>
+          <div class="text-caption text-grey-darken-1">
             Chọn gói phù hợp để mở rộng giới hạn quản lý dự án PCB SMT
           </div>
         </div>
@@ -24,7 +22,6 @@
         <v-btn
           icon="mdi-close"
           variant="text"
-          color="white"
           density="comfortable"
           @click="dialog = false"
         />

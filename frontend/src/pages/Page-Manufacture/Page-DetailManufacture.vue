@@ -118,12 +118,8 @@
             </template>
           </v-tooltip>
         </div>
-        <v-card
-          v-show="Detail_Popup_Card"
-          class="rounded-xl mt-6 border-0"
-          elevation="0"
-          color="transparent"
-        >
+        <v-expand-transition>
+        <div v-show="Detail_Popup_Card" class="mt-6">
           <v-card class="rounded-xl border" elevation="0">
             <v-card-title class="d-flex align-center pa-4 bg-surface border-b">
               <v-avatar color="primary" variant="tonal" size="32" class="me-3">
@@ -135,7 +131,7 @@
             </v-card-title>
             <v-card-text class="pa-6">
               <v-row>
-                <v-col cols="4">
+                <v-col cols="12" :md="isTwoSideStage ? 4 : 6">
                   <div class="mb-4">
                     <div class="text-overline text-medium-emphasis mb-1">
                       Công đoạn
@@ -146,6 +142,7 @@
                   </div>
                   <v-divider class="mb-4"></v-divider>
                   <v-row dense>
+                    <template v-if="isTwoSideStage">
                     <v-col cols="6">
                       <v-card
                         class="pa-4 rounded-xl border"
@@ -203,6 +200,8 @@
                         </div>
                       </v-card>
                     </v-col>
+                    </template>
+                    <template v-else>
                     <v-col cols="6">
                       <v-card
                         class="pa-4 rounded-xl border"
@@ -260,10 +259,12 @@
                         </div>
                       </v-card>
                     </v-col>
+                    </template>
                   </v-row>
                 </v-col>
                 <v-col
-                  cols="3"
+                  cols="12"
+                  :md="isTwoSideStage ? 3 : 6"
                   class="d-flex flex-column align-center justify-center"
                 >
                   <v-pie
@@ -320,7 +321,9 @@
                   </div>
                 </v-col>
                 <v-col
-                  cols="5"
+                  v-if="isTwoSideStage"
+                  cols="12"
+                  md="5"
                   class="d-flex flex-column align-center justify-center"
                 >
                   <v-pie
@@ -353,32 +356,6 @@
                       </div>
                     </template>
                   </v-pie>
-
-                  <div class="h-0">
-                    <svg
-                      height="0"
-                      version="1.1"
-                      width="0"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <defs>
-                        <pattern
-                          id="pattern-0"
-                          height="20"
-                          patternTransform="rotate(145) scale(.2)"
-                          patternUnits="userSpaceOnUse"
-                          width="20"
-                        >
-                          <path
-                            d="M0 10h20zm0 20h20zm0 20h20zm0 20h20z"
-                            fill="none"
-                            stroke="rgb(var(--v-theme-surface))"
-                            stroke-width="3"
-                          />
-                        </pattern>
-                      </defs>
-                    </svg>
-                  </div>
                 </v-col>
               </v-row>
             </v-card-text>
@@ -530,7 +507,8 @@
               </v-row>
             </v-card-text>
           </v-card>
-        </v-card>
+        </div>
+        </v-expand-transition>
 
         <!-- Chart thống kê công đoạn -->
         <v-row class="mb-6 mt-5">
@@ -987,22 +965,14 @@ import {
   watch,
   reactive,
   computed,
-  nextTick,
-  onMounted,
-  onUnmounted,
 } from "vue";
 import axios from "axios";
 import { useRoute, useRouter } from "vue-router";
-import { shallowRef, toRef } from "vue";
-import { debounce } from "lodash-es";
 import { useDisplay } from "vuetify";
 import InputSearch from "@/components/Input-Search.vue";
-import InputFiles from "@/components/Input-Files.vue";
 import InputField from "@/components/Input-Field.vue";
-import ButtonImportFile from "@/components/Button-ImportFile.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonBack from "@/components/Button-Back.vue";
-import ButtonEye from "@/components/Button-Eye.vue";
 import ButtonAdd from "@/components/Button-Add.vue";
 import ButtonEdit from "@/components/Button-Edit.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
@@ -1010,7 +980,6 @@ import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import InputSelect from "@/components/Input-Select.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";
-import ButtonNextManufacture from "@/components/Button-Next-Manufacture.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
@@ -1030,7 +999,6 @@ import { useHistory } from "@/composables/Manufacture/useHistory";
 import { useHistoryPart } from "@/composables/Manufacture/useHistoryPart";
 import { useManufactureSummary } from "@/composables/Manufacture/useManufactureSummary";
 import { useManufactureRW } from "@/composables/Manufacture/useManufactureRW";
-import { useManufactureFail } from "@/composables/Manufacture/useManufactureFail";
 
 // ... existing refs and constants ...
 const Url = import.meta.env.VITE_API_URL;
@@ -1047,7 +1015,6 @@ const { historyPart, historyPartError } = useHistoryPart(id);
 const { manufactureSummary, refresh } = useManufactureSummary(id);
 const { manufactureRW, manufactureRWError } = useManufactureRW(id, typeFilter);
 const { history } = useHistory(id, typeFilter);
-const { manufactureFail } = useManufactureFail(id);
 const { mdAndDown, lgAndUp } = useDisplay();
 // Dialog
 const DialogSuccess = ref(false);
@@ -1071,8 +1038,6 @@ const GetSourceHistory = ref(null);
 
 // Production statistics
 const totalInput = ref(0);
-const totalError = ref(0);
-const totalFixed = ref(0);
 
 const totalOutput = computed(() => {
   return (
@@ -1085,10 +1050,6 @@ const PercentOutput = computed(() =>
   Number(Number((totalOutput.value * 100) / totalInput.value).toFixed(1)),
 );
 
-const PercentError = computed(() =>
-  Number(Number((totalError.value * 100) / totalInput.value).toFixed(1)),
-);
-
 const PercentRemaining = computed(() => {
   if (!totalInput.value) return 0;
   return Number(
@@ -1098,20 +1059,12 @@ const PercentRemaining = computed(() => {
   );
 });
 
-const PercentFixed = computed(
-  () => (totalFixed.value * 100) / totalError.value,
-);
 // Level
-const Level_SMT = ref(false);
 const LevelSelectAdd = ref(null);
 const levelArray = ref([]);
 // Data
 const DataManufacture = ref(null);
 
-const historys = ref([]);
-const passTop = ref(0);
-const passBottom = ref(0);
-const passOneSide = ref(0);
 // ===== FORM ADD =====
 const Type_Add = ref("");
 const Line_Add = ref("");
@@ -1179,6 +1132,11 @@ const itemsPerPageRW = ref(5);
 const selectedTitle = ref(null);
 const Detail_Popup_Card = ref(false);
 
+const isTwoSideStage = computed(() => {
+  const t = (selectedTitle.value || "").toUpperCase();
+  return t.includes("SMT") || t.includes("AOI");
+});
+
 //Hearder table
 // Hearder table
 const HeadersHistoryPart = [
@@ -1191,15 +1149,6 @@ const HeadersHistoryPart = [
   // { title: "RW đã sửa", key: "RWID", sortable: true },
   // { title: "Thời gian RW", key: "TimestampRW", sortable: true },
   // { title: "Thao tác", key: "id", sortable: true },
-];
-
-const HeadersHistoryPartError = [
-  { title: "STT", key: "stt" },
-  { title: "Mã hàng", key: "PartNumber", sortable: true },
-  { title: "Trạng thái", key: "Status", sortable: true },
-  { title: "Trạng thái RW", key: "RWID", sortable: true },
-  { title: "Loại lỗi", key: "GroupFail", sortable: true },
-  { title: "Ghi chú lỗi", key: "Note", sortable: true },
 ];
 
 const groupBy = [{ key: "Category" }];
@@ -1535,7 +1484,7 @@ const pieDataProccess = computed(() => {
   // Map each stage to a slice
   const items = labels.map((label, index) => {
     const val = Number(values[index]) || 0;
-    const percent = Number(((val / sumPass) * 100).toFixed(1)) || 0;
+    const percent = Number(((val / total) * 100).toFixed(1)) || 0;
     return {
       key: index + 1,
       title: label,
@@ -1544,10 +1493,20 @@ const pieDataProccess = computed(() => {
     };
   });
 
+  const usedPercent = items.reduce((sum, i) => sum + i.value, 0);
+  const remaining = Number((100 - usedPercent).toFixed(1));
+  if (remaining > 0) {
+    items.push({
+      key: items.length + 1,
+      title: "Còn lại",
+      value: remaining,
+      color: "rgba(var(--v-theme-on-surface), .2)",
+      pattern: "url(#pattern-0)",
+    });
+  }
+
   return items;
 });
-
-// Table Fail
 
 // =============== Rules ============
 const formRef = ref(null);
@@ -1563,16 +1522,11 @@ const requiredRule = computed(() => {
 const requiredRuleEmpty = computed(() => [(v) => !!v || "Không được bỏ trống"]);
 
 // Watch for manufactureDetails changes
-const isManufactureDetailsReady = ref(false);
-const isManufactureSummaryReady = ref(false);
-const currentDetailStatsLoading = ref(true); // ✅ Loading riêng cho currentDetailStats
-
 watch(
   manufactureDetails,
   (newValue) => {
     // ✅ Kiểm tra dữ liệu có hợp lệ không
     if (!newValue || typeof newValue !== "object") {
-      isManufactureDetailsReady.value = false;
       return;
     }
 
@@ -1580,7 +1534,6 @@ watch(
 
     if (!data || typeof data.Level !== "string" || !data.Level.trim()) {
       levelArray.value = [];
-      isManufactureDetailsReady.value = false;
       return;
     }
 
@@ -1588,7 +1541,6 @@ watch(
     let levels = data.Level.split("-").map((s) => s.trim());
     if (levels.length === 0) {
       levelArray.value = [];
-      isManufactureDetailsReady.value = false;
       return;
     }
 
@@ -1622,19 +1574,13 @@ watch(
 
     // ---- Gán các giá trị khác ----
     DataManufacture.value = data.Level;
-    Level_SMT.value = data.Level.includes("SMT");
     totalInput.value = data.Total || 0;
-    totalError.value = data.Quantity_Error || 0;
-    totalFixed.value = data.Quantity_Fixed || 0;
     Quantity_Edit.value = data.Quantity;
     DelaySMT_Edit.value = data.DelaySMT;
     LevelSelectAdd.value = data.Level.split("-");
     NameOrder.value = data.Name_Order;
     Name_Order_Add.value = data.Name_Order;
     Name_Order_Edit.value = data.Name_Order;
-
-    // ✅ Đánh dấu dữ liệu đã sẵn sàng
-    isManufactureDetailsReady.value = true;
   },
   { immediate: true, deep: true },
 );
@@ -1654,97 +1600,22 @@ watch(
   },
 );
 
-const summaryFailChart = ref({
-  "Lỗi hàn": 0,
-  "Lỗi linh kiện": 0,
-  "Lỗi ngoại quan": 0,
-  "Lỗi chức năng": 0,
-  "Lỗi lắp ráp cơ khí": 0,
-  "Lỗi quy trình / Vận hành": 0,
-  "Lỗi không xác định": 0, // bản ghi GroupFail rỗng/null
-});
-
-watch(
-  manufactureFail,
-  (newVal) => {
-    if (!Array.isArray(newVal)) return;
-
-    // Reset lại thống kê
-    for (const key in summaryFailChart.value) {
-      summaryFailChart.value[key] = 0;
-    }
-
-    // Duyệt từng bản ghi
-    newVal.forEach((item) => {
-      if (item.GroupFail && item.GroupFail.trim() !== "") {
-        const errors = item.GroupFail.split(",").map((e) => e.trim());
-        errors.forEach((err) => {
-          if (summaryFailChart.value[err] !== undefined) {
-            summaryFailChart.value[err]++;
-          }
-        });
-      } else {
-        // Không có GroupFail → đếm vào "Lỗi không xác định"
-        summaryFailChart.value["Lỗi không xác định"]++;
-      }
-    });
-  },
-  { immediate: true, deep: true },
-);
-
-// Pie chart items
-const pieItems = computed(() => {
-  const colors = [
-    "rgba(255,99,132,0.8)",
-    "rgba(255,159,64,0.8)",
-    "rgba(255,205,86,0.8)",
-    "rgba(75,192,192,0.8)",
-    "rgba(54,162,235,0.8)",
-    "rgba(153,102,255,0.8)",
-    "rgba(200,200,200,0.5)", // màu cho "Lỗi không xác định"
-  ];
-
-  const entries = Object.entries(summaryFailChart.value).filter(
-    ([_, value]) => Number.isFinite(value) && value > 0,
-  );
-
-  const total = entries.reduce((sum, [, value]) => sum + value, 0);
-
-  // Trường hợp không có lỗi nào
-  if (total === 0) {
-    return [
-      {
-        id: 1,
-        title: "Không lỗi",
-        value: 100,
-        count: 0,
-        color: "rgba(200,200,200,0.5)",
-      },
-    ];
-  }
-
-  // Chuyển sang dạng {id, title, value: %, count, color}
-  return entries.map(([title, value], i) => ({
-    id: i + 1,
-    title,
-    value: +Number((value / total) * 100).toFixed(1), // phần trăm
-    count: value, // số lượng thật
-    color: colors[i % colors.length],
-  }));
-});
-
 const Time_Add = computed(() => {
-  if (Quantity_Plan_Add.value === 0 || CycleTime_Add.value === 0) {
+  const qty = Number(Quantity_Plan_Add.value) || 0;
+  const cycle = Number(CycleTime_Add.value) || 0;
+  if (!qty || !cycle) {
     return 0;
   }
-  return ((Quantity_Plan_Add.value * CycleTime_Add.value) / 3600).toFixed(1);
+  return ((qty * cycle) / 3600).toFixed(1);
 });
 
 const Time_Edit = computed(() => {
-  if (Quantity_Plan_Edit.value === 0 || CycleTime_Edit.value === 0) {
+  const qty = Number(Quantity_Plan_Edit.value) || 0;
+  const cycle = Number(CycleTime_Edit.value) || 0;
+  if (!qty || !cycle) {
     return 0;
   }
-  return ((Quantity_Plan_Edit.value * CycleTime_Edit.value) / 3600).toFixed(1);
+  return ((qty * cycle) / 3600).toFixed(1);
 });
 
 // ====== CRUD ========
@@ -1811,28 +1682,6 @@ const selectCard = (title) => {
         .filter(Boolean),
     ),
   ];
-  historys.value = historyPart.value.filter((item) => item.Source === title);
-
-  if (title === "SMT" || title === "AOI") {
-    passTop.value = historys.value
-      .filter((item) => item.Surface === "TOP")
-      .reduce((sum, item) => sum + Number(item.Quantity || 0), 0);
-
-    passBottom.value = historys.value
-      .filter((item) => item.Surface === "BOTTOM")
-      .reduce((sum, item) => sum + Number(item.Quantity || 0), 0);
-
-    passOneSide.value = historys.value
-      .filter((item) => item.Surface === "1 Mặt")
-      .reduce((sum, item) => sum + Number(item.Quantity || 0), 0);
-  } else {
-    passOneSide.value = historys.value
-      .filter((item) => item.Surface === "1 Mặt")
-      .reduce((sum, item) => sum + Number(item.Quantity || 0), 0);
-
-    passTop.value = 0;
-    passBottom.value = 0;
-  }
 };
 
 const toggleBottleneck = () => {
@@ -1850,7 +1699,6 @@ const HandleBottleneckAction = (title) => {
 };
 
 const CloseTabProgress = () => {
-  router.push(`/San-xuat/Chi-tiet/${route.params.id}`);
   Detail_Popup_Card.value = false;
 };
 
@@ -2335,6 +2183,19 @@ const DownloadReport = async () => {
       (sum, [, qty]) => sum + (Number(qty) || 0),
       0,
     );
+    const totalReport = Number(totalInput.value) || 0;
+    const passPercent = passEntries.reduce(
+      (sum, [, qty]) =>
+        sum +
+        (totalReport
+          ? Number(((Number(qty) / totalReport) * 100).toFixed(1))
+          : 0),
+      0,
+    );
+    const remainingPercent = Math.max(
+      Number((100 - passPercent).toFixed(1)),
+      0,
+    );
 
     if (passEntries.length === 0) {
       reportSheet.mergeCells(r, 1, r, 5);
@@ -2352,7 +2213,9 @@ const DownloadReport = async () => {
           reportSheet,
           r,
           5,
-          sumPass ? Number(((Number(qty) / sumPass) * 100).toFixed(1)) : 0,
+          totalReport
+            ? Number(((Number(qty) / totalReport) * 100).toFixed(1))
+            : 0,
           { zebra, span: 1 },
         );
         reportSheet.getRow(r).getCell(5).numFmt = '0.0"%"';
@@ -2361,7 +2224,7 @@ const DownloadReport = async () => {
 
       addMergedBox(reportSheet, r, 1, "Tổng cộng");
       addMergedBox(reportSheet, r, 3, sumPass);
-      addMergedBox(reportSheet, r, 5, sumPass ? 100 : 0, { span: 1 });
+      addMergedBox(reportSheet, r, 5, passPercent, { span: 1 });
       reportSheet.getRow(r).getCell(5).numFmt = '0.0"%"';
       for (let c = 1; c <= 5; c++) {
         const cell = reportSheet.getRow(r).getCell(c);
@@ -2370,6 +2233,27 @@ const DownloadReport = async () => {
           type: "pattern",
           pattern: "solid",
           fgColor: { argb: "FFDDEBF7" },
+        };
+        cell.alignment = { vertical: "middle", horizontal: "center" };
+      }
+      r += 1;
+
+      addMergedBox(reportSheet, r, 1, "Còn lại");
+      addMergedBox(
+        reportSheet,
+        r,
+        3,
+        Math.max(totalReport - sumPass, 0),
+      );
+      addMergedBox(reportSheet, r, 5, remainingPercent, { span: 1 });
+      reportSheet.getRow(r).getCell(5).numFmt = '0.0"%"';
+      for (let c = 1; c <= 5; c++) {
+        const cell = reportSheet.getRow(r).getCell(c);
+        cell.font = { name: fontName, size: 11, italic: true };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFF5F5F5" },
         };
         cell.alignment = { vertical: "middle", horizontal: "center" };
       }
@@ -2570,16 +2454,7 @@ const DownloadReport = async () => {
 export default {
   components: {
     ButtonBack,
-    ButtonEye,
-    InputSearch,
-    InputField,
-    InputFiles,
-    ButtonImportFile,
     ButtonDownload,
-    ButtonNextManufacture,
-    SnackbarSuccess,
-    SnackbarFailed,
-    Loading,
     StackedBarChartSummary,
     LinePointChart,
     CardStatistic,
@@ -2590,15 +2465,6 @@ export default {
 <style scoped>
 .manufacture-detail {
   background-color: #f5f5f5;
-}
-
-.v-card {
-  transition: all 0.3s ease;
-}
-
-.v-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .v-data-table-virtual {

@@ -9,13 +9,13 @@
   >
     <v-card class="rounded-lg">
       <!-- HEADER -->
-      <v-card-title class="d-flex align-center bg-gradient">
-        <v-icon v-if="icon" :icon="icon" class="me-2 text-white" />
-        <span class="text-h6 text-white">{{ title }}</span>
+      <v-card-title class="d-flex align-center">
+        <v-icon v-if="icon" :icon="icon" class="me-2" />
+        <span class="text-h6">{{ title }}</span>
 
         <v-spacer />
 
-        <v-btn icon="mdi-close" variant="text" color="white" @click="close" />
+        <v-btn icon="mdi-close" variant="text" @click="close" />
       </v-card-title>
 
       <!-- BODY -->
@@ -64,15 +64,7 @@ function close() {
 </script>
 <style scoped>
 .bg-gradient {
-  background: linear-gradient(
-    135deg,
-    rgb(var(--v-theme-primary)),
-    rgb(var(--v-theme-secondary))
-  );
+  background: linear-gradient(135deg, #a52a2a 0%, #d2691e 50%, #ff9500 100%);
   color: white;
 }
-
-
-
-
 </style>

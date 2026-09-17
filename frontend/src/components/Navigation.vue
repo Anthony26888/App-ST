@@ -1,14 +1,20 @@
 <template lang="">
-  <v-navigation-drawer expand-on-hover permanent rail color="#ffffff">
+  <v-navigation-drawer
+    expand-on-hover
+    permanent
+    rail
+    class="app-nav"
+    @mouseenter="navExpanded = true"
+    @mouseleave="navExpanded = false"
+  >
     <!-- User Profile Section -->
-    <v-list class="profile-section bg-blue-lighten-5">
+    <v-list class="profile-section bg-transparent">
       <v-list-item
         prepend-avatar="@/assets/avatar-ST.jpg"
         :subtitle="LevelUser"
         :title="UserInfo"
         class="profile-item"
         @click="DialogUserInfo = true"
-        style="cursor: pointer"
       >
         <template v-slot:append>
           <v-chip
@@ -25,129 +31,40 @@
     <v-divider></v-divider>
 
     <!-- Navigation Menu -->
-    <v-list nav class="mt-1">
-      <v-list-subheader v-if="StatusOption_1 == true"
-        >Kiểm tra dữ liệu</v-list-subheader
-      >
-
-      <v-list-item
-        v-if="StatusOption_1 == true"
-        v-for="(item, i) in menuCheck"
-        :key="i"
-        :prepend-icon="item.icon"
-        :title="item.title"
-        :value="item.value"
-        :to="item.to"
-      >
-        <template v-slot:prepend>
-          <v-icon class="me-3">{{ item.icon }}</v-icon>
-        </template>
-        <template v-slot:title>
-          <span>{{ item.title }}</span>
-        </template>
-      </v-list-item>
-      <v-list-subheader v-if="StatusOption_2 == true">Kho</v-list-subheader>
-      <v-list-item
-        v-if="StatusOption_2 == true"
-        v-for="(item, i) in menuWareHouse"
-        :key="i"
-        :prepend-icon="item.icon"
-        :title="item.title"
-        :value="item.value"
-        :to="item.to"
-      >
-        <template v-slot:prepend>
-          <v-icon class="me-3">{{ item.icon }}</v-icon>
-        </template>
-        <template v-slot:title>
-          <span>{{ item.title }}</span>
-        </template>
-      </v-list-item>
-      <v-list-subheader v-if="StatusOption_3 == true"
-        >Sản xuất</v-list-subheader
-      >
-
-      <v-list-item
-        v-if="StatusOption_3 == true"
-        v-for="(item, i) in menuManufacture"
-        :key="i"
-        :prepend-icon="item.icon"
-        :title="item.title"
-        :value="item.value"
-        :to="item.to"
-      >
-        <template v-slot:prepend>
-          <v-icon class="me-3">{{ item.icon }}</v-icon>
-        </template>
-        <template v-slot:title>
-          <span>{{ item.title }}</span>
-        </template>
-      </v-list-item>
-      <v-list-subheader v-if="StatusOption_4 == true">Bảo trì</v-list-subheader>
-
-      <v-list-item
-        v-if="StatusOption_4 == true"
-        v-for="(item, i) in menuMaintenance"
-        :key="i"
-        :prepend-icon="item.icon"
-        :title="item.title"
-        :value="item.value"
-        :to="item.to"
-      >
-        <template v-slot:prepend>
-          <v-icon class="me-3">{{ item.icon }}</v-icon>
-        </template>
-        <template v-slot:title>
-          <span>{{ item.title }}</span>
-        </template>
-      </v-list-item>
-      <v-list-subheader v-if="StatusOption_5 == true"
-        >Công việc</v-list-subheader
-      >
-
-      <v-list-item
-        v-if="StatusOption_5 == true"
-        v-for="(item, i) in menuListWork"
-        :key="i"
-        :prepend-icon="item.icon"
-        :title="item.title"
-        :value="item.value"
-        :to="item.to"
-      >
-        <template v-slot:prepend>
-          <v-icon class="me-3">{{ item.icon }}</v-icon>
-        </template>
-        <template v-slot:title>
-          <span>{{ item.title }}</span>
-        </template>
-      </v-list-item>
-      <v-list-subheader v-if="StatusOption_6 == true"
-        >Hệ thống</v-list-subheader
-      >
-
-      <v-list-item
-        v-if="StatusOption_6 == true"
-        v-for="(item, i) in menuSetting"
-        :key="i"
-        :prepend-icon="item.icon"
-        :title="item.title"
-        :value="item.value"
-        :to="item.to"
-      >
-        <template v-slot:prepend>
-          <v-icon class="me-3">{{ item.icon }}</v-icon>
-        </template>
-        <template v-slot:title>
-          <span>{{ item.title }}</span>
-        </template>
-      </v-list-item>
+    <v-list nav class="nav-menu mt-1">
+      <template v-for="section in menuSections" :key="section.title">
+        <v-list-subheader
+          v-if="section.visible && section.items.length"
+          class="text-caption"
+        >
+          {{ section.title }}
+        </v-list-subheader>
+        <v-tooltip
+          v-for="(item, i) in section.items"
+          :key="i"
+          :text="item.title"
+          location="end"
+          :disabled="navExpanded"
+        >
+          <template v-slot:activator="{ props }">
+            <v-list-item v-bind="props" :title="item.title" :to="item.to">
+              <template v-slot:prepend>
+                <v-icon class="me-3">{{ item.icon }}</v-icon>
+              </template>
+              <template v-slot:title>
+                <span>{{ item.title }}</span>
+              </template>
+            </v-list-item>
+          </template>
+        </v-tooltip>
+      </template>
     </v-list>
 
     <!-- Logout Button -->
 
     <template v-slot:append>
       <v-divider></v-divider>
-      <v-list class="logout-section bg-blue-lighten-5">
+      <v-list class="logout-section bg-transparent">
         <v-list-item
           prepend-icon="mdi-logout"
           title="Đăng xuất"
@@ -283,7 +200,7 @@
 <script setup>
 import { jwtDecode } from "jwt-decode";
 import { ref, watch, computed } from "vue";
-import { useRouter, useRoute } from "vue-router";
+import { useRouter } from "vue-router";
 import axios from "axios";
 import Loading from "@/components/Loading.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
@@ -292,7 +209,6 @@ import { onMounted } from "vue";
 
 const Url = import.meta.env.VITE_API_URL;
 const router = useRouter();
-const route = useRoute();
 const UserInfo = ref(null);
 const LevelUser = ref("");
 
@@ -345,8 +261,8 @@ const Date_Expired = ref("");
 const DialogLoading = ref(false);
 const DialogFailed = ref(false);
 
-const drawer = ref(true);
-const rail = ref(false);
+// Trạng thái drawer: mở rộng khi hover (dùng để ẩn/hiện tooltip rail)
+const navExpanded = ref(false);
 
 onMounted(() => {
   const token = localStorage.getItem("token");
@@ -455,10 +371,6 @@ const FetchUser = async () => {
     DialogFailed.value = true;
     router.push("/");
   }
-};
-
-const isActiveRoute = (to) => {
-  return route.path === to;
 };
 
 const menuItems = computed(() => [
@@ -571,25 +483,58 @@ const menuSetting = computed(() =>
       (!item.adminOnly || LevelUser.value === "Admin"),
   ),
 );
-</script>
 
-<script>
-export default {
-  components: {
-    Loading,
-    SnackbarFailed,
+// Gom nhóm menu để render 1 vòng lặp duy nhất
+const menuSections = computed(() => [
+  {
+    title: "Kiểm tra dữ liệu",
+    visible: StatusOption_1.value,
+    items: menuCheck.value,
   },
-};
+  { title: "Kho", visible: StatusOption_2.value, items: menuWareHouse.value },
+  {
+    title: "Sản xuất",
+    visible: StatusOption_3.value,
+    items: menuManufacture.value,
+  },
+  {
+    title: "Bảo trì",
+    visible: StatusOption_4.value,
+    items: menuMaintenance.value,
+  },
+  {
+    title: "Công việc",
+    visible: StatusOption_5.value,
+    items: menuListWork.value,
+  },
+  {
+    title: "Hệ thống",
+    visible: StatusOption_6.value,
+    items: menuSetting.value,
+  },
+]);
 </script>
 
 <style lang="scss" scoped>
-:deep(.v-navigation-drawer) {
-  background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
+.v-navigation-drawer {
+  /* Theme tokens */
+  --nav-primary: #d2691e;
+  --nav-secondary: #ff9500;
+  --nav-primary-dark: #a52a2a;
+  --nav-secondary-dark: #c96f00;
+  --nav-text: rgba(255, 255, 255, 0.9);
+  --nav-icon: rgba(255, 255, 255, 0.8);
+  --nav-hover-bg: rgba(255, 255, 255, 0.12);
+  --nav-active-bg: rgba(255, 255, 255, 0.18);
+  --nav-shadow: rgba(0, 0, 0, 0.25);
+  --nav-danger: #b71c1c;
+  --nav-danger-dark: #7f0000;
+  --nav-danger-bg: rgba(183, 28, 28, 0.22);
 
   /* Khi drawer thu nhỏ (rail mode) và không hover */
   &.v-navigation-drawer--rail:not(.v-navigation-drawer--is-hovering) {
-    .v-list-subheader {
+    :deep(.v-list-subheader) {
+      display: none !important;
       opacity: 0;
       visibility: hidden;
       height: 0;
@@ -598,22 +543,54 @@ export default {
       padding: 0;
     }
 
-    .profile-item {
-      padding-left: 8px !important;
-      padding-right: 8px !important;
-      margin-left: 4px;
-      margin-right: 4px;
+    :deep(.profile-section) {
+      background: transparent !important;
+      display: flex;
       justify-content: center;
+      padding: 8px 0;
+    }
 
-      :deep(.v-avatar) {
-        margin-inline-end: 0 !important;
-      }
+    :deep(.profile-item) {
+      background: transparent !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      justify-content: center;
+    }
+
+    :deep(.profile-item .v-avatar) {
+      --v-avatar-height: 36px;
+      width: 36px;
+      height: 36px;
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      box-shadow: 0 4px 16px var(--nav-shadow);
+      margin-inline-end: 0 !important;
+    }
+
+    :deep(.profile-item .v-list-item__prepend) {
+      justify-content: center !important;
+      margin-inline: 0 !important;
+    }
+
+    :deep(.profile-item .v-list-item__content),
+    :deep(.profile-item .v-list-item__append) {
+      display: none !important;
+    }
+
+    :deep(.nav-menu .v-list-item) {
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      border-radius: 0 !important;
+    }
+
+    :deep(.nav-menu .v-list-item .v-icon) {
+      margin-inline-end: 0 !important;
     }
   }
 
-  .v-list-subheader {
+  :deep(.v-list-subheader) {
     transition: opacity 0.2s ease, height 0.2s ease;
-    color: #1867c0;
+    color: rgba(255, 255, 255, 0.9);
     font-weight: 600;
     font-size: 0.85rem;
     text-transform: uppercase;
@@ -622,148 +599,154 @@ export default {
     min-height: 28px !important;
     line-height: 28px;
     margin-bottom: -4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .v-list {
+  :deep(.nav-menu) {
     background: transparent;
     padding-top: 4px;
     padding-bottom: 4px;
-
-    .v-list-item {
-      color: rgba(0, 0, 0, 0.7);
-      margin: 4px 12px;
-      border-radius: 8px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
-
-      &::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 0;
-        height: 100%;
-        width: 4px;
-        background: linear-gradient(180deg, #1867c0 0%, #5cbbf6 100%);
-        transform: scaleY(0);
-        transform-origin: center;
-        transition: transform 0.3s ease;
-        border-radius: 4px;
-      }
-
-      &:hover {
-        background: rgba(24, 103, 192, 0.08);
-        color: #1867c0;
-
-        &::before {
-          transform: scaleY(1);
-        }
-
-        .v-icon {
-          color: #1867c0 !important;
-          transform: scale(1.1);
-        }
-      }
-
-      &.v-list-item--active {
-        background: linear-gradient(135deg, #1867c0 0%, #5cbbf6 100%);
-        color: #ffffff;
-        box-shadow: 0 4px 12px rgba(24, 103, 192, 0.2);
-
-        .v-icon {
-          color: #ffffff !important;
-        }
-
-        &::before {
-          transform: scaleY(0);
-        }
-
-        :deep(.v-list-item-title) {
-          color: #ffffff;
-          font-weight: 700;
-        }
-      }
-
-      .v-icon {
-        transition: all 0.3s ease;
-        color: rgba(0, 0, 0, 0.5) !important;
-      }
-    }
   }
 
-  .profile-section {
+  :deep(.nav-menu .v-list-item) {
+    color: var(--nav-text);
+    margin: 4px 12px;
+    border-radius: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  :deep(.nav-menu .v-list-item::before) {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 4px;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(255, 255, 255, 0.4) 100%
+    );
+    transform: scaleY(0);
+    transform-origin: center;
+    transition: transform 0.3s ease;
+    border-radius: 4px;
+  }
+
+  :deep(.nav-menu .v-list-item:hover) {
+    background: var(--nav-hover-bg) !important;
+    color: #ffffff;
+  }
+
+  :deep(.nav-menu .v-list-item:hover::before) {
+    transform: scaleY(1);
+  }
+
+  :deep(.nav-menu .v-list-item:hover .v-icon) {
+    color: #ffffff !important;
+    transform: scale(1.1);
+  }
+
+  /* Active style Material 3: nền tint nhạt + thanh trái + icon/title primary */
+  :deep(.nav-menu .v-list-item--active) {
+    background: var(--nav-active-bg) !important;
+    color: #ffffff;
+    box-shadow: none;
+  }
+
+  :deep(.nav-menu .v-list-item--active::before) {
+    transform: scaleY(1);
+  }
+
+  :deep(.nav-menu .v-list-item--active .v-icon) {
+    color: #ffffff !important;
+  }
+
+  :deep(.nav-menu .v-list-item--active .v-list-item-title) {
+    color: #ffffff;
+    font-weight: 700;
+  }
+
+  :deep(.nav-menu .v-list-item .v-icon) {
+    transition: all 0.3s ease;
+    color: var(--nav-icon) !important;
+  }
+
+  :deep(.profile-section) {
     padding: 12px 8px;
-
-    .profile-item {
-      background: linear-gradient(135deg, #1867c0 0%, #5cbbf6 100%);
-      margin: 0 4px;
-      padding: 8px 12px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(24, 103, 192, 0.2);
-      transition: all 0.3s ease;
-
-      &:hover {
-        background: linear-gradient(135deg, #1355a3 0%, #4aa1d6 100%);
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(24, 103, 192, 0.3);
-      }
-
-      &::before {
-        display: none;
-      }
-
-      :deep(.v-avatar) {
-        border: 2px solid rgba(255, 255, 255, 0.8);
-      }
-
-      :deep(.v-list-item-title) {
-        font-weight: 600;
-        color: #ffffff;
-        font-size: 0.95rem;
-      }
-
-      :deep(.v-list-item-subtitle) {
-        color: rgba(255, 255, 255, 0.9);
-        font-size: 0.8rem;
-        font-weight: 500;
-      }
-    }
   }
 
-  .logout-section {
+  :deep(.profile-section .profile-item) {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(6px);
+    margin: 0 4px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px var(--nav-shadow);
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  :deep(.profile-section .profile-item:hover) {
+    background: rgba(255, 255, 255, 0.26);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px var(--nav-shadow);
+  }
+
+  :deep(.profile-section .profile-item .v-avatar) {
+    border: 2px solid rgba(255, 255, 255, 0.8);
+  }
+
+  :deep(.profile-section .profile-item .v-list-item-title) {
+    font-weight: 600;
+    color: #ffffff;
+    font-size: 0.95rem;
+  }
+
+  :deep(.profile-section .profile-item .v-list-item-subtitle) {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+
+  :deep(.logout-section) {
     padding-bottom: 12px;
-
-    .logout-item {
-      color: #d32f2f !important;
-
-      .v-icon {
-        color: #d32f2f !important;
-      }
-
-      &::before {
-        background: linear-gradient(180deg, #d32f2f 0%, #ef5350 100%);
-      }
-
-      &:hover {
-        background: rgba(211, 47, 47, 0.08);
-        color: #b71c1c !important;
-
-        .v-icon {
-          color: #b71c1c !important;
-        }
-      }
-    }
   }
 
-  .v-divider {
-    border-color: rgba(0, 0, 0, 0.08);
+  :deep(.logout-section .logout-item) {
+    color: var(--nav-danger) !important;
+  }
+
+  :deep(.logout-section .logout-item .v-icon) {
+    color: var(--nav-danger) !important;
+  }
+
+  :deep(.logout-section .logout-item::before) {
+    background: linear-gradient(180deg, var(--nav-danger) 0%, #ef5350 100%);
+  }
+
+  :deep(.logout-section .logout-item:hover) {
+    background: var(--nav-danger-bg);
+    color: var(--nav-danger-dark) !important;
+  }
+
+  :deep(.logout-section .logout-item:hover .v-icon) {
+    color: var(--nav-danger-dark) !important;
+  }
+
+  :deep(.v-divider) {
+    border-color: rgba(255, 255, 255, 0.15);
     margin: 0 16px;
   }
 }
 
 @media (max-width: 960px) {
-  :deep(.v-navigation-drawer) {
-    :deep(.v-list-item) {
+  .v-navigation-drawer {
+    :deep(.nav-menu .v-list-item) {
       margin: 4px 4px !important;
     }
   }
@@ -771,12 +754,23 @@ export default {
 </style>
 
 <style>
+.app-nav {
+  background: linear-gradient(
+    135deg,
+    #a52a2a 0%,
+    #d2691e 50%,
+    #ff9500 100%
+  ) !important;
+  background-color: transparent !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
 .user-info-header {
-  background: linear-gradient(135deg, #1867c0 0%, #5cbbf6 100%);
+  background: linear-gradient(135deg, #a52a2a 0%, #d2691e 50%, #ff9500 100%);
   min-height: 100px;
 }
 .user-avatar-ring {
   border: 4px solid white;
-  box-shadow: 0 4px 16px rgba(24, 103, 192, 0.25);
+  box-shadow: 0 4px 16px rgba(210, 105, 30, 0.3);
 }
 </style>
