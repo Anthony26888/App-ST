@@ -487,7 +487,7 @@ const SaveAddManufacture = async () => {
   const formData = reactive({
     Name: Name_Manufacture_Add.value,
     Status: false,
-    Date: Date_Manufacture_Add,
+    Timestamp: Date_Manufacture_Add.value,
     Total: Total_Manufacture_Add.value,
     Note: Note_Manufacture_Add.value,
     Creater: UserInfo.value,

@@ -8,12 +8,12 @@
     @mouseleave="navExpanded = false"
   >
     <!-- User Profile Section -->
-    <v-list class="profile-section bg-transparent">
+    <v-list class=" bg-transparent">
       <v-list-item
         prepend-avatar="@/assets/avatar-ST.jpg"
         :subtitle="LevelUser"
         :title="UserInfo"
-        class="profile-item"
+        class="text-white"
         @click="DialogUserInfo = true"
       >
         <template v-slot:append>
@@ -223,7 +223,7 @@ const licenseColor = computed(
   () =>
     ({
       Starter: "grey",
-      Trial: "red-darken-1",
+      Trial: "#FF4938",
       Standard: "primary",
       Business: "amber",
     }[CurrentLicense.value] || "grey"),
@@ -377,7 +377,7 @@ const menuItems = computed(() => [
   {
     group: "Kiểm tra dữ liệu",
     icon: "mdi-chart-box-outline",
-    title: "Kiểm tra số liệu",
+    title: "Dữ liệu mua hàng",
     value: "Check",
     to: "/Kiem-tra-so-lieu",
   },
@@ -391,17 +391,17 @@ const menuItems = computed(() => [
   {
     group: "Kiểm tra dữ liệu",
     icon: "mdi-package-variant-closed",
-    title: "Pick & Place",
+    title: "Dữ liệu SMT",
     value: "CheckPnP",
     to: "/Danh-sach-pnp",
   },
-  {
-    group: "Kiểm tra dữ liệu",
-    icon: "mdi-check-decagram-outline",
-    title: "Pick & Place QC",
-    value: "CheckPnPQC",
-    to: "/Danh-sach-pnp-qc",
-  },
+  // {
+  //   group: "Kiểm tra dữ liệu",
+  //   icon: "mdi-check-decagram-outline",
+  //   title: "Pick & Place QC",
+  //   value: "CheckPnPQC",
+  //   to: "/Danh-sach-pnp-qc",
+  // },
   {
     group: "Kho",
     icon: "mdi-warehouse",

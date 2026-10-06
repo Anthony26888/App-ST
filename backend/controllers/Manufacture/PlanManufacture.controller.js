@@ -23,6 +23,11 @@ module.exports = (io) => ({
 
     // Convert date local
     const formattedDate = formatDateLocal(Timestamp);
+    if (!formattedDate) {
+      return res.status(400).json({
+        error: "Ngày tạo không hợp lệ. Vui lòng chọn ngày trước khi lưu.",
+      });
+    }
 
     const query = `
     INSERT INTO PlanManufacture (
@@ -95,6 +100,11 @@ module.exports = (io) => ({
 
     // Convert date local
     const formattedDate = formatDateLocal(Timestamp);
+    if (!formattedDate) {
+      return res.status(400).json({
+        error: "Ngày tạo không hợp lệ. Vui lòng chọn ngày trước khi lưu.",
+      });
+    }
 
     const query = `
     UPDATE PlanManufacture

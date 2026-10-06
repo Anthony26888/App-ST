@@ -38,42 +38,38 @@ module.exports = (socket) => {
                           END AS Status,
 
                           COALESCE(
-                              GROUP_CONCAT(
-                                  json_object(
-                                      'id', d.id,
-                                      'DeliveryDate', strftime('%Y-%m-%d', d.DeliveryDate, 'unixepoch', 'localtime'),
-                                      'DeliveryDateConvert', strftime('%Y-%m-%d', d.DeliveryDate, 'unixepoch', 'localtime'),
-                                      'DeliveryQuantity', d.DeliveryQuantity,
-                                      'DeliveryCheck', d.DeliveryStatus,
+                              (
+                                  SELECT GROUP_CONCAT(payload, ',')
+                                  FROM (
+                                      SELECT json_object(
+                                          'id', d.id,
+                                          'DeliveryDate', strftime('%Y-%m-%d', d.DeliveryDate, 'unixepoch', 'localtime'),
+                                          'DeliveryDateConvert', strftime('%Y-%m-%d', d.DeliveryDate, 'unixepoch', 'localtime'),
+                                          'DeliveryQuantity', d.DeliveryQuantity,
+                                          'DeliveryCheck', d.DeliveryStatus,
 
-                                      'DeliveryStatus', CASE
-                                          WHEN d.DeliveryDate IS NULL THEN 'Chưa có lịch'
-                                          WHEN datetime(d.DeliveryDate, 'unixepoch', 'localtime') < datetime('now', 'localtime') THEN 'Trễ hạn'
-                                          ELSE 'Chưa đến hạn'
-                                      END,
+                                          'DeliveryStatus', CASE
+                                              WHEN d.DeliveryDate IS NULL THEN 'Chưa có lịch'
+                                              WHEN datetime(d.DeliveryDate, 'unixepoch', 'localtime') < datetime('now', 'localtime') THEN 'Trễ hạn'
+                                              ELSE 'Chưa đến hạn'
+                                          END,
 
-                                      'DaysRemaining', CAST(
-                                          ROUND(
-                                              (julianday(d.DeliveryDate, 'unixepoch') - julianday('now'))
-                                          ) AS INTEGER
-                                      )
-                                  ), ','
+                                          'DaysRemaining', CAST(
+                                              ROUND(
+                                                  (julianday(d.DeliveryDate, 'unixepoch') - julianday('now'))
+                                              ) AS INTEGER
+                                          )
+                                      ) AS payload
+                                      FROM ScheduleDelivery d
+                                      WHERE d.ItemId = a.id
+                                      ORDER BY d.DeliveryDate ASC, d.id ASC
+                                  )
                               ),
                               ''
                           ) AS DeliverySchedules
 
                       FROM ProductDetails a
-                      LEFT JOIN PlanManufacture b ON b.ProjectID = a.id
-                      LEFT JOIN ManufactureCounting c ON c.PlanID = b.id
-                      LEFT JOIN ScheduleDelivery d ON d.ItemId = a.id
-
                       WHERE a.CustomerID = ?
-
-                      GROUP BY 
-                          a.id, a.POID, a.ProductDetail, 
-                          a.QuantityProduct, a.QuantityDelivered, 
-                          a.Note
-
                       ORDER BY Status DESC, Product_Detail ASC;`;
       db.all(query, [id], (err, rows) => {
         if (err) return socket.emit("DetailProjectPOError", err);

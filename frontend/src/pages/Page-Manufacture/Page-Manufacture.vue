@@ -342,9 +342,9 @@
         <div v-if="customProcessList.length > 0">
           <div class="text-caption text-grey mb-1">Quy trình đã thêm:</div>
           <div class="d-flex flex-wrap ga-2 mb-5">
-            <v-chip
+              <v-chip
               v-for="(process, index) in customProcessList"
-              :key="index"
+              :key="process"
               closable
               color="secondary"
               size="small"
@@ -572,17 +572,9 @@ const addCustomProcess = () => {
   if (customProcess.value && customProcess.value.trim()) {
     const processName = customProcess.value.trim();
 
-    // Kiểm tra trùng lặp
+    // Kiểm tra trùng lặp (single source: customProcessList)
     if (!customProcessList.value.includes(processName)) {
       customProcessList.value.push(processName);
-
-      // Cập nhật Level_Manufacture_Add
-      if (!Level_Manufacture_Add.value) {
-        Level_Manufacture_Add.value = [];
-      }
-      if (!Level_Manufacture_Add.value.includes(processName)) {
-        Level_Manufacture_Add.value.push(processName);
-      }
     }
 
     // Reset input
@@ -593,18 +585,8 @@ const addCustomProcess = () => {
 // Thêm method để xóa quy trình tùy chỉnh
 const removeCustomProcess = (index) => {
   if (index >= 0 && index < customProcessList.value.length) {
-    const processName = customProcessList.value[index];
-
     // Xóa khỏi danh sách tùy chỉnh
     customProcessList.value.splice(index, 1);
-
-    // Xóa khỏi Level_Manufacture_Add
-    if (Level_Manufacture_Add.value) {
-      const levelIndex = Level_Manufacture_Add.value.indexOf(processName);
-      if (levelIndex > -1) {
-        Level_Manufacture_Add.value.splice(levelIndex, 1);
-      }
-    }
   }
 };
 
@@ -644,6 +626,7 @@ watch(DialogAdd, (newVal) => {
   if (!newVal) {
     customProcess.value = "";
     customProcessList.value = [];
+    Level_Manufacture_Add.value = null;
   }
 });
 
@@ -743,39 +726,16 @@ const SaveEdit = async () => {
 const SaveAdd = async () => {
   DialogLoading.value = true;
 
-  // ✅ Quy tắc sắp xếp ưu tiên
-  const processPriority = {
-    SMT: 1,
-    RW: 99,
-    "Thành phẩm": 100,
-  };
-
-  // ✅ Gom các quy trình người dùng đã chọn
-  const mergedLevels = [
-    ...(Array.isArray(Level_Manufacture_Add.value)
-      ? Level_Manufacture_Add.value
-      : []),
-    ...(Array.isArray(customProcessList.value) ? customProcessList.value : []),
-  ];
-
-  // ➕ Nếu chưa có "Thành phẩm" thì tự thêm
-  if (!mergedLevels.includes("Thành phẩm")) {
-    mergedLevels.push("Thành phẩm");
-  }
-
-  // ✅ Loại bỏ trùng lặp
-  const uniqueLevels = [...new Set(mergedLevels)];
-
-  // ✅ Sắp xếp theo ưu tiên
-  const sortedLevels = uniqueLevels.sort((a, b) => {
-    const pa = processPriority[a] ?? 50;
-    const pb = processPriority[b] ?? 50;
-
-    if (pa === pb) {
-      return mergedLevels.indexOf(a) - mergedLevels.indexOf(b);
-    }
-    return pa - pb;
-  });
+  // Giữ đúng thứ tự người dùng nhập, chỉ đảm bảo "Thành phẩm" luôn cuối
+  const cleaned = (Array.isArray(customProcessList.value)
+    ? customProcessList.value
+    : []
+  )
+    .map((p) => String(p).trim())
+    .filter((p) => p);
+  let levels = cleaned.filter((p, i) => cleaned.indexOf(p) === i);
+  levels = levels.filter((p) => p !== "Thành phẩm");
+  levels.push("Thành phẩm");
 
   const formData = {
     Name: Name_Manufacture_Add.value,
@@ -786,7 +746,7 @@ const SaveAdd = async () => {
     Creater: UserInfo.value,
     DelaySMT: 10000,
     Quantity: 1,
-    Level: sortedLevels,
+    Level: levels,
     ProjectID: 1,
   };
 

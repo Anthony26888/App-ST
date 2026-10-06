@@ -75,6 +75,8 @@
           density="comfortable"
           :search="search"
           :items="detailProjectPO"
+          v-model:expanded="expanded"
+          item-value="id"
           :headers="Headers"
           :loading="DialogLoading"
           loading-text="Đang tải dữ liệu..."
@@ -114,11 +116,7 @@
           </template>
 
           <template
-            v-slot:item.data-table-expand="{
-              internalItem,
-              isExpanded,
-              toggleExpand,
-            }"
+            v-slot:item.data-table-expand="{ internalItem, isExpanded }"
           >
             <template v-if="getScheduleDeliveries(internalItem.raw).length > 0">
               <v-badge
@@ -141,7 +139,7 @@
                   width="105"
                   border
                   slim
-                  @click="toggleExpand(internalItem)"
+                  @click="toggleSingleExpand(internalItem)"
                 ></v-btn>
               </v-badge>
             </template>
@@ -172,8 +170,10 @@
                       </thead>
                       <tbody>
                         <tr
-                          v-for="schedule in getScheduleDeliveries(item)"
-                          :key="schedule.id"
+                          v-for="(schedule, sIndex) in getScheduleDeliveries(
+                            item,
+                          )"
+                          :key="`${schedule.id}-${sIndex}`"
                         >
                           <td class="py-2">
                             {{ schedule.DeliveryDateConvert }}
@@ -535,7 +535,7 @@
         <div class="d-flex flex-wrap ga-2 mb-5">
           <v-chip
             v-for="(process, index) in customProcessList"
-            :key="index"
+            :key="process"
             closable
             color="secondary"
             size="small"
@@ -564,12 +564,10 @@
         </template>
       </InputField>
     </div>
-    <InputField
+    <InputDate
       label="Ngày tạo"
-      type="date"
       v-model="Date_Manufacture_Add"
       :rules="[requiredRule]"
-      @update:model-value="Date_Manufacture_Add = $event"
     />
     <InputTextarea
       label="Ghi chú"
@@ -578,7 +576,10 @@
     />
     <template #actions>
       <ButtonCancel @cancel="DialogAddManufacture = false" />
-      <ButtonSave @save="SaveAddManufacture()" />
+      <ButtonSave
+        @save="SaveAddManufacture()"
+        :disabled="!Date_Manufacture_Add"
+      />
     </template>
   </BaseDialog>
 
@@ -620,7 +621,7 @@
 import axios from "axios";
 import { useRoute } from "vue-router";
 import { useRouter } from "vue-router";
-import { ref, watch, onMounted, reactive } from "vue";
+import { ref, watch, onMounted, reactive, computed } from "vue";
 import { jwtDecode } from "jwt-decode";
 import { useDisplay } from "vuetify";
 // Components
@@ -726,6 +727,16 @@ const search = ref("");
 const itemsPerPage = ref(12);
 const page = ref(1);
 const requiredRule = (value) => !!value || "Không được để trống";
+// Chỉ cho expand 1 dòng Lịch giao tại 1 thời điểm
+const expanded = ref([]);
+const toggleSingleExpand = (internalItem) => {
+  const id = internalItem.raw?.id ?? internalItem.value;
+  expanded.value = expanded.value[0] === id ? [] : [id];
+};
+// Đổi tìm kiếm thì thu gọn dòng đang mở
+watch(search, () => {
+  expanded.value = [];
+});
 
 // ===== USER INFORMATION =====
 const LevelUser = localStorage.getItem("LevelUser");
@@ -809,17 +820,35 @@ const dateStringToUnix = (dateString) => {
   return Math.floor(new Date(dateString).getTime() / 1000);
 };
 
-// Parse DeliverySchedules từ JSON
+// Parse DeliverySchedules từ JSON - dedupe + order theo thời gian giao
 const getScheduleDeliveries = (item) => {
-  if (!item.DeliverySchedules || item.DeliverySchedules === "") return [];
+  if (!item?.DeliverySchedules || item.DeliverySchedules === "") return [];
   try {
-    const parsed = JSON.parse(`[${item.DeliverySchedules}]`);
-    return parsed
-      .filter((s) => s && s.id)
-      .map((s) => ({
-        ...s,
-        DeliveryDate: s.DeliveryDate, // Convert to YYYY-MM-DD for display
-      }));
+    const raw = item.DeliverySchedules;
+    // Backend trả chuỗi CSV dạng {"id":...},{"id":...} hoặc array JSON
+    const parsed = Array.isArray(raw)
+      ? raw
+      : JSON.parse(
+          String(raw).trim().startsWith("[") ? String(raw) : `[${raw}]`,
+        );
+    // Dedupe tận gốc theo id (phòng data cũ đã bị nhân bản do JOIN)
+    const map = new Map();
+    for (const s of parsed.flat(Infinity)) {
+      if (s && s.id != null && !map.has(s.id)) {
+        map.set(s.id, {
+          ...s,
+          DeliveryDate: s.DeliveryDate,
+        });
+      }
+    }
+    // Order theo thời gian giao tăng dần, null/empty xuống cuối
+    return [...map.values()].sort((a, b) => {
+      if (!a.DeliveryDate) return 1;
+      if (!b.DeliveryDate) return -1;
+      if (a.DeliveryDate < b.DeliveryDate) return -1;
+      if (a.DeliveryDate > b.DeliveryDate) return 1;
+      return (a.id ?? 0) - (b.id ?? 0);
+    });
   } catch (e) {
     return [];
   }
@@ -844,9 +873,11 @@ function GetItem(item) {
   Product_Detail_Edit.value = item.Product_Detail;
   Quantity_Product_Edit.value = item.Quantity_Product;
   Quantity_Delivered_Edit.value = item.Quantity_Delivered;
-  Quantity_Amount_Edit.value = item.Quantity_Amount;
   Note_Edit.value = item.Note;
-  DeliverySchedules_Edit.value = getScheduleDeliveries(item);
+  // Deep-copy + đã dedupe/sort trong getScheduleDeliveries
+  DeliverySchedules_Edit.value = JSON.parse(
+    JSON.stringify(getScheduleDeliveries(item)),
+  );
 }
 
 function GetItemManufacture(item) {
@@ -1012,6 +1043,8 @@ const RemoveItem = async () => {
 
 const RemoveDeliveryRowEdit = async (index, id) => {
   DeliverySchedules_Edit.value.splice(index, 1);
+  // Dòng mới thêm chưa có id thì chỉ xóa ở client, không gọi API
+  if (id == null) return;
   try {
     const response = await axios.delete(
       `${Url}/Project/DetailProject/Delete-item-schedule-delivery/${id}`,
@@ -1028,50 +1061,33 @@ const RemoveDeliveryRowEdit = async (index, id) => {
 
 // Hàm lưu thông tin thêm mới
 const SaveAddManufacture = async () => {
-  DialogLoading.value = true;
-  // ✅ Quy tắc sắp xếp ưu tiên
-  const processPriority = {
-    SMT: 1,
-    RW: 99,
-    "Thành phẩm": 100,
-  };
-
-  // ✅ Gom các quy trình người dùng đã chọn
-  const mergedLevels = [
-    ...(Array.isArray(Level_Manufacture_Add.value)
-      ? Level_Manufacture_Add.value
-      : []),
-    ...(Array.isArray(customProcessList.value) ? customProcessList.value : []),
-  ];
-
-  // ➕ Nếu chưa có "Thành phẩm" thì tự thêm
-  if (!mergedLevels.includes("Thành phẩm")) {
-    mergedLevels.push("Thành phẩm");
+  // Chặn lưu khi chưa chọn ngày -> tránh lưu NaN-NaN-NaN
+  if (!Date_Manufacture_Add.value) {
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Vui lòng chọn Ngày tạo";
+    return;
   }
-
-  // ✅ Loại bỏ trùng lặp
-  const uniqueLevels = [...new Set(mergedLevels)];
-
-  // ✅ Sắp xếp theo ưu tiên
-  const sortedLevels = uniqueLevels.sort((a, b) => {
-    const pa = processPriority[a] ?? 50;
-    const pb = processPriority[b] ?? 50;
-
-    if (pa === pb) {
-      return mergedLevels.indexOf(a) - mergedLevels.indexOf(b);
-    }
-    return pa - pb;
-  });
+  DialogLoading.value = true;
+  // Giữ đúng thứ tự người dùng nhập, chỉ đảm bảo "Thành phẩm" luôn cuối
+  const cleaned = (Array.isArray(customProcessList.value)
+    ? customProcessList.value
+    : []
+  )
+    .map((p) => String(p).trim())
+    .filter((p) => p);
+  let levels = cleaned.filter((p, i) => cleaned.indexOf(p) === i);
+  levels = levels.filter((p) => p !== "Thành phẩm");
+  levels.push("Thành phẩm");
   const formData = reactive({
     Name: NamePO.value,
     Name_Order: Name_Order_Manufacture.value,
-    Date: Date_Manufacture_Add.value,
+    Timestamp: Date_Manufacture_Add.value,
     Total: Total_Manufacture_Add.value,
     Note: Note_Add_Manufacture.value,
     Creater: UserInfo.value,
     DelaySMT: 10000,
     Quantity: 1,
-    Level: sortedLevels,
+    Level: levels,
     ProjectID: GetIDManufacture.value,
   });
   try {
@@ -1087,7 +1103,10 @@ const SaveAddManufacture = async () => {
     DialogAddManufacture.value = false;
     DialogFailed.value = true;
     DialogLoading.value = false;
-    MessageErrorDialog.value = error;
+    MessageErrorDialog.value =
+      error?.response?.data?.error ||
+      error?.response?.data?.message ||
+      "Thêm dữ liệu thất bại";
   }
 };
 
@@ -1166,19 +1185,12 @@ function Error() {
   DialogLoading.value = false;
 }
 
-// ===== CUSTOM PROCESS HANDLERS (giống Page-Manufacture.vue) =====
+// ===== CUSTOM PROCESS HANDLERS (single source: customProcessList) =====
 const addCustomProcess = () => {
   if (customProcess.value && customProcess.value.trim()) {
     const processName = customProcess.value.trim();
     if (!customProcessList.value.includes(processName)) {
       customProcessList.value.push(processName);
-
-      if (!Level_Manufacture_Add.value) {
-        Level_Manufacture_Add.value = [];
-      }
-      if (!Level_Manufacture_Add.value.includes(processName)) {
-        Level_Manufacture_Add.value.push(processName);
-      }
     }
     customProcess.value = "";
   }
@@ -1186,14 +1198,7 @@ const addCustomProcess = () => {
 
 const removeCustomProcess = (index) => {
   if (index >= 0 && index < customProcessList.value.length) {
-    const processName = customProcessList.value[index];
     customProcessList.value.splice(index, 1);
-    if (Level_Manufacture_Add.value) {
-      const levelIndex = Level_Manufacture_Add.value.indexOf(processName);
-      if (levelIndex > -1) {
-        Level_Manufacture_Add.value.splice(levelIndex, 1);
-      }
-    }
   }
 };
 
@@ -1202,6 +1207,7 @@ watch(DialogAddManufacture, (newVal) => {
   if (!newVal) {
     customProcess.value = "";
     customProcessList.value = [];
+    Level_Manufacture_Add.value = null;
   }
 });
 </script>
