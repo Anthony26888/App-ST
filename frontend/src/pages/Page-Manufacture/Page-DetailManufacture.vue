@@ -1,27 +1,27 @@
 <template>
   <div class="manufacture-detail">
     <v-card variant="text" class="overflow-y-auto" height="100vh">
-      <v-card-title class="text-h4 font-weight-light" v-if="lgAndUp">
-        <ButtonBack to="/san-xuat" />
-        Theo dõi sản xuất
-      </v-card-title>
-      <v-card-title class="d-flex align-center pe-2">
-        <v-icon icon="mdi mdi-cart" color="primary"></v-icon> &nbsp;
-        <v-breadcrumbs
-          :items="[`${NameManufacture}`, `${NameOrder}`]"
-          :class="mdAndDown ? 'text-caption text-wrap' : ''"
-        >
-          <template v-slot:divider>
-            <v-icon icon="mdi-chevron-right"></v-icon>
-          </template>
-        </v-breadcrumbs>
-        <ButtonDownload title="Tải báo cáo" @download-file="DownloadReport()" />
-      </v-card-title>
+      <PageHeader
+        title="Theo dõi sản xuất"
+        :subtitle="`${NameManufacture || ''} · ${NameOrder || ''}`"
+        back-to="/san-xuat"
+        :crumbs="[
+          { title: 'Sản xuất', to: '/San-xuat' },
+          { title: NameManufacture || 'Chi tiết' },
+        ]"
+      >
+        <template #actions>
+          <ButtonDownload
+            title="Tải báo cáo"
+            @download-file="DownloadReport()"
+          />
+        </template>
+      </PageHeader>
 
       <v-card-text class="pa-6">
         <!-- Main Stats Overview -->
         <v-row class="mb-6">
-          <v-col cols="12" md="4">
+          <v-col cols="12" sm="6" md="4">
             <CardStatistic
               title="Đầu vào"
               :value="totalInput"
@@ -31,7 +31,7 @@
             />
           </v-col>
 
-          <v-col cols="12" md="4">
+          <v-col cols="12" sm="6" md="4">
             <CardStatistic
               title="Hàng thành phẩm"
               :value="totalOutput"
@@ -49,7 +49,7 @@
                   height="8"
                   color="success"
                   rounded
-                  class="mt-4"
+                  class="mt-2"
                   bg-color="success"
                   bg-opacity="0.2"
                 ></v-progress-linear>
@@ -57,7 +57,7 @@
             </CardStatistic>
           </v-col>
 
-          <v-col cols="12" md="4">
+          <v-col cols="12" sm="6" md="4">
             <CardStatistic
               title="Còn lại"
               :value="totalInput - totalOutput"
@@ -75,7 +75,7 @@
                   height="8"
                   color="warning"
                   rounded
-                  class="mt-4"
+                  class="mt-2"
                   bg-color="warning"
                   bg-opacity="0.2"
                 ></v-progress-linear>
@@ -373,12 +373,11 @@
               <v-row>
                 <v-col cols="12">
                   <v-card variant="elevated" elevation="0" class="rounded-xl">
-                    <v-data-table-virtual
+                    <AppDataTable
                       :group-by="groupBy"
-                      density="comfortable"
                       :headers="HeadersHistory"
-                      :items="
-                        history.filter((item) => item.Type === selectedTitle)
+                      :items
+                    > item.Type === selectedTitle)
                       "
                       fixed-header
                       loading-text="Đang tải dữ liệu..."
@@ -494,7 +493,24 @@
                           >
                         </v-progress-linear>
                       </template>
-                    </v-data-table-virtual>
+                      <template #no-data>
+                        <div class="app-empty-state text-center">
+                          <div class="text-body-1 text-medium-emphasis mb-3">
+                            Chưa có kế hoạch cho công đoạn này
+                          </div>
+                          <v-btn
+                            color="primary"
+                            variant="tonal"
+                            prepend-icon="mdi-plus"
+                            size="small"
+                            class="text-none"
+                            @click="DialogAdd = true"
+                          >
+                            Thêm kế hoạch
+                          </v-btn>
+                        </div>
+                      </template>
+                    </AppDataTable>
                   </v-card>
                 </v-col>
                 <v-col cols="12">
@@ -541,7 +557,7 @@
           </v-col>
 
           <!-- Chart chi tiết công đoạn -->
-          <v-col cols="12" md="4">
+          <v-col cols="12" sm="6" md="4">
             <v-card class="rounded-xl h-100 border" elevation="0">
               <v-card-title
                 class="d-flex align-center pa-4 bg-surface border-b"
@@ -581,31 +597,17 @@
 
         <!-- Lịch sử sản xuất -->
         <v-card class="rounded-xl mt-5 border" elevation="0">
-          <v-data-table
-            :headers="HeadersHistoryPart"
-            :items="filteredHistoryPart"
-            :search="searchHistory"
-            fixed-header
-            v-model:page="page"
-            v-model:items-per-page="itemsPerPage"
-            class="bg-transparent"
-            :footer-props="{
-              'items-per-page-options': [10, 20, 50, 100],
-              'items-per-page-text': 'Số hàng mỗi trang',
-            }"
-            :header-props="{
-              sortByText: 'Sắp xếp theo',
-              sortDescText: 'Giảm dần',
-              sortAscText: 'Tăng dần',
-            }"
-            :loading="DialogLoading"
-            loading-text="Đang tải dữ liệu..."
-            no-data-text="Không có dữ liệu"
-            no-results-text="Không tìm thấy kết quả"
-            hover
-            density="comfortable"
-            height="50vh"
-          >
+          <AppDataTable
+                      :virtual="false"
+                      :headers="HeadersHistoryPart"
+                      :items="filteredHistoryPart"
+                      :search="searchHistory"
+                      v-model:page="page"
+                      v-model:items-per-page="itemsPerPage"
+                      class="bg-transparent"
+                      :loading="DialogLoading"
+                      height="50vh"
+                    >
             <template v-slot:top>
               <v-toolbar flat color="transparent" class="border-b px-2">
                 <v-toolbar-title class="d-flex align-center">
@@ -648,24 +650,11 @@
             </template>
             <template #[`item.Status`]="{ item }">
               <v-chip
-                :color="
-                  item.Status === 'fail'
-                    ? 'warning'
-                    : item.Status === 'fixed'
-                    ? 'info'
-                    : 'success'
-                "
+                :text="historyStatus(item).text"
+                :color="historyStatus(item).color"
                 size="small"
                 variant="tonal"
-              >
-                {{
-                  item.Status === "fail"
-                    ? "Fail"
-                    : item.Status === "fixed"
-                    ? "Fixed"
-                    : "Pass"
-                }}
-              </v-chip>
+              ></v-chip>
               <v-chip
                 class="ms-2"
                 size="small"
@@ -708,7 +697,20 @@
                 @click="GetItemHistory(item)"
               ></v-btn>
             </template>
-          </v-data-table>
+            <template #no-data>
+              <div class="app-empty-state text-center">
+                <v-icon
+                  icon="mdi-history"
+                  size="40"
+                  color="medium-emphasis"
+                  class="mb-2"
+                ></v-icon>
+                <div class="text-body-1 text-medium-emphasis">
+                  Chưa có lịch sử sản xuất
+                </div>
+              </div>
+            </template>
+          </AppDataTable>
         </v-card>
       </v-card-text>
     </v-card>
@@ -718,7 +720,7 @@
       v-model="DialogAdd"
       title="Thêm dữ liệu kế hoạch"
       icon="mdi-plus"
-      max-width="800"
+      max-width="720" :fullscreen="mdAndDown"
     >
       <!-- FORM để nguyên -->
       <v-form ref="formRef" v-model="isFormValid">
@@ -826,7 +828,7 @@
       v-model="DialogEdit"
       title="Sửa dữ liệu kế hoạch"
       icon="mdi-pencil"
-      max-width="800"
+      max-width="720" :fullscreen="mdAndDown"
     >
       <v-row>
         <v-col col="12" md="6">
@@ -906,7 +908,7 @@
       v-model="DialogComplete"
       title="Hoàn thành dữ liệu kế hoạch"
       icon="mdi-check-circle"
-      max-width="500px"
+      max-width="480" :fullscreen="mdAndDown"
     >
       <InputDate label="Ngày hoàn thành" v-model="Date_Complete" />
       <InputField
@@ -928,7 +930,7 @@
       v-model="DialogRemove"
       title="Xoá dữ liệu kế hoạch"
       icon="mdi-trash-can"
-      max-width="500px"
+      max-width="480" :fullscreen="mdAndDown"
     >
       Bạn có chắc chắn muốn xóa dữ liệu kế hoạch này?
       <template #actions>
@@ -943,7 +945,7 @@
       v-model="DialogRemoveHistory"
       title="Xoá lịch sử sản xuất"
       icon="mdi-trash-can"
-      max-width="500px"
+      max-width="480" :fullscreen="mdAndDown"
     >
       Bạn có chắc chắn muốn xóa bản ghi lịch sử này?
       <template #actions>
@@ -991,6 +993,11 @@ import { saveAs } from "file-saver";
 import CardStatistic from "@/components/Card-Statistic.vue";
 import BaseDialog from "@/components/BaseDialog.vue";
 import InputDate from "@/components/Input-Date.vue";
+import PageHeader from "@/components/Page-Header.vue";
+import AppDataTable from "@/components/App-DataTable.vue";
+
+// Shared UI
+import { statusChip } from "@/utils/deliveryStatus.js";
 
 // ... existing imports ...
 import { useManufactureDetails } from "@/composables/Manufacture/useManufactureDetails";
@@ -1108,6 +1115,13 @@ const toYMD = (v) => {
   return isNaN(d)
     ? ""
     : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+// Map trạng thái lịch sử (fail/fixed/pass) sang chip chuẩn dùng chung
+const historyStatus = (item) => {
+  if (item?.Status === "fail") return statusChip("Fail");
+  if (item?.Status === "fixed") return statusChip("Fixed");
+  return statusChip("Pass");
 };
 
 const filteredHistoryPart = computed(() => {

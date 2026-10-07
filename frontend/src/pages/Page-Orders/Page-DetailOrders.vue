@@ -1,11 +1,11 @@
 <template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="100vh">
+  <v-card variant="text" class="app-page">
     <v-card-title class="d-flex">
       <ButtonBack to="/Don-hang" />
       <p class="text-h4 font-weight-light ms-3">Chi tiết đơn hàng</p>
     </v-card-title>
-    <v-card-text>
-      <v-card class="rounded-xl">
+    <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
+      <v-card class="rounded-xl app-card-fill">
         <v-card-title class="d-flex align-center pe-2">
           <v-icon icon="mdi mdi-cart-arrow-down"></v-icon> &nbsp;
           {{ $route.params.id }}
@@ -27,21 +27,14 @@
           <InputSearch v-model="search" />
         </v-card-title>
 
-        <v-data-table
+        <AppDataTable
+          :virtual="false"
           :search="search"
           :items="compare"
           :headers="Headers"
           :items-per-page="itemsPerPage"
           v-model:page="page"
           :loading="DialogLoading"
-          loading-text="Đang tải dữ liệu..."
-          no-data-text="Không có dữ liệu"
-          no-results-text="Không tìm thấy kết quả"
-          :hover="true"
-          :dense="false"
-          :fixed-header="true"
-          height="79vh"
-          fixed-header
           class="rounded-xl"
         >
           <template v-slot:bottom>
@@ -83,7 +76,7 @@
           <template v-slot:item.Số_Lượng_Cần_Mua_Misa="{ value }">
             {{ value }}
           </template>
-        </v-data-table>
+        </AppDataTable>
       </v-card>
     </v-card-text>
   </v-card>
@@ -215,6 +208,7 @@ import { useOrders } from "@/composables/Orders/useOrders";
 
 // Components
 import InputSearch from "@/components/Input-Search.vue";
+import AppDataTable from "@/components/App-DataTable.vue";
 import InputSelect from "@/components/Input-Select.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";

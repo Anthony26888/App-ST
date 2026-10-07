@@ -158,25 +158,12 @@
               class="overflow-y-auto"
               style="height: calc(100% - 64px)"
             >
-              <v-data-table-virtual
-                density="compact"
+              <AppDataTable
                 :items="summary"
                 :search="search"
                 class="bg-transparent"
                 :headers="HeadersProject"
-                fixed-header
-                :header-props="{
-                  sortByText: 'Sắp xếp theo',
-                  sortDescText: 'Giảm dần',
-                  sortAscText: 'Tăng dần',
-                }"
                 :loading="DialogLoading"
-                loading-text="Đang tải dữ liệu..."
-                no-data-text="Không có dữ liệu"
-                no-results-text="Không tìm thấy kết quả"
-                :hover="true"
-                :dense="false"
-                :fixed-header="true"
               >
                 <template #[`item.Quantity_Plan`]="{ item }">
                   <v-chip color="primary" variant="tonal" size="small">{{
@@ -199,7 +186,7 @@
                     <strong>{{ Number(item.Percent || 0).toFixed(1) }}%</strong>
                   </v-progress-linear>
                 </template>
-              </v-data-table-virtual>
+              </AppDataTable>
             </v-card-text>
           </v-card>
         </v-col>
@@ -718,6 +705,7 @@ import { useDisplay } from "vuetify";
 // Components
 
 import InputSearch from "@/components/Input-Search.vue";
+import AppDataTable from "@/components/App-DataTable.vue";
 import InputFiles from "@/components/Input-Files.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputSelect from "@/components/Input-Select.vue";

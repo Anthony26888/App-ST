@@ -1,0 +1,58 @@
+/* Design tokens dùng chung cụm Project (Page-Project + Page-DetailProjectPO) */
+
+/* Tiêu đề trang co giãn theo viewport: 13" gọn, 16" thoáng */
+.app-page-title {
+  font-size: clamp(1.25rem, 1rem + 1vw, 2.125rem) !important;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Card bảng chuẩn: bo + viền nhẹ, không shadow nặng */
+.app-table-card {
+  border-radius: 12px;
+}
+
+/* Cột thao tác dính phải khi bảng scroll ngang */
+.app-sticky-actions {
+  position: sticky;
+  right: 0;
+  background: rgb(var(--v-theme-surface));
+  z-index: 1;
+}
+
+/* Empty-state trong bảng/panel */
+.app-empty-state {
+  padding: 28px 16px;
+}
+
+/* Khung trang flex-fill cho AppDataTable vừa khít mọi màn hình:
+   header/cards/toolbar cao tự nhiên, bảng lấp đầy phần còn lại,
+   chỉ 1 thanh scroll nằm trong bảng. */
+.app-page {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.app-table-fill {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-table-fill > * {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Card chứa toolbar + bảng: toolbar cao tự nhiên, bảng lấp đầy */
+.app-card-fill {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}

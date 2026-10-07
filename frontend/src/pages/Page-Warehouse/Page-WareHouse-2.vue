@@ -1,18 +1,17 @@
 <template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="100vh">
+  <v-card variant="text" class="app-page">
     <v-card-title class="text-h4 font-weight-light" v-if="lgAndUp"
       >Danh sách tồn kho Misa</v-card-title
     >
     <v-card-text>
       <v-card variant="text">
-        <v-card-text class="overflow-auto">
+        <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
           <v-card
             variant="elevated"
             elevation="0"
-            class="rounded-xl border"
-            v-if="lgAndUp"
+            class="rounded-xl border app-card-fill"
           >
-            <v-card-title class="d-flex align-center pe-2">
+            <v-card-title class="d-flex align-center flex-wrap ga-2 pe-2">
               <ButtonImportFile @import-file="Dialog = true" />
               <ButtonImportFile
                 color="warning"
@@ -27,22 +26,14 @@
               <v-spacer></v-spacer>
               <InputSearch v-model="search" />
             </v-card-title>
-            <v-data-table
-              density="comfortable"
+            <AppDataTable
+              :virtual="false"
               :headers="Headers"
               :items="warehouse2"
               :search="search"
               :items-per-page="itemsPerPage"
               v-model:page="page"
-              class="elevation-0"
               :loading="DialogLoading"
-              loading-text="Đang tải dữ liệu..."
-              no-data-text="Không có dữ liệu"
-              no-results-text="Không tìm thấy kết quả"
-              :hover="true"
-              :dense="false"
-              :fixed-header="true"
-              height="76vh"
             >
               <template v-slot:bottom>
                 <div class="text-center pt-2">
@@ -61,36 +52,8 @@
                   <ButtonSearch @search="getAccessToken(value)" />
                 </div>
               </template>
-            </v-data-table>
+            </AppDataTable>
           </v-card>
-
-          <div v-else>
-            <v-card-title class="d-flex align-center pe-2">
-              <InputSearch v-model="search" />
-            </v-card-title>
-            <v-data-table-virtual
-              :headers="Headers"
-              :items="warehouse2"
-              :search="search"
-              :items-per-page="itemsPerPage"
-              v-model:page="page"
-              :loading="DialogLoading"
-              loading-text="Đang tải dữ liệu..."
-              no-data-text="Không có dữ liệu"
-              no-results-text="Không tìm thấy kết quả"
-              :hover="true"
-              :dense="false"
-              :fixed-header="true"
-              height="calc(100vh - 150px)"
-            >
-              <template v-slot:item.id="{ value }">
-                <div>
-                  <ButtonEdit @edit="GetItem(value)" v-if="LevelUser == 'Admin' || LevelUser == 'Thủ kho'" />
-                  <ButtonSearch @search="getAccessToken(value)" />
-                </div>
-              </template>
-            </v-data-table-virtual>
-          </div>
         </v-card-text>
       </v-card>
     </v-card-text>
@@ -134,30 +97,15 @@
     title="Kiểm tra dữ liệu sẽ trừ"
     icon="mdi-update"
   >
-        <v-data-table
+        <AppDataTable
+          :virtual="false"
+          :fill="false"
           :headers="HeadersFile"
           :items="temporaryWarehouse2"
           :search="searchFile"
           :items-per-page="itemsPerPage"
           v-model:page="page"
-          class="elevation-1"
-          :footer-props="{
-            'items-per-page-options': [10, 20, 50, 100],
-            'items-per-page-text': 'Số hàng mỗi trang',
-          }"
-          :header-props="{
-            sortByText: 'Sắp xếp theo',
-            sortDescText: 'Giảm dần',
-            sortAscText: 'Tăng dần',
-          }"
           :loading="DialogLoading"
-          loading-text="Đang tải dữ liệu..."
-          no-data-text="Không có dữ liệu"
-          no-results-text="Không tìm thấy kết quả"
-          :hover="true"
-          :dense="false"
-          :fixed-header="true"
-          height="calc(100vh - 320px)"
         >
           <template v-slot:bottom>
             <div class="text-center pt-2">
@@ -183,7 +131,7 @@
               <ButtonRemove @remove="GetRemove(item)" />
             </div>
           </template>
-        </v-data-table>
+        </AppDataTable>
     <template v-slot:actions>
       <v-spacer></v-spacer>
       <v-btn
@@ -393,6 +341,7 @@ import { useWareHouse2 } from "@/composables/Warehouse/useWareHouse2";
 import { useTemporaryWareHouse2 } from "@/composables/Warehouse/useTemporaryWareHouse2";
 // Components
 import ButtonImportFile from "@/components/Button-ImportFile.vue";
+import AppDataTable from "@/components/App-DataTable.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";

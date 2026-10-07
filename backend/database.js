@@ -191,9 +191,14 @@ db.serialize(() => {
       DeliveryDate TEXT,
       DeliveryQuantity INTEGER NOT NULL,
       DeliveryStatus TEXT,
+      ActualDeliveryDate TEXT,
       FOREIGN KEY(ItemId) REFERENCES ProductDetails(id) ON DELETE CASCADE
     )
   `);
+  // Patch: thêm cột ngày giao thực tế cho database cũ nếu chưa có
+  db.run(`ALTER TABLE ScheduleDelivery ADD COLUMN ActualDeliveryDate TEXT`, (err) => {
+    // Nếu err => cột đã tồn tại, bỏ qua
+  });
 
   db.run(`
     CREATE TABLE IF NOT EXISTS NotificationReadStatus (

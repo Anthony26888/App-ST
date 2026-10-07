@@ -1,6 +1,6 @@
 <template lang="">
   <div>
-    <v-card variant="text" class="overflow-y-auto" height="100vh">
+    <v-card variant="text" class="app-page">
       <v-card-title class="d-flex" v-if="lgAndUp">
         <ButtonBack :to="`/Bao-tri/Chi-tiet/${route.params.id}`" />
         <p class="text-h4 font-weight-light ms-3" v-if="lgAndUp">
@@ -13,9 +13,9 @@
         <v-icon icon="mdi mdi-calendar-clock" color="primary"></v-icon> &nbsp;
         {{ id }}
       </v-card-title>
-      <v-card-text>
-        <v-card variant="elevated" elevation="0" class="rounded-xl border">
-          <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
+      <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
+        <v-card variant="elevated" elevation="0" class="rounded-xl border app-card-fill">
+          <v-card-title class="d-flex align-center flex-wrap ga-2 pe-2">
             <v-icon icon="mdi mdi-calendar-clock" color="primary"></v-icon>
             &nbsp;
             {{ id }}
@@ -27,36 +27,14 @@
             <v-spacer></v-spacer>
             <InputSearch v-model="search" />
           </v-card-title>
-          <v-card-title class="d-flex align-center pe-2" v-else>
-            <InputSearch v-model="search" />
-          </v-card-title>
-
-          <v-data-table
-            v-if="lgAndUp"
-            density="comfortable"
+          <AppDataTable
+            :virtual="false"
             :search="search"
             :items="maintenanceSchedule"
             :headers="Headers"
             :items-per-page="itemsPerPage"
             v-model:page="page"
-            class="elevation-0"
-            :footer-props="{
-              'items-per-page-options': [10, 20, 50, 100],
-              'items-per-page-text': 'Số hàng mỗi trang',
-            }"
-            :header-props="{
-              sortByText: 'Sắp xếp theo',
-              sortDescText: 'Giảm dần',
-              sortAscText: 'Tăng dần',
-            }"
             :loading="DialogLoading"
-            loading-text="Đang tải dữ liệu..."
-            no-data-text="Không có dữ liệu"
-            no-results-text="Không tìm thấy kết quả"
-            :hover="true"
-            :dense="false"
-            :fixed-header="true"
-            height="79vh"
           >
             <template v-slot:item.SoNgayConLai="{ value }">
               <div>
@@ -107,76 +85,7 @@
             <template v-slot:item.MaLich="{ item }">
               <ButtonEdit @edit="GetItem(item)" />
             </template>
-          </v-data-table>
-
-          <v-data-table-virtual
-            v-else
-            :search="search"
-            :items="maintenanceSchedule"
-            :headers="Headers"
-            :items-per-page="itemsPerPage"
-            v-model:page="page"
-            class="elevation-0"
-            :footer-props="{
-              'items-per-page-options': [10, 20, 50, 100],
-              'items-per-page-text': 'Số hàng mỗi trang',
-            }"
-            :header-props="{
-              sortByText: 'Sắp xếp theo',
-              sortDescText: 'Giảm dần',
-              sortAscText: 'Tăng dần',
-            }"
-            :loading="DialogLoading"
-            loading-text="Đang tải dữ liệu..."
-            no-data-text="Không có dữ liệu"
-            no-results-text="Không tìm thấy kết quả"
-            :hover="true"
-            :dense="false"
-            :fixed-header="true"
-            height="66vh"
-          >
-            <template v-slot:item.SoNgayConLai="{ value }">
-              <div>
-                <v-chip
-                  v-if="value > 15"
-                  color="green"
-                  :text="`${value} ngày`"
-                  size="small"
-                ></v-chip>
-                <v-chip
-                  v-else
-                  color="red"
-                  :text="`${value} ngày`"
-                  size="small"
-                ></v-chip>
-              </div>
-            </template>
-            <template v-slot:item.TrangThai="{ item }">
-              <div class="text-start">
-                <v-chip
-                  v-if="item.TrangThai === 'Chưa thực hiện'"
-                  color="orange"
-                  text="Chưa thực hiện"
-                  size="small"
-                ></v-chip>
-                <v-chip
-                  v-else-if="item.TrangThai === 'Đang thực hiện'"
-                  color="blue"
-                  text="Đang thực hiện"
-                  size="small"
-                ></v-chip>
-                <v-chip
-                  v-else-if="item.TrangThai === 'Đã hoàn thành'"
-                  color="green"
-                  text="Đã hoàn thành"
-                  size="small"
-                ></v-chip>
-              </div>
-            </template>
-            <template v-slot:item.MaLich="{ item }">
-              <ButtonEdit @edit="GetItem(item)" />
-            </template>
-          </v-data-table-virtual>
+          </AppDataTable>
         </v-card>
       </v-card-text>
     </v-card>
@@ -327,6 +236,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useDisplay } from "vuetify";
 // Components
 import InputSearch from "@/components/Input-Search.vue";
+import AppDataTable from "@/components/App-DataTable.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputSelect from "@/components/Input-Select.vue";

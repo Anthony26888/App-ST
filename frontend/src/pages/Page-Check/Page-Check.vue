@@ -1,6 +1,6 @@
 <template lang="">
   <!-- Main Card Container -->
-  <v-card variant="text" class="overflow-y-auto" height="100vh" v-if="lgAndUp">
+  <v-card variant="text" class="app-page" v-if="lgAndUp">
     <!-- Page Title -->
     <v-card-title class="text-h4 font-weight-light">
       Kiểm tra số liệu linh kiện
@@ -29,7 +29,7 @@
     </v-card-title>
 
     <!-- Main Content Area -->
-    <v-card-text>
+    <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
       <v-divider></v-divider>
 
       <!-- Empty State -->
@@ -42,7 +42,7 @@
       ></v-empty-state>
 
       <!-- Data Table Card -->
-      <v-card variant="elevated" elevation="0" class="rounded-xl border" v-else>
+      <v-card variant="elevated" elevation="0" class="rounded-xl border app-card-fill" v-else>
         <!-- Table Header -->
         <v-card-title class="d-flex align-center pe-2">
           <p class="text-h6">{{ namePO }}</p>
@@ -69,31 +69,14 @@
         </v-card-title>
 
         <!-- Data Table -->
-        <v-data-table
-          density="comfortable"
+        <AppDataTable
+          :virtual="false"
           :headers="Headers"
           :items="checkBOM"
           :search="search"
           :items-per-page="itemsPerPage"
           v-model:page="page"
-          class="elevation-0"
-          :footer-props="{
-            'items-per-page-options': [10, 20, 50, 100],
-            'items-per-page-text': 'Số hàng mỗi trang',
-          }"
-          :header-props="{
-            sortByText: 'Sắp xếp theo',
-            sortDescText: 'Giảm dần',
-            sortAscText: 'Tăng dần',
-          }"
           :loading="DialogLoading"
-          loading-text="Đang tải dữ liệu..."
-          no-data-text="Không có dữ liệu"
-          no-results-text="Không tìm thấy kết quả"
-          :hover="true"
-          :dense="false"
-          :fixed-header="true"
-          height="75vh"
         >
           <!-- Pagination -->
           <template v-slot:bottom>
@@ -111,7 +94,7 @@
               <ButtonEdit @edit="GetItem(value)" />
             </div>
           </template>
-        </v-data-table>
+        </AppDataTable>
       </v-card>
     </v-card-text>
   </v-card>
@@ -188,6 +171,7 @@ import { useUsers } from "@/composables/Settings/useUsers";
 
 // Components
 import ButtonImportFile from "@/components/Button-ImportFile.vue";
+import AppDataTable from "@/components/App-DataTable.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";

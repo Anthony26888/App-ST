@@ -729,21 +729,18 @@
                         </div>
                       </v-toolbar>
 
-                      <v-data-table-virtual
-                        ref="pnpTable"
-                        density="compact"
-                        :headers="HeadersPnPQC"
-                        :items="combinePnPQC"
-                        :search="searchPnPQC"
-                        v-model="selectedPnPQC"
-                        item-value="id"
-                        :loading="DialogLoading"
-                        loading-text="Đang tải dữ liệu linh kiện..."
-                        no-data-text="Không có dữ liệu hiển thị"
-                        :hover="true"
-                        fixed-header
-                        height="calc(50vh - 220px)"
-                        :row-props="rowProps"
+                      <AppDataTable
+                      ref="pnpTable"
+                      density="compact"
+                      :headers="HeadersPnPQC"
+                      :items="combinePnPQC"
+                      :search="searchPnPQC"
+                      v-model="selectedPnPQC"
+                      item-value="id"
+                      :loading="DialogLoading"
+                      loading-text="Đang tải dữ liệu linh kiện..."
+                      :row-props="rowProps"
+                      height="calc(50dvh - 220px)"
                       >
                         <template v-slot:item.stt="{ index }">
                           <span class="text-grey font-weight-medium">{{
@@ -782,7 +779,7 @@
                             </v-tooltip>
                           </div>
                         </template>
-                      </v-data-table-virtual>
+                      </AppDataTable>
                     </v-sheet>
                   </v-tabs-window-item>
                   <v-tabs-window-item value="two">
@@ -832,22 +829,18 @@
                         </div>
                       </v-toolbar>
 
-                      <v-data-table-virtual
-                        ref="pnpTable"
-                        density="compact"
-                        :headers="HeadersPnPQC"
-                        :items="combinePnPQC"
-                        :search="searchPnPQC"
-                        v-model="selectedPnPQC"
-                        item-value="id"
-                        :loading="DialogLoading"
-                        loading-text="Đang tải dữ liệu linh kiện..."
-                        no-data-text="Không có dữ liệu hiển thị"
-                        :hover="true"
-                        fixed-header
-                        height="calc(50vh - 220px)"
-                        :row-props="rowProps"
-                        class="table-pnp"
+                      <AppDataTable
+                      ref="pnpTable"
+                      density="compact"
+                      :headers="HeadersPnPQC"
+                      :items="combinePnPQC"
+                      :search="searchPnPQC"
+                      v-model="selectedPnPQC"
+                      item-value="id"
+                      :loading="DialogLoading"
+                      loading-text="Đang tải dữ liệu linh kiện..."
+                      :row-props="rowProps"
+                      height="calc(50dvh - 220px)"
                       >
                         <!-- STT -->
                         <template v-slot:item.stt="{ index }">
@@ -923,7 +916,7 @@
                             </v-tooltip>
                           </div>
                         </template>
-                      </v-data-table-virtual>
+                      </AppDataTable>
                     </v-sheet>
                   </v-tabs-window-item>
                 </v-tabs-window>
@@ -1214,22 +1207,19 @@
           />
         </v-card-title>
         <v-card-text>
-          <v-data-table-virtual
-            ref="pnpTableBom"
-            density="compact"
-            :headers="HeaderHistoryPnPQC"
-            :items="combineStatusPnPQC"
-            :search="searchHistoryQC"
-            v-model="selectedBomQC"
-            item-value="id"
-            :loading="DialogLoading"
-            loading-text="Đang tải dữ liệu linh kiện..."
-            no-data-text="Không có dữ liệu hiển thị"
-            :hover="true"
-            fixed-header
-            height="calc(100vh - 220px)"
-            :row-props="rowProps"
-          >
+          <AppDataTable
+                      ref="pnpTableBom"
+                      density="compact"
+                      :headers="HeaderHistoryPnPQC"
+                      :items="combineStatusPnPQC"
+                      :search="searchHistoryQC"
+                      v-model="selectedBomQC"
+                      item-value="id"
+                      :loading="DialogLoading"
+                      loading-text="Đang tải dữ liệu linh kiện..."
+                      :row-props="rowProps"
+                      height="calc(100dvh - 220px)"
+                      >
             <template v-slot:item.stt="{ index }">
               <span class="text-grey font-weight-medium">{{
                 (pagePCBTopLayer - 1) * itemPerPCBTopLayer + index + 1
@@ -1246,7 +1236,7 @@
                 >{{ item.status === "Done" ? "Hoàn thành" : "Chưa hoàn thành" }}
               </v-chip></template
             >
-          </v-data-table-virtual>
+          </AppDataTable>
         </v-card-text>
       </v-card>
     </v-card-text>
@@ -1679,6 +1669,7 @@ import { usePnPFile } from "@/composables/CheckBOM/usePnPFile";
 import { useSettingPCBQC } from "@/composables/CheckQC/useSettingPCBQC";
 import { useRawBomQC } from "@/composables/CheckQC/useRawBomQC";
 import ButtonBack from "@/components/Button-Back.vue";
+import AppDataTable from "@/components/App-DataTable.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputFiles from "@/components/Input-Files.vue";

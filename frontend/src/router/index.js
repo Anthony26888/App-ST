@@ -16,7 +16,6 @@ import PageReg from "@/pages/Page-Setting/Page-Reg.vue";
 import PageEditBom from "@/pages/Page-Check/Page-EditBom.vue";
 import PageDetailOrders from "@/pages/Page-Orders/Page-DetailOrders.vue";
 import PageProject from "@/pages/Page-Project/Page-Project.vue";
-import PageProjectDetail from "@/pages/Page-Project/Page-DetailProject.vue";
 import PagePODetail from "@/pages/Page-Project/Page-DetailProjectPO.vue";
 import PageMaintenance from "@/pages/Page-Maintenance/Page-Maintenance.vue";
 import PageDetailMaintenance from "@/pages/Page-Maintenance/Page-DetailMaintenance.vue";
@@ -44,12 +43,6 @@ const routes = [
         name: "Project",
         meta: { requiresAuth: true },
         component: PageProject,
-      },
-      {
-        path: "/Du-an/Khach-hang/:id",
-        name: "Project_Detail",
-        meta: { requiresAuth: true },
-        component: PageProjectDetail,
       },
       {
         path: "/Du-an/Don-hang/:id",

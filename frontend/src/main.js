@@ -18,6 +18,7 @@ import axios from 'axios'
 
 // Styles
 import '@/assets/styles/v-data-table.css'
+import '@/assets/styles/app-ui.css'
 
 axios.interceptors.request.use((config) => {
   const username = localStorage.getItem('Username')

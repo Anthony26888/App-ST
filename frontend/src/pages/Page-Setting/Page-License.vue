@@ -1,10 +1,10 @@
 <template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="100vh">
+  <v-card variant="text" class="app-page">
     <v-card-title class="d-flex">
       <ButtonBack to="/Cai-dat" />
       <p class="text-h4 font-weight-light ms-3">Quản lý License</p>
     </v-card-title>
-    <v-card-text>
+    <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
       <!-- SINH KEY TỪ MÃ XÁC NHẬN CỦA KHÁCH -->
       <v-card variant="elevated" elevation="0" class="rounded-xl border mb-4">
         <v-card-title class="text-subtitle-1 font-weight-bold">
@@ -37,7 +37,7 @@
       </v-card>
 
       <!-- DANH SÁCH KEY -->
-      <v-card variant="elevated" elevation="0" class="rounded-xl border">
+      <v-card variant="elevated" elevation="0" class="rounded-xl border app-card-fill">
         <v-card-title class="d-flex align-center pe-2">
           <p class="text-subtitle-1 font-weight-thin">
             {{ keys.length }} mã license
@@ -57,29 +57,13 @@
             v-model="filterStatus"
           />
         </v-card-title>
-        <v-data-table
-          density="comfortable"
-          :headers="Headers"
-          :items="filteredKeys"
-          class="elevation-0"
-          :items-per-page="15"
-          :footer-props="{
-            'items-per-page-options': [10, 20, 50, 100],
-            'items-per-page-text': 'Số hàng mỗi trang',
-          }"
-          :header-props="{
-            sortByText: 'Sắp xếp theo',
-            sortDescText: 'Giảm dần',
-            sortAscText: 'Tăng dần',
-          }"
-          :loading="DialogLoading"
-          loading-text="Đang tải dữ liệu..."
-          no-data-text="Không có dữ liệu"
-          no-results-text="Không tìm thấy kết quả"
-          :hover="true"
-          :fixed-header="true"
-          height="68vh"
-        >
+        <AppDataTable
+            :virtual="false"
+            :headers="Headers"
+            :items="filteredKeys"
+            :items-per-page="15"
+            :loading="DialogLoading"
+          >
           <template v-slot:item.LicenseKey="{ item }">
             <div class="d-flex align-center">
               <code>{{ item.LicenseKey }}</code>
@@ -133,7 +117,7 @@
             >
             <span v-else class="text-grey">—</span>
           </template>
-        </v-data-table>
+        </AppDataTable>
       </v-card>
     </v-card-text>
   </v-card>
@@ -176,6 +160,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { io } from "socket.io-client";
 import InputSearch from "@/components/Input-Search.vue";
 import InputSelect from "@/components/Input-Select.vue";
+import AppDataTable from "@/components/App-DataTable.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";

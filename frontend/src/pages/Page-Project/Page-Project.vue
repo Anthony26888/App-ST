@@ -1,23 +1,23 @@
 <template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="100vh">
-    <template v-slot:title>
-      <v-card-title class="text-h4 font-weight-light"
-        >Danh sách dự án</v-card-title
-      >
-    </template>
-    <template v-slot:append>
-      <v-btn
-        icon="mdi-chat"
-        variant="text"
-        color="primary"
-        @click="DialogAIChat = true"
-      ></v-btn>
-      <NotificationBell />
-    </template>
-    <v-card-text>
+  <v-card variant="text" class="app-page">
+    <PageHeader
+      title="Danh sách dự án"
+      :crumbs="[{ title: 'Dự án' }]"
+    >
+      <template #actions>
+        <v-btn
+          icon="mdi-chat"
+          variant="text"
+          color="primary"
+          @click="DialogAIChat = true"
+        ></v-btn>
+        <NotificationBell />
+      </template>
+    </PageHeader>
+    <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
       <v-card-title class="mb-3">
-        <v-row v-if="lgAndUp">
-          <v-col cols="12" sm="6" md="3">
+        <v-row>
+          <v-col cols="6" md="3">
             <CardStatistic
               title="Tổng số khách hàng"
               :value="project?.length || 0"
@@ -25,7 +25,7 @@
               color="primary"
             />
           </v-col>
-          <v-col cols="12" sm="6" md="3">
+          <v-col cols="6" md="3">
             <CardStatistic
               title="Tổng số PO"
               :value="
@@ -35,7 +35,7 @@
               color="info"
             />
           </v-col>
-          <v-col cols="12" sm="6" md="3">
+          <v-col cols="6" md="3">
             <CardStatistic
               title="Tổng PO hoàn thành"
               :value="
@@ -46,7 +46,7 @@
               color="success"
             />
           </v-col>
-          <v-col cols="12" sm="6" md="3">
+          <v-col cols="6" md="3">
             <CardStatistic
               title="Tổng PO đang sản xuất"
               :value="
@@ -58,53 +58,13 @@
             />
           </v-col>
         </v-row>
-
-        <v-row v-else>
-          <v-col cols="6">
-            <CardStatistic
-              title="Tổng khách hàng"
-              :value="project?.length || 0"
-              icon="mdi-account-group"
-              color="primary"
-            />
-          </v-col>
-          <v-col cols="6">
-            <CardStatistic
-              title="Tổng PO"
-              :value="
-                project?.reduce((sum, p) => sum + (p.Quantity_PO || 0), 0) || 0
-              "
-              icon="mdi-file-document-multiple"
-              color="info"
-            />
-          </v-col>
-          <v-col cols="6">
-            <CardStatistic
-              title="Hoàn thành"
-              :value="
-                filteredProjectFind?.filter((p) => p.Status === 'Hoàn thành')
-                  .length || 0
-              "
-              icon="mdi-check-circle"
-              color="success"
-            />
-          </v-col>
-          <v-col cols="6">
-            <CardStatistic
-              title="Đang sản xuất"
-              :value="
-                filteredProjectFind?.filter((p) => p.Status === 'Đang sản xuất')
-                  .length || 0
-              "
-              icon="mdi-progress-wrench"
-              color="warning"
-            />
-          </v-col>
-        </v-row>
       </v-card-title>
-      <v-card variant="elevated" elevation="0" class="rounded-xl border">
-        <v-card-title class="d-flex align-center" v-if="lgAndUp">
-          <!-- <ButtonImportFile @import-file="Dialog = true" /> -->
+      <v-card
+        variant="elevated"
+        elevation="0"
+        class="rounded-xl border app-card-fill"
+      >
+        <v-card-title class="d-flex align-center flex-wrap ga-2">
           <ButtonAdd
             @add="DialogAdd = true"
             v-if="LevelUser == 'Admin' || LevelUser == 'Quản lý kinh doanh'"
@@ -114,7 +74,7 @@
               <v-btn
                 color="orange"
                 v-bind="props"
-                class="ms-2 text-caption"
+                class="text-caption"
                 prepend-icon="mdi-filter"
                 variant="tonal"
               >
@@ -135,7 +95,7 @@
           </v-menu>
 
           <v-btn
-            class="ms-2 text-caption"
+            class="text-caption"
             variant="tonal"
             color="pink"
             @click="DialogFind = true"
@@ -147,84 +107,24 @@
           <InputSearch v-model="search" />
         </v-card-title>
 
-        <v-card-title class="d-flex align-center" v-else>
-          <!-- <ButtonImportFile @import-file="Dialog = true" /> -->
-          <v-row>
-            <v-col cols="1">
-              <v-menu :location="location">
-                <template v-slot:activator="{ props }">
-                  <v-btn
-                    color="orange"
-                    v-bind="props"
-                    class="ms-2 text-caption"
-                    icon="mdi-filter"
-                    variant="text"
-                  >
-                  </v-btn>
-                </template>
-
-                <v-list>
-                  <v-list-item
-                    v-for="(item, index) in itemsFilter"
-                    :key="index"
-                    :value="item.value"
-                    @click="search = item.value"
-                  >
-                    <v-list-item-title>{{ item.title }}</v-list-item-title>
-                  </v-list-item>
-                </v-list>
-              </v-menu>
-            </v-col>
-            <v-col cols="11">
-              <InputSearch v-model="search" />
-            </v-col>
-          </v-row>
-        </v-card-title>
-
-        <v-card-text class="overflow-auto">
-          <v-data-table-virtual
-            v-if="lgAndUp"
-            density="comfortable"
+        <v-card-text class="app-table-fill">
+          <AppDataTable
             :headers="Headers"
             :items="project"
             :search="search"
             :items-per-page="itemsPerPage"
             v-model:page="page"
-            class="elevation-0"
-            :footer-props="{
-              'items-per-page-options': [10, 20, 50, 100],
-              'items-per-page-text': 'Số hàng mỗi trang',
-            }"
-            :header-props="{
-              sortByText: 'Sắp xếp theo',
-              sortDescText: 'Giảm dần',
-              sortAscText: 'Tăng dần',
-            }"
             :loading="DialogLoading"
-            loading-text="Đang tải dữ liệu..."
-            no-data-text="Không có dữ liệu"
-            no-results-text="Không tìm thấy kết quả"
-            :hover="true"
-            :dense="false"
-            :fixed-header="true"
-            height="66vh"
           >
             <template v-slot:item.Status="{ value }">
               <div>
                 <v-chip
-                  :color="
-                    value === 'Hoàn thành'
-                      ? 'success'
-                      : value === 'Đang sản xuất'
-                      ? 'warning'
-                      : 'error'
-                  "
+                  :text="statusChip(value).text"
+                  :color="statusChip(value).color"
                   variant="tonal"
                   class="text-caption"
                   size="small"
-                >
-                  {{ value }}
-                </v-chip>
+                ></v-chip>
               </div>
             </template>
             <template v-slot:item.id="{ value }">
@@ -240,63 +140,6 @@
                 <Button-Download-Icon
                   @click="DownloadProjectDetail(value)"
                 ></Button-Download-Icon>
-              </div>
-            </template>
-            <template #[`item.Percent_Completed`]="{ item }">
-              <v-progress-linear
-                v-model="item.Percent_Completed"
-                height="25"
-                color="success"
-                rounded
-                class="rounded-lg"
-              >
-                <strong>{{ item.Percent_Completed }}%</strong>
-              </v-progress-linear>
-            </template>
-          </v-data-table-virtual>
-
-          <v-data-table-virtual
-            v-else
-            :headers="Headers"
-            density="compact"
-            :items="project"
-            :search="search"
-            :items-per-page="itemsPerPage"
-            v-model:page="page"
-            class="elevation-0"
-            :footer-props="{
-              'items-per-page-options': [10, 20, 50, 100],
-              'items-per-page-text': 'Số hàng mỗi trang',
-            }"
-            :header-props="{
-              sortByText: 'Sắp xếp theo',
-              sortDescText: 'Giảm dần',
-              sortAscText: 'Tăng dần',
-            }"
-            :loading="DialogLoading"
-            loading-text="Đang tải dữ liệu..."
-            no-data-text="Không có dữ liệu"
-            no-results-text="Không tìm thấy kết quả"
-            :hover="true"
-            :dense="false"
-            :fixed-header="true"
-            height="calc(100vh - 400px)"
-          >
-            <template v-slot:item.Status="{ value }">
-              <div>
-                <v-chip
-                  :color="
-                    value === 'Hoàn thành'
-                      ? 'success'
-                      : value === 'Đang sản xuất'
-                      ? 'warning'
-                      : 'error'
-                  "
-                  variant="tonal"
-                  class="text-caption"
-                >
-                  {{ value }}
-                </v-chip>
               </div>
             </template>
             <template #[`item.Percent_Completed`]="{ item }">
@@ -310,25 +153,33 @@
                 <strong>{{ item.Percent_Completed || 0 }}%</strong>
               </v-progress-linear>
             </template>
-            <template v-slot:item.id="{ value }">
-              <div class="d-flex align-center">
-                <ButtonEye @detail="PushItem(value)" />
-                <ButtonEdit
-                  class="ms-2"
-                  @edit="GetItem(value)"
-                  v-if="
-                    LevelUser == 'Admin' || LevelUser == 'Quản lý kinh doanh'
-                  "
-                />
-                <Button-Download-Icon
-                  @click="DownloadProjectDetail(value)"
-                ></Button-Download-Icon>
-              </div>
-            </template>
-            <template #[`item.Note`]>
+            <template #[`item.Note`]="{ item }">
               <div style="white-space: pre-line">{{ item.Note }}</div>
             </template>
-          </v-data-table-virtual>
+            <template #no-data>
+              <div class="app-empty-state text-center">
+                <v-icon
+                  icon="mdi-account-group"
+                  size="40"
+                  color="medium-emphasis"
+                  class="mb-2"
+                ></v-icon>
+                <div class="text-body-1 text-medium-emphasis mb-3">
+                  Chưa có khách hàng nào
+                </div>
+                <v-btn
+                  v-if="LevelUser == 'Admin' || LevelUser == 'Quản lý kinh doanh'"
+                  color="primary"
+                  variant="tonal"
+                  prepend-icon="mdi-plus"
+                  class="text-none"
+                  @click="DialogAdd = true"
+                >
+                  Thêm khách hàng
+                </v-btn>
+              </div>
+            </template>
+          </AppDataTable>
         </v-card-text>
       </v-card>
     </v-card-text>
@@ -337,7 +188,7 @@
   <BaseDialog
     title="Thêm dữ liệu"
     icon="mdi-plus"
-    max-width="500"
+    max-width="480" :fullscreen="mdAndDown"
     v-model="DialogAdd"
   >
     <InputField label="Khách hàng" v-model="Customer_Add" />
@@ -355,7 +206,7 @@
   <BaseDialog
     title="Cập nhật dữ liệu"
     icon="mdi-pencil"
-    max-width="500"
+    max-width="480" :fullscreen="mdAndDown"
     v-model="DialogEdit"
   >
     <InputField label="Khách hàng" v-model="Customer_Edit" />
@@ -375,7 +226,7 @@
   <BaseDialog
     title="Xoá dữ liệu"
     icon="mdi-delete"
-    max-width="400"
+    max-width="480" :fullscreen="mdAndDown"
     v-model="DialogRemove"
   >
     <p>Bạn có chắc chắn muốn xoá khách hàng này ?</p>
@@ -388,7 +239,7 @@
   <BaseDialog
     title="Tìm kiếm nâng cao"
     icon="mdi-filter"
-    max-width="1300"
+    max-width="1100" :fullscreen="mdAndDown"
     v-model="DialogFind"
   >
     <v-card-title>
@@ -429,49 +280,24 @@
         </v-col>
       </v-row>
     </v-card-title>
-    <v-data-table-virtual
-      fixed-header
-      density="compact"
-      :headers="HeadersFind"
-      :items="filteredProjectFind"
-      :search="searchFind"
-      :items-per-page="itemsPerPageFind"
-      v-model:page="pageFind"
-      class="elevation-1"
-      :footer-props="{
-        'items-per-page-options': [10, 20, 50, 100],
-        'items-per-page-text': 'Số hàng mỗi trang',
-      }"
-      :header-props="{
-        sortByText: 'Sắp xếp theo',
-        sortDescText: 'Giảm dần',
-        sortAscText: 'Tăng dần',
-      }"
-      :loading="DialogLoading"
-      loading-text="Đang tải dữ liệu..."
-      no-data-text="Không có dữ liệu"
-      no-results-text="Không tìm thấy kết quả"
-      :hover="true"
-      :dense="false"
-      :fixed-header="true"
-      height="calc(100vh - 320px)"
-    >
+    <AppDataTable
+          :fill="false"
+          :headers="HeadersFind"
+          :items="filteredProjectFind"
+          :search="searchFind"
+          :items-per-page="itemsPerPageFind"
+          v-model:page="pageFind"
+          :loading="DialogLoading"
+        >
       <template v-slot:item.Status="{ value }">
         <div>
           <v-chip
-            :color="
-              value === 'Hoàn thành'
-                ? 'success'
-                : value === 'Đang sản xuất'
-                ? 'warning'
-                : 'error'
-            "
+            :text="statusChip(value).text"
+            :color="statusChip(value).color"
             variant="tonal"
             size="small"
             class="text-caption"
-          >
-            {{ value }}
-          </v-chip>
+          ></v-chip>
         </div>
       </template>
       <template v-slot:item.id="{ item }">
@@ -485,7 +311,7 @@
       <template v-slot:item.Date_Delivery_PO="{ item }">
         {{ item.Date_Delivery_PO.split("-").reverse().join("/") }}
       </template>
-    </v-data-table-virtual>
+    </AppDataTable>
   </BaseDialog>
 
   <BaseDialog
@@ -493,7 +319,7 @@
     title="Trợ lý AI - Giao diện Giao hàng"
     icon="mdi-robot"
     width="100%"
-    max-width="1200"
+    max-width="1100" :fullscreen="mdAndDown"
   >
     <div class="chat-container">
       <div class="chat-messages" ref="chatBody">
@@ -682,10 +508,15 @@ import CardStatistic from "@/components/Card-Statistic.vue";
 import NotificationBell from "@/components/NotificationBell.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";
 import InputDate from "@/components/Input-Date.vue";
+import PageHeader from "@/components/Page-Header.vue";
+import AppDataTable from "@/components/App-DataTable.vue";
 
 // Composables
 import { useProject } from "@/composables/Project/useProject";
 import { useProjectFind } from "@/composables/Project/useProjectFind";
+
+// Shared UI
+import { statusChip } from "@/utils/deliveryStatus.js";
 
 // ===== STATE MANAGEMENT =====
 // API Configuration

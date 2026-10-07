@@ -28,5 +28,7 @@ module.exports = (io) => {
 
   router.put("/Confirm-item/:id", controller.confirmItem);
 
+  router.put("/Unconfirm-item/:id", controller.unconfirmItem);
+
   return router;
 };

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <v-card variant="text" class="overflow-y-auto" height="100vh">
+    <v-card variant="text" class="app-page">
       <!-- Tiêu đề -->
       <v-card-title class="text-h4 font-weight-light d-flex align-center">
         <ButtonBack
@@ -144,7 +144,7 @@
       </v-card-title>
 
       <!-- Nội dung chính -->
-      <v-card-text>
+      <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
         <!-- Thống kê -->
         <v-row class="mb-4">
           <v-col cols="12" sm="4">
@@ -278,7 +278,7 @@
         </v-row>
 
         <!-- Bảng chi tiết -->
-        <v-card class="mt-4 rounded-xl border" variant="elevated" elevation="0">
+        <v-card class="mt-4 rounded-xl border app-card-fill" variant="elevated" elevation="0">
           <v-card-title class="d-flex align-center">
             <span class="text-h6" v-if="lgAndUp">Bảng chi tiết sản xuất</span>
             <v-tooltip text="Cài đặt">
@@ -296,26 +296,16 @@
             <v-spacer v-if="lgAndUp"></v-spacer>
             <InputSearch v-model="search" />
           </v-card-title>
-          <v-data-table
-            v-if="lgAndUp"
+          <AppDataTable
+            :virtual="false"
             :headers="Headers"
             :items="manufactureSMT"
             :search="search"
             v-model:page="page"
             v-model:items-per-page="itemsPerPage"
-            class="elevation-1 mt-4 rounded-xl"
-            :footer-props="{
-              'items-per-page-options': [10, 20, 50, 100],
-              'items-per-page-text': 'Số hàng mỗi trang',
-            }"
+            class="mt-4 rounded-xl"
             :loading="DialogLoading"
-            loading-text="Đang tải dữ liệu..."
-            no-data-text="Không có dữ liệu"
-            no-results-text="Không tìm thấy kết quả"
-            :hover="true"
-            :dense="false"
-            :fixed-header="true"
-            height="49vh"
+            height="49dvh"
           >
             <template v-slot:item.stt="{ index }">
               {{ (page - 1) * itemsPerPage + index + 1 }}
@@ -380,92 +370,8 @@
                 ></v-pagination>
               </div>
             </template>
-          </v-data-table>
-          <v-data-table
-            v-else
-            :headers="Headers"
-            :items="manufactureSMT"
-            :search="search"
-            v-model:page="page"
-            v-model:items-per-page="itemsPerPage"
-            class="elevation-1 mt-4 rounded-xl"
-            :footer-props="{
-              'items-per-page-options': [10, 20, 50, 100],
-              'items-per-page-text': 'Số hàng mỗi trang',
-            }"
-            :loading="DialogLoading"
-            loading-text="Đang tải dữ liệu..."
-            no-data-text="Không có dữ liệu"
-            no-results-text="Không tìm thấy kết quả"
-            :hover="true"
-            :dense="false"
-            :fixed-header="true"
-            height="220px"
-          >
-            <template v-slot:item.stt="{ index }">
-              {{ (page - 1) * itemsPerPage + index + 1 }}
-            </template>
-            <template #[`item.Status`]="{ item }">
-              <v-chip
-                :color="item.Status === 'ok' ? 'success' : 'error'"
-                size="small"
-                variant="tonal"
-              >
-                {{ item.Status === "ok" ? "Pass" : "Fail" }}
-              </v-chip>
-            </template>
-            <template #[`item.Source`]="{ item }">
-              <v-chip
-                :color="
-                  item.Source === 'Máy printer'
-                    ? 'info'
-                    : item.Source === 'Máy gắp linh kiện Juki'
-                    ? 'warning'
-                    : item.Source === 'Máy gắp linh kiện Yamaha'
-                    ? 'warning'
-                    : 'info'
-                "
-                size="small"
-                variant="tonal"
-              >
-                {{ item.Source }}
-              </v-chip>
-            </template>
-            <template #[`item.Line`]="{ item }">
-              <v-chip
-                :color="
-                  item.Line === 'Line 1'
-                    ? 'brown-lighten-2'
-                    : 'deep-orange-lighten-2'
-                "
-                size="small"
-                variant="tonal"
-              >
-                {{ item.Line }}
-              </v-chip>
-            </template>
-            <template #[`item.PartNumber`]="{ item }">
-              <p v-if="item.PartNumber == 1">{{ Category }}</p>
-              <p v-else>{{ item.PartNumber }}</p>
-            </template>
-            <template #item.id="{ item }">
-              <v-btn
-                size="small"
-                variant="text"
-                color="error"
-                icon="mdi-trash-can"
-                @click="GetItemHistory(item)"
-              ></v-btn>
-            </template>
-            <template #[`bottom`]>
-              <div class="text-center pt-2">
-                <v-pagination
-                  v-model="page"
-                  :length="Math.ceil(manufactureSMT.length / itemsPerPage)"
-                ></v-pagination>
-              </div>
-            </template>
-          </v-data-table>
+          </AppDataTable>
+
         </v-card>
       </v-card-text>
     </v-card>
@@ -555,6 +461,7 @@ import { useDeviceStatusSocket } from "@/composables/Manufacture/useStatusSensor
 import Loading from "@/components/Loading.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import ButtonBack from "@/components/Button-Back.vue";
+import AppDataTable from "@/components/App-DataTable.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";

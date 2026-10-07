@@ -260,8 +260,8 @@
               <InputSearch v-model="searchBomHighlight" class="ms-2" />
             </v-card-title>
             <v-card-text>
-              <v-data-table
-                density="comfortable"
+              <AppDataTable
+                :virtual="false"
                 :headers="HeadersRawBomHighlight"
                 :items="filteredBomHighlight"
                 :search="searchBomHighlight"
@@ -270,219 +270,194 @@
                 v-model="selectedBomRows"
                 show-select
                 item-value="id"
-                class="elevation-0"
-                :row-props="getRowClass"
-                :footer-props="{
-                  'items-per-page-options': [10, 20, 50, 100],
-                  'items-per-page-text': 'Số hàng mỗi trang',
-                }"
-                :header-props="{
-                  sortByText: 'Sắp xếp theo',
-                  sortDescText: 'Giảm dần',
-                  sortAscText: 'Tăng dần',
-                }"
                 :loading="DialogLoading"
-                loading-text="Đang tải dữ liệu..."
-                no-data-text="Không có dữ liệu"
-                no-results-text="Không tìm thấy kết quả"
-                :hover="true"
-                :dense="false"
-                :fixed-header="true"
-                height="59vh"
-              >
+                height="59dvh"
+                >
                 <!-- STT -->
                 <template v-slot:item.stt="{ index }">
-                  {{
-                    (pageBomHighlight - 1) * itemsPerPageBomHighlight +
-                    index +
-                    1
-                  }}
+                {{
+                (pageBomHighlight - 1) * itemsPerPageBomHighlight +
+                index +
+                1
+                }}
                 </template>
-
                 <!-- Action -->
                 <template v-slot:item.id="{ item }">
-                  <div class="d-flex">
-                    <v-tooltip text="Chỉnh sửa" location="top">
-                      <template v-slot:activator="{ props }">
-                        <ButtonEdit
-                          @edit="GetItemBomEdit(item)"
-                          v-bind="props"
-                        />
-                      </template>
-                    </v-tooltip>
-
-                    <!-- <v-tooltip text="Xem linh kiện" location="top">
-                      <template v-slot:activator="{ props }">
-                        <ButtonSearch
-                          @search="getAccessToken(item)"
-                          v-bind="props"
-                          class="ms-2"
-                        />
-                      </template>
-                    </v-tooltip> -->
-                  </div>
+                <div class="d-flex">
+                <v-tooltip text="Chỉnh sửa" location="top">
+                <template v-slot:activator="{ props }">
+                <ButtonEdit
+                @edit="GetItemBomEdit(item)"
+                v-bind="props"
+                />
                 </template>
-
+                </v-tooltip>
+                <!-- <v-tooltip text="Xem linh kiện" location="top">
+                <template v-slot:activator="{ props }">
+                <ButtonSearch
+                @search="getAccessToken(item)"
+                v-bind="props"
+                class="ms-2"
+                />
+                </template>
+                </v-tooltip> -->
+                </div>
+                </template>
                 <!-- Type -->
                 <template v-slot:item.type="{ value }">
-                  <v-chip
-                    :color="
-                      value === 'SMT'
-                        ? 'primary'
-                        : value === 'Hàn tay'
-                        ? 'pink'
-                        : value === 'Gắp tay'
-                        ? 'green'
-                        : 'primary'
-                    "
-                    size="small"
-                    variant="tonal"
-                  >
-                    {{ value || "SMT" }}
-                  </v-chip>
+                <v-chip
+                :color="
+                value === 'SMT'
+                ? 'primary'
+                : value === 'Hàn tay'
+                ? 'pink'
+                : value === 'Gắp tay'
+                ? 'green'
+                : 'primary'
+                "
+                size="small"
+                variant="tonal"
+                >
+                {{ value || "SMT" }}
+                </v-chip>
                 </template>
-
                 <!-- MPN Missing -->
                 <template v-slot:item.is_missing="{ value }">
-                  <p class="text-red">{{ value }}</p>
+                <p class="text-red">{{ value }}</p>
                 </template>
-
                 <!-- Image -->
                 <template v-slot:item.image="{ value }">
-                  <div class="d-flex flex-wrap align-center ga-2 my-2">
-                    <template v-for="(img, i) in safeParse(value)" :key="i">
-                      <v-img
-                        :src="`${Url_Image}/${img}`"
-                        width="150"
-                        height="150"
-                        class="rounded border mr-2"
-                        @click="openImage(`${Url_Image}/${img}`)"
-                        style="cursor: pointer"
-                      />
-                    </template>
-                  </div>
+                <div class="d-flex flex-wrap align-center ga-2 my-2">
+                <template v-for="(img, i) in safeParse(value)" :key="i">
+                <v-img
+                :src="`${Url_Image}/${img}`"
+                width="150"
+                height="150"
+                class="rounded border mr-2"
+                @click="openImage(`${Url_Image}/${img}`)"
+                style="cursor: pointer"
+                />
                 </template>
-
+                </div>
+                </template>
                 <!-- Pagination -->
                 <template v-slot:bottom>
-                  <div class="text-center pt-2">
-                    <v-pagination
-                      v-model="pageBomHighlight"
-                      :length="
-                        Math.ceil(
-                          filteredBomHighlight.length /
-                            itemsPerPageBomHighlight,
-                        )
-                      "
-                    />
-                  </div>
+                <div class="text-center pt-2">
+                <v-pagination
+                v-model="pageBomHighlight"
+                :length="
+                Math.ceil(
+                filteredBomHighlight.length /
+                itemsPerPageBomHighlight,
+                )
+                "
+                />
+                </div>
                 </template>
-              </v-data-table>
-            </v-card-text>
-          </v-tabs-window-item>
-          <v-tabs-window-item :value="1">
-            <v-card-title class="d-flex align-center pe-2">
-              <v-menu>
+                </AppDataTable>
+                </v-card-text>
+                </v-tabs-window-item>
+                <v-tabs-window-item :value="1">
+                <v-card-title class="d-flex align-center pe-2">
+                <v-menu>
                 <template v-slot:activator="{ props }">
-                  <v-btn
-                    v-bind="props"
-                    prepend-icon="mdi-import"
-                    append-icon="mdi-chevron-down"
-                    color="primary"
-                    variant="tonal"
-                    class="text-caption"
-                  >
-                    Nhập dữ liệu
-                  </v-btn>
+                <v-btn
+                v-bind="props"
+                prepend-icon="mdi-import"
+                append-icon="mdi-chevron-down"
+                color="primary"
+                variant="tonal"
+                class="text-caption"
+                >
+                Nhập dữ liệu
+                </v-btn>
                 </template>
                 <v-list density="compact">
-                  <v-list-item
-                    @click="!checkLock() && (DialogAddPnP = true)"
-                    prepend-icon="mdi-plus"
-                  >
-                    <v-list-item-title class="text-caption"
-                      >Pick & Place</v-list-item-title
-                    >
-                  </v-list-item>
+                <v-list-item
+                @click="!checkLock() && (DialogAddPnP = true)"
+                prepend-icon="mdi-plus"
+                >
+                <v-list-item-title class="text-caption"
+                >Pick & Place</v-list-item-title
+                >
+                </v-list-item>
                 </v-list>
-              </v-menu>
-
-              <v-menu>
+                </v-menu>
+                <v-menu>
                 <template v-slot:activator="{ props }">
-                  <v-btn
-                    v-bind="props"
-                    prepend-icon="mdi-export"
-                    append-icon="mdi-chevron-down"
-                    color="success"
-                    variant="tonal"
-                    class="text-caption ms-2"
-                  >
-                    Xuất dữ liệu
-                  </v-btn>
+                <v-btn
+                v-bind="props"
+                prepend-icon="mdi-export"
+                append-icon="mdi-chevron-down"
+                color="success"
+                variant="tonal"
+                class="text-caption ms-2"
+                >
+                Xuất dữ liệu
+                </v-btn>
                 </template>
                 <v-list density="compact">
-                  <v-list-item
-                    @click="DownloadPnPBottom()"
-                    prepend-icon="mdi-download"
-                  >
-                    <v-list-item-title class="text-caption"
-                      >Tải file Bottom</v-list-item-title
-                    >
-                  </v-list-item>
-                  <v-list-item
-                    @click="DownloadPnPTop()"
-                    prepend-icon="mdi-download"
-                  >
-                    <v-list-item-title class="text-caption"
-                      >Tải file Top</v-list-item-title
-                    >
-                  </v-list-item>
-                  <v-list-item
-                    @click="DownloadPnP()"
-                    prepend-icon="mdi-download"
-                  >
-                    <v-list-item-title class="text-caption"
-                      >Tải file chung</v-list-item-title
-                    >
-                  </v-list-item>
+                <v-list-item
+                @click="DownloadPnPBottom()"
+                prepend-icon="mdi-download"
+                >
+                <v-list-item-title class="text-caption"
+                >Tải file Bottom</v-list-item-title
+                >
+                </v-list-item>
+                <v-list-item
+                @click="DownloadPnPTop()"
+                prepend-icon="mdi-download"
+                >
+                <v-list-item-title class="text-caption"
+                >Tải file Top</v-list-item-title
+                >
+                </v-list-item>
+                <v-list-item
+                @click="DownloadPnP()"
+                prepend-icon="mdi-download"
+                >
+                <v-list-item-title class="text-caption"
+                >Tải file chung</v-list-item-title
+                >
+                </v-list-item>
                 </v-list>
-              </v-menu>
-
-              <v-menu>
+                </v-menu>
+                <v-menu>
                 <template v-slot:activator="{ props }">
-                  <v-btn
-                    v-bind="props"
-                    prepend-icon="mdi-sort"
-                    append-icon="mdi-chevron-down"
-                    color="grey"
-                    variant="tonal"
-                    class="text-caption ms-2"
-                  >
-                    Sắp xếp
-                  </v-btn>
+                <v-btn
+                v-bind="props"
+                prepend-icon="mdi-sort"
+                append-icon="mdi-chevron-down"
+                color="grey"
+                variant="tonal"
+                class="text-caption ms-2"
+                >
+                Sắp xếp
+                </v-btn>
                 </template>
                 <v-list density="compact">
-                  <v-list-item @click="SortTop()" prepend-icon="mdi-arrow-up">
-                    <v-list-item-title class="text-caption"
-                      >Bề mặt Top</v-list-item-title
-                    >
-                  </v-list-item>
-                  <v-list-item
-                    @click="SortBottom()"
-                    prepend-icon="mdi-arrow-down"
-                  >
-                    <v-list-item-title class="text-caption"
-                      >Bề mặt Bottom</v-list-item-title
-                    >
-                  </v-list-item>
-                  <v-list-item @click="ResetSort()" prepend-icon="mdi-refresh">
-                    <v-list-item-title class="text-caption"
-                      >Tất cả</v-list-item-title
-                    >
-                  </v-list-item>
+                <v-list-item @click="SortTop()" prepend-icon="mdi-arrow-up">
+                <v-list-item-title class="text-caption"
+                >Bề mặt Top</v-list-item-title
+                >
+                </v-list-item>
+                <v-list-item
+                @click="SortBottom()"
+                prepend-icon="mdi-arrow-down"
+                >
+                <v-list-item-title class="text-caption"
+                >Bề mặt Bottom</v-list-item-title
+                >
+                </v-list-item>
+                <v-list-item @click="ResetSort()" prepend-icon="mdi-refresh">
+                <v-list-item-title class="text-caption"
+                >Tất cả</v-list-item-title
+                >
+                </v-list-item>
                 </v-list>
-              </v-menu>
-              <v-btn
+                </v-menu>
+                <v-btn
                 color="error"
                 variant="tonal"
                 prepend-icon="mdi-delete"
@@ -512,193 +487,174 @@
               <InputSearch v-model="searchBom" />
             </v-card-title>
             <v-card-text>
-              <v-data-table
-                density="comfortable"
+              <AppDataTable
+                :virtual="false"
                 :headers="Headers"
                 :items="filteredCombineBom"
                 :search="searchBom"
                 :items-per-page="itemsPerPageBom"
                 v-model:page="pageBom"
-                class="elevation-0"
-                :footer-props="{
-                  'items-per-page-options': [10, 20, 50, 100],
-                  'items-per-page-text': 'Số hàng mỗi trang',
-                }"
-                :header-props="{
-                  sortByText: 'Sắp xếp theo',
-                  sortDescText: 'Giảm dần',
-                  sortAscText: 'Tăng dần',
-                }"
                 :loading="DialogLoading"
-                loading-text="Đang tải dữ liệu..."
-                no-data-text="Không có dữ liệu"
-                no-results-text="Không tìm thấy kết quả"
-                :hover="true"
-                :dense="false"
-                :fixed-header="true"
-                :row-props="getRowProps"
-                height="59vh"
-              >
+                height="59dvh"
+                >
                 <template v-slot:bottom>
-                  <div class="text-center pt-2">
-                    <v-pagination
-                      v-model="pageBom"
-                      :length="
-                        Math.ceil(filteredCombineBom.length / itemsPerPageBom)
-                      "
-                    ></v-pagination>
-                  </div>
+                <div class="text-center pt-2">
+                <v-pagination
+                v-model="pageBom"
+                :length="
+                Math.ceil(filteredCombineBom.length / itemsPerPageBom)
+                "
+                ></v-pagination>
+                </div>
                 </template>
                 <template v-slot:item.stt="{ index }">
-                  {{ (pageBom - 1) * itemsPerPageBom + index + 1 }}
+                {{ (pageBom - 1) * itemsPerPageBom + index + 1 }}
                 </template>
                 <template v-slot:item.id="{ item }">
-                  <div class="d-flex">
-                    <v-tooltip text="Chỉnh sửa" location="top">
-                      <template v-slot:activator="{ props }">
-                        <ButtonEdit @edit="GetItemEdit(item)" v-bind="props" />
-                      </template>
-                    </v-tooltip>
-                    <v-tooltip text="Xem linh kiện" location="top">
-                      <template v-slot:activator="{ props }">
-                        <ButtonSearch
-                          @search="getAccessToken(item)"
-                          v-bind="props"
-                          class="ms-2"
-                        />
-                      </template>
-                    </v-tooltip>
-                  </div>
+                <div class="d-flex">
+                <v-tooltip text="Chỉnh sửa" location="top">
+                <template v-slot:activator="{ props }">
+                <ButtonEdit @edit="GetItemEdit(item)" v-bind="props" />
+                </template>
+                </v-tooltip>
+                <v-tooltip text="Xem linh kiện" location="top">
+                <template v-slot:activator="{ props }">
+                <ButtonSearch
+                @search="getAccessToken(item)"
+                v-bind="props"
+                class="ms-2"
+                />
+                </template>
+                </v-tooltip>
+                </div>
                 </template>
                 <template v-slot:item.mount_type="{ value }">
-                  <v-chip
-                    :color="
-                      value === 'SMT'
-                        ? 'primary'
-                        : value === 'HAND'
-                        ? 'error'
-                        : 'warning'
-                    "
-                    size="small"
-                    variant="tonal"
-                  >
-                    {{ value }}
-                  </v-chip>
+                <v-chip
+                :color="
+                value === 'SMT'
+                ? 'primary'
+                : value === 'HAND'
+                ? 'error'
+                : 'warning'
+                "
+                size="small"
+                variant="tonal"
+                >
+                {{ value }}
+                </v-chip>
                 </template>
                 <template v-slot:item.layer="{ value }">
-                  <v-chip
-                    :color="
-                      value === 'Top' ||
-                      value === 'top' ||
-                      value === 'TopLayer' ||
-                      value === 'toplayer' ||
-                      value === 'Top Layer' ||
-                      value === 'top layer' ||
-                      value === 'TOP' ||
-                      value === 'TOPLAYER' ||
-                      value === 'TOP LAYER'
-                        ? 'success'
-                        : 'error'
-                    "
-                    size="small"
-                    variant="tonal"
-                  >
-                    {{ value }}
-                  </v-chip>
+                <v-chip
+                :color="
+                value === 'Top' ||
+                value === 'top' ||
+                value === 'TopLayer' ||
+                value === 'toplayer' ||
+                value === 'Top Layer' ||
+                value === 'top layer' ||
+                value === 'TOP' ||
+                value === 'TOPLAYER' ||
+                value === 'TOP LAYER'
+                ? 'success'
+                : 'error'
+                "
+                size="small"
+                variant="tonal"
+                >
+                {{ value }}
+                </v-chip>
                 </template>
                 <template v-slot:item.type="{ value }">
-                  <v-chip
-                    :color="value === 'SMT' ? 'primary' : 'warning'"
-                    size="small"
-                    variant="tonal"
-                  >
-                    {{ value }}
-                  </v-chip>
+                <v-chip
+                :color="value === 'SMT' ? 'primary' : 'warning'"
+                size="small"
+                variant="tonal"
+                >
+                {{ value }}
+                </v-chip>
                 </template>
                 <template v-slot:item.x="{ item }">
-                  {{ item.x }}
+                {{ item.x }}
                 </template>
                 <template v-slot:item.y="{ item }">
-                  {{ item.y }}
+                {{ item.y }}
                 </template>
                 <template v-slot:item.need_review="{ value }">
-                  <v-icon
-                    :icon="value === 1 ? 'mdi-check' : 'mdi-alert-outline'"
-                    :color="value === 1 ? 'success' : 'warning'"
-                  ></v-icon>
+                <v-icon
+                :icon="value === 1 ? 'mdi-check' : 'mdi-alert-outline'"
+                :color="value === 1 ? 'success' : 'warning'"
+                ></v-icon>
                 </template>
-              </v-data-table>
-            </v-card-text>
-          </v-tabs-window-item>
-          <v-tabs-window-item :value="2">
-            <v-card-title class="d-flex align-center pe-2">
-              <v-menu>
+                </AppDataTable>
+                </v-card-text>
+                </v-tabs-window-item>
+                <v-tabs-window-item :value="2">
+                <v-card-title class="d-flex align-center pe-2">
+                <v-menu>
                 <template v-slot:activator="{ props }">
-                  <v-btn
-                    v-bind="props"
-                    prepend-icon="mdi-import"
-                    append-icon="mdi-chevron-down"
-                    color="primary"
-                    variant="tonal"
-                    class="text-caption"
-                  >
-                    Nhập dữ liệu
-                  </v-btn>
+                <v-btn
+                v-bind="props"
+                prepend-icon="mdi-import"
+                append-icon="mdi-chevron-down"
+                color="primary"
+                variant="tonal"
+                class="text-caption"
+                >
+                Nhập dữ liệu
+                </v-btn>
                 </template>
                 <v-list density="compact">
-                  <v-list-item
-                    @click="!checkLock() && (DialogAddBomNew = true)"
-                    prepend-icon="mdi-plus"
-                  >
-                    <v-list-item-title class="text-caption"
-                      >File Bom mới</v-list-item-title
-                    >
-                  </v-list-item>
-                  <v-list-item
-                    @click="!checkLock() && (DialogAddPickplaceNew = true)"
-                    prepend-icon="mdi-plus"
-                  >
-                    <v-list-item-title class="text-caption"
-                      >File Pickplace mới</v-list-item-title
-                    >
-                  </v-list-item>
+                <v-list-item
+                @click="!checkLock() && (DialogAddBomNew = true)"
+                prepend-icon="mdi-plus"
+                >
+                <v-list-item-title class="text-caption"
+                >File Bom mới</v-list-item-title
+                >
+                </v-list-item>
+                <v-list-item
+                @click="!checkLock() && (DialogAddPickplaceNew = true)"
+                prepend-icon="mdi-plus"
+                >
+                <v-list-item-title class="text-caption"
+                >File Pickplace mới</v-list-item-title
+                >
+                </v-list-item>
                 </v-list>
-              </v-menu>
-
-              <v-menu>
+                </v-menu>
+                <v-menu>
                 <template v-slot:activator="{ props }">
-                  <v-btn
-                    v-bind="props"
-                    prepend-icon="mdi-export"
-                    append-icon="mdi-chevron-down"
-                    color="success"
-                    variant="tonal"
-                    class="text-caption ms-2"
-                  >
-                    Xuất dữ liệu
-                  </v-btn>
+                <v-btn
+                v-bind="props"
+                prepend-icon="mdi-export"
+                append-icon="mdi-chevron-down"
+                color="success"
+                variant="tonal"
+                class="text-caption ms-2"
+                >
+                Xuất dữ liệu
+                </v-btn>
                 </template>
                 <v-list density="compact">
-                  <v-list-item
-                    @click="DownloadCompareBomReport()"
-                    prepend-icon="mdi-download"
-                  >
-                    <v-list-item-title class="text-caption"
-                      >Tải báo cáo so sánh Bom</v-list-item-title
-                    >
-                  </v-list-item>
-                  <v-list-item
-                    @click="DownloadComparePickplaceReport()"
-                    prepend-icon="mdi-download"
-                  >
-                    <v-list-item-title class="text-caption"
-                      >Tải báo cáo so sánh Pickplace</v-list-item-title
-                    >
-                  </v-list-item>
+                <v-list-item
+                @click="DownloadCompareBomReport()"
+                prepend-icon="mdi-download"
+                >
+                <v-list-item-title class="text-caption"
+                >Tải báo cáo so sánh Bom</v-list-item-title
+                >
+                </v-list-item>
+                <v-list-item
+                @click="DownloadComparePickplaceReport()"
+                prepend-icon="mdi-download"
+                >
+                <v-list-item-title class="text-caption"
+                >Tải báo cáo so sánh Pickplace</v-list-item-title
+                >
+                </v-list-item>
                 </v-list>
-              </v-menu>
-
-              <v-select
+                </v-menu>
+                <v-select
                 v-model="compareStatusFilter"
                 :items="statusFilterOptions"
                 label="Trạng thái"
@@ -710,14 +666,13 @@
                 clearable
                 style="max-width: 160px"
                 class="ms-2"
-              ></v-select>
-
-              <div class="d-flex align-center ms-4 ga-2 text-caption">
+                ></v-select>
+                <div class="d-flex align-center ms-4 ga-2 text-caption">
                 <v-chip
-                  v-if="compareStatusCounts.match"
-                  size="small"
-                  color="green"
-                  variant="tonal"
+                v-if="compareStatusCounts.match"
+                size="small"
+                color="green"
+                variant="tonal"
                 >
                   Trùng: {{ compareStatusCounts.match }}
                 </v-chip>
@@ -765,389 +720,337 @@
             </v-card-title>
             <v-card-text>
               <template v-if="compareMode === 'bom'">
-                <v-data-table
-                  density="comfortable"
+                <AppDataTable
+                  :virtual="false"
                   :headers="compareHeader"
                   :items="compareFilteredRows"
                   :search="searchBomHighlight"
                   :items-per-page="itemsPerPageBomHighlight"
                   v-model:page="pageBomHighlight"
                   item-value="id"
-                  class="elevation-0"
-                  :footer-props="{
-                    'items-per-page-options': [10, 20, 50, 100],
-                    'items-per-page-text': 'Số hàng mỗi trang',
-                  }"
-                  :header-props="{
-                    sortByText: 'Sắp xếp theo',
-                    sortDescText: 'Giảm dần',
-                    sortAscText: 'Tăng dần',
-                  }"
                   :loading="DialogLoading"
-                  loading-text="Đang tải dữ liệu..."
-                  no-data-text="Không có dữ liệu"
-                  no-results-text="Không tìm thấy kết quả"
-                  :hover="true"
-                  :dense="false"
-                  :fixed-header="true"
-                  height="59vh"
-                >
+                  height="59dvh"
+                  >
                   <!-- STT -->
                   <template v-slot:item.stt="{ index }">
-                    {{
-                      (pageBomHighlight - 1) * itemsPerPageBomHighlight +
-                      index +
-                      1
-                    }}
+                  {{
+                  (pageBomHighlight - 1) * itemsPerPageBomHighlight +
+                  index +
+                  1
+                  }}
                   </template>
-
                   <!-- Bom cũ - Designator -->
                   <template v-slot:item.old_designator="{ item }">
-                    <template v-if="item.oldList && item.oldList.length">
-                      <span
-                        v-for="(x, i) in item.oldList"
-                        :key="'od' + i"
-                        :class="x.diff ? 'text-red font-weight-medium' : ''"
-                      >
-                        <template v-if="i > 0">, </template>{{ x.ref }}
-                      </span>
-                    </template>
-                    <span v-else class="text-grey">—</span>
+                  <template v-if="item.oldList && item.oldList.length">
+                  <span
+                  v-for="(x, i) in item.oldList"
+                  :key="'od' + i"
+                  :class="x.diff ? 'text-red font-weight-medium' : ''"
+                  >
+                  <template v-if="i > 0">, </template>{{ x.ref }}
+                  </span>
                   </template>
-
+                  <span v-else class="text-grey">—</span>
+                  </template>
                   <!-- Bom cũ - MPN -->
                   <template v-slot:item.old_mpn="{ item }">
-                    <span
-                      :class="
-                        item.oldList && item.oldList.some((x) => x.diff)
-                          ? 'text-red font-weight-medium'
-                          : ''
-                      "
-                    >
-                      {{ item.old_mpn || "—" }}
-                    </span>
+                  <span
+                  :class="
+                  item.oldList && item.oldList.some((x) => x.diff)
+                  ? 'text-red font-weight-medium'
+                  : ''
+                  "
+                  >
+                  {{ item.old_mpn || "—" }}
+                  </span>
                   </template>
-
                   <!-- Bom mới - Designator -->
                   <template v-slot:item.new_designator="{ item }">
-                    <template v-if="item.newList && item.newList.some(Boolean)">
-                      <span
-                        v-for="(x, i) in item.newList"
-                        :key="'nd' + i"
-                        :class="
-                          x && x.diff ? 'text-red font-weight-medium' : ''
-                        "
-                      >
-                        <template v-if="i > 0">, </template
-                        >{{ x ? x.ref : "—" }}
-                      </span>
-                    </template>
-                    <span v-else class="text-grey">—</span>
+                  <template v-if="item.newList && item.newList.some(Boolean)">
+                  <span
+                  v-for="(x, i) in item.newList"
+                  :key="'nd' + i"
+                  :class="
+                  x && x.diff ? 'text-red font-weight-medium' : ''
+                  "
+                  >
+                  <template v-if="i > 0">, </template
+                  >{{ x ? x.ref : "—" }}
+                  </span>
                   </template>
-
+                  <span v-else class="text-grey">—</span>
+                  </template>
                   <!-- Bom mới - MPN -->
                   <template v-slot:item.new_mpn="{ item }">
-                    <span
-                      :class="
-                        item.newList && item.newList.some((x) => x && x.diff)
-                          ? 'text-red font-weight-medium'
-                          : ''
-                      "
-                    >
-                      {{ item.new_mpn || "—" }}
-                    </span>
+                  <span
+                  :class="
+                  item.newList && item.newList.some((x) => x && x.diff)
+                  ? 'text-red font-weight-medium'
+                  : ''
+                  "
+                  >
+                  {{ item.new_mpn || "—" }}
+                  </span>
                   </template>
-
                   <!-- Trạng thái -->
                   <template v-slot:item.status="{ item }">
-                    <v-chip
-                      v-if="item.status !== 'none'"
-                      :color="
-                        item.status === 'match'
-                          ? 'green'
-                          : item.status === 'change'
-                          ? 'orange'
-                          : 'blue'
-                      "
-                      size="small"
-                      variant="tonal"
-                    >
-                      {{
-                        item.status === "match"
-                          ? "Trùng"
-                          : item.status === "change"
-                          ? "Thay đổi"
-                          : "Mới"
-                      }}
-                    </v-chip>
-                    <span v-else class="text-grey">—</span>
+                  <v-chip
+                  v-if="item.status !== 'none'"
+                  :color="
+                  item.status === 'match'
+                  ? 'green'
+                  : item.status === 'change'
+                  ? 'orange'
+                  : 'blue'
+                  "
+                  size="small"
+                  variant="tonal"
+                  >
+                  {{
+                  item.status === "match"
+                  ? "Trùng"
+                  : item.status === "change"
+                  ? "Thay đổi"
+                  : "Mới"
+                  }}
+                  </v-chip>
+                  <span v-else class="text-grey">—</span>
                   </template>
-
                   <!-- Pagination -->
                   <template v-slot:bottom>
-                    <div class="text-center pt-2">
-                      <v-pagination
-                        v-model="pageBomHighlight"
-                        :length="
-                          Math.ceil(
-                            compareFilteredRows.length /
-                              itemsPerPageBomHighlight,
-                          )
-                        "
-                      />
-                    </div>
+                  <div class="text-center pt-2">
+                  <v-pagination
+                  v-model="pageBomHighlight"
+                  :length="
+                  Math.ceil(
+                  compareFilteredRows.length /
+                  itemsPerPageBomHighlight,
+                  )
+                  "
+                  />
+                  </div>
                   </template>
-                </v-data-table>
-                <div
+                  </AppDataTable>
+                  <div
                   v-if="!FileBomNew && bomCompareRows.length === 0"
                   class="text-center text-grey py-4 text-caption"
-                >
+                  >
                   Chưa có dữ liệu Bom. Vui lòng nhập "File Bom mới" để so sánh.
-                </div>
-              </template>
-
-              <template v-else>
-                <v-data-table
-                  density="comfortable"
+                  </div>
+                  </template>
+                  <template v-else>
+                  <AppDataTable
+                  :virtual="false"
                   :headers="PnPCompareHeader"
                   :items="compareFilteredRows"
                   :search="searchBomHighlight"
                   :items-per-page="itemsPerPageBomHighlight"
                   v-model:page="pagePnPCompare"
                   item-value="id"
-                  class="elevation-0"
-                  :footer-props="{
-                    'items-per-page-options': [10, 20, 50, 100],
-                    'items-per-page-text': 'Số hàng mỗi trang',
-                  }"
-                  :header-props="{
-                    sortByText: 'Sắp xếp theo',
-                    sortDescText: 'Giảm dần',
-                    sortAscText: 'Tăng dần',
-                  }"
                   :loading="DialogLoading"
-                  loading-text="Đang tải dữ liệu..."
-                  no-data-text="Không có dữ liệu"
-                  no-results-text="Không tìm thấy kết quả"
-                  :hover="true"
-                  :dense="false"
-                  :fixed-header="true"
-                  height="59vh"
-                >
+                  height="59dvh"
+                  >
                   <template v-slot:item.stt="{ index }">
-                    {{
-                      (pagePnPCompare - 1) * itemsPerPageBomHighlight +
-                      index +
-                      1
-                    }}
+                  {{
+                  (pagePnPCompare - 1) * itemsPerPageBomHighlight +
+                  index +
+                  1
+                  }}
                   </template>
-
                   <template v-slot:item.old_designator="{ item }">
-                    <span
-                      v-if="item.oldList && item.oldList.some(Boolean)"
-                      :class="
-                        item.status === 'remove'
-                          ? 'text-red font-weight-medium'
-                          : ''
-                      "
-                    >
-                      {{ item.old_designator }}
-                    </span>
-                    <span v-else class="text-grey">—</span>
+                  <span
+                  v-if="item.oldList && item.oldList.some(Boolean)"
+                  :class="
+                  item.status === 'remove'
+                  ? 'text-red font-weight-medium'
+                  : ''
+                  "
+                  >
+                  {{ item.old_designator }}
+                  </span>
+                  <span v-else class="text-grey">—</span>
                   </template>
-
                   <template v-slot:item.old_x="{ item }">
-                    <span
-                      :class="
-                        item.oldList &&
-                        item.oldList.some((o) => o && o.diffFields.x)
-                          ? 'text-red font-weight-medium'
-                          : ''
-                      "
-                    >
-                      {{ item.old_x }}
-                    </span>
+                  <span
+                  :class="
+                  item.oldList &&
+                  item.oldList.some((o) => o && o.diffFields.x)
+                  ? 'text-red font-weight-medium'
+                  : ''
+                  "
+                  >
+                  {{ item.old_x }}
+                  </span>
                   </template>
-
                   <template v-slot:item.old_y="{ item }">
-                    <span
-                      :class="
-                        item.oldList &&
-                        item.oldList.some((o) => o && o.diffFields.y)
-                          ? 'text-red font-weight-medium'
-                          : ''
-                      "
-                    >
-                      {{ item.old_y }}
-                    </span>
+                  <span
+                  :class="
+                  item.oldList &&
+                  item.oldList.some((o) => o && o.diffFields.y)
+                  ? 'text-red font-weight-medium'
+                  : ''
+                  "
+                  >
+                  {{ item.old_y }}
+                  </span>
                   </template>
-
                   <template v-slot:item.old_rotation="{ item }">
-                    <span
-                      :class="
-                        item.oldList &&
-                        item.oldList.some((o) => o && o.diffFields.rotation)
-                          ? 'text-red font-weight-medium'
-                          : ''
-                      "
-                    >
-                      {{ item.old_rotation }}
-                    </span>
+                  <span
+                  :class="
+                  item.oldList &&
+                  item.oldList.some((o) => o && o.diffFields.rotation)
+                  ? 'text-red font-weight-medium'
+                  : ''
+                  "
+                  >
+                  {{ item.old_rotation }}
+                  </span>
                   </template>
-
                   <template v-slot:item.old_layer="{ item }">
-                    <span
-                      :class="
-                        item.oldList &&
-                        item.oldList.some((o) => o && o.diffFields.layer)
-                          ? 'text-red font-weight-medium'
-                          : ''
-                      "
-                    >
-                      {{ item.old_layer }}
-                    </span>
+                  <span
+                  :class="
+                  item.oldList &&
+                  item.oldList.some((o) => o && o.diffFields.layer)
+                  ? 'text-red font-weight-medium'
+                  : ''
+                  "
+                  >
+                  {{ item.old_layer }}
+                  </span>
                   </template>
-
                   <template v-slot:item.new_designator="{ item }">
-                    <span
-                      v-if="item.newList && item.newList.some(Boolean)"
-                      :class="
-                        item.status === 'add'
-                          ? 'text-red font-weight-medium'
-                          : ''
-                      "
-                    >
-                      {{ item.new_designator }}
-                    </span>
-                    <span v-else class="text-grey">—</span>
+                  <span
+                  v-if="item.newList && item.newList.some(Boolean)"
+                  :class="
+                  item.status === 'add'
+                  ? 'text-red font-weight-medium'
+                  : ''
+                  "
+                  >
+                  {{ item.new_designator }}
+                  </span>
+                  <span v-else class="text-grey">—</span>
                   </template>
-
                   <template v-slot:item.new_x="{ item }">
-                    <span
-                      :class="
-                        item.newList &&
-                        item.newList.some((n) => n && n.diffFields.x)
-                          ? 'text-red font-weight-medium'
-                          : ''
-                      "
-                    >
-                      {{ item.new_x }}
-                    </span>
+                  <span
+                  :class="
+                  item.newList &&
+                  item.newList.some((n) => n && n.diffFields.x)
+                  ? 'text-red font-weight-medium'
+                  : ''
+                  "
+                  >
+                  {{ item.new_x }}
+                  </span>
                   </template>
-
                   <template v-slot:item.new_y="{ item }">
-                    <span
-                      :class="
-                        item.newList &&
-                        item.newList.some((n) => n && n.diffFields.y)
-                          ? 'text-red font-weight-medium'
-                          : ''
-                      "
-                    >
-                      {{ item.new_y }}
-                    </span>
+                  <span
+                  :class="
+                  item.newList &&
+                  item.newList.some((n) => n && n.diffFields.y)
+                  ? 'text-red font-weight-medium'
+                  : ''
+                  "
+                  >
+                  {{ item.new_y }}
+                  </span>
                   </template>
-
                   <template v-slot:item.new_rotation="{ item }">
-                    <span
-                      :class="
-                        item.newList &&
-                        item.newList.some((n) => n && n.diffFields.rotation)
-                          ? 'text-red font-weight-medium'
-                          : ''
-                      "
-                    >
-                      {{ item.new_rotation }}
-                    </span>
+                  <span
+                  :class="
+                  item.newList &&
+                  item.newList.some((n) => n && n.diffFields.rotation)
+                  ? 'text-red font-weight-medium'
+                  : ''
+                  "
+                  >
+                  {{ item.new_rotation }}
+                  </span>
                   </template>
-
                   <template v-slot:item.new_layer="{ item }">
-                    <span
-                      :class="
-                        item.newList &&
-                        item.newList.some((n) => n && n.diffFields.layer)
-                          ? 'text-red font-weight-medium'
-                          : ''
-                      "
-                    >
-                      {{ item.new_layer }}
-                    </span>
+                  <span
+                  :class="
+                  item.newList &&
+                  item.newList.some((n) => n && n.diffFields.layer)
+                  ? 'text-red font-weight-medium'
+                  : ''
+                  "
+                  >
+                  {{ item.new_layer }}
+                  </span>
                   </template>
-
                   <template v-slot:item.status="{ item }">
-                    <v-chip
-                      v-if="item.status !== 'none'"
-                      :color="
-                        item.status === 'match'
-                          ? 'green'
-                          : item.status === 'change'
-                          ? 'orange'
-                          : item.status === 'remove'
-                          ? 'red'
-                          : 'blue'
-                      "
-                      size="small"
-                      variant="tonal"
-                    >
-                      {{
-                        item.status === "match"
-                          ? "Trùng"
-                          : item.status === "change"
-                          ? "Thay đổi"
-                          : item.status === "remove"
-                          ? "Xoá"
-                          : "Mới"
-                      }}
-                    </v-chip>
-                    <span v-else class="text-grey">—</span>
+                  <v-chip
+                  v-if="item.status !== 'none'"
+                  :color="
+                  item.status === 'match'
+                  ? 'green'
+                  : item.status === 'change'
+                  ? 'orange'
+                  : item.status === 'remove'
+                  ? 'red'
+                  : 'blue'
+                  "
+                  size="small"
+                  variant="tonal"
+                  >
+                  {{
+                  item.status === "match"
+                  ? "Trùng"
+                  : item.status === "change"
+                  ? "Thay đổi"
+                  : item.status === "remove"
+                  ? "Xoá"
+                  : "Mới"
+                  }}
+                  </v-chip>
+                  <span v-else class="text-grey">—</span>
                   </template>
-
                   <template v-slot:bottom>
-                    <div class="text-center pt-2">
-                      <v-pagination
-                        v-model="pagePnPCompare"
-                        :length="
-                          Math.ceil(
-                            compareFilteredRows.length /
-                              itemsPerPageBomHighlight,
-                          )
-                        "
-                      />
-                    </div>
+                  <div class="text-center pt-2">
+                  <v-pagination
+                  v-model="pagePnPCompare"
+                  :length="
+                  Math.ceil(
+                  compareFilteredRows.length /
+                  itemsPerPageBomHighlight,
+                  )
+                  "
+                  />
+                  </div>
                   </template>
-                </v-data-table>
-
-                <div
+                  </AppDataTable>
+                  <div
                   v-if="!FilePickplaceNew && pnpCompareRows.length === 0"
                   class="text-center text-grey py-4 text-caption"
-                >
+                  >
                   Chưa có dữ liệu Pickplace. Vui lòng nhập "File Pickplace mới"
                   để so sánh.
-                </div>
-              </template>
-            </v-card-text>
-          </v-tabs-window-item>
-          <v-tabs-window-item :value="3">
-            <v-card-text>
-              <v-row class="d-flex justify-end mb-2">
-                <v-btn
+                  </div>
+                  </template>
+                  </v-card-text>
+                  </v-tabs-window-item>
+                  <v-tabs-window-item :value="3">
+                  <v-card-text>
+                  <v-row class="d-flex justify-end mb-2">
+                  <v-btn
                   color="success"
                   variant="tonal"
                   size="small"
                   class="text-caption"
                   prepend-icon="mdi-file-excel"
                   @click="downloadSummaryExcel()"
-                >
+                  >
                   Tải báo cáo
-                </v-btn>
-              </v-row>
-              <v-row class="mb-2">
-                <v-col cols="12" sm="4">
+                  </v-btn>
+                  </v-row>
+                  <v-row class="mb-2">
+                  <v-col cols="12" sm="4">
                   <CardStatistic
-                    title="Thiếu Pick & Place"
-                    :value="dashMissingPnPList.length"
-                    icon="mdi-package-variant-closed-remove"
-                    color="warning"
+                  title="Thiếu Pick & Place"
+                  :value="dashMissingPnPList.length"
+                  icon="mdi-package-variant-closed-remove"
+                  color="warning"
                   >
                   </CardStatistic>
                 </v-col>
@@ -2728,6 +2631,7 @@ import { useRawBomHighlight } from "@/composables/CheckBOM/useRawBomHighlight";
 import { usePnPFile } from "@/composables/CheckBOM/usePnPFile";
 
 import ButtonBack from "@/components/Button-Back.vue";
+import AppDataTable from "@/components/App-DataTable.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputFiles from "@/components/Input-Files.vue";

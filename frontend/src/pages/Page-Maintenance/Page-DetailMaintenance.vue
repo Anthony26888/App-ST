@@ -1,5 +1,5 @@
 <template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="100vh">
+  <v-card variant="text" class="app-page">
     <v-card-title class="d-flex" v-if="lgAndUp">
       <ButtonBack to="/Bao-tri" />
       <p class="text-h4 font-weight-light ms-3">Chi tiết bảo trì</p>
@@ -9,9 +9,9 @@
       <v-icon icon="mdi mdi-tools" color="primary"></v-icon> &nbsp;
       {{ NameMachine }}
     </v-card-title>
-    <v-card-text>
-      <v-card variant="elevated" elevation="0" class="rounded-xl border">
-        <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
+    <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
+      <v-card variant="elevated" elevation="0" class="rounded-xl border app-card-fill">
+        <v-card-title class="d-flex align-center flex-wrap ga-2 pe-2">
           <v-icon icon="mdi mdi-tools" color="primary"></v-icon> &nbsp;
           {{ NameMachine }}
 
@@ -30,42 +30,14 @@
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
         </v-card-title>
-        <v-card-title class="d-flex align-center pe-2" v-else>
-          <v-btn
-            variant="tonal"
-            color="orange"
-            prepend-icon="mdi-calendar-check"
-            class="ms-2 text-caption align-center"
-            @click="PushSchedule()"
-            >Lịch bảo trì</v-btn
-          >
-        </v-card-title>
-        <v-data-table
-          v-if="lgAndUp"
-          density="comfortable"
+        <AppDataTable
+          :virtual="false"
           :search="search"
           :items="maintenance"
           :headers="Headers"
           :items-per-page="itemsPerPage"
           v-model:page="page"
-          class="elevation-0"
-          :footer-props="{
-            'items-per-page-options': [10, 20, 50, 100],
-            'items-per-page-text': 'Số hàng mỗi trang',
-          }"
-          :header-props="{
-            sortByText: 'Sắp xếp theo',
-            sortDescText: 'Giảm dần',
-            sortAscText: 'Tăng dần',
-          }"
           :loading="DialogLoading"
-          loading-text="Đang tải dữ liệu..."
-          no-data-text="Không có dữ liệu"
-          no-results-text="Không tìm thấy kết quả"
-          :hover="true"
-          :dense="false"
-          :fixed-header="true"
-          height="79vh"
           show-expand
           item-value="MaBaoTri"
         >
@@ -191,133 +163,8 @@
               <ButtonEdit @edit="GetItem(item)" />
             </div>
           </template>
-        </v-data-table>
-        <v-data-table-virtual
-          v-else
-          :search="search"
-          :items="maintenance"
-          :headers="Headers"
-          :items-per-page="itemsPerPage"
-          v-model:page="page"
-          class="elevation-0"
-          :footer-props="{
-            'items-per-page-options': [10, 20, 50, 100],
-            'items-per-page-text': 'Số hàng mỗi trang',
-          }"
-          :header-props="{
-            sortByText: 'Sắp xếp theo',
-            sortDescText: 'Giảm dần',
-            sortAscText: 'Tăng dần',
-          }"
-          :loading="DialogLoading"
-          loading-text="Đang tải dữ liệu..."
-          no-data-text="Không có dữ liệu"
-          no-results-text="Không tìm thấy kết quả"
-          :hover="true"
-          :dense="false"
-          :fixed-header="true"
-          height="66vh"
-          show-expand
-          item-value="MaBaoTri"
-        >
-          <template
-            v-slot:item.data-table-expand="{
-              internalItem,
-              isExpanded,
-              toggleExpand,
-            }"
-          >
-            <v-btn
-              v-if="getAccessories(internalItem.raw).length > 0"
-              :append-icon="
-                isExpanded(internalItem) ? 'mdi-chevron-up' : 'mdi-chevron-down'
-              "
-              :text="isExpanded(internalItem) ? 'Thu gọn' : 'Phụ tùng'"
-              class="text-none"
-              color="medium-emphasis"
-              size="small"
-              variant="text"
-              width="105"
-              border
-              slim
-              @click="toggleExpand(internalItem)"
-            ></v-btn>
-          </template>
+        </AppDataTable>
 
-          <template v-slot:expanded-row="{ columns, item }">
-            <tr>
-              <td :colspan="columns.length" class="py-4">
-                <v-sheet rounded="lg" border class="pa-4">
-                  <div class="mb-4">
-                    <h4 class="text-subtitle1 font-weight-bold mb-3">
-                      Danh sách phụ tùng thay thế
-                    </h4>
-                    <v-table
-                      v-if="getAccessories(item).length > 0"
-                      density="compact"
-                    >
-                      <thead>
-                        <tr class="bg-grey-lighten-4">
-                          <th class="text-left">Tên phụ tùng</th>
-                          <th class="text-left">Số lượng</th>
-                          <th class="text-left">Đơn vị</th>
-                          <th class="text-left">Ghi chú</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr v-for="s in getAccessories(item)" :key="s.id">
-                          <td class="py-2">{{ s.TenPhuTung }}</td>
-                          <td class="py-2">{{ s.SoLuongSuDung }}</td>
-                          <td class="py-2">{{ s.DonVi }}</td>
-                          <td class="py-2" style="white-space: pre-line">
-                            {{ s.GhiChu }}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </v-table>
-                    <div v-else class="text-center text-grey text-caption py-4">
-                      Chưa có phụ tùng thay thế
-                    </div>
-                  </div>
-                </v-sheet>
-              </td>
-            </tr>
-          </template>
-          <template v-slot:item.TrangThai="{ item }">
-            <div class="text-start">
-              <v-chip
-                v-if="item.TrangThai === 'Chờ phê duyệt'"
-                color="red"
-                text="Chờ phê duyệt"
-                size="small"
-              ></v-chip>
-              <v-chip
-                v-else-if="item.TrangThai === 'Đang thực hiện'"
-                color="orange"
-                text="Đang thực hiện"
-                size="small"
-              ></v-chip>
-              <v-chip
-                v-else-if="item.TrangThai === 'Đã hoàn thành'"
-                color="green"
-                text="Đã hoàn thành"
-                size="small"
-              ></v-chip>
-            </div>
-          </template>
-          <template #item.MoTaLoi="{ item }">
-            <div style="white-space: pre-line">{{ item.MoTaLoi }}</div>
-          </template>
-          <template #item.BienPhapKhacPhuc="{ item }">
-            <div style="white-space: pre-line">{{ item.BienPhapKhacPhuc }}</div>
-          </template>
-          <template #item.MaBaoTri="{ item }">
-            <div class="d-flex">
-              <!-- <ButtonEye @detail="PushItem(item)" /> -->
-              <ButtonEdit @edit="GetItem(item)" />
-            </div>
-          </template>
-        </v-data-table-virtual>
       </v-card>
     </v-card-text>
   </v-card>
@@ -709,6 +556,7 @@ import { ref, computed, reactive } from "vue";
 import { useDisplay } from "vuetify";
 
 import InputSearch from "@/components/Input-Search.vue";
+import AppDataTable from "@/components/App-DataTable.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputSelect from "@/components/Input-Select.vue";

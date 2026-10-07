@@ -137,30 +137,16 @@
                   placeholder="Tìm kiếm..."
                 />
               </v-card-title>
-              <v-data-table
+              <AppDataTable
+                :virtual="false"
                 :headers="Headers"
                 :items="filteredManufactureCounting"
                 :search="combinedSearch"
                 v-model:page="page"
                 v-model:items-per-page="itemsPerPage"
-                class="elevation-1 mt-4 rounded-xl"
-                :footer-props="{
-                  'items-per-page-options': [10, 20, 50, 100],
-                  'items-per-page-text': 'Số hàng mỗi trang',
-                }"
-                :header-props="{
-                  sortByText: 'Sắp xếp theo',
-                  sortDescText: 'Giảm dần',
-                  sortAscText: 'Tăng dần',
-                }"
+                class="mt-4 rounded-xl"
                 :loading="DialogLoading"
-                loading-text="Đang tải dữ liệu..."
-                no-data-text="Không có dữ liệu"
-                no-results-text="Không tìm thấy kết quả"
-                :hover="true"
-                :dense="false"
-                :fixed-header="true"
-                height="calc(100vh - 590px)"
+                height="calc(100dvh - 590px)"
               >
                 <template v-slot:item.stt="{ index }">
                   {{ (page - 1) * itemsPerPage + index + 1 }}
@@ -232,7 +218,7 @@
                     ></v-pagination>
                   </div>
                 </template>
-              </v-data-table>
+              </AppDataTable>
             </v-card>
           </v-col>
           <v-col cols="6">
@@ -393,6 +379,7 @@ import { useManufactureCounting } from "@/composables/Manufacture/useManufacture
 
 // Components
 import Loading from "@/components/Loading.vue";
+import AppDataTable from "@/components/App-DataTable.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import ButtonBack from "@/components/Button-Back.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";

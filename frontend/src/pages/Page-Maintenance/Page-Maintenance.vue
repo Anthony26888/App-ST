@@ -1,5 +1,5 @@
 <template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="100vh">
+  <v-card variant="text" class="app-page">
     <v-card-title class="text-h4 font-weight-light" v-if="lgAndUp"
       >Danh sách bảo trì</v-card-title
     >
@@ -66,9 +66,9 @@
         </v-col>
       </v-row>
     </v-card-title>
-    <v-card-text>
-      <v-card variant="elevated" elevation="0" class="rounded-xl border">
-        <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
+    <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
+      <v-card variant="elevated" elevation="0" class="rounded-xl border app-card-fill">
+        <v-card-title class="d-flex align-center flex-wrap ga-2 pe-2">
           <v-btn
             prepend-icon="mdi mdi-plus"
             variant="tonal"
@@ -80,37 +80,15 @@
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
         </v-card-title>
-        <v-card-title class="d-flex align-center" v-else>
-          <InputSearch v-model="search" />
-        </v-card-title>
-
-        <v-card-text class="overflow-auto">
-          <v-data-table
-            v-if="lgAndUp"
-            density="compact"
+        <v-card-text class="app-table-fill">
+          <AppDataTable
+            :virtual="false"
             :headers="Headers"
             :items="machine"
             :search="search"
             :items-per-page="itemsPerPage"
             v-model:page="page"
-            class="elevation-0"
-            :footer-props="{
-              'items-per-page-options': [10, 20, 50, 100],
-              'items-per-page-text': 'Số hàng mỗi trang',
-            }"
-            :header-props="{
-              sortByText: 'Sắp xếp theo',
-              sortDescText: 'Giảm dần',
-              sortAscText: 'Tăng dần',
-            }"
             :loading="DialogLoading"
-            loading-text="Đang tải dữ liệu..."
-            no-data-text="Không có dữ liệu"
-            no-results-text="Không tìm thấy kết quả"
-            :hover="true"
-            :dense="false"
-            :fixed-header="true"
-            height="60vh"
             show-expand
             item-value="MaThietBi"
           >
@@ -347,72 +325,8 @@
             <template #item.MoTa="{ item }">
               <div style="white-space: pre-line">{{ item.MoTa }}</div>
             </template>
-          </v-data-table>
-          <v-data-table-virtual
-            density="compact"
-            :headers="Headers"
-            :items="machine"
-            :search="search"
-            :items-per-page="itemsPerPage"
-            v-model:page="page"
-            class="elevation-0"
-            :footer-props="{
-              'items-per-page-options': [10, 20, 50, 100],
-              'items-per-page-text': 'Số hàng mỗi trang',
-            }"
-            :header-props="{
-              sortByText: 'Sắp xếp theo',
-              sortDescText: 'Giảm dần',
-              sortAscText: 'Tăng dần',
-            }"
-            :loading="DialogLoading"
-            loading-text="Đang tải dữ liệu..."
-            no-data-text="Không có dữ liệu"
-            no-results-text="Không tìm thấy kết quả"
-            :hover="true"
-            :dense="false"
-            :fixed-header="true"
-            height="58vh"
-            item-value="MaThietBi"
-            v-else
-          >
-            <template v-slot:item.Image="{ value }">
-              <div>
-                <v-img
-                  :src="value"
-                  width="100"
-                  height="100"
-                  class="rounded"
-                  cover
-                ></v-img>
-              </div>
-            </template>
-            <template v-slot:item.Status="{ value }">
-              <div>
-                <v-chip
-                  v-if="value == 'Chưa tới hạn'"
-                  color="green"
-                  text="Chưa đến hạn"
-                  size="small"
-                ></v-chip>
-                <v-chip
-                  v-else
-                  color="red"
-                  text="Cần bảo trì"
-                  size="small"
-                ></v-chip>
-              </div>
-            </template>
-            <template v-slot:item.MaThietBi="{ value }">
-              <div class="d-flex">
-                <ButtonEye @detail="PushItem(value)" />
-                <ButtonEdit @edit="GetItem(value)" />
-              </div>
-            </template>
-            <template #item.MoTa="{ item }">
-              <div style="white-space: pre-line">{{ item.MoTa }}</div>
-            </template>
-          </v-data-table-virtual>
+          </AppDataTable>
+
         </v-card-text>
       </v-card>
     </v-card-text>
@@ -587,6 +501,7 @@ import { useMachine } from "@/composables/Maintenance/useMachine";
 
 // Components
 import InputSearch from "@/components/Input-Search.vue";
+import AppDataTable from "@/components/App-DataTable.vue";
 import InputFiles from "@/components/Input-Files.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";

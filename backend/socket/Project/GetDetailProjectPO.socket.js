@@ -47,6 +47,10 @@ module.exports = (socket) => {
                                           'DeliveryDateConvert', strftime('%Y-%m-%d', d.DeliveryDate, 'unixepoch', 'localtime'),
                                           'DeliveryQuantity', d.DeliveryQuantity,
                                           'DeliveryCheck', d.DeliveryStatus,
+                                          'ActualDeliveryDate', CASE
+                                              WHEN d.ActualDeliveryDate IS NULL THEN NULL
+                                              ELSE strftime('%Y-%m-%d', d.ActualDeliveryDate, 'unixepoch', 'localtime')
+                                          END,
 
                                           'DeliveryStatus', CASE
                                               WHEN d.DeliveryDate IS NULL THEN 'Chưa có lịch'
@@ -58,7 +62,16 @@ module.exports = (socket) => {
                                               ROUND(
                                                   (julianday(d.DeliveryDate, 'unixepoch') - julianday('now'))
                                               ) AS INTEGER
-                                          )
+                                          ),
+
+                                          'DelayDays', CASE
+                                              WHEN d.ActualDeliveryDate IS NULL OR d.DeliveryDate IS NULL THEN NULL
+                                              ELSE CAST(
+                                                  ROUND(
+                                                      (julianday(d.ActualDeliveryDate, 'unixepoch') - julianday(d.DeliveryDate, 'unixepoch'))
+                                                  ) AS INTEGER
+                                              )
+                                          END
                                       ) AS payload
                                       FROM ScheduleDelivery d
                                       WHERE d.ItemId = a.id

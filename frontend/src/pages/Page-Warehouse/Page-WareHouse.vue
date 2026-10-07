@@ -1,18 +1,17 @@
 <template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="100vh">
+  <v-card variant="text" class="app-page">
     <v-card-title class="text-h4 font-weight-light" v-if="lgAndUp"
       >Danh sách tồn kho</v-card-title
     >
     <v-card-text>
       <v-card variant="text">
-        <v-card-text class="overflow-auto">
+        <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
           <v-card
             variant="elevated"
             elevation="0"
-            class="rounded-xl border"
-            v-if="lgAndUp"
+            class="rounded-xl border app-card-fill"
           >
-            <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
+            <v-card-title class="d-flex align-center flex-wrap ga-2 pe-2">
               <v-btn
                 prepend-icon="mdi mdi-apps"
                 color="primary"
@@ -47,34 +46,14 @@
               <InputSearch v-model="search" />
             </v-card-title>
 
-            <v-card-title class="d-flex align-center pe-2" v-else>
-              <InputSearch v-model="search" />
-            </v-card-title>
-            <v-data-table
-              density="comfortable"
+            <AppDataTable
+              :virtual="false"
               :headers="Headers"
               :items="warehouse"
               :search="search"
               :items-per-page="itemsPerPage"
               v-model:page="page"
-              class="elevation-0"
-              :footer-props="{
-                'items-per-page-options': [10, 20, 50, 100],
-                'items-per-page-text': 'Số hàng mỗi trang',
-              }"
-              :header-props="{
-                sortByText: 'Sắp xếp theo',
-                sortDescText: 'Giảm dần',
-                sortAscText: 'Tăng dần',
-              }"
               :loading="DialogLoading"
-              loading-text="Đang tải dữ liệu..."
-              no-data-text="Không có dữ liệu"
-              no-results-text="Không tìm thấy kết quả"
-              :hover="true"
-              :dense="false"
-              :fixed-header="true"
-              height="76vh"
             >
               <template v-slot:bottom>
                 <div class="text-center pt-2">
@@ -93,45 +72,8 @@
                   <ButtonSearch @search="getAccessToken(value)" />
                 </div>
               </template>
-            </v-data-table>
+            </AppDataTable>
           </v-card>
-
-          <v-data-table-virtual
-            v-else
-            :headers="Headers"
-            :items="warehouse"
-            :search="search"
-            :items-per-page="itemsPerPage"
-            v-model:page="page"
-            class="elevation-1"
-            :footer-props="{
-              'items-per-page-options': [10, 20, 50, 100],
-              'items-per-page-text': 'Số hàng mỗi trang',
-            }"
-            :header-props="{
-              sortByText: 'Sắp xếp theo',
-              sortDescText: 'Giảm dần',
-              sortAscText: 'Tăng dần',
-            }"
-            :loading="DialogLoading"
-            loading-text="Đang tải dữ liệu..."
-            no-data-text="Không có dữ liệu"
-            no-results-text="Không tìm thấy kết quả"
-            :hover="true"
-            :dense="false"
-            :fixed-header="true"
-            height="calc(100vh - 150px)"
-          >
-            <template v-slot:item.id="{ value }">
-              <div>
-                <ButtonEdit
-                  @edit="GetItem(value)"
-                  v-if="LevelUser == 'Admin' || LevelUser == 'Thủ kho'"
-                />
-                <ButtonSearch @search="getAccessToken(value)" />
-              </div>
-            </template>
-          </v-data-table-virtual>
         </v-card-text>
       </v-card>
     </v-card-text>
@@ -343,31 +285,16 @@
     title="Xem trước dữ liệu"
     icon="mdi-magnify"
   >
-    <v-data-table
-      :headers="HeadersFile"
-      :items="temporaryWarehouse"
-      :search="searchFile"
-      :items-per-page="itemsPerPage"
-      v-model:page="page"
-      class="elevation-1"
-      :footer-props="{
-        'items-per-page-options': [10, 20, 50, 100],
-        'items-per-page-text': 'Số hàng mỗi trang',
-      }"
-      :header-props="{
-        sortByText: 'Sắp xếp theo',
-        sortDescText: 'Giảm dần',
-        sortAscText: 'Tăng dần',
-      }"
-      :loading="DialogLoading"
-      loading-text="Đang tải dữ liệu..."
-      no-data-text="Không có dữ liệu"
-      no-results-text="Không tìm thấy kết quả"
-      :hover="true"
-      :dense="false"
-      :fixed-header="true"
-      height="calc(100vh - 320px)"
-    >
+    <AppDataTable
+          :virtual="false"
+          :fill="false"
+          :headers="HeadersFile"
+          :items="temporaryWarehouse"
+          :search="searchFile"
+          :items-per-page="itemsPerPage"
+          v-model:page="page"
+          :loading="DialogLoading"
+        >
       <template v-slot:bottom>
         <div class="text-center pt-2">
           <v-pagination
@@ -392,7 +319,7 @@
           <ButtonRemove @remove="GetRemove(item)" />
         </div>
       </template>
-    </v-data-table>
+    </AppDataTable>
   </BaseDialog>
 
   <BaseDialog
@@ -597,30 +524,16 @@
     icon="mdi-history"
   >
 
-    <v-data-table
-      :headers="HeadersHistoryLog"
-      :items="warehouseLog"
-      :search="searchLog"
-      :items-per-page="itemsPerPage"
-      v-model:page="page"
-      :footer-props="{
-        'items-per-page-options': [10, 20, 50, 100],
-        'items-per-page-text': 'Số hàng mỗi trang',
-      }"
-      :header-props="{
-        sortByText: 'Sắp xếp theo',
-        sortDescText: 'Giảm dần',
-        sortAscText: 'Tăng dần',
-      }"
-      :loading="DialogLoading"
-      loading-text="Đang tải dữ liệu..."
-      no-data-text="Không có dữ liệu"
-      no-results-text="Không tìm thấy kết quả"
-      :hover="true"
-      :dense="false"
-      :fixed-header="true"
-      height="calc(100vh - 320px)"
-    >
+    <AppDataTable
+          :virtual="false"
+          :fill="false"
+          :headers="HeadersHistoryLog"
+          :items="warehouseLog"
+          :search="searchLog"
+          :items-per-page="itemsPerPage"
+          v-model:page="page"
+          :loading="DialogLoading"
+        >
       <template v-slot:top>
         <v-text-field
           v-model="searchLog"
@@ -656,7 +569,7 @@
           <ButtonRemove @remove="GetRemove(item)" />
         </div>
       </template>
-    </v-data-table>
+    </AppDataTable>
   </BaseDialog>
 
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
@@ -679,6 +592,7 @@ import { useTemporaryWareHouse } from "@/composables/Warehouse/useTemporaryWareH
 import { useWareHouseLog } from "@/composables/Warehouse/useWareHouseLog";
 
 // Components
+import AppDataTable from "@/components/App-DataTable.vue";
 import ButtonImportFile from "@/components/Button-ImportFile.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";

@@ -1,5 +1,5 @@
 <template>
-  <v-card variant="text" class="overflow-y-auto" height="100vh">
+  <v-card variant="text" class="app-page">
     <v-card-title class="d-flex" v-if="lgAndUp">
       <ButtonBack :to="`/Bao-tri/Chi-tiet/${route.params.id}`" />
       <p class="text-h4 font-weight-light ms-3" v-if="lgAndUp">
@@ -11,9 +11,13 @@
       <v-icon icon="mdi mdi-cog"></v-icon> &nbsp;
       {{ route.params.id }}
     </v-card-title>
-    <v-card-text>
-      <v-card variant="elevated" elevation="0" class="rounded-xl border">
-        <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
+    <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
+      <v-card
+        variant="elevated"
+        elevation="0"
+        class="rounded-xl border app-card-fill"
+      >
+        <v-card-title class="d-flex align-center flex-wrap ga-2 pe-2">
           <v-icon icon="mdi mdi-cog"></v-icon> &nbsp;
           {{ route.params.id }}
 
@@ -25,36 +29,14 @@
           <InputSearch v-model="search" />
         </v-card-title>
 
-        <v-card-title class="d-flex align-center pe-2" v-else>
-          <InputSearch v-model="search" />
-        </v-card-title>
-
-        <v-data-table
-          v-if="lgAndUp"
-          density="comfortable"
+        <AppDataTable
+          :virtual="false"
           :search="search"
           :items="sparePartUsage"
           :headers="Headers"
           :items-per-page="itemsPerPage"
           v-model:page="page"
-          class="elevation-0"
-          :footer-props="{
-            'items-per-page-options': [10, 20, 50, 100],
-            'items-per-page-text': 'Số hàng mỗi trang',
-          }"
-          :header-props="{
-            sortByText: 'Sắp xếp theo',
-            sortDescText: 'Giảm dần',
-            sortAscText: 'Tăng dần',
-          }"
           :loading="DialogLoading"
-          loading-text="Đang tải dữ liệu..."
-          no-data-text="Không có dữ liệu"
-          no-results-text="Không tìm thấy kết quả"
-          :hover="true"
-          :dense="false"
-          :fixed-header="true"
-          height="79vh"
         >
           <template v-slot:bottom>
             <div class="text-center pt-2">
@@ -86,57 +68,7 @@
           <template v-slot:item.id="{ item }">
             <ButtonEdit @edit="GetItem(item)" />
           </template>
-        </v-data-table>
-
-        <v-data-table-virtual
-          v-else
-          :search="search"
-          :items="sparePartUsage"
-          :headers="Headers"
-          :items-per-page="itemsPerPage"
-          v-model:page="page"
-          class="elevation-0"
-          :footer-props="{
-            'items-per-page-options': [10, 20, 50, 100],
-            'items-per-page-text': 'Số hàng mỗi trang',
-          }"
-          :header-props="{
-            sortByText: 'Sắp xếp theo',
-            sortDescText: 'Giảm dần',
-            sortAscText: 'Tăng dần',
-          }"
-          :loading="DialogLoading"
-          loading-text="Đang tải dữ liệu..."
-          no-data-text="Không có dữ liệu"
-          no-results-text="Không tìm thấy kết quả"
-          :hover="true"
-          :dense="false"
-          :fixed-header="true"
-          height="66vh"
-        >
-          <template v-slot:item.TrangThai="{ item }">
-            <div class="text-start">
-              <v-chip
-                v-if="item.TrangThai === 'Chờ phê duyệt'"
-                color="red"
-                text="Chờ phê duyệt"
-                size="small"
-              ></v-chip>
-              <v-chip
-                v-else-if="item.TrangThai === 'Đã sử dụng'"
-                color="green"
-                text="Đã sử dụng"
-                size="small"
-              ></v-chip>
-            </div>
-          </template>
-          <template v-slot:item.GhiChu="{ item }">
-            <div style="white-space: pre-line">{{ item.GhiChu }}</div>
-          </template>
-          <template v-slot:item.id="{ item }">
-            <ButtonEdit @edit="GetItem(item)" />
-          </template>
-        </v-data-table-virtual>
+        </AppDataTable>
       </v-card>
     </v-card-text>
   </v-card>
@@ -257,6 +189,7 @@ import { useDisplay } from "vuetify";
 
 // Components
 import InputSearch from "@/components/Input-Search.vue";
+import AppDataTable from "@/components/App-DataTable.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputSelect from "@/components/Input-Select.vue";

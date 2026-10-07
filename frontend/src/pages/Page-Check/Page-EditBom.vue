@@ -1,11 +1,11 @@
 <template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="100vh">
+  <v-card variant="text" class="app-page">
     <v-card-title class="d-flex">
       <ButtonBack to="/Kiem-tra-so-lieu" />
       <p class="text-h4 font-weight-light ms-3">Chỉnh sửa số liệu</p>
     </v-card-title>
-    <v-card-text>
-      <v-card variant="elevated" elevation="0" class="rounded-xl">
+    <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
+      <v-card variant="elevated" elevation="0" class="rounded-xl app-card-fill">
         <v-card-title class="d-flex align-center pe-2">
           <p class="text-subtitle-1 font-weight-thin text-subtitle-1">
             {{ detailBom.length }} dự án
@@ -13,31 +13,15 @@
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
         </v-card-title>
-        <v-data-table
-          :headers="Headers"
-          :items="detailBom"
-          :search="search"
-          :items-per-page="itemsPerPage"
-          v-model:page="page"
-          class="elevation-1"
-          :footer-props="{
-            'items-per-page-options': [10, 20, 50, 100],
-            'items-per-page-text': 'Số hàng mỗi trang',
-          }"
-          :header-props="{
-            sortByText: 'Sắp xếp theo',
-            sortDescText: 'Giảm dần',
-            sortAscText: 'Tăng dần',
-          }"
-          :loading="DialogLoading"
-          loading-text="Đang tải dữ liệu..."
-          no-data-text="Không có dữ liệu"
-          no-results-text="Không tìm thấy kết quả"
-          :hover="true"
-          :dense="false"
-          :fixed-header="true"
-          height="79vh"
-        >
+        <AppDataTable
+            :virtual="false"
+            :headers="Headers"
+            :items="detailBom"
+            :search="search"
+            :items-per-page="itemsPerPage"
+            v-model:page="page"
+            :loading="DialogLoading"
+          >
           <template v-slot:bottom>
             <div class="text-center pt-2">
               <v-pagination
@@ -51,7 +35,7 @@
               <ButtonEdit @edit="GetItem(value)" />
             </div>
           </template>
-        </v-data-table>
+        </AppDataTable>
       </v-card>
     </v-card-text>
   </v-card>
@@ -91,6 +75,7 @@ import ButtonDelete from "@/components/Button-Delete.vue";
 import Loading from "@/components/Loading.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import ButtonEye from "@/components/Button-Eye.vue";
+import AppDataTable from "@/components/App-DataTable.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import InputField from "@/components/Input-Field.vue";
 import BaseDialog from "@/components/BaseDialog.vue";

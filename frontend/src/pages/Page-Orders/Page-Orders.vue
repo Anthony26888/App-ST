@@ -1,5 +1,5 @@
 <template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="100vh" v-if="lgAndUp">
+  <v-card variant="text" class="app-page" v-if="lgAndUp">
     <v-card-title class="text-h4 font-weight-light"
       >Danh sách đơn hàng
     </v-card-title>
@@ -31,8 +31,8 @@
         </v-col>
       </v-row>
     </v-card-text>
-    <v-card-text>
-      <v-card variant="elevated" elevation="0" class="rounded-xl border" v-if="orders.length > 0">
+    <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
+      <v-card variant="elevated" elevation="0" class="rounded-xl border app-card-fill" v-if="orders.length > 0">
         <v-card-title class="d-flex align-center pe-2">
           <p class="text-subtitle-1 font-weight-thin text-subtitle-1">
             {{ orders.length }} đơn hàng
@@ -40,30 +40,13 @@
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
         </v-card-title>
-        <v-data-table
-          density="comfortable"
+        <AppDataTable
+          :virtual="false"
           :headers="Headers"
           :items="orders"
           :search="search"
           :items-per-page="itemsPerPage"
-          class="elevation-0"
-          :footer-props="{
-            'items-per-page-options': [10, 20, 50, 100],
-            'items-per-page-text': 'Số hàng mỗi trang',
-          }"
-          :header-props="{
-            sortByText: 'Sắp xếp theo',
-            sortDescText: 'Giảm dần',
-            sortAscText: 'Tăng dần',
-          }"
           :loading="DialogLoading"
-          loading-text="Đang tải dữ liệu..."
-          no-data-text="Không có dữ liệu"
-          no-results-text="Không tìm thấy kết quả"
-          :hover="true"
-          :dense="false"
-          :fixed-header="true"
-          height="61vh"
         >
           <template v-slot:item.id="{ value }">
             <div class="d-flex">
@@ -89,7 +72,7 @@
               ></v-pagination>
             </div>
           </template>
-        </v-data-table>
+        </AppDataTable>
       </v-card>
       <v-empty-state
         v-else
@@ -126,6 +109,7 @@ import { useOrders } from "@/composables/Orders/useOrders";
 
 // Components
 import InputSearch from "@/components/Input-Search.vue";
+import AppDataTable from "@/components/App-DataTable.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";

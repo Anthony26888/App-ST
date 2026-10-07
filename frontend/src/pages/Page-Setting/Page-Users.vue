@@ -1,11 +1,11 @@
 <template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="100vh">
+  <v-card variant="text" class="app-page">
     <v-card-title class="d-flex">
       <ButtonBack to="/Cai-dat" />
       <p class="text-h4 font-weight-light ms-3">Danh sách người sử dụng</p>
     </v-card-title>
-    <v-card-text>
-      <v-card variant="elevated" elevation="0" class="rounded-xl border">
+    <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
+      <v-card variant="elevated" elevation="0" class="rounded-xl border app-card-fill">
         <v-card-title class="d-flex align-center pe-2">
           <ButtonAdd @add="DialogAdd = true" />
           <p class="text-subtitle-1 font-weight-thin text-subtitle-1 ms-2">
@@ -14,31 +14,14 @@
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
         </v-card-title>
-        <v-data-table
-          density="comfortable"
-          :headers="Headers"
-          :items="users"
-          :search="search"
-          class="elevation-0"
-          :items-per-page="10"
-          :footer-props="{
-            'items-per-page-options': [10, 20, 50, 100],
-            'items-per-page-text': 'Số hàng mỗi trang',
-          }"
-          :header-props="{
-            sortByText: 'Sắp xếp theo',
-            sortDescText: 'Giảm dần',
-            sortAscText: 'Tăng dần',
-          }"
-          :loading="DialogLoading"
-          loading-text="Đang tải dữ liệu..."
-          no-data-text="Không có dữ liệu"
-          no-results-text="Không tìm thấy kết quả"
-          :hover="true"
-          :dense="false"
-          :fixed-header="true"
-          height="79vh"
-        >
+        <AppDataTable
+            :virtual="false"
+            :headers="Headers"
+            :items="users"
+            :search="search"
+            :items-per-page="10"
+            :loading="DialogLoading"
+          >
           <template v-slot:item.id="{ value }">
             <ButtonEdit @click="GetItem(value)" />
           </template>
@@ -50,7 +33,7 @@
               ></v-pagination>
             </div>
           </template>
-        </v-data-table>
+        </AppDataTable>
       </v-card>
     </v-card-text>
   </v-card>
@@ -170,6 +153,7 @@ import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonBack from "@/components/Button-Back.vue";
+import AppDataTable from "@/components/App-DataTable.vue";
 import ButtonEdit from "@/components/Button-Edit.vue";
 import ButtonAdd from "@/components/Button-Add.vue";
 import BaseDialog from "@/components/BaseDialog.vue";

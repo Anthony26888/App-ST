@@ -1,6 +1,6 @@
 <template>
   <div>
-    <v-card variant="text" class="overflow-y-auto" height="100vh">
+    <v-card variant="text" class="app-page">
       <v-card-title class="text-h4 font-weight-light">
         <ButtonBack
           v-if="LevelUser === 'Nhân viên'"
@@ -19,7 +19,7 @@
         </v-breadcrumbs>
       </v-card-title>
 
-      <v-card-text>
+      <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
         <!-- Production Statistics Cards -->
         <v-row class="mb-4">
           <v-col cols="12" sm="6">
@@ -58,37 +58,24 @@
         </v-row>
 
         <!-- Table -->
-        <v-card variant="elevated" elevation="0" class="rounded-xl border">
+        <v-card
+          variant="elevated"
+          elevation="0"
+          class="rounded-xl border app-card-fill"
+        >
           <v-card-title class="d-flex align-center">
             <span class="text-h6">Bảng chi tiết sản xuất</span>
             <v-spacer></v-spacer>
             <InputSearch v-model="search" />
           </v-card-title>
-          <v-data-table
-            density="comfortable"
+          <AppDataTable
+            :virtual="false"
             :headers="Headers"
             :items="manufactureRW"
             :search="search"
             :items-per-page="itemsPerPage"
             v-model:page="page"
-            class="elevation-0"
-            :footer-props="{
-              'items-per-page-options': [10, 20, 50, 100],
-              'items-per-page-text': 'Số hàng mỗi trang',
-            }"
-            :header-props="{
-              sortByText: 'Sắp xếp theo',
-              sortDescText: 'Giảm dần',
-              sortAscText: 'Tăng dần',
-            }"
             :loading="DialogLoading"
-            loading-text="Đang tải dữ liệu..."
-            no-data-text="Không có dữ liệu"
-            no-results-text="Không tìm thấy kết quả"
-            :hover="true"
-            :dense="false"
-            :fixed-header="true"
-            height="62vh"
           >
             <template #[`item.Status`]="{ item }">
               <v-chip
@@ -143,7 +130,7 @@
                 ></v-pagination>
               </div>
             </template>
-          </v-data-table>
+          </AppDataTable>
         </v-card>
       </v-card-text>
     </v-card>
@@ -184,6 +171,7 @@ import { useManufactureRW } from "@/composables/Manufacture/useManufactureRW";
 import Loading from "@/components/Loading.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import ButtonBack from "@/components/Button-Back.vue";
+import AppDataTable from "@/components/App-DataTable.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputFiles from "@/components/Input-Files.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";

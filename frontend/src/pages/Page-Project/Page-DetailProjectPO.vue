@@ -1,18 +1,17 @@
 <template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="100vh">
-    <v-card-title class="d-flex" v-if="lgAndUp">
-      <ButtonBack :to="`/Du-an`" />
-      <p class="text-h4 font-weight-light ms-3">Chi tiết đơn hàng</p>
-    </v-card-title>
-    <v-card-title class="d-flex" v-else>
-      <ButtonBack :to="`/Du-an`" />
-      <v-icon icon="mdi mdi-cart-variant"></v-icon> &nbsp;
-      {{ NameCustomer }}
-    </v-card-title>
-    <v-card-text>
+  <v-card variant="text" class="app-page">
+    <PageHeader
+      title="Chi tiết đơn hàng"
+      back-to="/Du-an"
+      :crumbs="[
+        { title: 'Dự án', to: '/Du-an' },
+        { title: NameCustomer || 'Chi tiết' },
+      ]"
+    />
+    <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
       <v-card-title class="mb-3">
-        <v-row v-if="lgAndUp">
-          <v-col cols="12" sm="6" md="3">
+        <v-row>
+          <v-col cols="6" md="3">
             <CardStatistic
               title="Tổng số PO"
               :value="totalUniquePO || 0"
@@ -20,7 +19,7 @@
               color="primary"
             />
           </v-col>
-          <v-col cols="12" sm="6" md="3">
+          <v-col cols="6" md="3">
             <CardStatistic
               title="Tổng số đơn hàng"
               :value="detailProjectPO?.length || 0"
@@ -28,7 +27,7 @@
               color="info"
             />
           </v-col>
-          <v-col cols="12" sm="6" md="3">
+          <v-col cols="6" md="3">
             <CardStatistic
               title="Tổng đơn hàng hoàn thành"
               :value="
@@ -39,7 +38,7 @@
               color="success"
             />
           </v-col>
-          <v-col cols="12" sm="6" md="3">
+          <v-col cols="6" md="3">
             <CardStatistic
               title="Tổng đơn hàng đang sản xuất"
               :value="
@@ -52,40 +51,30 @@
           </v-col>
         </v-row>
       </v-card-title>
-      <v-card variant="elevated" elevation="0" class="rounded-xl border">
-        <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">
-          <v-icon icon="mdi mdi-cart-variant"></v-icon> &nbsp;
-          {{ NameCustomer }}
+      <v-card
+        variant="elevated"
+        elevation="0"
+        class="rounded-xl border app-card-fill"
+      >
+        <v-card-title class="d-flex align-center flex-wrap ga-2 pe-2">
+          <v-icon icon="mdi-account"></v-icon>
+          <span class="text-truncate">{{ NameCustomer }}</span>
 
           <ButtonAdd
             @add="DialogAdd = true"
             v-if="LevelUser == 'Admin' || LevelUser == 'Quản lý kinh doanh'"
           />
-          <!-- <ButtonDownload @download-file="DownloadOrder()" /> -->
           <v-spacer></v-spacer>
           <InputSearch v-model="search" />
         </v-card-title>
 
-        <v-card-title class="d-flex align-center pe-2" v-else>
-          <InputSearch v-model="search" />
-        </v-card-title>
-
-        <v-data-table-virtual
+        <AppDataTable
           :group-by="[{ key: 'POID' }]"
-          density="comfortable"
           :search="search"
           :items="detailProjectPO"
           v-model:expanded="expanded"
-          item-value="id"
           :headers="Headers"
           :loading="DialogLoading"
-          loading-text="Đang tải dữ liệu..."
-          no-data-text="Không có dữ liệu"
-          no-results-text="Không tìm thấy kết quả"
-          :hover="true"
-          :dense="false"
-          :fixed-header="true"
-          height="calc(100vh - 300px)"
           show-expand
         >
           <template
@@ -118,31 +107,33 @@
           <template
             v-slot:item.data-table-expand="{ internalItem, isExpanded }"
           >
-            <template v-if="getScheduleDeliveries(internalItem.raw).length > 0">
-              <v-badge
-                :content="getOverdueCount(internalItem.raw)"
-                :model-value="getOverdueCount(internalItem.raw) > 0"
-                color="error"
-                location="top left"
-              >
-                <v-btn
-                  :append-icon="
-                    isExpanded(internalItem)
-                      ? 'mdi-chevron-up'
-                      : 'mdi-chevron-down'
-                  "
-                  :text="isExpanded(internalItem) ? 'Thu gọn' : 'Lịch giao'"
-                  class="text-none"
-                  color="medium-emphasis"
-                  size="small"
-                  variant="text"
-                  width="105"
-                  border
-                  slim
-                  @click="toggleSingleExpand(internalItem)"
-                ></v-btn>
-              </v-badge>
-            </template>
+            <v-badge
+              :content="getOverdueCount(internalItem.raw)"
+              :model-value="getOverdueCount(internalItem.raw) > 0"
+              color="error"
+              location="top left"
+            >
+              <v-btn
+                :append-icon="
+                  isExpanded(internalItem)
+                    ? 'mdi-chevron-up'
+                    : 'mdi-chevron-down'
+                "
+                :text="
+                  isExpanded(internalItem)
+                    ? 'Thu gọn'
+                    : `Lịch giao (${getScheduleDeliveries(internalItem.raw).length})`
+                "
+                class="text-none"
+                color="medium-emphasis"
+                size="small"
+                variant="text"
+                width="115"
+                border
+                slim
+                @click="toggleSingleExpand(internalItem)"
+              ></v-btn>
+            </v-badge>
           </template>
 
           <template v-slot:expanded-row="{ columns, item }">
@@ -151,9 +142,29 @@
                 <v-sheet rounded="lg" border class="pa-4">
                   <!-- Lịch giao hàng -->
                   <div class="mb-4">
-                    <h4 class="text-subtitle1 font-weight-bold mb-3">
-                      Lịch giao hàng
-                    </h4>
+                    <div class="d-flex align-center justify-space-between mb-3">
+                      <h4 class="text-subtitle1 font-weight-bold">
+                        Lịch giao hàng
+                        <span class="text-caption text-medium-emphasis font-weight-regular">
+                          (Đã hẹn {{ scheduledTotal(item) }} /
+                          Đơn {{ Number(item.Quantity_Product) || 0 }} pcs)
+                        </span>
+                      </h4>
+                      <v-btn
+                        v-if="
+                          LevelUser == 'Admin' ||
+                          LevelUser == 'Quản lý kinh doanh'
+                        "
+                        color="primary"
+                        variant="tonal"
+                        size="small"
+                        prepend-icon="mdi-plus"
+                        class="text-none"
+                        @click="GetItem(item)"
+                      >
+                        Thêm lịch
+                      </v-btn>
+                    </div>
 
                     <v-table
                       v-if="getScheduleDeliveries(item).length > 0"
@@ -164,7 +175,8 @@
                           <th class="text-left">Ngày giao</th>
                           <th class="text-left">Số lượng</th>
                           <th class="text-left">Trạng thái</th>
-                          <th class="text-left">Tình trạng giao</th>
+                          <th class="text-left">Ngày thực giao</th>
+                          <th class="text-left">Sớm/Trễ</th>
                           <th class="text-left">Thao tác</th>
                         </tr>
                       </thead>
@@ -176,49 +188,82 @@
                           :key="`${schedule.id}-${sIndex}`"
                         >
                           <td class="py-2">
-                            {{ schedule.DeliveryDateConvert }}
+                            {{ toSlash(schedule.DeliveryDateConvert) }}
                           </td>
                           <td class="py-2">
                             {{ schedule.DeliveryQuantity }}
                           </td>
                           <td class="py-2">
                             <v-chip
-                              v-if="schedule.DeliveryCheck == 'Chưa giao'"
-                              :text="`${schedule.DeliveryStatus}`"
-                              :color="
-                                schedule.DeliveryStatus === 'Chưa đến hạn'
-                                  ? 'green'
-                                  : schedule.DeliveryStatus === 'Trễ hạn'
-                                  ? 'red'
-                                  : 'primary'
-                              "
+                              :text="scheduleState(schedule).text"
+                              :color="scheduleState(schedule).color"
                               variant="tonal"
                               size="small"
                             ></v-chip>
-                            <div v-else>-</div>
+                          </td>
+                          <td class="py-2">
+                            {{
+                              schedule.DeliveryCheck === "Đã giao" &&
+                              schedule.ActualDeliveryDate
+                                ? toSlash(schedule.ActualDeliveryDate)
+                                : "—"
+                            }}
                           </td>
                           <td class="py-2">
                             <v-chip
-                              :text="`${schedule.DeliveryCheck}`"
-                              :color="
-                                schedule.DeliveryCheck === 'Chưa giao'
-                                  ? 'primary '
-                                  : schedule.DeliveryCheck === 'Đã giao'
-                                  ? 'success'
-                                  : 'primary'
-                              "
+                              v-if="delayChip(schedule.DelayDays).text"
+                              :text="delayChip(schedule.DelayDays).text"
+                              :color="delayChip(schedule.DelayDays).color"
                               variant="tonal"
                               size="small"
                             ></v-chip>
+                            <div v-else class="text-grey">—</div>
                           </td>
                           <td class="py-2">
-                            <ButtonEdit
-                              @edit="GetConfirm(schedule.id)"
+                            <div
+                              class="d-flex"
                               v-if="
                                 LevelUser == 'Admin' ||
                                 LevelUser == 'Quản lý kinh doanh'
                               "
-                            />
+                            >
+                              <ButtonEdit
+                                v-if="schedule.DeliveryCheck === 'Chưa giao'"
+                                @edit="GetConfirm(schedule, item)"
+                              />
+                              <template v-else>
+                                <v-tooltip
+                                  text="Sửa ngày thực giao"
+                                  location="top"
+                                >
+                                  <template #activator="{ props }">
+                                    <v-btn
+                                      v-bind="props"
+                                      color="info"
+                                      icon="mdi-calendar-edit"
+                                      variant="text"
+                                      size="xs"
+                                      @click="GetEditActual(schedule)"
+                                    ></v-btn>
+                                  </template>
+                                </v-tooltip>
+                                <v-tooltip
+                                  text="Hủy xác nhận giao hàng"
+                                  location="top"
+                                >
+                                  <template #activator="{ props }">
+                                    <v-btn
+                                      v-bind="props"
+                                      color="warning"
+                                      icon="mdi-undo"
+                                      variant="text"
+                                      size="xs"
+                                      @click="GetUnconfirm(schedule, item)"
+                                    ></v-btn>
+                                  </template>
+                                </v-tooltip>
+                              </template>
+                            </div>
                           </td>
                         </tr>
                       </tbody>
@@ -252,19 +297,12 @@
           <template #item.Status="{ value }">
             <div class="text-start">
               <v-chip
-                :color="
-                  value === 'Hoàn thành'
-                    ? 'success'
-                    : value === 'Đang sản xuất'
-                    ? 'warning'
-                    : 'error'
-                "
+                :text="statusChip(value).text"
+                :color="statusChip(value).color"
                 variant="tonal"
                 class="text-caption"
                 size="small"
-              >
-                {{ value }}
-              </v-chip>
+              ></v-chip>
             </div>
           </template>
 
@@ -280,10 +318,46 @@
             </v-progress-linear>
           </template>
 
+          <template #[`item.Percent_Delivery`]="{ item }">
+            <v-progress-linear
+              :model-value="deliveryPercent(item)"
+              height="25"
+              color="info"
+              rounded
+              class="rounded-lg"
+            >
+              <strong>{{ deliveryPercent(item).toFixed(1) }}%</strong>
+            </v-progress-linear>
+          </template>
+
           <template #item.Note="{ item }">
             <div style="white-space: pre-line">{{ item.Note }}</div>
           </template>
-        </v-data-table-virtual>
+
+          <template #no-data>
+            <div class="app-empty-state text-center">
+              <v-icon
+                icon="mdi-package-variant-closed"
+                size="40"
+                color="medium-emphasis"
+                class="mb-2"
+              ></v-icon>
+              <div class="text-body-1 text-medium-emphasis mb-3">
+                Chưa có đơn hàng nào
+              </div>
+              <v-btn
+                v-if="LevelUser == 'Admin' || LevelUser == 'Quản lý kinh doanh'"
+                color="primary"
+                variant="tonal"
+                prepend-icon="mdi-plus"
+                class="text-none"
+                @click="DialogAdd = true"
+              >
+                Thêm đơn hàng
+              </v-btn>
+            </div>
+          </template>
+        </AppDataTable>
       </v-card>
     </v-card-text>
   </v-card>
@@ -292,7 +366,7 @@
   <BaseDialog
     title="Cập nhật dữ liệu"
     icon="mdi-pencil"
-    max-width="1200"
+    max-width="1100" :fullscreen="mdAndDown"
     v-model="DialogEdit"
   >
     <v-row>
@@ -404,7 +478,7 @@
     v-model="DialogAdd"
     title="Thêm dữ liệu"
     icon="mdi-plus"
-    max-width="1200"
+    max-width="1100" :fullscreen="mdAndDown"
   >
     <div class="mb-4">
       <v-row>
@@ -512,7 +586,7 @@
     v-model="DialogAddManufacture"
     title="Chuyển dữ liệu xuống sản xuất"
     icon="mdi-plus"
-    max-width="700"
+    max-width="720" :fullscreen="mdAndDown"
   >
     <InputField label="Tên dự án" v-model="NamePO" />
     <InputField
@@ -588,7 +662,7 @@
     v-model="DialogRemove"
     title="Xoá dữ liệu"
     icon="mdi-delete"
-    max-width="400"
+    max-width="480" :fullscreen="mdAndDown"
   >
     <p>Bạn có chắc chắn muốn xoá đơn hàng này ?</p>
     <template #actions>
@@ -602,12 +676,64 @@
     v-model="DialogConfirm"
     title="Xác nhận giao hàng"
     icon="mdi-truck-delivery"
-    max-width="500px"
+    max-width="480" :fullscreen="mdAndDown"
   >
-    <p>Bạn có xác nhận đơn hàng đã giao ?</p>
+    <p>
+      Bạn có xác nhận giao
+      <strong>{{ GetConfirmQuantity }} pcs</strong>
+      <span v-if="GetConfirmItemName">cho "{{ GetConfirmItemName }}"</span>
+      ? SL đã giao sẽ được cộng thêm.
+    </p>
+    <InputDate
+      label="Ngày giao thực tế"
+      v-model="GetActualDate"
+      :rules="[requiredRule]"
+    />
     <template #actions>
       <ButtonCancel @cancel="DialogConfirm = false" />
-      <ButtonSave @save="ConfirmItem()" />
+      <ButtonSave @save="ConfirmItem()" :disabled="!GetActualDate" />
+    </template>
+  </BaseDialog>
+
+  <!-- Dialog sửa ngày giao thực tế -->
+  <BaseDialog
+    v-model="DialogEditActual"
+    title="Sửa ngày thực giao"
+    icon="mdi-calendar-edit"
+    max-width="480" :fullscreen="mdAndDown"
+  >
+    <p>
+      Lịch giao <strong>{{ GetConfirmQuantity }} pcs</strong>
+      <span v-if="GetConfirmItemName">cho "{{ GetConfirmItemName }}"</span
+      >.
+    </p>
+    <InputDate
+      label="Ngày giao thực tế"
+      v-model="GetActualDate"
+      :rules="[requiredRule]"
+    />
+    <template #actions>
+      <ButtonCancel @cancel="DialogEditActual = false" />
+      <ButtonSave @save="SaveEditActual()" :disabled="!GetActualDate" />
+    </template>
+  </BaseDialog>
+
+  <!-- Dialog hủy xác nhận giao hàng -->
+  <BaseDialog
+    v-model="DialogUnconfirm"
+    title="Hủy xác nhận giao hàng"
+    icon="mdi-undo"
+    max-width="480" :fullscreen="mdAndDown"
+  >
+    <p>
+      Bạn có muốn hủy xác nhận giao
+      <strong>{{ GetConfirmQuantity }} pcs</strong>
+      <span v-if="GetConfirmItemName">cho "{{ GetConfirmItemName }}"</span>
+      ? SL đã giao sẽ bị trừ ngược.
+    </p>
+    <template #actions>
+      <ButtonCancel @cancel="DialogUnconfirm = false" />
+      <ButtonSave @save="UnconfirmItem()" />
     </template>
   </BaseDialog>
 
@@ -642,9 +768,18 @@ import Loading from "@/components/Loading.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
 import BaseDialog from "@/components/BaseDialog.vue";
 import InputDate from "@/components/Input-Date.vue";
+import PageHeader from "@/components/Page-Header.vue";
+import AppDataTable from "@/components/App-DataTable.vue";
 
 // Composables
 import { useDetailProjectPO } from "@/composables/Project/useDetailProjectPO";
+
+// Shared UI
+import {
+  statusChip,
+  scheduleState,
+  delayChip,
+} from "@/utils/deliveryStatus.js";
 
 // ===== STATE MANAGEMENT =====
 // API Configuration
@@ -667,6 +802,8 @@ const DialogAdd = ref(false); // Add new item dialog
 const DialogLoading = ref(false); // Loading state
 const DialogAddManufacture = ref(false);
 const DialogConfirm = ref(false);
+const DialogUnconfirm = ref(false);
+const DialogEditActual = ref(false);
 // ===== MESSAGE DIALOG =====
 // Message for success and error notifications
 const MessageDialog = ref("");
@@ -677,6 +814,18 @@ const MessageErrorDialog = ref("");
 const GetID = ref("");
 const GetIDManufacture = ref("");
 const GetIDConfirm = ref("");
+const GetConfirmQuantity = ref(0);
+const GetConfirmItemName = ref("");
+const GetActualDate = ref("");
+const GetEditActualSchedule = ref(null);
+// Ngày hôm nay YYYY-MM-DD (local)
+const todayYMD = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
 
 // Edit form states
 const PO_Edit = ref("");
@@ -713,15 +862,16 @@ const NameCustomer = ref(null); // Customer name from localStorage
 // Table states
 // const groupBy = [{ key: 'Product_Detail', order: 'asc',  title: "Chi tiết đơn hàng" }]
 const Headers = ref([
-  { key: "Product_Detail", title: "Chi tiết đơn hàng", width: "20%" },
-  { key: "Status", title: "Trạng thái", width: "10%" },
-  { key: "Quantity_Product", title: "SL đơn hàng", width: "10%" },
-  { key: "Quantity_Delivered", title: "SL đã giao", width: "10%" },
-  { key: "Quantity_Amount", title: "SL còn nợ", width: "10%" },
-  { key: "Quantity_Manufacture", title: "SL sản xuất", width: "10%" },
-  { key: "Percent_Manufacture", title: "Tỷ lệ sản xuất", width: "10%" },
-  { key: "Note", title: "Ghi chú", width: "15%" },
-  { key: "id", title: "Thao tác", width: "5%" },
+  { key: "Product_Detail", title: "Chi tiết đơn hàng", width: "17%" },
+  { key: "Status", title: "Trạng thái", width: "9%" },
+  { key: "Quantity_Product", title: "SL đơn hàng", width: "8%" },
+  { key: "Quantity_Delivered", title: "SL đã giao", width: "8%" },
+  { key: "Quantity_Amount", title: "SL còn nợ", width: "8%" },
+  { key: "Percent_Delivery", title: "Tỷ lệ giao", width: "10%" },
+  { key: "Quantity_Manufacture", title: "SL thành phẩm", width: "8%" },
+  { key: "Percent_Manufacture", title: "Tỷ lệ thành phẩm", width: "10%" },
+  { key: "Note", title: "Ghi chú", width: "12%" },
+  { key: "id", title: "Thao tác", width: "10%" },
 ]);
 const search = ref("");
 const itemsPerPage = ref(12);
@@ -780,6 +930,11 @@ const totalUniquePO = computed(() => {
   if (!detailProjectPO.value) return 0;
   const uniquePOIDs = new Set(detailProjectPO.value.map((item) => item.POID));
   return uniquePOIDs.size;
+});
+
+const pageSubtitle = computed(() => {
+  const orders = detailProjectPO.value?.length || 0;
+  return `${orders} đơn hàng · ${totalUniquePO.value} PO · ${NameCustomer.value || ""}`;
 });
 
 // Lịch giao hàng
@@ -861,6 +1016,30 @@ const getOverdueCount = (item) => {
   ).length;
 };
 
+// YYYY-MM-DD -> DD/MM/YYYY, thiếu/rỗng -> "—"
+const toSlash = (ymd) => {
+  if (!ymd || typeof ymd !== "string") return "—";
+  const parts = ymd.split("-");
+  if (parts.length !== 3) return ymd;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+};
+
+// Tổng SL đã hẹn trong các lịch giao của 1 đơn hàng
+const scheduledTotal = (item) => {
+  return getScheduleDeliveries(item).reduce(
+    (sum, s) => sum + (Number(s.DeliveryQuantity) || 0),
+    0,
+  );
+};
+
+// Tỷ lệ giao = SL đã giao / SL đơn hàng (kẹp 0-100, đơn 0 -> 0%)
+const deliveryPercent = (item) => {
+  const ordered = Number(item?.Quantity_Product) || 0;
+  const delivered = Number(item?.Quantity_Delivered) || 0;
+  if (ordered <= 0) return 0;
+  return Math.min(100, Math.max(0, (delivered * 100) / ordered));
+};
+
 // ===== CRUD OPERATIONS =====
 /**
  * Prepares an item for editing by setting up the edit dialog
@@ -889,10 +1068,31 @@ function GetItemManufacture(item) {
   GetIDManufacture.value = item.id;
 }
 
-const GetConfirm = (id) => {
+const GetConfirm = (schedule, item) => {
   DialogConfirm.value = true;
-  GetIDConfirm.value = id;
+  GetIDConfirm.value = schedule?.id ?? schedule;
+  GetConfirmQuantity.value = Number(schedule?.DeliveryQuantity) || 0;
+  GetConfirmItemName.value = item?.Product_Detail || "";
+  GetActualDate.value = todayYMD();
 };
+
+const GetUnconfirm = (schedule, item) => {
+  DialogUnconfirm.value = true;
+  GetIDConfirm.value = schedule?.id ?? schedule;
+  GetConfirmQuantity.value = Number(schedule?.DeliveryQuantity) || 0;
+  GetConfirmItemName.value = item?.Product_Detail || "";
+};
+
+const GetEditActual = (schedule) => {
+  DialogEditActual.value = true;
+  GetIDConfirm.value = schedule?.id;
+  GetConfirmQuantity.value = Number(schedule?.DeliveryQuantity) || 0;
+  GetConfirmItemName.value = "";
+  GetEditActualSchedule.value = schedule;
+  GetActualDate.value = schedule?.ActualDeliveryDate || todayYMD();
+};
+
+
 
 /**
  * Saves edited item data
@@ -1010,15 +1210,66 @@ const SaveAdd = async () => {
 };
 
 const ConfirmItem = async () => {
+  if (!GetActualDate.value) {
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Vui lòng chọn Ngày giao thực tế";
+    return;
+  }
   DialogLoading.value = true;
   try {
     const response = await axios.put(
       `${Url}/Project/DetailProject/Confirm-item/${GetIDConfirm.value}`,
+      { ActualDate: GetActualDate.value },
     );
-    MessageDialog.value = "Xác nhận giao hàng thành công";
+    MessageDialog.value =
+      response.data?.message || "Xác nhận giao hàng thành công";
     Reset();
   } catch (error) {
-    MessageErrorDialog.value = "Xác nhận giao hàng thất bại";
+    MessageErrorDialog.value =
+      error?.response?.data?.message || "Xác nhận giao hàng thất bại";
+    Error();
+  }
+};
+
+const SaveEditActual = async () => {
+  if (!GetActualDate.value) {
+    DialogFailed.value = true;
+    MessageErrorDialog.value = "Vui lòng chọn Ngày giao thực tế";
+    return;
+  }
+  DialogLoading.value = true;
+  try {
+    const s = GetEditActualSchedule.value || {};
+    const response = await axios.put(
+      `${Url}/Project/DetailProject/Edit-item-schedule-delivery/${GetIDConfirm.value}`,
+      {
+        DeliveryDate: dateStringToUnix(s.DeliveryDate),
+        DeliveryQuantity: s.DeliveryQuantity,
+        ActualDate: GetActualDate.value,
+      },
+    );
+    MessageDialog.value =
+      response.data?.message || "Cập nhật ngày thực giao thành công";
+    Reset();
+  } catch (error) {
+    MessageErrorDialog.value =
+      error?.response?.data?.message || "Cập nhật ngày thực giao thất bại";
+    Error();
+  }
+};
+
+const UnconfirmItem = async () => {
+  DialogLoading.value = true;
+  try {
+    const response = await axios.put(
+      `${Url}/Project/DetailProject/Unconfirm-item/${GetIDConfirm.value}`,
+    );
+    MessageDialog.value =
+      response.data?.message || "Hủy xác nhận giao hàng thành công";
+    Reset();
+  } catch (error) {
+    MessageErrorDialog.value =
+      error?.response?.data?.message || "Hủy xác nhận giao hàng thất bại";
     Error();
   }
 };
@@ -1157,6 +1408,10 @@ function Reset() {
   DialogAdd.value = false;
   DialogLoading.value = false;
   DialogConfirm.value = false;
+  DialogUnconfirm.value = false;
+  DialogEditActual.value = false;
+  GetActualDate.value = "";
+  GetEditActualSchedule.value = null;
   DialogAddManufacture.value = false;
   GetID.value = "";
   Product_Detail_Add.value = "";

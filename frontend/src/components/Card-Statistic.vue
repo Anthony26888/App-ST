@@ -5,24 +5,24 @@
     color="surface"
     border
   >
-    <v-card-text class="d-flex flex-column justify-space-between h-100">
+    <v-card-text class="d-flex flex-column pa-3">
       <div>
         <!-- Header -->
-        <div class="d-flex align-center mb-3">
-          <v-avatar :color="color" variant="tonal" size="42" class="me-3">
-            <v-icon :icon="icon" size="24" />
+        <div class="d-flex align-center mb-2">
+          <v-avatar :color="color" variant="tonal" size="34" class="me-2">
+            <v-icon :icon="icon" size="20" />
           </v-avatar>
 
-          <div class="text-subtitle-1 font-weight-medium text-medium-emphasis">
+          <div class="text-body-2 font-weight-medium text-medium-emphasis">
             {{ title }}
           </div>
         </div>
 
         <!-- Value + Right Info -->
-        <div class="d-flex align-center justify-space-between ga-3 flex-wrap">
+        <div class="d-flex align-center justify-space-between ga-2 flex-wrap">
           <!-- Main Value -->
           <div
-            :class="['text-h3 font-weight-bold', `text-${color}`]"
+            :class="['app-stat-value font-weight-bold', `text-${color}`]"
             style="line-height: 1"
           >
             {{ value }}
@@ -88,7 +88,7 @@
       </div>
 
       <!-- Subtitle -->
-      <div v-if="subtitle" class="text-caption text-medium-emphasis mt-3">
+      <div v-if="subtitle" class="text-caption text-medium-emphasis mt-1">
         {{ subtitle }}
       </div>
 
@@ -158,13 +158,18 @@ defineProps({
 </script>
 
 <style scoped>
+/* Value co giãn theo viewport: 13" gọn, 16" thoáng */
+.app-stat-value {
+  font-size: clamp(1.4rem, 1.1rem + 1vw, 2rem) !important;
+}
+
 .card-statistic {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .card-statistic:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
 }
 
 .chip-group {

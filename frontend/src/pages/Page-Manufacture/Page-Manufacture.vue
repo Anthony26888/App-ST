@@ -3,14 +3,15 @@
   <div>
     <!-- Card chính chứa toàn bộ nội dung -->
     <v-card variant="text" class="overflow-y-auto" height="100vh">
-      <!-- Tiêu đề trang -->
-      <v-card-title class="text-h4 font-weight-light" v-if="lgAndUp">
-        Danh sách sản xuất
-      </v-card-title>
+      <PageHeader
+        title="Danh sách sản xuất"
+        :subtitle="`${manufacture?.length || 0} đơn hàng`"
+        :crumbs="[{ title: 'Sản xuất' }]"
+      />
 
       <v-card-text>
         <v-row class="mb-3">
-          <v-col cols="12" md="3">
+          <v-col cols="6" md="3">
             <CardStatistic
               title="Tổng PO"
               :value="totalUniquePO"
@@ -19,7 +20,7 @@
               subtitle="Tổng số PO"
             />
           </v-col>
-          <v-col cols="12" md="3">
+          <v-col cols="6" md="3">
             <CardStatistic
               title="Tổng đơn hàng"
               :value="manufacture.length || 0"
@@ -28,7 +29,7 @@
               subtitle="Tổng số đơn hàng"
             />
           </v-col>
-          <v-col cols="12" md="3">
+          <v-col cols="6" md="3">
             <CardStatistic
               title="Đơn hàng hoàn thành"
               :value="
@@ -50,14 +51,14 @@
                   height="8"
                   color="success"
                   rounded
-                  class="mt-4"
+                  class="mt-2"
                   bg-color="success"
                   bg-opacity="0.2"
                 ></v-progress-linear>
               </template>
             </CardStatistic>
           </v-col>
-          <v-col cols="12" md="3">
+          <v-col cols="6" md="3">
             <CardStatistic
               title="Đơn hàng đang sản xuất"
               :value="
@@ -79,7 +80,7 @@
                   height="8"
                   color="warning"
                   rounded
-                  class="mt-4"
+                  class="mt-2"
                   bg-color="warning"
                   bg-opacity="0.2"
                 ></v-progress-linear>
@@ -102,35 +103,18 @@
           </v-card-title>
 
           <!-- Nội dung bảng dữ liệu -->
-          <v-card-text class="overflow-auto">
+          <v-card-text class="app-table-fill">
             <!-- Bảng dữ liệu chính -->
-            <v-data-table-virtual
+            <AppDataTable
               :group-by="groupBy"
-              density="comfortable"
               :headers="Headers"
               :items="manufacture"
               :search="search"
               :items-per-page="itemsPerPage"
               :page="page"
               @update:page="page = $event"
-              class="elevation-0"
-              :footer-props="{
-                'items-per-page-options': [10, 20, 50, 100],
-                'items-per-page-text': 'Số hàng mỗi trang',
-              }"
-              :header-props="{
-                sortByText: 'Sắp xếp theo',
-                sortDescText: 'Giảm dần',
-                sortAscText: 'Tăng dần',
-              }"
               :loading="DialogLoading"
-              loading-text="Đang tải dữ liệu..."
-              no-data-text="Không có dữ liệu"
-              no-results-text="Không tìm thấy kết quả"
-              :hover="true"
-              :dense="false"
-              :fixed-header="true"
-              height="64vh"
+              fit-viewport
             >
               <template
                 v-slot:group-header="{
@@ -174,16 +158,11 @@
               <!-- Cột trạng thái -->
               <template #[`item.Status_Output`]="{ item }">
                 <v-chip
-                  v-if="item.Status_Output == 'Hoàn thành'"
-                  color="success"
+                  :text="statusChip(item.Status_Output).text"
+                  :color="statusChip(item.Status_Output).color"
                   variant="tonal"
                   size="small"
-                >
-                  {{ item.Status_Output }}
-                </v-chip>
-                <v-chip v-else color="warning" variant="tonal" size="small">
-                  {{ item.Status_Output }}
-                </v-chip>
+                ></v-chip>
               </template>
               <template #[`item.Total`]="{ item }">
                 <v-chip color="primary" variant="tonal" size="small">{{
@@ -208,7 +187,29 @@
                   >
                 </v-progress-linear>
               </template>
-            </v-data-table-virtual>
+              <template #no-data>
+                <div class="app-empty-state text-center">
+                  <v-icon
+                    icon="mdi-package-variant-closed"
+                    size="40"
+                    color="medium-emphasis"
+                    class="mb-2"
+                  ></v-icon>
+                  <div class="text-body-1 text-medium-emphasis mb-3">
+                    Chưa có kế hoạch sản xuất nào
+                  </div>
+                  <v-btn
+                    color="primary"
+                    variant="tonal"
+                    prepend-icon="mdi-plus"
+                    class="text-none"
+                    @click="DialogAdd = true"
+                  >
+                    Thêm kế hoạch
+                  </v-btn>
+                </div>
+              </template>
+            </AppDataTable>
           </v-card-text>
         </v-card>
       </v-card-text>
@@ -219,7 +220,7 @@
       v-model="DialogEdit"
       title="Cập nhật dữ liệu kế hoạch"
       icon="mdi-update"
-      max-width="700px"
+      max-width="720" :fullscreen="mdAndDown"
     >
       <InputField
         label="Tên dự án"
@@ -318,7 +319,7 @@
       v-model="DialogAdd"
       title="Thêm dữ liệu sản xuất"
       icon="mdi-plus"
-      max-width="700px"
+      max-width="720" :fullscreen="mdAndDown"
     >
       <InputField label="Tên dự án" v-model="Name_Manufacture_Add" />
       <InputField
@@ -405,7 +406,7 @@
       v-model="DialogRemove"
       title="Xoá dữ liệu sản xuất"
       icon="mdi-delete"
-      max-width="500px"
+      max-width="480" :fullscreen="mdAndDown"
     >
       <p>Bạn có chắc chắn muốn xoá kế hoạch sản phẩm này ?</p>
       <template #actions>
@@ -455,8 +456,13 @@ import Loading from "@/components/Loading.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
 import BaseDialog from "@/components/BaseDialog.vue";
 import InputDate from "@/components/Input-Date.vue";
+import PageHeader from "@/components/Page-Header.vue";
+import AppDataTable from "@/components/App-DataTable.vue";
 
 import { useManufacture } from "@/composables/Manufacture/useManufacture";
+
+// Shared UI
+import { statusChip } from "@/utils/deliveryStatus.js";
 
 // Khởi tạo các composables và biến môi trường
 const { manufacture, manufactureError } = useManufacture();
