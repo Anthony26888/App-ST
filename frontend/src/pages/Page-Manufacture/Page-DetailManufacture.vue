@@ -376,17 +376,12 @@
                     <AppDataTable
                       :group-by="groupBy"
                       :headers="HeadersHistory"
-                      :items
-                    > item.Type === selectedTitle)
+                      :items="
+                        history.filter((item) => item.Type === selectedTitle)
                       "
-                      fixed-header
-                      loading-text="Đang tải dữ liệu..."
-                      no-data-text="Không có dữ liệu"
-                      no-results-text="Không tìm thấy kết quả"
                       class="bg-transparent"
                       v-model:page="pageDetail"
                       v-model:items-per-page="itemsPerPageDetail"
-                      hover
                     >
                       <template
                         v-slot:group-header="{
