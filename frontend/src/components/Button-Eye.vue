@@ -1,7 +1,7 @@
 <template lang="">
   <v-btn
     icon="mdi-eye-outline"
-    color="orange"
+    color="primary"
     variant="text"
     size="xs"
     @click="emitDetail()"

@@ -5,26 +5,22 @@
     color="surface"
     border
   >
-    <v-card-text class="d-flex flex-column pa-3">
+    <v-card-text class="d-flex flex-column pa-4">
       <div>
-        <!-- Header -->
-        <div class="d-flex align-center mb-2">
-          <v-avatar :color="color" variant="tonal" size="34" class="me-2">
-            <v-icon :icon="icon" size="20" />
-          </v-avatar>
-
-          <div class="text-body-2 font-weight-medium text-medium-emphasis">
+        <!-- Label + icon box (kiểu NexusPortal) -->
+        <div class="d-flex align-center justify-space-between mb-3">
+          <div class="text-caption font-weight-medium text-medium-emphasis">
             {{ title }}
           </div>
+          <v-avatar :color="color" variant="tonal" size="36" rounded="lg">
+            <v-icon :icon="icon" size="20" />
+          </v-avatar>
         </div>
 
         <!-- Value + Right Info -->
         <div class="d-flex align-center justify-space-between ga-2 flex-wrap">
           <!-- Main Value -->
-          <div
-            :class="['app-stat-value font-weight-bold', `text-${color}`]"
-            style="line-height: 1"
-          >
+          <div class="app-stat-value font-weight-bold" style="line-height: 1">
             {{ value }}
           </div>
 

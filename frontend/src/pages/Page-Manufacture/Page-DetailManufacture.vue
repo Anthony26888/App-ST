@@ -2,8 +2,6 @@
   <div class="manufacture-detail">
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <PageHeader
-        title="Theo dõi sản xuất"
-        :subtitle="`${NameManufacture || ''} · ${NameOrder || ''}`"
         back-to="/san-xuat"
         :crumbs="[
           { title: 'Sản xuất', to: '/San-xuat' },

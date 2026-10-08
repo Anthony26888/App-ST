@@ -1,7 +1,7 @@
 <template>
   <div>
     <v-card variant="text" class="app-page">
-      <v-card-title class="text-h4 font-weight-light">
+      <v-card-title class="app-page-title font-weight-light">
         <ButtonBack
           v-if="LevelUser === 'Nhân viên'"
           :to="`/Danh-sach-cong-viec`"

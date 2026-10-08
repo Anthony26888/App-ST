@@ -1,5 +1,5 @@
 <template lang="">
-  <v-btn @click="emitDelete()"  class="text-caption bg-red">Xoá</v-btn>
+  <v-btn @click="emitDelete()" color="error" class="text-caption">Xoá</v-btn>
 </template>
 <script>
 export default {

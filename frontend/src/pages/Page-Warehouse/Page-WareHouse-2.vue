@@ -1,8 +1,6 @@
 <template lang="">
   <v-card variant="text" class="app-page">
-    <v-card-title class="text-h4 font-weight-light" v-if="lgAndUp"
-      >Danh sách tồn kho Misa</v-card-title
-    >
+    <PageHeader :crumbs="[{ title: 'Kho' }]" />
     <v-card-text>
       <v-card variant="text">
         <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
@@ -341,6 +339,7 @@ import { useWareHouse2 } from "@/composables/Warehouse/useWareHouse2";
 import { useTemporaryWareHouse2 } from "@/composables/Warehouse/useTemporaryWareHouse2";
 // Components
 import ButtonImportFile from "@/components/Button-ImportFile.vue";
+import PageHeader from "@/components/Page-Header.vue";
 import AppDataTable from "@/components/App-DataTable.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";

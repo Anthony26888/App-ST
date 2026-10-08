@@ -1,11 +1,11 @@
 <template lang="">
   <v-card variant="text" class="app-page">
-    <v-card-title class="text-h4 font-weight-light" v-if="lgAndUp"
-      >Danh sách bảo trì</v-card-title
-    >
+    <PageHeader
+      :crumbs="[{ title: 'Bảo trì' }]"
+    />
     <v-card-title class="mb-3">
-      <v-row v-if="lgAndUp">
-        <v-col cols="12" sm="4" md="4">
+      <v-row>
+        <v-col cols="6" md="4">
           <CardStatistic
             title="Tổng số thiết bị"
             :value="machine?.length || 0"
@@ -13,7 +13,7 @@
             color="primary"
           />
         </v-col>
-        <v-col cols="12" sm="4" md="4">
+        <v-col cols="6" md="4">
           <CardStatistic
             title="Thiết bị đã bảo trì"
             :value="
@@ -23,40 +23,9 @@
             color="success"
           />
         </v-col>
-        <v-col cols="12" sm="4" md="4">
+        <v-col cols="6" md="4">
           <CardStatistic
             title="Thiết bị chưa bảo trì"
-            :value="
-              machine?.filter((p) => p.Status === 'Cần bảo trì').length || 0
-            "
-            icon="mdi-alert-circle"
-            color="warning"
-          />
-        </v-col>
-      </v-row>
-
-      <v-row v-else>
-        <v-col cols="4">
-          <CardStatistic
-            title="Tổng"
-            :value="machine?.length || 0"
-            icon="mdi-cog"
-            color="primary"
-          />
-        </v-col>
-        <v-col cols="4">
-          <CardStatistic
-            title="Đã bảo trì"
-            :value="
-              machine?.filter((p) => p.Status === 'Chưa tới hạn').length || 0
-            "
-            icon="mdi-check-circle"
-            color="success"
-          />
-        </v-col>
-        <v-col cols="4">
-          <CardStatistic
-            title="Đến hạn"
             :value="
               machine?.filter((p) => p.Status === 'Cần bảo trì').length || 0
             "
@@ -501,6 +470,7 @@ import { useMachine } from "@/composables/Maintenance/useMachine";
 
 // Components
 import InputSearch from "@/components/Input-Search.vue";
+import PageHeader from "@/components/Page-Header.vue";
 import AppDataTable from "@/components/App-DataTable.vue";
 import InputFiles from "@/components/Input-Files.vue";
 import InputField from "@/components/Input-Field.vue";

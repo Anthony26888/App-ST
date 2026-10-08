@@ -1,8 +1,6 @@
 <template lang="">
-  <v-card variant="text" class="app-page" v-if="lgAndUp">
-    <v-card-title class="d-flex">
-      <p class="text-h4 font-weight-light ms-3">Kiểm tra QC</p>
-    </v-card-title>
+  <v-card variant="text" class="app-page">
+    <PageHeader :crumbs="[{ title: 'Kiểm tra QC' }]" />
     <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
       <v-card variant="elevated" elevation="0" class="rounded-xl border app-card-fill">
         <v-card-title class="d-flex align-center pe-2">
@@ -41,7 +39,6 @@
     </v-card-text>
   </v-card>
 
-  <EmptyMobile v-else />
 
   <BaseDialog
     v-model="DialogAdd"
@@ -104,6 +101,7 @@ import { useRouter } from "vue-router";
 import { useDisplay } from "vuetify";
 import { useFilterBomQC } from "@/composables/CheckQC/useFilterBomQC.js";
 import ButtonBack from "@/components/Button-Back.vue";
+import PageHeader from "@/components/Page-Header.vue";
 import InputSearch from "@/components/Input-Search.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";
 import InputField from "@/components/Input-Field.vue";
@@ -117,7 +115,6 @@ import ButtonEdit from "@/components/Button-Edit.vue";
 import ButtonRemove from "@/components/Button-Remove.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import Loading from "@/components/Loading.vue";
-import EmptyMobile from "@/components/Empty-Mobile.vue";
 import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import BaseDialog from "@/components/BaseDialog.vue";

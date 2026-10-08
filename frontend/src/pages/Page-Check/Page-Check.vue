@@ -1,10 +1,7 @@
 <template lang="">
   <!-- Main Card Container -->
-  <v-card variant="text" class="app-page" v-if="lgAndUp">
-    <!-- Page Title -->
-    <v-card-title class="text-h4 font-weight-light">
-      Kiểm tra số liệu linh kiện
-    </v-card-title>
+  <v-card variant="text" class="app-page">
+    <PageHeader :crumbs="[{ title: 'Kiểm tra' }]" />
 
     <!-- Action Bar -->
     <v-card-title class="d-flex">
@@ -99,7 +96,6 @@
     </v-card-text>
   </v-card>
 
-  <EmptyMobile v-else />
 
   <!-- Import File Dialog -->
   <BaseDialog v-model="Dialog" width="400" title="Thêm dữ liệu" icon="mdi-plus">
@@ -171,6 +167,7 @@ import { useUsers } from "@/composables/Settings/useUsers";
 
 // Components
 import ButtonImportFile from "@/components/Button-ImportFile.vue";
+import PageHeader from "@/components/Page-Header.vue";
 import AppDataTable from "@/components/App-DataTable.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";
@@ -182,7 +179,6 @@ import InputFiles from "@/components/Input-Files.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
-import EmptyMobile from "@/components/Empty-Mobile.vue";
 import ButtonEdit from "@/components/Button-Edit.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import InputSelect from "@/components/Input-Select.vue";

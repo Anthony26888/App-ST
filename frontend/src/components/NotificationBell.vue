@@ -1,5 +1,5 @@
 <template>
-  <v-menu :close-on-content-click="false" location="start" width="500">
+  <v-menu :close-on-content-click="false" location="start" max-width="min(500px, 92vw)">
     <template v-slot:activator="{ props }">
       <v-btn class="text-none" variant="text" size="large" :color="unreadCount > 0 ? 'error' : 'primary'" v-bind="props" v-tooltip="'Thông báo giao hàng'">
         <v-badge v-if="unreadCount > 0" color="error" :content="unreadCount">
@@ -9,7 +9,7 @@
       </v-btn>
     </template>
 
-    <v-card class="rounded-lg" max-width="500">
+    <v-card class="rounded-lg" max-width="min(500px, 92vw)">
       <!-- Header -->
       <v-card-title class="d-flex align-center pa-4 bg-gradient">
         <v-icon class="me-2" color="white">mdi-bell</v-icon>
@@ -20,7 +20,7 @@
       <v-divider></v-divider>
 
       <!-- Content -->
-      <v-card-text class="pa-0" style="height: 500px; overflow-y: auto">
+      <v-card-text class="pa-0" style="height: min(500px, 70dvh); overflow-y: auto">
         <!-- Loading State -->
         <div v-if="loading" class="d-flex justify-center align-center pa-6">
           <v-progress-circular
@@ -173,16 +173,17 @@ const {
   background-color: rgba(103, 126, 234, 0.15);
 }
 
+/* Màu mức độ theo theme (dark-safe) */
 .text-error {
-  color: #ff5252 !important;
+  color: rgb(var(--v-theme-error)) !important;
 }
 
 .text-warning {
-  color: #ffa500 !important;
+  color: rgb(var(--v-theme-warning)) !important;
 }
 
 .text-orange {
-  color: #ff9800 !important;
+  color: rgb(var(--v-theme-warning)) !important;
 }
 </style>
 

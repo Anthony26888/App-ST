@@ -1,7 +1,7 @@
 <template lang="">
   <v-btn
     icon="mdi-delete"
-    color="red"
+    color="error"
     variant="text"
     @click="emitRemove()"
     class="text-caption"

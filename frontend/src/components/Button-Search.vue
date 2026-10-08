@@ -2,7 +2,7 @@
   <v-btn
     icon="mdi-file-search"
     size="xl"
-    color="green"
+    color="success"
     variant="text"
     @click="emitSearch()"
   ></v-btn>

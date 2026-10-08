@@ -2,8 +2,6 @@
   <v-card-title class="page-header d-flex align-center flex-wrap ga-2 py-3">
     <ButtonBack v-if="backTo" :to="backTo" />
     <div class="min-width-0">
-      
-      <div class="app-page-title font-weight-light">{{ title }}</div>
       <v-breadcrumbs
         v-if="crumbs && crumbs.length"
         :items="crumbs"
@@ -24,8 +22,7 @@
 import ButtonBack from "@/components/Button-Back.vue";
 
 defineProps({
-  title: { type: String, required: true },
-  subtitle: { type: String, default: "" },
+  title: { type: String, default: "" },
   backTo: { type: String, default: "" },
   // [{ title: 'Dự án', to: '/Du-an' }, { title: 'Chi tiết' }]
   crumbs: { type: Array, default: () => [] },

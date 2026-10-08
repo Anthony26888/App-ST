@@ -25,12 +25,33 @@ export default createVuetify({
   theme: {
     defaultTheme: 'light',
     themes: {
+      // Gam NexusPortal: primary xanh, neutrals slate.
+      // Cam-brand CHỈ dùng ở điểm thương hiệu (logo/login/license),
+      // tách riêng vars CSS --app-brand-*, không vào theme.
       light: {
         colors: {
-          primary: '#1867C0',
+          primary: '#2563EB',
+          'primary-darken-1': '#1D4ED8',
           secondary: '#5CBBF6',
+          success: '#10B981',
+          info: '#3B82F6',
+          warning: '#F59E0B',
+          error: '#EF4444',
           surface: '#FFFFFF',
-          background: '#F5F5F5',
+          background: '#F8FAFC',
+        },
+      },
+      dark: {
+        colors: {
+          primary: '#3B82F6',
+          'primary-darken-1': '#2563EB',
+          secondary: '#5CBBF6',
+          success: '#34D399',
+          info: '#60A5FA',
+          warning: '#FBBF24',
+          error: '#F87171',
+          surface: '#1E293B',
+          background: '#0F172A',
         },
       },
     },

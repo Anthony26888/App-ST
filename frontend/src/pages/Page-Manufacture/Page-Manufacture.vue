@@ -4,8 +4,6 @@
     <!-- Card chính chứa toàn bộ nội dung -->
     <v-card variant="text" class="overflow-y-auto" height="100vh">
       <PageHeader
-        title="Danh sách sản xuất"
-        :subtitle="`${manufacture?.length || 0} đơn hàng`"
         :crumbs="[{ title: 'Sản xuất' }]"
       />
 

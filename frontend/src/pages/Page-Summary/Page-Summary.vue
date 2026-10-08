@@ -3,10 +3,8 @@
     <v-card-title
       class="d-flex flex-wrap justify-space-between align-center pa-4 ga-2"
     >
-      <span class="text-h4 font-weight-light" v-if="lgAndUp"
-        >Báo cáo hằng ngày</span
-      >
-      <v-spacer v-if="lgAndUp"></v-spacer>
+      <span class="app-page-title font-weight-light">Báo cáo hằng ngày</span>
+      <v-spacer></v-spacer>
       <div class="d-flex align-center flex-wrap ga-2 justify-end">
         <v-tooltip text="Phân tích AI" location="start">
           <template v-slot:activator="{ props }">

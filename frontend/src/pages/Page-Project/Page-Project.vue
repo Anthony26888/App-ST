@@ -1,7 +1,6 @@
 <template lang="">
   <v-card variant="text" class="app-page">
     <PageHeader
-      title="Danh sách dự án"
       :crumbs="[{ title: 'Dự án' }]"
     >
       <template #actions>
@@ -11,7 +10,6 @@
           color="primary"
           @click="DialogAIChat = true"
         ></v-btn>
-        <NotificationBell />
       </template>
     </PageHeader>
     <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
@@ -505,7 +503,6 @@ import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
 import Loading from "@/components/Loading.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
-import NotificationBell from "@/components/NotificationBell.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";
 import InputDate from "@/components/Input-Date.vue";
 import PageHeader from "@/components/Page-Header.vue";

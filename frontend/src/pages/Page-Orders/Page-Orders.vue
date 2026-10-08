@@ -1,8 +1,8 @@
 <template lang="">
-  <v-card variant="text" class="app-page" v-if="lgAndUp">
-    <v-card-title class="text-h4 font-weight-light"
-      >Danh sách đơn hàng
-    </v-card-title>
+  <v-card variant="text" class="app-page">
+    <PageHeader
+      :crumbs="[{ title: 'Kho' }, { title: 'Đơn hàng' }]"
+    />
     <v-card-text>
       <v-row>
         <v-col cols="12" sm="4" md="4">
@@ -84,7 +84,6 @@
     </v-card-text>
   </v-card>
 
-  <EmptyMobile v-else />
 
   <BaseDialog v-model="DialogRemove" title="Xoá dữ liệu" icon="mdi-delete" max-width="500">
     <p> Bạn có chắc chắn muốn xoá dự án này ? </p>
@@ -109,6 +108,7 @@ import { useOrders } from "@/composables/Orders/useOrders";
 
 // Components
 import InputSearch from "@/components/Input-Search.vue";
+import PageHeader from "@/components/Page-Header.vue";
 import AppDataTable from "@/components/App-DataTable.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
@@ -116,7 +116,6 @@ import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonEye from "@/components/Button-Eye.vue";
 import ButtonRemove from "@/components/Button-Remove.vue";
-import EmptyMobile from "@/components/Empty-Mobile.vue";
 import CardStatistic from "@/components/Card-Statistic.vue";
 import BaseDialog from "@/components/BaseDialog.vue";
 

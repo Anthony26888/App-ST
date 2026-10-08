@@ -1,9 +1,9 @@
 <template lang="">
   <v-card variant="text" class="app-page">
-    <v-card-title class="d-flex">
-      <ButtonBack to="/Cai-dat" />
-      <p class="text-h4 font-weight-light ms-3">Quản lý License</p>
-    </v-card-title>
+    <PageHeader
+      back-to="/Cai-dat"
+      :crumbs="[{ title: 'Cài đặt', to: '/Cai-dat' }, { title: 'License' }]"
+    />
     <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
       <!-- SINH KEY TỪ MÃ XÁC NHẬN CỦA KHÁCH -->
       <v-card variant="elevated" elevation="0" class="rounded-xl border mb-4">
@@ -159,6 +159,7 @@ import axios from "axios";
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { io } from "socket.io-client";
 import InputSearch from "@/components/Input-Search.vue";
+import PageHeader from "@/components/Page-Header.vue";
 import InputSelect from "@/components/Input-Select.vue";
 import AppDataTable from "@/components/App-DataTable.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";

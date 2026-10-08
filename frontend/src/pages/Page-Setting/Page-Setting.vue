@@ -1,6 +1,6 @@
 <template lang="">
   <v-card variant="text" class="overflow-y-auto" height="100vh">
-    <v-card-title class="text-h4 font-weight-light"  v-if="lgAndUp">Cài đặt</v-card-title>
+    <PageHeader :crumbs="[{ title: 'Hệ thống'}]" />
     <v-card-text>
       <v-container>
         <v-list density="compact">
@@ -270,6 +270,7 @@ import { ref, watch } from "vue";
 
 // Components
 import ButtonDelete from "@/components/Button-Delete.vue";
+import PageHeader from "@/components/Page-Header.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";

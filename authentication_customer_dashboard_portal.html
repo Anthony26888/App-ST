@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusPortal - Hệ Thống Quản Lý Khách Hàng & Dự Án</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Phosphor Icons CDN -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(8px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.4);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(156, 163, 175, 0.7);
+        }
+        .glass-panel {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .gradient-border {
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans h-full antialiased transition-colors duration-200">
+
+    <!-- FLOATING THEME TOGGLE BUTTON -->
+    <button onclick="toggleTheme()" class="fixed top-4 right-4 z-50 p-2.5 rounded-xl bg-white/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-lg glass-panel hover:bg-slate-100 dark:hover:bg-slate-700 transition" title="Đổi Chế Độ Sáng / Tối">
+        <i id="theme-icon" class="ph ph-moon text-xl"></i>
+    </button>
+
+    <!-- SECTION 1: AUTHENTICATION CONTAINER (LOGIN / SIGNUP / FORGOT PASS / OTP) -->
+    <div id="auth-section" class="min-h-full flex flex-col lg:flex-row relative">
+        
+        <div class="lg:w-1/2 bg-gradient-to-br from-slate-900 via-indigo-950 to-brand-900 text-white p-8 lg:p-16 flex flex-col justify-between relative overflow-hidden min-h-[340px] lg:min-h-screen">
+            <!-- Background Decorative Glow Shapes -->
+            <div class="absolute -top-24 -left-24 w-96 h-96 bg-brand-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute bottom-0 right-0 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            <!-- Brand Header -->
+            <div class="relative z-10 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-500 to-indigo-400 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-brand-500/30">
+                        N
+                    </div>
+                    <span class="font-extrabold text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-slate-300">NexusPortal</span>
+                </div>
+                <span class="hidden sm:inline-block px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-slate-200 border border-white/10">v2.4 Enterprise</span>
+            </div>
+
+            <!-- Hero Headline & Dynamic Preview Widget -->
+            <div class="relative z-10 my-8 lg:my-auto max-w-lg">
+                <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-500/20 border border-brand-400/30 text-brand-300 text-xs font-medium mb-4">
+                    <i class="ph ph-sparkle text-sm"></i>
+                    <span>Cổng Thông Tin Dự Án Khách Hàng High-End</span>
+                </div>
+                <h1 class="text-3xl lg:text-4xl font-extrabold leading-tight tracking-tight text-white mb-4">
+                    Theo dõi tiến độ & nghiệm thu dự án thời gian thực.
+                </h1>
+                <p class="text-slate-300 text-sm lg:text-base leading-relaxed mb-8">
+                    Quản lý milestone, tương tác trực tiếp với đội ngũ phát triển, minh bạch ngân sách và yêu cầu hỗ trợ chỉ trong một nền tảng đồng bộ.
+                </p>
+
+                <!-- Live Metrics Mock Preview Card -->
+                <div class="glass-panel bg-white/10 p-5 rounded-2xl border border-white/15 shadow-2xl space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                                <i class="ph ph-trend-up text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-300 font-medium">Tiến độ tổng thể quý IV</p>
+                                <p class="text-base font-bold text-white">88.5% Hoàn thành</p>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Đúng Tiến Độ</span>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between text-xs text-slate-300">
+                            <span>SaaS Redesign Sprint</span>
+                            <span class="font-semibold text-white">28/32 Tasks</span>
+                        </div>
+                        <div class="w-full bg-white/10 h-2 rounded-full overflow-hidden">
+                            <div class="bg-gradient-to-r from-brand-400 to-emerald-400 h-full rounded-full" style="width: 88%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Copyright -->
+            <div class="relative z-10 text-xs text-slate-400 flex items-center justify-between pt-4 border-t border-white/10">
+                <span>&copy; 2026 NexusPortal Platform Inc.</span>
+                <div class="flex space-x-4 text-slate-300">
+                    <a href="#" onclick="showToast('Chính sách bảo mật đã được duyệt'); return false;" class="hover:underline">Bảo mật</a>
+                    <a href="#" onclick="showToast('Điều khoản dịch vụ tiêu chuẩn'); return false;" class="hover:underline">Điều khoản</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:w-1/2 flex items-center justify-center p-6 lg:p-12 bg-slate-50 dark:bg-slate-900 transition-colors">
+            <div class="w-full max-w-md space-y-6">
+
+                <!-- Quick Demo Auto-fill Banner -->
+                <div id="demo-banner" class="bg-brand-50 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-800/60 rounded-2xl p-4 flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center text-base shrink-0 shadow-sm">
+                            <i class="ph ph-lightning"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-800 dark:text-slate-100">Dùng thử nhanh không cần đăng ký?</p>
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400">Tự động điền tài khoản Khách Hàng mẫu</p>
+                        </div>
+                    </div>
+                    <button onclick="fillDemoAccount()" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-lg transition shadow-sm whitespace-nowrap">
+                        Thử Ngay
+                    </button>
+                </div>
+
+                <!-- VIEW 1: LOGIN FORM -->
+                <div id="view-login" class="auth-view space-y-6 animate-fade-in">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Đăng Nhập Khách Hàng</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Vui lòng nhập tài khoản được cấp để truy cập Dashboard.</p>
+                    </div>
+
+                    <form onsubmit="handleLoginSubmit(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Email / Tên đăng nhập</label>
+                            <div class="relative">
+                                <i class="ph ph-envelope absolute left-3.5 top-3 text-slate-400 text-base"></i>
+                                <input id="login-email" required type="email" placeholder="alex.morgan@acme.com" 
+                                    class="w-full bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs rounded-xl pl-10 pr-4 py-2.5 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Mật khẩu</label>
+                                <a href="#" onclick="switchAuthView('view-forgot-password')" class="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline">Quên mật khẩu?</a>
+                            </div>
+                            <div class="relative">
+                                <i class="ph ph-lock absolute left-3.5 top-3 text-slate-400 text-base"></i>
+                                <input id="login-password" required type="password" placeholder="••••••••••••" 
+                                    class="w-full bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs rounded-xl pl-10 pr-10 py-2.5 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
+                                <button type="button" onclick="togglePasswordVisibility('login-password', this)" class="absolute right-3.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                                    <i class="ph ph-eye text-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-1">
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" checked class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 w-4 h-4">
+                                <span class="text-xs text-slate-600 dark:text-slate-400 font-medium">Ghi nhớ đăng nhập</span>
+                            </label>
+                        </div>
+
+                        <button id="btn-login-submit" type="submit" class="w-full bg-brand-600 hover:bg-brand-700 active:scale-[0.99] text-white font-semibold text-xs py-3 rounded-xl transition shadow-md shadow-brand-500/20 flex items-center justify-center space-x-2">
+                            <span>Đăng Nhập Dashboard</span>
+                            <i class="ph ph-arrow-right font-bold text-sm"></i>
+                        </button>
+                    </form>
+
+                    <!-- Social Logins -->
+                    <div class="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+                        <p class="text-center text-[11px] font-medium text-slate-400 uppercase tracking-wider">Hoặc đăng nhập nhanh bằng SSO</p>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="simulateSSOLogin('Google')" class="flex items-center justify-center space-x-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-200 text-xs font-semibold py-2.5 rounded-xl transition">
+                                <i class="ph ph-google-logo text-base text-red-500"></i>
+                                <span>Google Workspace</span>
+                            </button>
+                            <button onclick="simulateSSOLogin('GitHub')" class="flex items-center justify-center space-x-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-200 text-xs font-semibold py-2.5 rounded-xl transition">
+                                <i class="ph ph-github-logo text-base"></i>
+                                <span>GitHub SSO</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <p class="text-center text-xs text-slate-500 dark:text-slate-400">
+                        Chưa có tài khoản dự án? 
+                        <a href="#" onclick="switchAuthView('view-signup')" class="font-bold text-brand-600 dark:text-brand-400 hover:underline">Đăng ký đối tác ngay</a>
+                    </p>
+                </div>
+
+                <!-- VIEW 2: SIGN UP FORM -->
+                <div id="view-signup" class="auth-view hidden space-y-6 animate-fade-in">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Tạo Tài Khoản Khách Hàng</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Đăng ký để khởi tạo dự án mới với đội ngũ của chúng tôi.</p>
+                    </div>
+
+                    <form onsubmit="handleSignupSubmit(event)" class="space-y-3.5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Họ & Tên</label>
+                                <input id="signup-name" required type="text" placeholder="Alex Morgan" class="w-full bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs rounded-xl px-3 py-2.5 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Tên Công Ty / Doanh Nghiệp</label>
+                                <input id="signup-company" required type="text" placeholder="Acme Global Inc." class="w-full bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs rounded-xl px-3 py-2.5 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Email Công Việc</label>
+                            <input id="signup-email" required type="email" placeholder="alex@acme.com" class="w-full bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs rounded-xl px-3 py-2.5 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Mật khẩu khởi tạo</label>
+                            <div class="relative">
+                                <input id="signup-password" oninput="checkPasswordStrength(this.value)" required type="password" placeholder="Tối thiểu 8 ký tự..." class="w-full bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs rounded-xl pl-3 pr-10 py-2.5 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                <button type="button" onclick="togglePasswordVisibility('signup-password', this)" class="absolute right-3 top-2.5 text-slate-400">
+                                    <i class="ph ph-eye text-lg"></i>
+                                </button>
+                            </div>
+                            <!-- Password Strength Meter -->
+                            <div class="mt-2 space-y-1">
+                                <div class="flex justify-between items-center text-[10px]">
+                                    <span class="text-slate-400">Độ mạnh mật khẩu:</span>
+                                    <span id="strength-label" class="font-bold text-slate-400">Chưa nhập</span>
+                                </div>
+                                <div class="w-full bg-slate-200 dark:bg-slate-700 h-1 rounded-full overflow-hidden flex">
+                                    <div id="strength-bar" class="h-full w-0 transition-all duration-300 bg-red-500"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <label class="flex items-start space-x-2 pt-1 cursor-pointer">
+                            <input required type="checkbox" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 w-4 h-4 mt-0.5">
+                            <span class="text-xs text-slate-600 dark:text-slate-400 leading-tight">Tôi đồng ý với các <a href="#" class="text-brand-600 underline">Điều khoản dịch vụ</a> và <a href="#" class="text-brand-600 underline">Chính sách bảo mật</a>.</span>
+                        </label>
+
+                        <button id="btn-signup-submit" type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs py-3 rounded-xl transition shadow-md shadow-brand-500/20">
+                            Tiếp Tục Xác Minh Email
+                        </button>
+                    </form>
+
+                    <p class="text-center text-xs text-slate-500 dark:text-slate-400">
+                        Đã có tài khoản? 
+                        <a href="#" onclick="switchAuthView('view-login')" class="font-bold text-brand-600 dark:text-brand-400 hover:underline">Đăng nhập</a>
+                    </p>
+                </div>
+
+                <!-- VIEW 3: FORGOT PASSWORD FORM -->
+                <div id="view-forgot-password" class="auth-view hidden space-y-6 animate-fade-in">
+                    <div>
+                        <button onclick="switchAuthView('view-login')" class="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline inline-flex items-center space-x-1 mb-2">
+                            <i class="ph ph-arrow-left"></i>
+                            <span>Quay lại đăng nhập</span>
+                        </button>
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Khôi Phục Mật Khẩu</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Nhập email đăng ký của bạn. Chúng tôi sẽ gửi mã OTP khôi phục.</p>
+                    </div>
+
+                    <form onsubmit="handleForgotPasswordSubmit(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Email khôi phục</label>
+                            <div class="relative">
+                                <i class="ph ph-envelope absolute left-3.5 top-3 text-slate-400 text-base"></i>
+                                <input id="forgot-email" required type="email" placeholder="alex.morgan@acme.com" class="w-full bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs rounded-xl pl-10 pr-4 py-2.5 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs py-3 rounded-xl transition shadow-md shadow-brand-500/20">
+                            Gửi Mã OTP Xác Nhận
+                        </button>
+                    </form>
+                </div>
+
+                <!-- VIEW 4: OTP VERIFICATION FORM -->
+                <div id="view-otp" class="auth-view hidden space-y-6 animate-fade-in">
+                    <div class="text-center">
+                        <div class="w-12 h-12 bg-brand-100 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3">
+                            <i class="ph ph-shield-check"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Xác Minh Mã OTP</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Chúng tôi đã gửi 4 chữ số xác minh tới email của bạn.</p>
+                    </div>
+
+                    <form onsubmit="handleOtpSubmit(event)" class="space-y-6">
+                        <!-- 4-Digit Inputs -->
+                        <div class="flex justify-center space-x-3">
+                            <input type="text" maxlength="1" oninput="moveOtpFocus(this, 'otp-2')" id="otp-1" class="w-12 h-12 text-center font-bold text-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <input type="text" maxlength="1" oninput="moveOtpFocus(this, 'otp-3')" id="otp-2" class="w-12 h-12 text-center font-bold text-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <input type="text" maxlength="1" oninput="moveOtpFocus(this, 'otp-4')" id="otp-3" class="w-12 h-12 text-center font-bold text-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <input type="text" maxlength="1" id="otp-4" class="w-12 h-12 text-center font-bold text-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        </div>
+
+                        <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs py-3 rounded-xl transition shadow-md shadow-brand-500/20">
+                            Xác Nhận & Đăng Nhập
+                        </button>
+                    </form>
+
+                    <div class="text-center text-xs text-slate-500">
+                        <span>Chưa nhận được mã? </span>
+                        <button id="btn-resend-otp" onclick="resendOtp()" class="font-bold text-brand-600 dark:text-brand-400 hover:underline">Gửi lại (<span id="resend-timer">30</span>s)</button>
+                    </div>
+                </div>
+
+                <!-- VIEW 5: SUCCESS REDIRECT STATE -->
+                <div id="view-success" class="auth-view hidden text-center space-y-4 py-8 animate-fade-in">
+                    <div class="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center text-3xl mx-auto animate-bounce">
+                        <i class="ph ph-check-bold"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Xác Thực Thành Công!</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">Hệ thống đang tải dữ liệu không gian làm việc của bạn...</p>
+
+                    <div class="pt-4">
+                        <button onclick="launchDashboardPortal()" class="bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs px-6 py-3 rounded-xl transition shadow-lg shadow-brand-500/30 flex items-center justify-center space-x-2 mx-auto">
+                            <span>Vào Dashboard Ngay</span>
+                            <i class="ph ph-arrow-right font-bold"></i>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 2: FULL DASHBOARD PORTAL (HIDDEN UNTIL AUTHENTICATED) -->
+    <div id="dashboard-section" class="hidden flex h-full overflow-hidden">
+
+        <!-- Mobile Sidebar Overlay -->
+        <div id="sidebar-backdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-slate-900/50 z-40 hidden lg:hidden transition-opacity"></div>
+
+        <!-- Sidebar Navigation -->
+        <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+            <!-- Brand / Logo -->
+            <div class="h-16 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-700">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white font-bold text-lg shadow-md shadow-brand-500/20">
+                        N
+                    </div>
+                    <span class="font-bold text-xl tracking-tight text-slate-900 dark:text-white">NexusPortal</span>
+                </div>
+                <button onclick="toggleMobileSidebar()" class="lg:hidden text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white">
+                    <i class="ph ph-x text-2xl"></i>
+                </button>
+            </div>
+
+            <!-- Workspace Switcher -->
+            <div class="p-4 border-b border-slate-100 dark:border-slate-700/50">
+                <div class="relative">
+                    <select id="project-workspace-selector" class="w-full bg-slate-100 dark:bg-slate-700/50 text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg px-3 py-2 pr-8 appearance-none focus:outline-none focus:ring-2 focus:ring-brand-500 border border-transparent dark:border-slate-600">
+                        <option value="all">🏢 Tất Cả Không Gian Dự Án</option>
+                        <option value="acme">🚀 Acme Corp Rebrand</option>
+                        <option value="starlight">✨ Starlight SaaS App</option>
+                        <option value="apex">⚡ Apex E-Commerce</option>
+                    </select>
+                    <i class="ph ph-caret-down absolute right-3 top-2.5 text-slate-400 pointer-events-none"></i>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+                <a href="#" onclick="switchTab('overview', event)" id="nav-overview" class="nav-item flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400">
+                    <i class="ph ph-squares-four text-lg"></i>
+                    <span>Tổng Quan Portal</span>
+                </a>
+                <a href="#" onclick="switchTab('projects', event)" id="nav-projects" class="nav-item flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                    <i class="ph ph-folder-open text-lg"></i>
+                    <span>Dự Án Đang Chạy</span>
+                    <span class="ml-auto bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 text-[10px] px-2 py-0.5 rounded-full font-bold">4</span>
+                </a>
+                <a href="#" onclick="switchTab('tasks', event)" id="nav-tasks" class="nav-item flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                    <i class="ph ph-check-square text-lg"></i>
+                    <span>Milestones & Tasks</span>
+                </a>
+                <a href="#" onclick="switchTab('financials', event)" id="nav-financials" class="nav-item flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                    <i class="ph ph-receipt text-lg"></i>
+                    <span>Hóa Đơn & Thanh Toán</span>
+                </a>
+                <a href="#" onclick="switchTab('tickets', event)" id="nav-tickets" class="nav-item flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                    <i class="ph ph-headset text-lg"></i>
+                    <span>Hỗ Trợ / Yêu Cầu</span>
+                    <span class="ml-auto bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-[10px] px-2 py-0.5 rounded-full font-bold">2</span>
+                </a>
+                <a href="#" onclick="switchTab('team', event)" id="nav-team" class="nav-item flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                    <i class="ph ph-users text-lg"></i>
+                    <span>Đội Ngũ Phụ Trách</span>
+                </a>
+                <div class="pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
+                    <a href="#" onclick="switchTab('settings', event)" id="nav-settings" class="nav-item flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                        <i class="ph ph-gear text-lg"></i>
+                        <span>Cấu Hình Tài Khoản</span>
+                    </a>
+                </div>
+            </nav>
+
+            <!-- Bottom User Profile Logout Area -->
+            <div class="p-4 border-t border-slate-200 dark:border-slate-700">
+                <button onclick="logoutToAuth()" class="w-full flex items-center justify-center space-x-2 bg-slate-100 dark:bg-slate-700 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-700 dark:text-slate-200 hover:text-red-600 dark:hover:text-red-400 text-xs font-semibold py-2 px-3 rounded-lg transition">
+                    <i class="ph ph-sign-out text-base"></i>
+                    <span>Đăng Xuất Hệ Thống</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+            <!-- Top Dashboard Header Bar -->
+            <header class="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 sm:px-6 z-10 shrink-0">
+                <div class="flex items-center space-x-3">
+                    <button onclick="toggleMobileSidebar()" class="lg:hidden text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white p-2 rounded-lg">
+                        <i class="ph ph-list text-2xl"></i>
+                    </button>
+
+                    <!-- Global Search -->
+                    <div class="relative w-48 sm:w-72">
+                        <i class="ph ph-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-lg"></i>
+                        <input id="global-search-input" type="text" placeholder="Tìm kiếm dự án, hóa đơn..." 
+                            class="w-full bg-slate-100 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 text-xs pl-9 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 border border-transparent dark:border-slate-600">
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <!-- New Request Button -->
+                    <button onclick="openModal('modal-new-project')" class="hidden sm:flex items-center space-x-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition shadow-sm">
+                        <i class="ph ph-plus-bold"></i>
+                        <span>Yêu Cầu Dự Án Mới</span>
+                    </button>
+
+                    <!-- User Profile Button -->
+                    <div class="flex items-center space-x-2 pl-2 border-l border-slate-200 dark:border-slate-700">
+                        <img id="user-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120" 
+                             alt="User Profile" class="w-8 h-8 rounded-full object-cover ring-2 ring-brand-500/20">
+                        <div class="hidden md:block text-left">
+                            <p id="user-display-name" class="text-xs font-bold text-slate-800 dark:text-slate-200">Alex Morgan</p>
+                            <p id="user-display-company" class="text-[10px] text-slate-500 dark:text-slate-400">Acme Product Lead</p>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+                <!-- TAB 1: OVERVIEW -->
+                <div id="tab-overview" class="tab-content space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                            <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Xin chào, <span id="welcome-name">Alex</span> 👋</h1>
+                            <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">Tổng hợp báo cáo tiến độ và ngân sách các hợp đồng hoạt động.</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs text-slate-500 dark:text-slate-400">Lọc trạng thái:</span>
+                            <select id="overview-status-filter" onchange="filterProjects()" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                <option value="all">Tất Cả Trạng Thái</option>
+                                <option value="In Progress">Đang Triển Khai</option>
+                                <option value="In Review">Đang Nghiệm Thu</option>
+                                <option value="Completed">Đã Hoàn Thành</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- KPI Cards Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Dự Án Đang Chạy</span>
+                                <div class="w-9 h-9 rounded-xl bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center">
+                                    <i class="ph ph-kanban text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex items-baseline justify-between">
+                                <span class="text-2xl font-bold text-slate-900 dark:text-white">4</span>
+                                <span class="inline-flex items-center text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                                    <i class="ph ph-arrow-up-right mr-0.5"></i> +1 Mới
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Ngân Sách Giải Ngân</span>
+                                <div class="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                                    <i class="ph ph-currency-dollar text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="text-2xl font-bold text-slate-900 dark:text-white">$42,800</span>
+                                    <span class="text-xs font-medium text-slate-500">/ $65,000</span>
+                                </div>
+                                <div class="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full mt-3 overflow-hidden">
+                                    <div class="bg-emerald-500 h-full rounded-full" style="width: 65%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Tasks Đã Hoàn Thành</span>
+                                <div class="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                                    <i class="ph ph-check-square-offset text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="text-2xl font-bold text-slate-900 dark:text-white">28 / 34</span>
+                                    <span class="text-xs font-semibold text-indigo-600 dark:text-indigo-400">82%</span>
+                                </div>
+                                <div class="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full mt-3 overflow-hidden">
+                                    <div class="bg-indigo-500 h-full rounded-full" style="width: 82%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Yêu Cầu Hỗ Trợ</span>
+                                <div class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                                    <i class="ph ph-chats text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex items-baseline justify-between">
+                                <span class="text-2xl font-bold text-slate-900 dark:text-white">2</span>
+                                <span class="text-xs font-medium px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">Đang Phản Hồi</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chart & Timeline Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-5 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm">
+                            <h3 class="font-bold text-slate-900 dark:text-white text-base mb-4">Milestones & Tiến Độ Theo Giai Đoạn</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1.5">
+                                        <span class="font-medium text-slate-700 dark:text-slate-300">Phase 1: Brand & Design System</span>
+                                        <span class="text-emerald-600 dark:text-emerald-400 font-semibold">100% Hoàn thành</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                                        <div class="bg-emerald-500 h-full rounded-full" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1.5">
+                                        <span class="font-medium text-slate-700 dark:text-slate-300">Phase 2: Mobile App Frontend Integration</span>
+                                        <span class="text-brand-600 dark:text-brand-400 font-semibold">65% Đang chạy</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                                        <div class="bg-brand-500 h-full rounded-full" style="width: 65%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Budget Chart -->
+                        <div class="bg-white dark:bg-slate-800 p-5 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm">
+                            <h3 class="font-bold text-slate-900 dark:text-white text-base mb-2">Biểu Đồ Ngân Sách</h3>
+                            <div class="relative h-44">
+                                <canvas id="budgetChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Active Projects Table -->
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm overflow-hidden">
+                        <div class="p-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                            <h3 class="font-bold text-slate-900 dark:text-white text-base">Danh Sách Dự Án Đang Chạy</h3>
+                            <button onclick="openModal('modal-new-project')" class="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline">+ Tạo mới</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-700/30 text-[11px] font-semibold text-slate-400 uppercase">
+                                        <th class="py-3 px-5">Tên Dự Án</th>
+                                        <th class="py-3 px-4">Trạng Thái</th>
+                                        <th class="py-3 px-4">Tiến Độ</th>
+                                        <th class="py-3 px-4">Hạn Bàn Giao</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="projects-table-body" class="divide-y divide-slate-100 dark:divide-slate-700/60 text-xs">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: PROJECTS -->
+                <div id="tab-projects" class="tab-content hidden space-y-6">
+                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Tất Cả Dự Án Khách Hàng</h1>
+                    <div id="projects-grid-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                </div>
+
+                <!-- TAB 3: TASKS -->
+                <div id="tab-tasks" class="tab-content hidden space-y-6">
+                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Danh Sách Tasks & Milestones</h1>
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+                        <div id="tasks-list" class="divide-y divide-slate-100 dark:divide-slate-700/60"></div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: FINANCIALS -->
+                <div id="tab-financials" class="tab-content hidden space-y-6">
+                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Hóa Đơn & Thanh Toán</h1>
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm p-4">
+                        <p class="text-xs text-slate-500">Các hóa đơn dịch vụ đã xuất cho doanh nghiệp của bạn.</p>
+                    </div>
+                </div>
+
+                <!-- TAB 5: TICKETS -->
+                <div id="tab-tickets" class="tab-content hidden space-y-6">
+                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Hỗ Trợ Kỹ Thuật</h1>
+                    <div id="tickets-container" class="space-y-4 max-w-2xl"></div>
+                </div>
+
+                <!-- TAB 6: TEAM -->
+                <div id="tab-team" class="tab-content hidden space-y-6">
+                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Đội Ngũ Phụ Trách</h1>
+                    <p class="text-xs text-slate-500">Các nhân sự chuyên trách đang trực tiếp xử lý hợp đồng của bạn.</p>
+                </div>
+
+                <!-- TAB 7: SETTINGS -->
+                <div id="tab-settings" class="tab-content hidden space-y-6">
+                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Cấu Hình Tài Khoản</h1>
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 max-w-lg space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">Tên Hiển Thị</label>
+                            <input id="setting-name-input" type="text" value="Alex Morgan" class="w-full bg-slate-50 dark:bg-slate-700 text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600">
+                        </div>
+                        <button onclick="showToast('Đã lưu thông tin cài đặt')" class="bg-brand-600 text-white text-xs px-4 py-2 rounded-lg">Lưu Thay Đổi</button>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL 1: NEW PROJECT REQUEST -->
+    <div id="modal-new-project" class="fixed inset-0 bg-slate-900/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 relative space-y-4">
+            <button onclick="closeModal('modal-new-project')" class="absolute top-4 right-4 text-slate-400">
+                <i class="ph ph-x text-xl"></i>
+            </button>
+            <h3 class="font-bold text-lg text-slate-900 dark:text-white">Yêu Cầu Khởi Tạo Dự Án Mới</h3>
+            <form onsubmit="handleCreateProject(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Tên Dự Án</label>
+                    <input id="input-project-name" required type="text" placeholder="e.g. AI Customer Chatbot Module" class="w-full bg-slate-50 dark:bg-slate-700 text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600">
+                </div>
+                <div class="pt-2 flex justify-end space-x-2">
+                    <button type="button" onclick="closeModal('modal-new-project')" class="px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300">Hủy</button>
+                    <button type="submit" class="px-4 py-2 text-xs font-semibold bg-brand-600 text-white rounded-lg">Gửi Yêu Cầu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-4 py-3 rounded-xl shadow-2xl text-xs font-medium flex items-center space-x-2 transform translate-y-20 opacity-0 transition-all duration-300 z-50 pointer-events-none">
+        <i class="ph ph-check-circle text-emerald-400 dark:text-emerald-600 text-lg"></i>
+        <span id="toast-message">Thao tác thành công</span>
+    </div>
+
+    <script>
+        // State Management
+        let currentUser = null;
+        let resendTimerInterval = null;
+
+        let projects = [
+            { id: 1, name: "Acme Corp Rebrand", client: "Acme Corp", status: "In Progress", progress: 75, dueDate: "12 Nov 2026" },
+            { id: 2, name: "Starlight SaaS Mobile App", client: "Starlight SaaS", status: "In Review", progress: 90, dueDate: "28 Oct 2026" },
+            { id: 3, name: "Apex E-Commerce Redesign", client: "Apex E-Commerce", status: "In Progress", progress: 40, dueDate: "15 Dec 2026" },
+            { id: 4, name: "Cloud Sync Infrastructure", client: "Acme Corp", status: "Completed", progress: 100, dueDate: "30 Sep 2026" }
+        ];
+
+        let tasks = [
+            { id: 101, title: "Nghiệm thu UI Kit trên Figma", project: "Acme Corp Rebrand", status: "Completed" },
+            { id: 102, title: "Duyệt cổng thanh toán VNPay", project: "Starlight SaaS Mobile App", status: "In Review" },
+            { id: 103, title: "Kiểm thử API Database Sync", project: "Apex E-Commerce Redesign", status: "In Progress" }
+        ];
+
+        let tickets = [
+            { id: 1, title: "Độ trễ API trên môi trường Sandbox", status: "Đang xử lý", date: "2 giờ trước" },
+            { id: 2, title: "Cập nhật địa chỉ xuất hóa đơn GTGT", status: "Hoàn thành", date: "1 ngày trước" }
+        ];
+
+        let budgetChartInstance = null;
+
+        // View Switching in Auth Section
+        function switchAuthView(viewId) {
+            document.querySelectorAll('.auth-view').forEach(v => v.classList.add('hidden'));
+            const target = document.getElementById(viewId);
+            if (target) {
+                target.classList.remove('hidden');
+            }
+        }
+
+        // 1-Click Demo Fill
+        function fillDemoAccount() {
+            switchAuthView('view-login');
+            document.getElementById('login-email').value = 'demo@projecthub.com';
+            document.getElementById('login-password').value = 'password123';
+            showToast('Đã tự động điền tài khoản mẫu!');
+        }
+
+        // Show/Hide Password Toggle
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'ph ph-eye-slash text-lg';
+            } else {
+                input.type = 'password';
+                icon.className = 'ph ph-eye text-lg';
+            }
+        }
+
+        // Password Strength Checker
+        function checkPasswordStrength(val) {
+            const bar = document.getElementById('strength-bar');
+            const label = document.getElementById('strength-label');
+            let score = 0;
+
+            if (val.length >= 6) score++;
+            if (val.length >= 10) score++;
+            if (/[A-Z]/.test(val)) score++;
+            if (/[0-9]/.test(val) || /[^A-Za-z0-9]/.test(val)) score++;
+
+            if (val.length === 0) {
+                bar.style.width = '0%';
+                label.innerText = 'Chưa nhập';
+                label.className = 'font-bold text-slate-400';
+            } else if (score <= 1) {
+                bar.style.width = '25%';
+                bar.className = 'h-full transition-all duration-300 bg-red-500';
+                label.innerText = 'Yếu';
+                label.className = 'font-bold text-red-500';
+            } else if (score === 2 || score === 3) {
+                bar.style.width = '65%';
+                bar.className = 'h-full transition-all duration-300 bg-amber-500';
+                label.innerText = 'Trung bình';
+                label.className = 'font-bold text-amber-500';
+            } else {
+                bar.style.width = '100%';
+                bar.className = 'h-full transition-all duration-300 bg-emerald-500';
+                label.innerText = 'Rất mạnh';
+                label.className = 'font-bold text-emerald-500';
+            }
+        }
+
+        // Move Focus on OTP Inputs
+        function moveOtpFocus(current, nextId) {
+            if (current.value.length >= 1) {
+                const nextInput = document.getElementById(nextId);
+                if (nextInput) nextInput.focus();
+            }
+        }
+
+        // Resend OTP Timer
+        function startOtpTimer() {
+            let count = 30;
+            const timerEl = document.getElementById('resend-timer');
+            const btn = document.getElementById('btn-resend-otp');
+            btn.disabled = true;
+
+            clearInterval(resendTimerInterval);
+            resendTimerInterval = setInterval(() => {
+                count--;
+                timerEl.innerText = count;
+                if (count <= 0) {
+                    clearInterval(resendTimerInterval);
+                    btn.disabled = false;
+                    btn.innerHTML = 'Gửi lại mã ngay';
+                }
+            }, 1000);
+        }
+
+        function resendOtp() {
+            showToast('Đã gửi lại mã OTP mới!');
+            startOtpTimer();
+        }
+
+        // Auth Form Handlers
+        function handleLoginSubmit(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-login-submit');
+            const email = document.getElementById('login-email').value;
+
+            btn.disabled = true;
+            btn.innerHTML = `<i class="ph ph-spinner animate-spin text-lg"></i><span>Đang xác thực...</span>`;
+
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = `<span>Đăng Nhập Dashboard</span><i class="ph ph-arrow-right font-bold text-sm"></i>`;
+
+                currentUser = {
+                    name: email.split('@')[0].replace('.', ' '),
+                    email: email,
+                    company: "Acme Enterprise"
+                };
+
+                switchAuthView('view-success');
+                showToast('Đăng nhập thành công!');
+                setTimeout(launchDashboardPortal, 1200);
+            }, 1200);
+        }
+
+        function handleSignupSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('signup-name').value;
+            const company = document.getElementById('signup-company').value;
+            const email = document.getElementById('signup-email').value;
+
+            currentUser = { name, company, email };
+
+            switchAuthView('view-otp');
+            startOtpTimer();
+            showToast('Mã xác minh đã được gửi!');
+        }
+
+        function handleForgotPasswordSubmit(e) {
+            e.preventDefault();
+            switchAuthView('view-otp');
+            startOtpTimer();
+            showToast('Đã gửi hướng dẫn khôi phục qua email!');
+        }
+
+        function handleOtpSubmit(e) {
+            e.preventDefault();
+            switchAuthView('view-success');
+            showToast('Xác thực OTP thành công!');
+            setTimeout(launchDashboardPortal, 1200);
+        }
+
+        function simulateSSOLogin(provider) {
+            showToast(`Đang kết nối cổng SSO ${provider}...`);
+            setTimeout(() => {
+                currentUser = { name: `${provider} User`, company: "SSO Organization", email: "sso@enterprise.com" };
+                switchAuthView('view-success');
+                setTimeout(launchDashboardPortal, 1000);
+            }, 1000);
+        }
+
+        // Transition to Dashboard Portal View
+        function launchDashboardPortal() {
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('dashboard-section').classList.remove('hidden');
+
+            if (currentUser) {
+                document.getElementById('welcome-name').innerText = currentUser.name;
+                document.getElementById('user-display-name').innerText = currentUser.name;
+                document.getElementById('user-display-company').innerText = currentUser.company || 'Customer Lead';
+            }
+
+            renderProjectsTable(projects);
+            renderProjectsGrid(projects);
+            renderTasksList(tasks);
+            renderTicketsList(tickets);
+            initBudgetChart();
+        }
+
+        function logoutToAuth() {
+            document.getElementById('dashboard-section').classList.add('hidden');
+            document.getElementById('auth-section').classList.remove('hidden');
+            switchAuthView('view-login');
+            showToast('Đã đăng xuất an toàn');
+        }
+
+        // Theme Toggle Function
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            const icon = document.getElementById('theme-icon');
+            icon.className = isDark ? 'ph ph-sun text-xl' : 'ph ph-moon text-xl';
+
+            if (budgetChartInstance) {
+                budgetChartInstance.destroy();
+                initBudgetChart();
+            }
+        }
+
+        // Mobile Sidebar Controls
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            sidebar.classList.toggle('-translate-x-full');
+            backdrop.classList.toggle('hidden');
+        }
+
+        // Dashboard Tab Switcher
+        function switchTab(tabId, event) {
+            if (event) event.preventDefault();
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            const target = document.getElementById(`tab-${tabId}`);
+            if (target) target.classList.remove('hidden');
+
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('bg-brand-50', 'dark:bg-brand-500/10', 'text-brand-600', 'dark:text-brand-400');
+                el.classList.add('text-slate-600', 'dark:text-slate-300');
+            });
+
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            if (activeNav) {
+                activeNav.classList.add('bg-brand-50', 'dark:bg-brand-500/10', 'text-brand-600', 'dark:text-brand-400');
+            }
+        }
+
+        // Helpers & Dynamic Rendering
+        function getBadge(status) {
+            switch(status) {
+                case 'Completed':
+                    return `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">Hoàn Thành</span>`;
+                case 'In Review':
+                    return `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">Nghiệm Thu</span>`;
+                default:
+                    return `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300">Đang Chạy</span>`;
+            }
+        }
+
+        function renderProjectsTable(data) {
+            const tbody = document.getElementById('projects-table-body');
+            tbody.innerHTML = '';
+            data.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition';
+                tr.innerHTML = `
+                    <td class="py-3 px-5 font-semibold text-slate-800 dark:text-slate-200">${p.name}<span class="block text-[10px] font-normal text-slate-400">${p.client}</span></td>
+                    <td class="py-3 px-4">${getBadge(p.status)}</td>
+                    <td class="py-3 px-4">${p.progress}%</td>
+                    <td class="py-3 px-4 text-slate-500">${p.dueDate}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderProjectsGrid(data) {
+            const container = document.getElementById('projects-grid-container');
+            container.innerHTML = '';
+            data.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <h4 class="font-bold text-slate-900 dark:text-white text-sm">${p.name}</h4>
+                        ${getBadge(p.status)}
+                    </div>
+                    <div class="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                        <div class="bg-brand-500 h-full rounded-full" style="width: ${p.progress}%"></div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderTasksList(taskList) {
+            const container = document.getElementById('tasks-list');
+            container.innerHTML = '';
+            taskList.forEach(t => {
+                const item = document.createElement('div');
+                item.className = 'py-3 flex items-center justify-between text-xs';
+                item.innerHTML = `
+                    <div>
+                        <p class="font-semibold text-slate-800 dark:text-slate-200">${t.title}</p>
+                        <span class="text-[10px] text-slate-400">${t.project}</span>
+                    </div>
+                    ${getBadge(t.status)}
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function renderTicketsList(ticketList) {
+            const container = document.getElementById('tickets-container');
+            container.innerHTML = '';
+            ticketList.forEach(tk => {
+                const card = document.createElement('div');
+                card.className = 'bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 flex justify-between items-center text-xs';
+                card.innerHTML = `
+                    <div>
+                        <p class="font-bold text-slate-900 dark:text-white">#TK-${tk.id} - ${tk.title}</p>
+                        <span class="text-[10px] text-slate-400">${tk.date}</span>
+                    </div>
+                    <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-700 font-semibold">${tk.status}</span>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function initBudgetChart() {
+            const ctx = document.getElementById('budgetChart');
+            if (!ctx) return;
+            const isDark = document.documentElement.classList.contains('dark');
+            budgetChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['T7', 'T8', 'T9', 'T10', 'T11'],
+                    datasets: [{
+                        data: [8500, 11200, 9400, 13700, 6200],
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: isDark ? '#94a3b8' : '#64748b', font: { size: 10 } } },
+                        y: { ticks: { color: isDark ? '#94a3b8' : '#64748b', font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        function filterProjects() {
+            const val = document.getElementById('overview-status-filter').value;
+            renderProjectsTable(val === 'all' ? projects : projects.filter(p => p.status === val));
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        function handleCreateProject(e) {
+            e.preventDefault();
+            const name = document.getElementById('input-project-name').value;
+            projects.unshift({ id: projects.length + 1, name, client: "Acme Corp", status: "In Progress", progress: 0, dueDate: "Tháng 12" });
+            renderProjectsTable(projects);
+            closeModal('modal-new-project');
+            showToast('Yêu cầu khởi tạo đã được gửi!');
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
+        }
+    </script>
+</body>
+</html>

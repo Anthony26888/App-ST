@@ -1,14 +1,9 @@
 <template lang="">
   <v-card variant="text" class="app-page">
-    <v-card-title class="d-flex" v-if="lgAndUp">
-      <ButtonBack to="/Bao-tri" />
-      <p class="text-h4 font-weight-light ms-3">Chi tiết bảo trì</p>
-    </v-card-title>
-    <v-card-title class="d-flex" v-else>
-      <ButtonBack to="/Bao-tri" />
-      <v-icon icon="mdi mdi-tools" color="primary"></v-icon> &nbsp;
-      {{ NameMachine }}
-    </v-card-title>
+    <PageHeader
+      back-to="/Bao-tri"
+      :crumbs="[{ title: 'Bảo trì', to: '/Bao-tri' }, { title: 'Chi tiết' }]"
+    />
     <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
       <v-card variant="elevated" elevation="0" class="rounded-xl border app-card-fill">
         <v-card-title class="d-flex align-center flex-wrap ga-2 pe-2">
@@ -556,6 +551,7 @@ import { ref, computed, reactive } from "vue";
 import { useDisplay } from "vuetify";
 
 import InputSearch from "@/components/Input-Search.vue";
+import PageHeader from "@/components/Page-Header.vue";
 import AppDataTable from "@/components/App-DataTable.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";
 import InputField from "@/components/Input-Field.vue";

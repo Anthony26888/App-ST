@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Portal & Project Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Phosphor Icons CDN -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.4);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(156, 163, 175, 0.7);
+        }
+        .glass-panel {
+            backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans h-full antialiased transition-colors duration-200">
+
+    <div class="flex h-full overflow-hidden">
+
+        <!-- Mobile Sidebar Overlay -->
+        <div id="sidebar-backdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-slate-900/50 z-40 hidden lg:hidden transition-opacity"></div>
+
+        <!-- Sidebar Navigation -->
+        <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+            <!-- Brand / Logo -->
+            <div class="h-16 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-700">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white font-bold text-lg shadow-md shadow-brand-500/20">
+                        N
+                    </div>
+                    <span class="font-bold text-xl tracking-tight text-slate-900 dark:text-white">NexusPortal</span>
+                </div>
+                <button onclick="toggleMobileSidebar()" class="lg:hidden text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white">
+                    <i class="ph ph-x text-2xl"></i>
+                </button>
+            </div>
+
+            <!-- Workspace Switcher -->
+            <div class="p-4 border-b border-slate-100 dark:border-slate-700/50">
+                <div class="relative">
+                    <select id="project-workspace-selector" class="w-full bg-slate-100 dark:bg-slate-700/50 text-slate-700 dark:text-slate-200 text-sm font-medium rounded-lg px-3 py-2 pr-8 appearance-none focus:outline-none focus:ring-2 focus:ring-brand-500 border border-transparent dark:border-slate-600">
+                        <option value="all">🏢 All Client Workspaces</option>
+                        <option value="acme">🚀 Acme Corp Rebrand</option>
+                        <option value="starlight">✨ Starlight SaaS App</option>
+                        <option value="apex">⚡ Apex E-Commerce</option>
+                    </select>
+                    <i class="ph ph-caret-down absolute right-3 top-2.5 text-slate-400 pointer-events-none"></i>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+                <a href="#" onclick="switchTab('overview', event)" id="nav-overview" class="nav-item flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400">
+                    <i class="ph ph-squares-four text-xl"></i>
+                    <span>Overview / Dashboard</span>
+                </a>
+                <a href="#" onclick="switchTab('projects', event)" id="nav-projects" class="nav-item flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                    <i class="ph ph-folder-open text-xl"></i>
+                    <span>Projects</span>
+                    <span class="ml-auto bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 text-xs px-2 py-0.5 rounded-full font-semibold">4</span>
+                </a>
+                <a href="#" onclick="switchTab('tasks', event)" id="nav-tasks" class="nav-item flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                    <i class="ph ph-check-square text-xl"></i>
+                    <span>Tasks & Milestones</span>
+                </a>
+                <a href="#" onclick="switchTab('financials', event)" id="nav-financials" class="nav-item flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                    <i class="ph ph-receipt text-xl"></i>
+                    <span>Invoices & Payments</span>
+                </a>
+                <a href="#" onclick="switchTab('tickets', event)" id="nav-tickets" class="nav-item flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                    <i class="ph ph-headset text-xl"></i>
+                    <span>Support / Tickets</span>
+                    <span class="ml-auto bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-xs px-2 py-0.5 rounded-full font-semibold">2</span>
+                </a>
+                <a href="#" onclick="switchTab('team', event)" id="nav-team" class="nav-item flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                    <i class="ph ph-users text-xl"></i>
+                    <span>Team Members</span>
+                </a>
+                <div class="pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
+                    <a href="#" onclick="switchTab('settings', event)" id="nav-settings" class="nav-item flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                        <i class="ph ph-gear text-xl"></i>
+                        <span>Settings</span>
+                    </a>
+                </div>
+            </nav>
+
+            <!-- Bottom Support Card -->
+            <div class="p-4 border-t border-slate-200 dark:border-slate-700">
+                <div class="bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700/50 dark:to-slate-800 p-3.5 rounded-xl text-center">
+                    <div class="w-8 h-8 rounded-full bg-brand-500 text-white flex items-center justify-center mx-auto mb-2 text-sm shadow">
+                        <i class="ph ph-lifebuoy"></i>
+                    </div>
+                    <p class="text-xs font-semibold text-slate-800 dark:text-slate-200">Dedicated Success Rep</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Sarah Jenkins</p>
+                    <button onclick="openModal('modal-new-ticket')" class="mt-2.5 w-full bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-medium py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-600 transition shadow-sm">
+                        Request Sync
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Container -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+            <!-- Top Header Bar -->
+            <header class="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 sm:px-6 z-10 shrink-0">
+                <div class="flex items-center space-x-3">
+                    <button onclick="toggleMobileSidebar()" class="lg:hidden text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white p-2 rounded-lg">
+                        <i class="ph ph-list text-2xl"></i>
+                    </button>
+
+                    <!-- Global Search -->
+                    <div class="relative w-48 sm:w-72">
+                        <i class="ph ph-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-lg"></i>
+                        <input id="global-search-input" type="text" placeholder="Search projects, tasks, invoices..." 
+                            class="w-full bg-slate-100 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 text-sm pl-9 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 border border-transparent dark:border-slate-600 transition">
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2 sm:space-x-4">
+                    <!-- New Request Button -->
+                    <button onclick="openModal('modal-new-project')" class="hidden sm:flex items-center space-x-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition shadow-sm shadow-brand-500/20">
+                        <i class="ph ph-plus-bold"></i>
+                        <span>New Project</span>
+                    </button>
+
+                    <!-- Dark/Light Theme Toggle -->
+                    <button onclick="toggleTheme()" class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition" title="Toggle Theme">
+                        <i id="theme-icon" class="ph ph-moon text-xl"></i>
+                    </button>
+
+                    <!-- Notifications Dropdown -->
+                    <div class="relative">
+                        <button onclick="toggleNotifications()" class="relative p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+                            <i class="ph ph-bell text-xl"></i>
+                            <span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white dark:ring-slate-800"></span>
+                        </button>
+
+                        <!-- Notification Panel -->
+                        <div id="notifications-panel" class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-2 z-50">
+                            <div class="px-4 py-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                                <h4 class="font-semibold text-sm text-slate-800 dark:text-slate-200">Notifications</h4>
+                                <span class="text-xs bg-brand-100 dark:bg-brand-900/40 text-brand-600 dark:text-brand-300 font-medium px-2 py-0.5 rounded-full">3 New</span>
+                            </div>
+                            <div class="divide-y divide-slate-100 dark:divide-slate-700/50 max-h-80 overflow-y-auto">
+                                <div class="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition flex space-x-3">
+                                    <div class="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 flex items-center justify-center shrink-0">
+                                        <i class="ph ph-check-circle"></i>
+                                    </div>
+                                    <div class="text-xs">
+                                        <p class="text-slate-700 dark:text-slate-200 font-medium">Milestone Approved</p>
+                                        <p class="text-slate-500 dark:text-slate-400 mt-0.5">UX Wireframes for Acme Corp completed.</p>
+                                        <span class="text-[10px] text-slate-400 mt-1 block">10 minutes ago</span>
+                                    </div>
+                                </div>
+                                <div class="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition flex space-x-3">
+                                    <div class="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-600 flex items-center justify-center shrink-0">
+                                        <i class="ph ph-receipt"></i>
+                                    </div>
+                                    <div class="text-xs">
+                                        <p class="text-slate-700 dark:text-slate-200 font-medium">New Invoice Generated</p>
+                                        <p class="text-slate-500 dark:text-slate-400 mt-0.5">Invoice #INV-2026-084 for $4,500 is ready.</p>
+                                        <span class="text-[10px] text-slate-400 mt-1 block">1 hour ago</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- User Profile Dropdown -->
+                    <div class="relative">
+                        <button onclick="toggleUserMenu()" class="flex items-center space-x-3 focus:outline-none">
+                            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120" 
+                                 alt="User Profile" 
+                                 class="w-9 h-9 rounded-full object-cover ring-2 ring-brand-500/20">
+                            <div class="hidden md:block text-left">
+                                <p class="text-xs font-semibold text-slate-800 dark:text-slate-200">Alex Morgan</p>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400">Acme Product Lead</p>
+                            </div>
+                            <i class="ph ph-caret-down text-slate-400 text-xs hidden md:block"></i>
+                        </button>
+
+                        <!-- Profile Dropdown Menu -->
+                        <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-1 z-50">
+                            <a href="#" onclick="switchTab('settings', event)" class="block px-4 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">Account Settings</a>
+                            <a href="#" class="block px-4 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">Billing Profile</a>
+                            <div class="border-t border-slate-100 dark:border-slate-700 my-1"></div>
+                            <a href="#" onclick="showToast('Logged out successfully')" class="block px-4 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">Sign Out</a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Scrollable Area -->
+            <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+                <!-- TAB 1: OVERVIEW / DASHBOARD -->
+                <div id="tab-overview" class="tab-content space-y-6">
+                    <!-- Top Welcome & Filter Bar -->
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                            <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Welcome back, Alex 👋</h1>
+                            <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Here is what is happening across your active projects today.</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs text-slate-500 dark:text-slate-400">Filter Status:</span>
+                            <select id="overview-status-filter" onchange="filterProjects()" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                <option value="all">All Statuses</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="In Review">In Review</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- KPI Cards Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                        <!-- KPI 1 -->
+                        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm hover:shadow-md transition">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Active Projects</span>
+                                <div class="w-9 h-9 rounded-xl bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center">
+                                    <i class="ph ph-kanban text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex items-baseline justify-between">
+                                <span class="text-2xl font-bold text-slate-900 dark:text-white">4</span>
+                                <span class="inline-flex items-center text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                                    <i class="ph ph-arrow-up-right mr-0.5"></i> +5% MoM
+                                </span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-1">2 delivering this month</p>
+                        </div>
+
+                        <!-- KPI 2 -->
+                        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm hover:shadow-md transition">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Budget Spent</span>
+                                <div class="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                                    <i class="ph ph-currency-dollar text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="text-2xl font-bold text-slate-900 dark:text-white">$42,800</span>
+                                    <span class="text-xs font-medium text-slate-500">/ $65,000</span>
+                                </div>
+                                <div class="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full mt-3 overflow-hidden">
+                                    <div class="bg-emerald-500 h-full rounded-full" style="width: 65%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- KPI 3 -->
+                        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm hover:shadow-md transition">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Tasks Completed</span>
+                                <div class="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                                    <i class="ph ph-check-square-offset text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="text-2xl font-bold text-slate-900 dark:text-white">28 / 34</span>
+                                    <span class="text-xs font-semibold text-indigo-600 dark:text-indigo-400">82%</span>
+                                </div>
+                                <div class="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full mt-3 overflow-hidden">
+                                    <div class="bg-indigo-500 h-full rounded-full" style="width: 82%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- KPI 4 -->
+                        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm hover:shadow-md transition">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Open Tickets</span>
+                                <div class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                                    <i class="ph ph-chats text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex items-baseline justify-between">
+                                <span class="text-2xl font-bold text-slate-900 dark:text-white">2</span>
+                                <span class="text-xs font-medium px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">Needs Feedback</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-1">Avg response time: 1.2 hrs</p>
+                        </div>
+                    </div>
+
+                    <!-- Middle Content Section: Charts & Timeline -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        <!-- Project Timeline / Gantt Preview -->
+                        <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-5 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm">
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 class="font-bold text-slate-900 dark:text-white text-base">Milestone Timeline</h3>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Current quarter key deliverable tracking</p>
+                                </div>
+                                <span class="text-xs font-semibold text-brand-600 dark:text-brand-400 cursor-pointer hover:underline" onclick="switchTab('tasks')">View Detailed Plan &rarr;</span>
+                            </div>
+
+                            <!-- Gantt Style Mini Visual -->
+                            <div class="space-y-4 pt-2">
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1.5">
+                                        <span class="font-medium text-slate-700 dark:text-slate-300">Phase 1: Brand & Design System</span>
+                                        <span class="text-slate-500">Oct 1 - Oct 18 (Completed)</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 dark:bg-slate-700 h-3 rounded-full overflow-hidden flex">
+                                        <div class="bg-emerald-500 h-full rounded-full" style="width: 100%"></div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1.5">
+                                        <span class="font-medium text-slate-700 dark:text-slate-300">Phase 2: Mobile App Frontend React Integration</span>
+                                        <span class="text-brand-600 dark:text-brand-400 font-semibold">Oct 19 - Nov 12 (Active)</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 dark:bg-slate-700 h-3 rounded-full overflow-hidden flex">
+                                        <div class="bg-brand-500 h-full rounded-full" style="width: 65%"></div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1.5">
+                                        <span class="font-medium text-slate-700 dark:text-slate-300">Phase 3: Backend API & Payment Gateway Integration</span>
+                                        <span class="text-slate-500">Nov 13 - Dec 05</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 dark:bg-slate-700 h-3 rounded-full overflow-hidden flex">
+                                        <div class="bg-slate-300 dark:bg-slate-600 h-full rounded-full" style="width: 15%"></div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1.5">
+                                        <span class="font-medium text-slate-700 dark:text-slate-300">Phase 4: Security Audit & Public Launch</span>
+                                        <span class="text-slate-500">Dec 06 - Dec 20</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 dark:bg-slate-700 h-3 rounded-full overflow-hidden flex">
+                                        <div class="bg-slate-200 dark:bg-slate-700 h-full rounded-full" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Budget Spending Chart -->
+                        <div class="bg-white dark:bg-slate-800 p-5 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm flex flex-col justify-between">
+                            <div>
+                                <h3 class="font-bold text-slate-900 dark:text-white text-base">Monthly Expenditure</h3>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Budget consumption velocity</p>
+                            </div>
+                            <div class="relative h-48 my-2">
+                                <canvas id="budgetChart"></canvas>
+                            </div>
+                            <div class="flex items-center justify-around text-center border-t border-slate-100 dark:border-slate-700/60 pt-3">
+                                <div>
+                                    <p class="text-[11px] text-slate-400">Avg / Month</p>
+                                    <p class="text-sm font-bold text-slate-800 dark:text-slate-200">$14,200</p>
+                                </div>
+                                <div class="border-r border-slate-100 dark:border-slate-700/60 h-8"></div>
+                                <div>
+                                    <p class="text-[11px] text-slate-400">Forecasted Left</p>
+                                    <p class="text-sm font-bold text-brand-600 dark:text-brand-400">$22,200</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Section: Active Projects Table & Recent Activity -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        <!-- Projects Table (2 cols) -->
+                        <div class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm overflow-hidden flex flex-col">
+                            <div class="p-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-bold text-slate-900 dark:text-white text-base">Active Projects Overview</h3>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Real-time status across active engagements</p>
+                                </div>
+                                <button onclick="openModal('modal-new-project')" class="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-700 flex items-center space-x-1">
+                                    <i class="ph ph-plus"></i>
+                                    <span>New Request</span>
+                                </button>
+                            </div>
+
+                            <div class="overflow-x-auto flex-1">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-700/30 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                                            <th class="py-3 px-5">Project Name</th>
+                                            <th class="py-3 px-4">Status</th>
+                                            <th class="py-3 px-4">Progress</th>
+                                            <th class="py-3 px-4">Due Date</th>
+                                            <th class="py-3 px-4 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="projects-table-body" class="divide-y divide-slate-100 dark:divide-slate-700/60 text-xs">
+                                        <!-- Dynamic Project Rows populated via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Activity Feed Sidebar Widget -->
+                        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-bold text-slate-900 dark:text-white text-base">Recent Activity</h3>
+                                <i class="ph ph-clock-counter-clockwise text-slate-400 text-lg"></i>
+                            </div>
+
+                            <div class="space-y-4">
+                                <div class="flex space-x-3">
+                                    <div class="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center text-xs shrink-0 mt-0.5">
+                                        <i class="ph ph-upload-simple"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-slate-700 dark:text-slate-300"><span class="font-semibold text-slate-900 dark:text-white">Sarah (Design Team)</span> uploaded new Figma prototypes.</p>
+                                        <span class="text-[10px] text-slate-400">25 mins ago</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex space-x-3">
+                                    <div class="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 flex items-center justify-center text-xs shrink-0 mt-0.5">
+                                        <i class="ph ph-currency-dollar"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-slate-700 dark:text-slate-300"><span class="font-semibold text-slate-900 dark:text-white">Payment Received</span> for Invoice #INV-2026-079 ($6,200).</p>
+                                        <span class="text-[10px] text-slate-400">2 hours ago</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex space-x-3">
+                                    <div class="w-7 h-7 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 flex items-center justify-center text-xs shrink-0 mt-0.5">
+                                        <i class="ph ph-check-circle"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-slate-700 dark:text-slate-300"><span class="font-semibold text-slate-900 dark:text-white">Milestone 2 Approved</span> by Alex Morgan.</p>
+                                        <span class="text-[10px] text-slate-400">1 day ago</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex space-x-3">
+                                    <div class="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 flex items-center justify-center text-xs shrink-0 mt-0.5">
+                                        <i class="ph ph-ticket"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-slate-700 dark:text-slate-300"><span class="font-semibold text-slate-900 dark:text-white">Support Ticket #104</span> opened regarding API latency.</p>
+                                        <span class="text-[10px] text-slate-400">2 days ago</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- TAB 2: PROJECTS PAGE -->
+                <div id="tab-projects" class="tab-content hidden space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h1 class="text-2xl font-bold text-slate-900 dark:text-white">All Projects</h1>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">Manage and track your active and archived contracts</p>
+                        </div>
+                        <button onclick="openModal('modal-new-project')" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition shadow-sm flex items-center justify-center space-x-2">
+                            <i class="ph ph-plus-bold"></i>
+                            <span>Create Project Request</span>
+                        </button>
+                    </div>
+
+                    <!-- Project Grid Visual Cards -->
+                    <div id="projects-grid-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Populated dynamically via JavaScript -->
+                    </div>
+                </div>
+
+                <!-- TAB 3: TASKS PAGE -->
+                <div id="tab-tasks" class="tab-content hidden space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Tasks & Milestones</h1>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">Detailed task breakdowns and deliverables</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="showToast('Task filter updated')" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs px-3 py-2 rounded-lg font-medium">All Tasks</button>
+                            <button onclick="showToast('Task filter updated')" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs px-3 py-2 rounded-lg font-medium text-slate-500">My Approvals</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm space-y-4">
+                        <div id="tasks-list" class="divide-y divide-slate-100 dark:divide-slate-700/60">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: FINANCIALS & INVOICES PAGE -->
+                <div id="tab-financials" class="tab-content hidden space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Invoices & Billing</h1>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">View statement history and download receipts</p>
+                        </div>
+                        <button onclick="simulateReceiptDownload('Statement-2026.pdf')" class="bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition shadow-sm flex items-center justify-center space-x-2">
+                            <i class="ph ph-download-simple"></i>
+                            <span>Export Full Statement</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-700/30 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                                        <th class="py-3 px-5">Invoice #</th>
+                                        <th class="py-3 px-4">Project</th>
+                                        <th class="py-3 px-4">Amount</th>
+                                        <th class="py-3 px-4">Issue Date</th>
+                                        <th class="py-3 px-4">Status</th>
+                                        <th class="py-3 px-4 text-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 dark:divide-slate-700/60 text-xs">
+                                    <tr>
+                                        <td class="py-4 px-5 font-semibold text-slate-800 dark:text-slate-200">#INV-2026-084</td>
+                                        <td class="py-4 px-4 text-slate-600 dark:text-slate-300">Starlight SaaS App</td>
+                                        <td class="py-4 px-4 font-bold text-slate-900 dark:text-white">$4,500.00</td>
+                                        <td class="py-4 px-4 text-slate-500">Oct 01, 2026</td>
+                                        <td class="py-4 px-4">
+                                            <span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">Pending</span>
+                                        </td>
+                                        <td class="py-4 px-4 text-right">
+                                            <button onclick="simulateReceiptDownload('INV-2026-084.pdf')" class="text-brand-600 dark:text-brand-400 hover:underline font-medium">Download PDF</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-4 px-5 font-semibold text-slate-800 dark:text-slate-200">#INV-2026-079</td>
+                                        <td class="py-4 px-4 text-slate-600 dark:text-slate-300">Acme Corp Rebrand</td>
+                                        <td class="py-4 px-4 font-bold text-slate-900 dark:text-white">$6,200.00</td>
+                                        <td class="py-4 px-4 text-slate-500">Sep 15, 2026</td>
+                                        <td class="py-4 px-4">
+                                            <span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">Paid</span>
+                                        </td>
+                                        <td class="py-4 px-4 text-right">
+                                            <button onclick="simulateReceiptDownload('INV-2026-079.pdf')" class="text-brand-600 dark:text-brand-400 hover:underline font-medium">Download PDF</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-4 px-5 font-semibold text-slate-800 dark:text-slate-200">#INV-2026-062</td>
+                                        <td class="py-4 px-4 text-slate-600 dark:text-slate-300">Apex E-Commerce</td>
+                                        <td class="py-4 px-4 font-bold text-slate-900 dark:text-white">$12,000.00</td>
+                                        <td class="py-4 px-4 text-slate-500">Aug 20, 2026</td>
+                                        <td class="py-4 px-4">
+                                            <span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">Paid</span>
+                                        </td>
+                                        <td class="py-4 px-4 text-right">
+                                            <button onclick="simulateReceiptDownload('INV-2026-062.pdf')" class="text-brand-600 dark:text-brand-400 hover:underline font-medium">Download PDF</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 5: SUPPORT / TICKETS PAGE -->
+                <div id="tab-tickets" class="tab-content hidden space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Support & Help Desk</h1>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">Direct technical help & customer support</p>
+                        </div>
+                        <button onclick="openModal('modal-new-ticket')" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition shadow-sm flex items-center justify-center space-x-2">
+                            <i class="ph ph-plus-bold"></i>
+                            <span>Create Support Ticket</span>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 space-y-4" id="tickets-container">
+                            <!-- Dynamic Ticket Items -->
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 h-fit space-y-3">
+                            <h3 class="font-bold text-slate-900 dark:text-white text-sm">Need Urgent Assistance?</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Our customer team is active Monday - Friday, 9:00 AM - 6:00 PM EST.</p>
+                            <div class="pt-2 border-t border-slate-100 dark:border-slate-700 space-y-2">
+                                <div class="flex items-center text-xs text-slate-600 dark:text-slate-300 space-x-2">
+                                    <i class="ph ph-envelope text-brand-500 text-base"></i>
+                                    <span>support@nexusportal.io</span>
+                                </div>
+                                <div class="flex items-center text-xs text-slate-600 dark:text-slate-300 space-x-2">
+                                    <i class="ph ph-phone text-emerald-500 text-base"></i>
+                                    <span>+1 (800) 555-0199</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 6: TEAM MEMBERS PAGE -->
+                <div id="tab-team" class="tab-content hidden space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Assigned Team</h1>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">Specialists allocated to your active projects</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 text-center space-y-3">
+                            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120" class="w-16 h-16 rounded-full mx-auto object-cover ring-2 ring-brand-500/30">
+                            <div>
+                                <h4 class="font-bold text-slate-900 dark:text-white text-sm">Sarah Jenkins</h4>
+                                <p class="text-xs text-brand-600 dark:text-brand-400">Lead Account Director</p>
+                            </div>
+                            <span class="inline-block px-2.5 py-0.5 bg-slate-100 dark:bg-slate-700 text-[10px] font-medium rounded-full text-slate-600 dark:text-slate-300">Acme & Starlight</span>
+                        </div>
+
+                        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 text-center space-y-3">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120" class="w-16 h-16 rounded-full mx-auto object-cover ring-2 ring-brand-500/30">
+                            <div>
+                                <h4 class="font-bold text-slate-900 dark:text-white text-sm">David Chen</h4>
+                                <p class="text-xs text-brand-600 dark:text-brand-400">Senior UI/UX Architect</p>
+                            </div>
+                            <span class="inline-block px-2.5 py-0.5 bg-slate-100 dark:bg-slate-700 text-[10px] font-medium rounded-full text-slate-600 dark:text-slate-300">Apex E-Commerce</span>
+                        </div>
+
+                        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 text-center space-y-3">
+                            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=120" class="w-16 h-16 rounded-full mx-auto object-cover ring-2 ring-brand-500/30">
+                            <div>
+                                <h4 class="font-bold text-slate-900 dark:text-white text-sm">Elena Rostova</h4>
+                                <p class="text-xs text-brand-600 dark:text-brand-400">Full Stack Tech Lead</p>
+                            </div>
+                            <span class="inline-block px-2.5 py-0.5 bg-slate-100 dark:bg-slate-700 text-[10px] font-medium rounded-full text-slate-600 dark:text-slate-300">Starlight SaaS</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 7: SETTINGS PAGE -->
+                <div id="tab-settings" class="tab-content hidden space-y-6">
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Account Settings</h1>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">Manage your profile and communication preferences</p>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 max-w-2xl space-y-6">
+                        <div class="space-y-4">
+                            <h3 class="font-bold text-slate-900 dark:text-white text-base">Personal Details</h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Full Name</label>
+                                    <input type="text" value="Alex Morgan" class="w-full bg-slate-50 dark:bg-slate-700 text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Email Address</label>
+                                    <input type="email" value="alex.m@acme.com" class="w-full bg-slate-50 dark:bg-slate-700 text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-100 dark:border-slate-700 space-y-3">
+                            <h3 class="font-bold text-slate-900 dark:text-white text-base">Notifications</h3>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" checked class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                                <span class="text-xs text-slate-700 dark:text-slate-300">Receive email alerts when milestones are completed</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" checked class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                                <span class="text-xs text-slate-700 dark:text-slate-300">Receive new invoice email notifications</span>
+                            </label>
+                        </div>
+
+                        <button onclick="showToast('Settings saved successfully')" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition shadow-sm">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL 1: NEW PROJECT REQUEST -->
+    <div id="modal-new-project" class="fixed inset-0 bg-slate-900/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 relative space-y-4">
+            <button onclick="closeModal('modal-new-project')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <i class="ph ph-x text-xl"></i>
+            </button>
+            <h3 class="font-bold text-lg text-slate-900 dark:text-white">Request New Project</h3>
+            <form onsubmit="handleCreateProject(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Project Name</label>
+                    <input id="input-project-name" required type="text" placeholder="e.g. AI Workflow Integration" class="w-full bg-slate-50 dark:bg-slate-700 text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Client Workspace</label>
+                    <select id="input-project-client" class="w-full bg-slate-50 dark:bg-slate-700 text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 focus:outline-none">
+                        <option>Acme Corp</option>
+                        <option>Starlight SaaS</option>
+                        <option>Apex E-Commerce</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Estimated Due Date</label>
+                    <input id="input-project-date" required type="date" class="w-full bg-slate-50 dark:bg-slate-700 text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Project Brief / Description</label>
+                    <textarea required rows="3" placeholder="Describe the objectives and requirements..." class="w-full bg-slate-50 dark:bg-slate-700 text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600"></textarea>
+                </div>
+                <div class="pt-2 flex justify-end space-x-2">
+                    <button type="button" onclick="closeModal('modal-new-project')" class="px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition shadow-sm">Submit Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: SUPPORT TICKET -->
+    <div id="modal-new-ticket" class="fixed inset-0 bg-slate-900/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 relative space-y-4">
+            <button onclick="closeModal('modal-new-ticket')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <i class="ph ph-x text-xl"></i>
+            </button>
+            <h3 class="font-bold text-lg text-slate-900 dark:text-white">Create Support Ticket</h3>
+            <form onsubmit="handleCreateTicket(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Subject</label>
+                    <input id="input-ticket-subject" required type="text" placeholder="Summary of issue" class="w-full bg-slate-50 dark:bg-slate-700 text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Priority</label>
+                    <select class="w-full bg-slate-50 dark:bg-slate-700 text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600">
+                        <option>Normal</option>
+                        <option>High</option>
+                        <option>Urgent</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Message Details</label>
+                    <textarea required rows="3" class="w-full bg-slate-50 dark:bg-slate-700 text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600"></textarea>
+                </div>
+                <div class="pt-2 flex justify-end space-x-2">
+                    <button type="button" onclick="closeModal('modal-new-ticket')" class="px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition">Submit Ticket</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-4 py-3 rounded-xl shadow-2xl text-xs font-medium flex items-center space-x-2 transform translate-y-20 opacity-0 transition-all duration-300 z-50 pointer-events-none">
+        <i class="ph ph-check-circle text-emerald-400 dark:text-emerald-600 text-lg"></i>
+        <span id="toast-message">Action completed successfully</span>
+    </div>
+
+    <script>
+        // Data State
+        let projects = [
+            { id: 1, name: "Acme Corp Rebrand", client: "Acme Corp", status: "In Progress", progress: 75, dueDate: "Nov 12, 2026" },
+            { id: 2, name: "Starlight SaaS Mobile App", client: "Starlight SaaS", status: "In Review", progress: 90, dueDate: "Oct 28, 2026" },
+            { id: 3, name: "Apex E-Commerce Redesign", client: "Apex E-Commerce", status: "In Progress", progress: 40, dueDate: "Dec 15, 2026" },
+            { id: 4, name: "Cloud Sync Infrastructure", client: "Acme Corp", status: "Completed", progress: 100, dueDate: "Sep 30, 2026" }
+        ];
+
+        let tasks = [
+            { id: 101, title: "Review Figma UI Kit Components", project: "Acme Corp Rebrand", status: "Completed", priority: "High" },
+            { id: 102, title: "Approve Stripe Payment Integration", project: "Starlight SaaS Mobile App", status: "Pending Review", priority: "High" },
+            { id: 103, title: "Deliver Database Migration Scripts", project: "Apex E-Commerce Redesign", status: "In Progress", priority: "Medium" }
+        ];
+
+        let tickets = [
+            { id: 1, title: "API Endpoint Latency in Starlight Sandbox", priority: "High", status: "Open", date: "2 hours ago" },
+            { id: 2, title: "Invoice #INV-2026-079 Billing Address Update", priority: "Normal", status: "In Progress", date: "1 day ago" }
+        ];
+
+        // Global Chart Instance
+        let budgetChartInstance = null;
+
+        // Initialize Application Page
+        window.addEventListener('DOMContentLoaded', () => {
+            renderProjectsTable(projects);
+            renderProjectsGrid(projects);
+            renderTasksList(tasks);
+            renderTicketsList(tickets);
+            initBudgetChart();
+
+            // Search listener
+            document.getElementById('global-search-input').addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                const filtered = projects.filter(p => p.name.toLowerCase().includes(term) || p.client.toLowerCase().includes(term));
+                renderProjectsTable(filtered);
+            });
+        });
+
+        function switchTab(tabId, event) {
+            if (event) event.preventDefault();
+
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            
+            // Show selected tab
+            const target = document.getElementById(`tab-${tabId}`);
+            if (target) target.classList.remove('hidden');
+
+            // Reset navigation active styles
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('bg-brand-50', 'dark:bg-brand-500/10', 'text-brand-600', 'dark:text-brand-400');
+                el.classList.add('text-slate-600', 'dark:text-slate-300');
+            });
+
+            // Highlight current nav link
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            if (activeNav) {
+                activeNav.classList.add('bg-brand-50', 'dark:bg-brand-500/10', 'text-brand-600', 'dark:text-brand-400');
+                activeNav.classList.remove('text-slate-600', 'dark:text-slate-300');
+            }
+
+            // Close Mobile Sidebar if open
+            const sidebar = document.getElementById('sidebar');
+            if (!sidebar.classList.contains('-translate-x-full')) {
+                toggleMobileSidebar();
+            }
+        }
+
+        // Toggle Dark/Light Theme
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            const icon = document.getElementById('theme-icon');
+            if (isDark) {
+                icon.className = 'ph ph-sun text-xl';
+            } else {
+                icon.className = 'ph ph-moon text-xl';
+            }
+            if (budgetChartInstance) {
+                budgetChartInstance.destroy();
+                initBudgetChart();
+            }
+        }
+
+        // Sidebar Mobile Toggle
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            sidebar.classList.toggle('-translate-x-full');
+            backdrop.classList.toggle('hidden');
+        }
+
+        // Toggle Header Panels
+        function toggleNotifications() {
+            document.getElementById('notifications-panel').classList.toggle('hidden');
+        }
+
+        function toggleUserMenu() {
+            document.getElementById('user-menu').classList.toggle('hidden');
+        }
+
+        // Status Badge Helper
+        function getBadge(status) {
+            switch(status) {
+                case 'Completed':
+                    return `<span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">Completed</span>`;
+                case 'In Review':
+                    return `<span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">In Review</span>`;
+                default:
+                    return `<span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300">In Progress</span>`;
+            }
+        }
+
+        // Render Projects Table
+        function renderProjectsTable(data) {
+            const tbody = document.getElementById('projects-table-body');
+            tbody.innerHTML = '';
+
+            data.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition';
+                tr.innerHTML = `
+                    <td class="py-3.5 px-5 font-semibold text-slate-800 dark:text-slate-200">
+                        ${p.name}
+                        <span class="block text-[10px] font-normal text-slate-400">${p.client}</span>
+                    </td>
+                    <td class="py-3.5 px-4">${getBadge(p.status)}</td>
+                    <td class="py-3.5 px-4">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-16 bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                                <div class="bg-brand-500 h-full rounded-full" style="width: ${p.progress}%"></div>
+                            </div>
+                            <span class="text-[11px] font-medium text-slate-600 dark:text-slate-400">${p.progress}%</span>
+                        </div>
+                    </td>
+                    <td class="py-3.5 px-4 text-slate-500 dark:text-slate-400">${p.dueDate}</td>
+                    <td class="py-3.5 px-4 text-right">
+                        <button onclick="showToast('Opening details for ${p.name}')" class="text-slate-400 hover:text-brand-600 p-1">
+                            <i class="ph ph-dots-three-outline-vertical text-base"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Render Grid for Projects Page
+        function renderProjectsGrid(data) {
+            const container = document.getElementById('projects-grid-container');
+            container.innerHTML = '';
+
+            data.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm space-y-4';
+                card.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">${p.client}</span>
+                            <h4 class="font-bold text-slate-900 dark:text-white text-base">${p.name}</h4>
+                        </div>
+                        ${getBadge(p.status)}
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-500 mb-1">
+                            <span>Completion</span>
+                            <span class="font-semibold text-slate-800 dark:text-slate-200">${p.progress}%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                            <div class="bg-brand-500 h-full rounded-full" style="width: ${p.progress}%"></div>
+                        </div>
+                    </div>
+                    <div class="pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-500">
+                        <span>Due: ${p.dueDate}</span>
+                        <button onclick="showToast('Project expanded')" class="text-brand-600 dark:text-brand-400 font-medium hover:underline">View Workspace</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Render Tasks List
+        function renderTasksList(taskList) {
+            const container = document.getElementById('tasks-list');
+            container.innerHTML = '';
+            taskList.forEach(t => {
+                const item = document.createElement('div');
+                item.className = 'py-3 flex items-center justify-between';
+                item.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <i class="ph ph-check-circle text-xl ${t.status === 'Completed' ? 'text-emerald-500' : 'text-slate-300 dark:text-slate-600'}"></i>
+                        <div>
+                            <p class="text-xs font-semibold text-slate-800 dark:text-slate-200">${t.title}</p>
+                            <span class="text-[10px] text-slate-400">${t.project}</span>
+                        </div>
+                    </div>
+                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${t.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}">${t.status}</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // Render Tickets List
+        function renderTicketsList(ticketList) {
+            const container = document.getElementById('tickets-container');
+            container.innerHTML = '';
+            ticketList.forEach(tk => {
+                const card = document.createElement('div');
+                card.className = 'bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between';
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs font-bold text-slate-900 dark:text-white">#TK-${tk.id}</span>
+                            <span class="text-xs text-slate-500">• ${tk.date}</span>
+                        </div>
+                        <p class="text-xs font-medium text-slate-700 dark:text-slate-300 mt-1">${tk.title}</p>
+                    </div>
+                    <span class="text-[10px] px-2.5 py-1 rounded-full font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">${tk.status}</span>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Filter Overview Projects
+        function filterProjects() {
+            const val = document.getElementById('overview-status-filter').value;
+            if (val === 'all') {
+                renderProjectsTable(projects);
+            } else {
+                renderProjectsTable(projects.filter(p => p.status === val));
+            }
+        }
+
+        function initBudgetChart() {
+            const ctx = document.getElementById('budgetChart');
+            if (!ctx) return;
+
+            const isDark = document.documentElement.classList.contains('dark');
+            const gridColor = isDark ? '#334155' : '#f1f5f9';
+            const textColor = isDark ? '#94a3b8' : '#64748b';
+
+            budgetChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Jul', 'Aug', 'Sep', 'Oct', 'Nov'],
+                    datasets: [{
+                        label: 'Spent ($)',
+                        data: [8500, 11200, 9400, 13700, 6200],
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: textColor, font: { size: 10 } } },
+                        y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        // Modal Controls
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // Submit New Project
+        function handleCreateProject(e) {
+            e.preventDefault();
+            const name = document.getElementById('input-project-name').value;
+            const client = document.getElementById('input-project-client').value;
+            const date = document.getElementById('input-project-date').value;
+
+            const newProj = {
+                id: projects.length + 1,
+                name: name,
+                client: client,
+                status: "In Progress",
+                progress: 5,
+                dueDate: date || "TBD"
+            };
+
+            projects.unshift(newProj);
+            renderProjectsTable(projects);
+            renderProjectsGrid(projects);
+            closeModal('modal-new-project');
+            showToast('New Project Request Created!');
+            e.target.reset();
+        }
+
+        // Submit Ticket
+        function handleCreateTicket(e) {
+            e.preventDefault();
+            const title = document.getElementById('input-ticket-subject').value;
+            tickets.unshift({
+                id: tickets.length + 1,
+                title: title,
+                priority: "Normal",
+                status: "Open",
+                date: "Just now"
+            });
+            renderTicketsList(tickets);
+            closeModal('modal-new-ticket');
+            showToast('Support ticket logged!');
+            e.target.reset();
+        }
+
+        // Simulate Download Action
+        function simulateReceiptDownload(filename) {
+            showToast(`Downloading receipt ${filename}...`);
+        }
+
+        // Toast Notification System
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const msg = document.getElementById('toast-message');
+            msg.innerText = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

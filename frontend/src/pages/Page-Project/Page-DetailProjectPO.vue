@@ -1,7 +1,6 @@
 <template lang="">
   <v-card variant="text" class="app-page">
     <PageHeader
-      title="Chi tiết đơn hàng"
       back-to="/Du-an"
       :crumbs="[
         { title: 'Dự án', to: '/Du-an' },

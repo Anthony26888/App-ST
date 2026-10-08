@@ -1,9 +1,9 @@
 <template lang="">
   <v-card variant="text" class="app-page">
-    <v-card-title class="d-flex">
-      <ButtonBack to="/Cai-dat" />
-      <p class="text-h4 font-weight-light ms-3">Danh sách người sử dụng</p>
-    </v-card-title>
+    <PageHeader
+      back-to="/Cai-dat"
+      :crumbs="[{ title: 'Cài đặt', to: '/Cai-dat' }, { title: 'Thành viên' }]"
+    />
     <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
       <v-card variant="elevated" elevation="0" class="rounded-xl border app-card-fill">
         <v-card-title class="d-flex align-center pe-2">
@@ -144,6 +144,7 @@ import { useUsers } from "@/composables/Settings/useUsers";
 
 // Components
 import InputSearch from "@/components/Input-Search.vue";
+import PageHeader from "@/components/Page-Header.vue";
 import InputField from "@/components/Input-Field.vue";
 import InputSelect from "@/components/Input-Select.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";

@@ -1,7 +1,7 @@
 <template>
   <!-- Main Layout -->
   <v-card class="overflow-y-auto" height="100vh" variant="text">
-    <v-card-title class="text-h4 font-weight-light"
+    <v-card-title class="app-page-title font-weight-light"
       >Quản lý công việc</v-card-title
     >
 

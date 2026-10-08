@@ -1,17 +1,56 @@
-/* Design tokens dùng chung cụm Project (Page-Project + Page-DetailProjectPO) */
+/* Design tokens dùng chung toàn app (light/dark-safe qua rgb(var(--v-theme-*))) */
+:root {
+  --app-radius: 12px;
+  --app-brand-from: #a52a2a;
+  --app-brand-mid: #d2691e;
+  --app-brand-to: #ff9500;
+  --app-brand-gradient: linear-gradient(
+    135deg,
+    var(--app-brand-from) 0%,
+    var(--app-brand-mid) 50%,
+    var(--app-brand-to) 100%
+  );
+}
 
 /* Tiêu đề trang co giãn theo viewport: 13" gọn, 16" thoáng */
 .app-page-title {
-  font-size: clamp(1.25rem, 1rem + 1vw, 2.125rem) !important;
+  font-size: clamp(1.15rem, 1rem + 0.8vw, 2.125rem) !important;
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* Title trên app-bar: đậm + tracking hiện đại */
+.app-bar-title {
+  font-weight: 700 !important;
+  letter-spacing: -0.2px;
+  font-size: clamp(1rem, 0.9rem + 0.5vw, 1.25rem) !important;
+}
+
+/* Crumbs trong trang: mục hiện tại cam brand (đồng bộ active-drawer) */
+.page-header-crumbs .v-breadcrumbs-item--disabled {
+  color: #c2570b !important;
+  font-weight: 600 !important;
+  opacity: 1 !important;
+}
+
+.v-theme--dark .page-header-crumbs .v-breadcrumbs-item--disabled {
+  color: #ffb74d !important;
+}
+
 /* Card bảng chuẩn: bo + viền nhẹ, không shadow nặng */
 .app-table-card {
   border-radius: 12px;
+}
+
+/* Header bảng kiểu NexusPortal: micro-uppercase xám */
+.app-fit-table thead th {
+  font-size: 0.68rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: rgba(var(--v-theme-on-surface), 0.55) !important;
+  font-weight: 600 !important;
 }
 
 /* Cột thao tác dính phải khi bảng scroll ngang */

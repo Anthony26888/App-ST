@@ -1,14 +1,14 @@
 <template>
   <div>
     <v-card variant="text" class="overflow-y-auto" height="100vh">
-      <v-card-title class="text-h4 font-weight-light d-flex align-center">
+      <v-card-title class="app-page-title font-weight-light d-flex align-center">
         <ButtonBack
           v-if="LevelUser === 'Nhân viên'"
           :to="`/Danh-sach-cong-viec`"
           @click="removeGoBackListWork"
         />
         <ButtonBack v-else :to="`/San-xuat/Chi-tiet/${back}`" />
-        <span class="ml-2" v-if="lgAndUp">Theo dõi sản xuất</span>
+        <span class="ml-2">Theo dõi sản xuất</span>
       </v-card-title>
 
       <v-card-title class="d-flex align-center pe-2" v-if="lgAndUp">

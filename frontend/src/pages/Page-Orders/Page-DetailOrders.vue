@@ -1,9 +1,9 @@
 <template lang="">
   <v-card variant="text" class="app-page">
-    <v-card-title class="d-flex">
-      <ButtonBack to="/Don-hang" />
-      <p class="text-h4 font-weight-light ms-3">Chi tiết đơn hàng</p>
-    </v-card-title>
+    <PageHeader
+      back-to="/Don-hang"
+      :crumbs="[{ title: 'Kho' }, { title: 'Đơn hàng', to: '/Don-hang' }, { title: 'Chi tiết' }]"
+    />
     <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
       <v-card class="rounded-xl app-card-fill">
         <v-card-title class="d-flex align-center pe-2">
@@ -208,6 +208,7 @@ import { useOrders } from "@/composables/Orders/useOrders";
 
 // Components
 import InputSearch from "@/components/Input-Search.vue";
+import PageHeader from "@/components/Page-Header.vue";
 import AppDataTable from "@/components/App-DataTable.vue";
 import InputSelect from "@/components/Input-Select.vue";
 import ButtonDownload from "@/components/Button-Download.vue";

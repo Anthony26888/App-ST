@@ -1,8 +1,6 @@
 <template lang="">
   <v-card variant="text" class="app-page">
-    <v-card-title class="text-h4 font-weight-light" v-if="lgAndUp"
-      >Danh sách tồn kho</v-card-title
-    >
+    <PageHeader :crumbs="[{ title: 'Kho' }]" />
     <v-card-text>
       <v-card variant="text">
         <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
@@ -593,6 +591,7 @@ import { useWareHouseLog } from "@/composables/Warehouse/useWareHouseLog";
 
 // Components
 import AppDataTable from "@/components/App-DataTable.vue";
+import PageHeader from "@/components/Page-Header.vue";
 import ButtonImportFile from "@/components/Button-ImportFile.vue";
 import ButtonDownload from "@/components/Button-Download.vue";
 import ButtonSave from "@/components/Button-Save.vue";

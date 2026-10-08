@@ -1,16 +1,9 @@
 <template>
   <v-card variant="text" class="app-page">
-    <v-card-title class="d-flex" v-if="lgAndUp">
-      <ButtonBack :to="`/Bao-tri/Chi-tiet/${route.params.id}`" />
-      <p class="text-h4 font-weight-light ms-3" v-if="lgAndUp">
-        Chi tiết sử dụng phụ tùng
-      </p>
-    </v-card-title>
-    <v-card-title class="d-flex" v-else>
-      <ButtonBack :to="`/Bao-tri/Chi-tiet/${route.params.id}`" />
-      <v-icon icon="mdi mdi-cog"></v-icon> &nbsp;
-      {{ route.params.id }}
-    </v-card-title>
+    <PageHeader
+      :back-to="`/Bao-tri/Chi-tiet/${route.params.id}`"
+      :crumbs="[{ title: 'Bảo trì', to: '/Bao-tri' }, { title: 'Phụ tùng' }]"
+    />
     <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
       <v-card
         variant="elevated"
@@ -189,6 +182,7 @@ import { useDisplay } from "vuetify";
 
 // Components
 import InputSearch from "@/components/Input-Search.vue";
+import PageHeader from "@/components/Page-Header.vue";
 import AppDataTable from "@/components/App-DataTable.vue";
 import InputTextarea from "@/components/Input-Textarea.vue";
 import InputField from "@/components/Input-Field.vue";

@@ -1,8 +1,8 @@
 <template lang="">
   <v-card variant="text" class="overflow-y-auto" height="100vh">
     <v-card-title class="d-flex justify-space-between align-center pa-4">
-      <span class="text-h4 font-weight-light" v-if="lgAndUp">Danh sách công việc</span>
-      <v-spacer v-if="lgAndUp"></v-spacer>
+      <span class="app-page-title font-weight-light">Danh sách công việc</span>
+      <v-spacer></v-spacer>
       <v-toolbar rounded="lg" border floating class="mt-3">
         <div class="d-flex align-center px-4">
           <div class="text-subtitle-1 mr-4">
