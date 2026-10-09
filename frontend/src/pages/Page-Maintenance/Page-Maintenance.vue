@@ -51,12 +51,13 @@
         </v-card-title>
         <v-card-text class="app-table-fill">
           <AppDataTable
-            sticky-footer
-            hide-footer
+            :virtual="false"
             v-model:expanded="expanded"
             :headers="Headers"
             :items="machine"
             :search="search"
+            :items-per-page="itemsPerPage"
+            v-model:page="page"
             :loading="DialogLoading"
             show-expand
             item-value="MaThietBi"
@@ -277,6 +278,14 @@
             </template>
             <template #item.MoTa="{ item }">
               <div style="white-space: pre-line">{{ item.MoTa }}</div>
+            </template>
+            <template v-slot:bottom>
+              <div class="text-center pt-2">
+                <v-pagination
+                  v-model="page"
+                  :length="Math.max(1, Math.ceil(machine.length / itemsPerPage))"
+                ></v-pagination>
+              </div>
             </template>
           </AppDataTable>
 
@@ -566,12 +575,18 @@ const ImagePreview_Add = ref(null);
 const MachineCode_Add = ref("");
 
 // ===== TABLE CONFIGURATION =====
-// Search state (hiện tất cả, không phân trang)
+// Search and pagination states
 const search = ref("");
+const page = ref(1);
+const itemsPerPage = ref(10);
 
-// Đổi search thì thu gọn expand
+// Đổi search/số dòng thì về trang 1 + thu gọn expand
 watch(search, () => {
+  page.value = 1;
   expanded.value = [];
+});
+watch(itemsPerPage, () => {
+  page.value = 1;
 });
 
 // Chỉ cho expand 1 dòng Lịch bảo trì tại 1 thời điểm
