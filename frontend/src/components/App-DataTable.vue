@@ -1,5 +1,5 @@
 <!--
-  Bảng dùng chung toàn app: tự vừa khít chiều cao (flex-fill),
+  Bảng dùng chung toàn app: chảy tự nhiên theo data (chuẩn dashboard hiện đại),
   Việt hóa sẵn, density theo màn hình.
 
   Dùng thay v-data-table-virtual / v-data-table ở trang chính:
@@ -7,11 +7,12 @@
       <template #item.Status="{ value }">...</template>
     </AppDataTable>
 
-  Mọi slots (item.*, group-header, expanded-row, top, bottom, no-data...)
-  và mọi v-model (search, page, expanded, selected, sort-by, items-per-page)
-  đều passthrough NGUYÊN OBJECT xuống table gốc qua render function
-  (không dùng dynamic slot-name nên không gãy runtime) —
-  migrate chỉ cần đổi tên tag.
+  - Cao tự nhiên, KHÔNG ép khung: thead dính (sticky) khi cuộn trang,
+    footer/phân trang nằm ngay dưới bảng trong flow nên không bao giờ mất.
+  - Mọi slots (item.*, group-header, expanded-row, top, bottom, no-data...)
+    và mọi v-model (search, page, expanded, selected, sort-by, items-per-page)
+    đều passthrough NGUYÊN OBJECT xuống table gốc qua render function —
+    migrate chỉ cần đổi tên tag.
 
   Props riêng:
     virtual (default true)  - false để dùng v-data-table thường (bảng nhỏ/dialog)
@@ -19,23 +20,11 @@
     groupBy                 - truyền thẳng :group-by
     showExpand / showSelect - cờ hiển thị
     itemValue (default 'id')
-    fill (default true)     - false cho bảng trong dialog (cao tự nhiên)
-    height                  - cao tường minh khi cần; fill=true + bỏ trống => '100%'
-    fitViewport             - tự đo viewport: cao = đáy màn hình - đỉnh bảng - margin
-                              (cho trang cuộn tự nhiên, không flex cha).
-                              Ưu tiên thấp hơn height tường minh.
-    viewportMargin (default 16) - chừa đáy (px) khi fitViewport
-    minHeight (default 280) - cao tối thiểu (px) khi fill/fitViewport
+    height                  - CHỈ dùng khi thật sự cần scroll nội bộ;
+                              bỏ trống = cao tự nhiên (khuyên dùng)
 -->
 <script>
-import {
-  computed,
-  h,
-  nextTick,
-  onMounted,
-  onUnmounted,
-  ref,
-} from "vue";
+import { computed, h, ref } from "vue";
 import { useDisplay } from "vuetify";
 import { VDataTable, VDataTableVirtual } from "vuetify/components";
 
@@ -50,11 +39,12 @@ export default {
     itemValue: { type: String, default: "id" },
     fixedHeader: { type: Boolean, default: true },
     hover: { type: Boolean, default: true },
-    fill: { type: Boolean, default: true },
     height: { type: String, default: "" },
-    fitViewport: { type: Boolean, default: false },
-    viewportMargin: { type: Number, default: 16 },
-    minHeight: { type: Number, default: 280 },
+    // Ẩn footer trong bảng (dùng khi dựng phân trang ngoài, không phụ thuộc internals)
+    hideFooter: { type: Boolean, default: false },
+    // Footer dính đáy viewport cho bảng dài (VD: expand rows).
+    // Chỉ bật khi trang cuộn được (page scroll) — bảng dialog/short không cần.
+    stickyFooter: { type: Boolean, default: false },
     loadingText: { type: String, default: "Đang tải dữ liệu..." },
     noDataText: { type: String, default: "Không có dữ liệu" },
     noResultsText: { type: String, default: "Không tìm thấy kết quả" },
@@ -88,52 +78,18 @@ export default {
         innerTable.value?.scrollToIndex?.(...args),
     });
 
-    // Đo chiều cao vừa khít viewport (cho trang cuộn tự nhiên):
-    // cao = đáy viewport - đỉnh bảng - margin, kẹp minHeight.
-    const fitHeight = ref("");
-    let rafId = 0;
-    let ro = null;
-    const updateFit = () => {
-      if (!props.fitViewport) return;
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        const el = innerTable.value?.$el;
-        if (!el || typeof window === "undefined") return;
-        const top = el.getBoundingClientRect().top;
-        const px = Math.max(
-          props.minHeight,
-          Math.floor(window.innerHeight - top - props.viewportMargin),
-        );
-        fitHeight.value = `${px}px`;
-      });
-    };
-    const onResize = () => updateFit();
-    onMounted(() => {
-      if (!props.fitViewport) return;
-      nextTick(updateFit);
-      window.addEventListener("resize", onResize);
-      window.addEventListener("orientationchange", onResize);
-      if (typeof ResizeObserver !== "undefined") {
-        ro = new ResizeObserver(updateFit);
-        ro.observe(document.body);
-      }
-    });
-    onUnmounted(() => {
-      cancelAnimationFrame(rafId);
-      window.removeEventListener("resize", onResize);
-      window.removeEventListener("orientationchange", onResize);
-      ro?.disconnect();
-    });
-
     return () => {
       const { class: attrsClass, style: attrsStyle, ...restAttrs } = attrs;
-      const useFillClass = props.fill || props.fitViewport;
       return h(
         props.virtual ? VDataTableVirtual : VDataTable,
         {
           ...restAttrs,
           ref: innerTable,
-          class: ["app-fit-table", { "app-fit-table--fill": useFillClass }, attrsClass],
+          class: [
+            "app-fit-table",
+            { "app-sticky-footer": props.stickyFooter },
+            attrsClass,
+          ],
           style: attrsStyle,
           density: finalDensity.value,
           groupBy: props.groupBy,
@@ -142,10 +98,8 @@ export default {
           itemValue: props.itemValue,
           fixedHeader: props.fixedHeader,
           hover: props.hover,
-          height:
-            props.height ||
-            fitHeight.value ||
-            (props.fill ? "100%" : undefined),
+          hideDefaultFooter: props.hideFooter,
+          height: props.height || undefined,
           loadingText: props.loadingText,
           noDataText: props.noDataText,
           noResultsText: props.noResultsText,
@@ -160,10 +114,20 @@ export default {
 </script>
 
 <style scoped>
-/* Giữ khung tối thiểu khi fill/fitViewport (đồng bộ default minHeight=280).
-   Nếu đổi minHeight qua prop khác 280 mà cần CSS theo, dùng style inline ở trang. */
-.app-fit-table--fill {
-  height: 100%;
-  min-height: 280px;
+/* thead dính dưới app-bar (cao 64px) khi cuộn trang */
+.app-fit-table thead th {
+  position: sticky;
+  top: 64px;
+  z-index: 2;
+  background: rgb(var(--v-theme-surface));
+}
+
+/* Footer dính đáy viewport cho bảng dài + expand rows */
+.app-sticky-footer .v-data-table-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: rgb(var(--v-theme-surface));
+  border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
 </style>

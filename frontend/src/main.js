@@ -49,6 +49,13 @@ axios.interceptors.response.use(
   },
 )
 
+// Marker kiểm tra bản build client đang chạy (đối chiếu khi debug)
+console.info(
+  "%cERP-ST build %c2026-10-09-maintenance-pagination",
+  "font-weight:bold",
+  "color:#fff;background:#2563eb;padding:2px 6px;border-radius:4px",
+);
+
 const app = createApp(App)
 
 // Register plugins

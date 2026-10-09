@@ -1,5 +1,5 @@
 <template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="calc(100vh)">
+  <v-card variant="text">
     <v-card-title
       class="d-flex flex-wrap justify-space-between align-center pa-4 ga-2"
     >
@@ -153,7 +153,7 @@
               >
             </v-card-title>
             <v-card-text
-              class="overflow-y-auto"
+             
               style="height: calc(100% - 64px)"
             >
               <AppDataTable

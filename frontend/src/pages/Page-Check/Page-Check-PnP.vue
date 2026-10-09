@@ -1,5 +1,5 @@
 <template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="100vh">
+  <v-card variant="text">
     <v-card-title class="d-flex">
       <ButtonBack to="/Danh-sach-pnp" />
       <p class="text-h4 font-weight-light ms-3">{{ project_name }}</p>
@@ -271,7 +271,6 @@
                 show-select
                 item-value="id"
                 :loading="DialogLoading"
-                height="59dvh"
                 >
                 <!-- STT -->
                 <template v-slot:item.stt="{ index }">
@@ -495,7 +494,6 @@
                 :items-per-page="itemsPerPageBom"
                 v-model:page="pageBom"
                 :loading="DialogLoading"
-                height="59dvh"
                 >
                 <template v-slot:bottom>
                 <div class="text-center pt-2">
@@ -729,7 +727,6 @@
                   v-model:page="pageBomHighlight"
                   item-value="id"
                   :loading="DialogLoading"
-                  height="59dvh"
                   >
                   <!-- STT -->
                   <template v-slot:item.stt="{ index }">
@@ -848,7 +845,6 @@
                   v-model:page="pagePnPCompare"
                   item-value="id"
                   :loading="DialogLoading"
-                  height="59dvh"
                   >
                   <template v-slot:item.stt="{ index }">
                   {{

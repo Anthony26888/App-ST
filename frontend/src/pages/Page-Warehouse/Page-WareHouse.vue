@@ -46,6 +46,7 @@
 
             <AppDataTable
               :virtual="false"
+              :fill="true"
               :headers="Headers"
               :items="warehouse"
               :search="search"

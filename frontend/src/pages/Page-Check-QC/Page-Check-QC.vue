@@ -1,5 +1,5 @@
 <template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="100vh">
+  <v-card variant="text">
     <v-card-title class="d-flex">
       <ButtonBack to="/Danh-sach-pnp-qc" />
       <p class="text-h4 font-weight-light ms-3">{{ project_name }}</p>
@@ -740,7 +740,6 @@
                       :loading="DialogLoading"
                       loading-text="Đang tải dữ liệu linh kiện..."
                       :row-props="rowProps"
-                      height="calc(50dvh - 220px)"
                       >
                         <template v-slot:item.stt="{ index }">
                           <span class="text-grey font-weight-medium">{{
@@ -840,7 +839,6 @@
                       :loading="DialogLoading"
                       loading-text="Đang tải dữ liệu linh kiện..."
                       :row-props="rowProps"
-                      height="calc(50dvh - 220px)"
                       >
                         <!-- STT -->
                         <template v-slot:item.stt="{ index }">
@@ -1218,7 +1216,6 @@
                       :loading="DialogLoading"
                       loading-text="Đang tải dữ liệu linh kiện..."
                       :row-props="rowProps"
-                      height="calc(100dvh - 220px)"
                       >
             <template v-slot:item.stt="{ index }">
               <span class="text-grey font-weight-medium">{{

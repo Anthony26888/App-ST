@@ -1,6 +1,6 @@
 <template>
   <div class="manufacture-detail">
-    <v-card variant="text" class="overflow-y-auto" height="100vh">
+    <v-card variant="text">
       <PageHeader
         back-to="/san-xuat"
         :crumbs="[
@@ -599,7 +599,6 @@
                       v-model:items-per-page="itemsPerPage"
                       class="bg-transparent"
                       :loading="DialogLoading"
-                      height="50vh"
                     >
             <template v-slot:top>
               <v-toolbar flat color="transparent" class="border-b px-2">

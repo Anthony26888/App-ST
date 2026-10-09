@@ -1,5 +1,5 @@
 <template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="100vh">
+  <v-card variant="text">
     <v-card-title class="d-flex">
       <ButtonBack to="/Cai-dat" />
       <p class="text-h4 font-weight-light ms-3">Đăng ký thành viên</p>

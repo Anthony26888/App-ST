@@ -1,5 +1,5 @@
 <template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="100%">
+  <v-card variant="text">
     <v-card-title class="d-flex">
       <ButtonBack :to="`/Kiem-tra-pnp-qc/${id}`" />
       <p class="text-h4 font-weight-light ms-3">{{ project_name }}</p>

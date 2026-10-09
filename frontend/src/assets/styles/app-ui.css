@@ -69,11 +69,10 @@
 /* Khung trang flex-fill cho AppDataTable vừa khít mọi màn hình:
    header/cards/toolbar cao tự nhiên, bảng lấp đầy phần còn lại,
    chỉ 1 thanh scroll nằm trong bảng. */
+/* Trang cuộn tự nhiên theo nội dung (không cắt đáy như height:100dvh cố định).
+   Bảng chính tự vừa khít viewport nhờ prop fit-viewport (đo thật từng bảng). */
 .app-page {
-  display: flex;
-  flex-direction: column;
-  height: 100dvh;
-  overflow: hidden;
+  min-height: 100%;
 }
 
 .app-table-fill {

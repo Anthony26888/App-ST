@@ -68,6 +68,7 @@
         </v-card-title>
 
         <AppDataTable
+          sticky-footer
           :group-by="[{ key: 'POID' }]"
           :search="search"
           :items="detailProjectPO"

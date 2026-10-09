@@ -35,13 +35,13 @@ export const NAV_MENU_ITEMS = [
     value: "WareHouse",
     to: "/Ton-kho",
   },
-  {
-    group: "Kho",
-    icon: "mdi-warehouse",
-    title: "Tồn Kho Misa",
-    value: "WareHouse2",
-    to: "/Ton-kho-2",
-  },
+  // {
+  //   group: "Kho",
+  //   icon: "mdi-warehouse",
+  //   title: "Tồn Kho Misa",
+  //   value: "WareHouse2",
+  //   to: "/Ton-kho-2",
+  // },
   {
     group: "Sản xuất",
     icon: "mdi-briefcase-outline",

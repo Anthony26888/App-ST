@@ -42,6 +42,7 @@
         </v-card-title>
         <AppDataTable
           :virtual="false"
+          :fill="false"
           :headers="Headers"
           :items="orders"
           :search="search"

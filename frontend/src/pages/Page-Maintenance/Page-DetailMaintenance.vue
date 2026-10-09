@@ -26,6 +26,7 @@
           <InputSearch v-model="search" />
         </v-card-title>
         <AppDataTable
+          sticky-footer
           :virtual="false"
           :search="search"
           :items="maintenance"

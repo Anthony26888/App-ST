@@ -1,6 +1,6 @@
 <template>
   <div>
-    <v-card variant="text" class="overflow-y-auto" height="100vh">
+    <v-card variant="text">
       <v-card-title class="app-page-title font-weight-light d-flex align-center">
         <ButtonBack
           v-if="LevelUser === 'Nhân viên'"
@@ -146,7 +146,6 @@
                 v-model:items-per-page="itemsPerPage"
                 class="mt-4 rounded-xl"
                 :loading="DialogLoading"
-                height="calc(100dvh - 590px)"
               >
                 <template v-slot:item.stt="{ index }">
                   {{ (page - 1) * itemsPerPage + index + 1 }}

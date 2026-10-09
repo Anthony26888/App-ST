@@ -1,5 +1,5 @@
 <template lang="">
-  <v-card variant="text" class="overflow-y-auto" height="100vh">
+  <v-card variant="text">
     <PageHeader :crumbs="[{ title: 'Hệ thống'}]" />
     <v-card-text>
       <v-container>

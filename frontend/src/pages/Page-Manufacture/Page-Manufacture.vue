@@ -2,7 +2,7 @@
 <template>
   <div>
     <!-- Card chính chứa toàn bộ nội dung -->
-    <v-card variant="text" class="overflow-y-auto" height="100vh">
+    <v-card variant="text">
       <PageHeader
         :crumbs="[{ title: 'Sản xuất' }]"
       />
@@ -112,7 +112,6 @@
               :page="page"
               @update:page="page = $event"
               :loading="DialogLoading"
-              fit-viewport
             >
               <template
                 v-slot:group-header="{

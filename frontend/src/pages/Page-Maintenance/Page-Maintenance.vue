@@ -51,12 +51,12 @@
         </v-card-title>
         <v-card-text class="app-table-fill">
           <AppDataTable
-            :virtual="false"
+            sticky-footer
+            hide-footer
+            v-model:expanded="expanded"
             :headers="Headers"
             :items="machine"
             :search="search"
-            :items-per-page="itemsPerPage"
-            v-model:page="page"
             :loading="DialogLoading"
             show-expand
             item-value="MaThietBi"
@@ -89,11 +89,7 @@
             </template>
 
             <template
-              v-slot:item.data-table-expand="{
-                internalItem,
-                isExpanded,
-                toggleExpand,
-              }"
+              v-slot:item.data-table-expand="{ internalItem, isExpanded }"
             >
               <v-badge
                 v-if="getSchedules(internalItem.raw).length > 0"
@@ -131,7 +127,7 @@
                   width="105"
                   border
                   slim
-                  @click="toggleExpand(internalItem)"
+                  @click="toggleSingleExpand(internalItem)"
                 ></v-btn>
               </v-badge>
             </template>
@@ -210,39 +206,27 @@
               </tr>
             </template>
 
-            <template v-slot:bottom>
-              <div class="text-center pt-2">
-                <v-pagination
-                  v-model="page"
-                  :length="Math.ceil(machine.length / itemsPerPage)"
-                ></v-pagination>
-              </div>
-            </template>
             <template #item.Image="{ value }">
               <v-img
                 v-if="value"
                 :src="`${Url_Image}${value}`"
-                width="100"
-                height="100"
+                width="56"
+                height="56"
                 cover
                 :lazy-src="`${Url_Image}${value}`"
                 :aspect-ratio="1"
-                :eager="true"
-                :loading="true"
-                :placeholder="`${Url_Image}${value}`"
-                class="rounded-lg ma-2"
+                class="rounded-lg ma-1 app-thumb"
+                @click="OpenImagePreview(`${Url_Image}${value}`)"
               />
               <v-img
                 v-else
                 src="@/assets/no-image-available.png"
-                width="100"
-                height="100"
+                width="56"
+                height="56"
                 cover
                 :aspect-ratio="1"
-                :eager="true"
-                :loading="true"
                 lazy-src="@/assets/no-image-available.png"
-                class="rounded-lg ma-2"
+                class="rounded-lg ma-1"
               />
             </template>
             <template #item.Condition="{ value }">
@@ -453,6 +437,28 @@
     </template>
   </BaseDialog>
 
+  <!-- Lightbox xem ảnh thiết bị -->
+  <v-dialog v-model="DialogImageView" max-width="720">
+    <v-card class="rounded-xl">
+      <v-img
+        v-if="ImageViewSrc"
+        :src="ImageViewSrc"
+        max-height="75dvh"
+        contain
+      ></v-img>
+      <v-card-actions class="justify-center pb-4">
+        <v-btn
+          color="primary"
+          variant="tonal"
+          class="text-none"
+          @click="DialogImageView = false"
+        >
+          Đóng
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
   <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
   <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
   <Loading v-model="DialogLoading" />
@@ -514,6 +520,15 @@ const DialogLoading = ref(false); // Loading state
 const DialogAddSchedule = ref(false); // Add new schedule dialog
 const DialogRemoveSchedule = ref(false); // Remove schedule confirmation dialog
 const DialogEditSchedule = ref(false); // Edit schedule dialog
+const DialogImageView = ref(false); // Lightbox xem ảnh thiết bị
+const ImageViewSrc = ref("");
+
+// Mở ảnh lớn từ thumbnail trong bảng
+const OpenImagePreview = (src) => {
+  if (!src) return;
+  ImageViewSrc.value = src;
+  DialogImageView.value = true;
+};
 
 // ===== MESSAGE DIALOG =====
 // Message for success and error notifications
@@ -551,10 +566,20 @@ const ImagePreview_Add = ref(null);
 const MachineCode_Add = ref("");
 
 // ===== TABLE CONFIGURATION =====
-// Search and pagination states
+// Search state (hiện tất cả, không phân trang)
 const search = ref("");
-const page = ref(1);
-const itemsPerPage = ref(15);
+
+// Đổi search thì thu gọn expand
+watch(search, () => {
+  expanded.value = [];
+});
+
+// Chỉ cho expand 1 dòng Lịch bảo trì tại 1 thời điểm
+const expanded = ref([]);
+const toggleSingleExpand = (internalItem) => {
+  const id = internalItem.raw?.MaThietBi ?? internalItem.value;
+  expanded.value = expanded.value[0] === id ? [] : [id];
+};
 
 // Table headers configuration
 const Headers = [
@@ -832,3 +857,10 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+/* Thumbnail bấm được để xem ảnh lớn */
+.app-thumb {
+  cursor: zoom-in;
+}
+</style>

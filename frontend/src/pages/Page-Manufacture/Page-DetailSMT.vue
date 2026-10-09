@@ -305,7 +305,6 @@
             v-model:items-per-page="itemsPerPage"
             class="mt-4 rounded-xl"
             :loading="DialogLoading"
-            height="49dvh"
           >
             <template v-slot:item.stt="{ index }">
               {{ (page - 1) * itemsPerPage + index + 1 }}
