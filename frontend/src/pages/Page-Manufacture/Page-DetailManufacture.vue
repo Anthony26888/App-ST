@@ -597,6 +597,7 @@
                       :search="searchHistory"
                       v-model:page="page"
                       v-model:items-per-page="itemsPerPage"
+                      v-model:sort-by="historySort"
                       class="bg-transparent"
                       :loading="DialogLoading"
                     >
@@ -891,7 +892,8 @@
         <ButtonDelete @delete="DialogRemove = true" />
         <v-spacer></v-spacer>
         <ButtonCancel @cancel="DialogEdit = false" />
-        <ButtonSave @save="SaveEdit()" />
+        <ButtonSave
+      :disabled="DialogLoading" @save="SaveEdit()" />
       </template>
     </BaseDialog>
 
@@ -913,7 +915,8 @@
       <template #actions>
         <v-spacer />
         <ButtonCancel @cancel="DialogComplete = false" />
-        <ButtonSave @save="CompleteItem()" />
+        <ButtonSave
+      :disabled="DialogLoading" @save="CompleteItem()" />
       </template>
     </BaseDialog>
 
@@ -1128,6 +1131,8 @@ const filteredHistoryPart = computed(() => {
   });
 });
 const page = ref(1);
+// Lịch sử sản xuất mặc định mới nhất trước (user bấm header để đổi lại được)
+const historySort = ref([{ key: "Timestamp", order: "desc" }]);
 const pageDetail = ref(1);
 const pageRW = ref(1);
 const itemsPerPage = ref(10);

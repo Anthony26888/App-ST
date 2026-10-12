@@ -10,7 +10,7 @@
 <script>
 export default {
   props: {
-    label: { type: String, default: "Nhập dữ liệu" },
+    label: { type: String, default: "Lưu" },
     disabled: { type: Boolean, default: false },
   },
   methods: {

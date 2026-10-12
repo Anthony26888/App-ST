@@ -244,6 +244,7 @@
       <template v-slot:actions>
         <ButtonCancel @cancel="DialogAdd = false" />
         <ButtonSave
+      :disabled="DialogLoading"
           @keydown.enter="submitBarcode"
           @click="submitBarcode"
           autoforcus

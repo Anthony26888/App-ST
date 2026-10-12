@@ -235,7 +235,8 @@
     <InputFiles abel="Thêm File Excel" v-model="File" />
     <template v-slot:actions>
       <ButtonCancel @cancel="Dialog = false" />
-      <ButtonSave @save="ImportFile()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="ImportFile()" />
     </template>
   </BaseDialog>
 
@@ -327,8 +328,8 @@
     title="Thêm linh kiện"
     icon="mdi-plus"
   >
-    <InputField label="Part Number 1" v-model="PartNumber1_Add" />
-    <InputField label="Part Number 2" v-model="PartNumber2_Add" />
+    <InputField label="Mã linh kiện 1" v-model="PartNumber1_Add" />
+    <InputField label="Mã linh kiện 2" v-model="PartNumber2_Add" />
     <InputTextarea label="Mô tả" v-model="Description_Add" />
     <v-row>
       <v-col>
@@ -358,7 +359,8 @@
     <InputField label="Ghi chú xuất" v-model="Note_Output_Add" />
     <template v-slot:actions>
       <ButtonCancel @cancel="DialogAdd = false" />
-      <ButtonSave @save="SaveAdd()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="SaveAdd()" />
     </template>
   </BaseDialog>
 
@@ -368,8 +370,8 @@
     title="Cập nhật dữ liệu"
     icon="mdi-update"
   >
-    <InputField label="Part Number 1" v-model="PartNumber1_Edit" />
-    <InputField label="Part Number 2" v-model="PartNumber2_Edit" />
+    <InputField label="Mã linh kiện 1" v-model="PartNumber1_Edit" />
+    <InputField label="Mã linh kiện 2" v-model="PartNumber2_Edit" />
     <InputTextarea label="Mô tả" v-model="Description_Edit" />
     <v-row>
       <v-col>
@@ -419,7 +421,8 @@
     <template v-slot:actions>
       <v-spacer></v-spacer>
       <ButtonCancel @cancel="DialogEdit = false" />
-      <ButtonSave @save="SaveEdit()" class="ms-2" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="SaveEdit()" class="ms-2" />
     </template>
   </BaseDialog>
 
@@ -486,7 +489,7 @@
         <v-table class="text-caption" density="compact">
           <tbody>
             <tr>
-              <td><strong>Datasheet</strong></td>
+              <td><strong>Tài liệu kỹ thuật</strong></td>
               <td>
                 <v-btn
                   size="small"
@@ -497,7 +500,7 @@
                   variant="tonal"
                   class="text-caption"
                 >
-                  Datasheet
+                  Mở tài liệu
                 </v-btn>
               </td>
             </tr>
@@ -1106,7 +1109,6 @@ const getAccessToken = async (value) => {
     tokenType.value = response.data.token_type;
     expires_in.value = response.data.expires_in || 600;
 
-    console.log("Đã lấy access token thành công:", accessToken.value);
 
     if (accessToken.value && tokenType.value && GetDigikey.value) {
       return await searchProduct();

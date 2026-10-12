@@ -2,7 +2,7 @@
   <v-card variant="text">
     <v-card-title class="d-flex">
       <ButtonBack to="/Danh-sach-pnp-qc" />
-      <p class="text-h4 font-weight-light ms-3">{{ project_name }}</p>
+      <p class="app-page-title font-weight-light ms-3">{{ project_name }}</p>
     </v-card-title>
     <!-- Stats Cards -->
     <v-card-title>
@@ -1349,7 +1349,8 @@
 
     <template #actions>
       <ButtonCancel @cancel="DialogAddBom = false" />
-      <ButtonSave @save="uploadBOM()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="uploadBOM()" />
     </template>
   </BaseDialog>
   <BaseDialog
@@ -1487,7 +1488,8 @@
 
     <template #actions>
       <ButtonCancel @cancel="DialogAddPnP = false" />
-      <ButtonSave @save="uploadPNP()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="uploadPNP()" />
     </template>
   </BaseDialog>
   <BaseDialog
@@ -1504,7 +1506,8 @@
     />
     <template #actions>
       <ButtonCancel @cancel="DialogAddFileTop = false" />
-      <ButtonSave @save="uploadFileTop()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="uploadFileTop()" />
     </template>
   </BaseDialog>
   <BaseDialog
@@ -1521,7 +1524,8 @@
     />
     <template #actions>
       <ButtonCancel @cancel="DialogAddFileBottom = false" />
-      <ButtonSave @save="uploadFileBottom()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="uploadFileBottom()" />
     </template>
   </BaseDialog>
   <BaseDialog

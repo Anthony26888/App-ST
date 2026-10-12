@@ -1,4 +1,5 @@
 const express = require("express");
+const { requireAuthStrict } = require("../../middleware/auth.js");
 const router = express.Router();
 
 module.exports = (io) => {
@@ -9,18 +10,21 @@ module.exports = (io) => {
 
   router.post(
     "/upload-bom-pcb/:project_id",
+    requireAuthStrict,
     uploadPnP.single("FileBom"),
     requireActiveLicense(),
     controller.uploadBomPCB,
   );
   router.post(
     "/upload-pickplace-pcb/:id",
+    requireAuthStrict,
     uploadPnP.single("FilePnP"),
     requireActiveLicense(),
     controller.uploadPickplacePCB,
   );
   router.post(
     "/upload-bom-highlight/:id",
+    requireAuthStrict,
     uploadPnP.single("FileBomMountType"),
     requireActiveLicense(),
     controller.uploadBomHighlight,

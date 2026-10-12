@@ -83,6 +83,7 @@
     </v-card>
 
     <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
       v-model="DialogEdit"
       icon="mdi-pencil"
       title="Cập nhật lịch bảo trì"
@@ -137,11 +138,13 @@
         <ButtonDelete @delete="DialogRemove = true" />
         <v-spacer></v-spacer>
         <ButtonCancel @cancel="DialogEdit = false" />
-        <ButtonSave @save="SaveEdit()" class="ms-2" />
+        <ButtonSave
+      :disabled="DialogLoading" @save="SaveEdit()" class="ms-2" />
       </template>
     </BaseDialog>
 
     <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
       v-model="DialogAdd"
       icon="mdi-plus"
       title="Thêm lịch bảo trì"
@@ -196,11 +199,13 @@
       <template v-slot:actions>
         <v-spacer></v-spacer>
         <ButtonCancel @cancel="DialogAdd = false" />
-        <ButtonSave @save="SaveAdd()" class="ms-2" />
+        <ButtonSave
+      :disabled="DialogLoading" @save="SaveAdd()" class="ms-2" />
       </template>
     </BaseDialog>
 
     <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
       v-model="DialogRemove"
       icon="mdi-delete"
       title="Xóa lịch bảo trì"

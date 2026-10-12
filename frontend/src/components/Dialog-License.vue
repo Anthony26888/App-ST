@@ -1,5 +1,6 @@
 <template>
   <v-dialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="dialog"
     :max-width="1000"
     scrollable
@@ -450,6 +451,7 @@
 
   <!-- Dialog kết quả kích hoạt: Thành công -->
   <v-dialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="activateSuccessDialog"
     max-width="360"
     persistent
@@ -484,6 +486,7 @@
 
   <!-- Dialog kết quả kích hoạt: Thất bại -->
   <v-dialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="activateErrorDialog"
     max-width="360"
     persistent

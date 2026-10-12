@@ -1,5 +1,9 @@
 // Composables
 import { createRouter, createWebHistory } from "vue-router";
+import {
+  canAccess,
+  defaultPathFor,
+} from "@/composables/useMenuPermissions.js";
 import App from "@/layouts/default.vue";
 import Login from "@/layouts/login.vue";
 import PageCheck from "@/pages/Page-Check/Page-Check.vue";
@@ -16,6 +20,7 @@ import PageReg from "@/pages/Page-Setting/Page-Reg.vue";
 import PageEditBom from "@/pages/Page-Check/Page-EditBom.vue";
 import PageDetailOrders from "@/pages/Page-Orders/Page-DetailOrders.vue";
 import PageProject from "@/pages/Page-Project/Page-Project.vue";
+import PageOverview from "@/pages/Page-Project/Page-Overview.vue";
 import PagePODetail from "@/pages/Page-Project/Page-DetailProjectPO.vue";
 import PageMaintenance from "@/pages/Page-Maintenance/Page-Maintenance.vue";
 import PageDetailMaintenance from "@/pages/Page-Maintenance/Page-DetailMaintenance.vue";
@@ -39,33 +44,39 @@ const routes = [
     component: App,
     children: [
       {
+        path: "/Tong-quan",
+        name: "Overview",
+        meta: { requiresAuth: true, section: 'Sản xuất' },
+        component: PageOverview,
+      },
+      {
         path: "/Du-an",
         name: "Project",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Sản xuất' },
         component: PageProject,
       },
       {
         path: "/Du-an/Don-hang/:id",
         name: "PO_Detail",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Sản xuất' },
         component: PagePODetail,
       },
       {
         path: "/Kiem-tra-so-lieu",
         name: "Check",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Kiểm tra dữ liệu' },
         component: PageCheck,
       },
       {
         path: "/Chinh-sua-so-lieu",
         name: "EditCheck",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Kiểm tra dữ liệu' },
         component: PageEditBom,
       },
       {
         path: "/Danh-sach-pnp",
         name: "ListPnP",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Kiểm tra dữ liệu' },
         component: PageListProject,
       },
       {
@@ -77,133 +88,127 @@ const routes = [
       {
         path: "/Danh-sach-pnp-qc",
         name: "ListPnPQC",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Kiểm tra dữ liệu' },
         component: PageListProjectQC,
       },
       {
         path: "/Kiem-tra-pnp-qc/:id",
         name: "CheckPnPQC",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Kiểm tra dữ liệu' },
         component: PageCheckQC,
       },
       {
         path: "/Kiem-tra-image-qc/:id",
         name: "CheckImageQC",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Kiểm tra dữ liệu' },
         component: PageCheckImageQC,
       },
       {
         path: "/Ton-kho",
         name: "WareHouse",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Kho' },
         component: PageWareHouse,
       },
       {
         path: "/Ton-kho-2",
         name: "WareHouse-2",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Kho' },
         component: PageWareHouse2,
       },
       {
         path: "/Don-hang",
         name: "Orders",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Kho' },
         component: PageOrders,
       },
       {
         path: "/Cai-dat/",
         name: "Setting",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Hệ thống' },
         component: PageSetting,
       },
       {
         path: "/Cai-dat/Danh-sach-thanh-vien",
         name: "Users",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Hệ thống' },
         component: PageUsers,
       },
       {
         path: "/Cai-dat/Dang-ky-thanh-vien",
         name: "Register",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Hệ thống' },
         component: PageReg,
       },
       {
         path: "/Cai-dat/Quan-ly-license",
         name: "License",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Hệ thống', requiresAdmin: true },
         component: PageLicense,
       },
       {
         path: "/Don-hang/:id",
         name: "DetailOrder",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Kho' },
         component: PageDetailOrders,
       },
       {
         path: "/Bao-tri",
         name: "Maintenance",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Bảo trì' },
         component: PageMaintenance,
       },
       {
         path: "/Bao-tri/Chi-tiet/:id",
         name: "DetailMaintenance",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Bảo trì' },
         component: PageDetailMaintenance,
       },
       {
         path: "/Bao-tri/Lich-bao-tri/:id",
         name: "MaintenanceSchedule",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Bảo trì' },
         component: PageMaintenanceSchedule,
       },
       {
         path: "/Bao-tri/Chi-tiet-su-dung-phu-tung/:id",
         name: "SparePartUsage",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Bảo trì' },
         component: PageSparePartUsage,
       },
       {
         path: "/San-xuat",
         name: "Manufacture",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Sản xuất' },
         component: PagePlanProduct,
       },
       {
         path: "/San-xuat/Chi-tiet/:id",
         name: "DetailManufacture",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Sản xuất' },
         component: PageDetailManufacture,
       },
-      // {
-      //   path: "/San-xuat/SMT/:id",
-      //   name: "DetailSMT",
-      //   meta: { requiresAuth: true },
-      //   component: PageDetailSMT,
-      // },
       {
         path: "/San-xuat/RW/:id",
         name: "DetailRW",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Sản xuất' },
         component: PageDetailRW,
       },
       {
         path: "/San-xuat/:process/:id",
         name: "DetailList",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Sản xuất' },
         component: PageDetailCounting,
       },
       {
         path: "/Bao-cao-san-xuat",
         name: "Summary",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Sản xuất' },
         component: PageSummary,
       },
       {
         path: "/Danh-sach-cong-viec",
         name: "ListWork",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Công việc' },
         component: PageListWork,
       },
       {
@@ -215,7 +220,7 @@ const routes = [
       {
         path: "/Danh-sach-viec",
         name: "ListToDo",
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, section: 'Công việc' },
         component: PageToDo,
       },
     ],
@@ -240,15 +245,33 @@ const router = createRouter({
     return { top: 0 };
   },
 });
-// Route Guard kiểm tra token
+// Route Guard: token + quyền theo section (1 nguồn duy nhất với Navigation).
+// Route bị chặn với role thì đá về trang mặc định của role đó + cờ permDenied.
 router.beforeEach((to, from, next) => {
   const isAuthenticated = !!localStorage.getItem("token");
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     next("/");
-  } else {
-    next();
+    return;
   }
+  const deny = (path) => {
+    try {
+      localStorage.setItem("permDenied", "1");
+    } catch {
+      /* bỏ qua */
+    }
+    next(path);
+  };
+  if (to.meta.requiresAdmin && localStorage.getItem("LevelUser") !== "Admin") {
+    return deny(defaultPathFor(localStorage.getItem("LevelUser")));
+  }
+  if (
+    to.meta.section &&
+    !canAccess(localStorage.getItem("LevelUser"), to.meta.section)
+  ) {
+    return deny(defaultPathFor(localStorage.getItem("LevelUser")));
+  }
+  next();
 });
 
 export default router;

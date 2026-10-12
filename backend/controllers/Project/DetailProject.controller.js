@@ -35,7 +35,11 @@ module.exports = (io) => ({
       ],
       function (err) {
         if (err) {
-          return console.error(err.message);
+          console.error(err.message);
+          if (!res.headersSent) {
+            return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+          }
+          return;
         }
         io.emit("updateDetailProjectPO");
         // Broadcast the new message to all clients

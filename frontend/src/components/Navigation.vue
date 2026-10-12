@@ -4,7 +4,7 @@
     :temporary="temporary"
     :rail="isMini"
     :model-value="drawerOpen"
-    :width="256"
+    :width="300"
     :rail-width="72"
     class="app-nav"
     @update:model-value="$emit('update:open', $event)"
@@ -231,13 +231,17 @@ const itemsOf = (group) =>
     return true;
   });
 
-// Gom nhóm menu để render 1 vòng lặp duy nhất
+// Gom nhóm menu để render 1 vòng lặp duy nhất.
+// Route bị chặn thì menu mất luôn: section không visible => items rỗng.
 const menuSections = computed(() =>
-  NAV_SECTION_ORDER.map((title) => ({
-    title,
-    visible: visibleSections.value.has(title),
-    items: itemsOf(title),
-  })),
+  NAV_SECTION_ORDER.map((title) => {
+    const visible = visibleSections.value.has(title);
+    return {
+      title,
+      visible,
+      items: visible ? itemsOf(title) : [],
+    };
+  }),
 );
 </script>
 

@@ -3,7 +3,9 @@
     <v-card-title
       class="d-flex flex-wrap justify-space-between align-center pa-4 ga-2"
     >
-      <span class="app-page-title font-weight-light">Báo cáo hằng ngày</span>
+      <PageHeader
+        :crumbs="[{ title: 'Báo cáo hằng ngày' }]"
+      />
       <v-spacer></v-spacer>
       <div class="d-flex align-center flex-wrap ga-2 justify-end">
         <v-tooltip text="Phân tích AI" location="start">
@@ -493,6 +495,7 @@
   </v-card>
 
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogAI"
     max-width="1000px"
     :title="'Phân tích AI - Báo cáo ngày ' + formattedSelectedDate"
@@ -668,7 +671,8 @@
 
       <v-card-actions class="pa-4">
         <v-spacer></v-spacer>
-        <ButtonSave @click="analyze" :loading="aiLoading">
+        <ButtonSave
+      :disabled="DialogLoading" @click="analyze" :loading="aiLoading">
           <v-icon start>mdi-robot</v-icon>
           Phân tích lại
         </ButtonSave>

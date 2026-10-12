@@ -8,6 +8,7 @@ const jwt = require("jsonwebtoken");
 const path = require("path");
 const fs = require("fs");
 const db = require("./database.js");
+const { requireAdmin, requireAuthStrict } = require("./middleware/auth.js");
 const axios = require("axios");
 const app = express.Router();
 
@@ -32,7 +33,7 @@ const upload = multer({
 });
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-app.post("/api/upload", upload.single("file"), (req, res) => {
+app.post("/api/upload", requireAuthStrict, upload.single("file"), (req, res) => {
   if (!req.file) return res.status(400).send("No file uploaded.");
   const { PO, BOM, SL_Board, Creater, TimeStamp } = req.body;
   console.log(req.file);
@@ -72,40 +73,55 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
 });
 
 // Router delete all Inventory
-app.delete("/api/WareHouse/delete-all", async (req, res) => {
+app.delete("/api/WareHouse/delete-all", requireAdmin, async (req, res) => {
   // Delete data into SQLite database
   const query = `DELETE FROM WareHouse`;
   db.run(query, [], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     // Broadcast the new message to all clients
+    req.app.get("io")?.emit("WareHouseUpdate");
     res.json({ message: "Item inserted successfully" });
   });
 });
 
 // Router delete all Inventory
-app.delete("/api/WareHouse2/delete-all", async (req, res) => {
+app.delete("/api/WareHouse2/delete-all", requireAdmin, async (req, res) => {
   // Delete data into SQLite database
   const query = `DELETE FROM WareHouse2`;
   db.run(query, [], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     // Broadcast the new message to all clients
+    req.app.get("io")?.emit("WareHouse2Update");
     res.json({ message: "Item inserted successfully" });
   });
 });
 
 // Router delete all item in CheckBOM table
-app.delete("/api/CheckBOM/delete-all", async (req, res) => {
+app.delete("/api/CheckBOM/delete-all", requireAdmin, async (req, res) => {
   // Delete data into SQLite database
   const query = `DELETE FROM CheckBOM`;
   db.run(query, [], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     // Broadcast the new message to all clients
+    req.app.get("io")?.emit("updateCheckBOM");
     res.json({ message: "Item inserted successfully" });
   });
 });
@@ -361,7 +377,7 @@ app.get("/api/Project-Detail/download/:id", async (req, res) => {
 const ExcelJS = require("exceljs");
 
 // Router login user
-app.post("/api/Users/login", (req, res) => {
+app.post("/api/Users/login", async (req, res) => {
   const { Username, Password } = req.body;
 
   db.get(`SELECT * FROM Users WHERE Username = ?`, [Username], async (err, user) => {
@@ -391,7 +407,7 @@ app.post("/api/Users/login", (req, res) => {
 });
 
 // Router logout user (xóa phiên active)
-app.post("/api/Users/logout", (req, res) => {
+app.post("/api/Users/logout", async (req, res) => {
   const { deleteSession, resolveRequestUsername } = require("./middleware/license.js");
   const username =
     resolveRequestUsername(req) ||
@@ -445,72 +461,117 @@ app.get("/api/Project/Customer/Orders/Download/:id", async (req, res) => {
   }
 });
 // Router delete all item in Customers table
-app.delete("/api/Project/delete-all", async (req, res) => {
+app.delete("/api/Project/delete-all", requireAdmin, async (req, res) => {
   // Delete data into SQLite database
   const query = `DELETE FROM Customers`;
   db.run(query, [], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     // Broadcast the new message to all clients
+    req.app.get("io")?.emit("ProjectUpdate");
+    req.app.get("io")?.emit("ProjecFindUpdate");
     res.json({ message: "Item inserted successfully" });
   });
 });
 
 // Router delete all item in Manufacture table
-app.delete("/api/Manufacture/delete-all", async (req, res) => {
+app.delete("/api/Manufacture/delete-all", requireAdmin, async (req, res) => {
   // Delete data into SQLite database
   const query = `DELETE FROM PlanManufacture`;
   db.run(query, [], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     // Broadcast the new message to all clients
+    req.app.get("io")?.emit("ManufactureUpdate");
     res.json({ message: "Item inserted successfully" });
   });
 });
 
 // Router delete all item in Summary table
-app.delete("/api/Summary/delete-all", async (req, res) => {
+app.delete("/api/Summary/delete-all", requireAdmin, async (req, res) => {
   // Delete data into SQLite database
   const query = `DELETE FROM Summary`;
   db.run(query, [], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     // Broadcast the new message to all clients
+    req.app.get("io")?.emit("UpdateSummary");
     res.json({ message: "Item inserted successfully" });
   });
 });
 
 // Router delete all item in Maintenance table
-app.delete("/api/Maintenance/delete-all", async (req, res) => {
+app.delete("/api/Maintenance/delete-all", requireAdmin, async (req, res) => {
   // Delete data into SQLite database
   const query = `DELETE FROM Machine`;
   db.run(query, [], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     // Broadcast the new message to all clients
+    req.app.get("io")?.emit("MachineUpdate");
     res.json({ message: "Item inserted successfully" });
   });
 });
 
 // Router delete all item in PickPlace table
-app.delete("/api/FilterBom/delete-all", async (req, res) => {
+app.delete("/api/FilterBom/delete-all", requireAdmin, async (req, res) => {
   // Delete data into SQLite database
   const query = `DELETE FROM FilterBom`;
   db.run(query, [], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     // Broadcast the new message to all clients
+    req.app.get("io")?.emit("UpdateFilterBom");
     res.json({ message: "Item inserted successfully" });
   });
 });
 
 // Tạo router download
 app.get("/api/download-db", (req, res) => {
+  // Chỉ Admin đã xác thực session mới được tải DB (chứa hash password)
+  const headerUser = String((req.headers && req.headers["x-username"]) || "").trim();
+  const token = req.headers && req.headers["x-session-token"];
+  if (!headerUser || !token) {
+    return res.status(401).json({ error: "Cần đăng nhập" });
+  }
+  db.get(`SELECT Token FROM Sessions WHERE Username = ?`, [headerUser], (err, row) => {
+    if (err || !row || row.Token !== token) {
+      return res.status(401).json({ code: "SESSION_REPLACED", error: "Tài khoản đã đăng nhập ở máy khác." });
+    }
+    db.get(`SELECT Level FROM Users WHERE Username = ?`, [headerUser], (err2, user) => {
+      if (err2 || !user || user.Level !== "Admin") {
+        return res.status(403).json({ error: "Không có quyền thực hiện" });
+      }
+      sendDbFile();
+    });
+  });
+
+  function sendDbFile() {
   const filePath = path.join(__dirname, "./database.db");
 
   // Kiểm tra file tồn tại trước khi gửi
@@ -526,6 +587,7 @@ app.get("/api/download-db", (req, res) => {
       if (!res.headersSent) res.status(500).send("Không thể tải file.");
     }
   });
+  } // end sendDbFile
 });
 
 // 📥 API to Download AOI data as XLSX

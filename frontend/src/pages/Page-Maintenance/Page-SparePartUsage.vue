@@ -67,6 +67,7 @@
   </v-card>
 
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogAdd"
     title="Thêm dữ liệu sử dụng phụ tùng"
     max-width="500"
@@ -105,11 +106,13 @@
     </v-row>
     <template v-slot:actions>
       <ButtonCancel @cancel="DialogAdd = false" />
-      <ButtonSave @save="SaveAdd()" class="ms-2" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="SaveAdd()" class="ms-2" />
     </template>
   </BaseDialog>
 
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogEdit"
     icon="mdi-pencil"
     title="Cập nhật dữ liệu sử dụng phụ tùng"
@@ -150,11 +153,13 @@
       <ButtonDelete @delete="DialogRemove = true" />
       <v-spacer></v-spacer>
       <ButtonCancel @cancel="DialogEdit = false" />
-      <ButtonSave @save="SaveEdit()" class="ms-2" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="SaveEdit()" class="ms-2" />
     </template>
   </BaseDialog>
 
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogRemove"
     icon="mdi-delete"
     title="Xóa dữ liệu sử dụng phụ tùng"

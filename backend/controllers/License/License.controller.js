@@ -42,6 +42,43 @@ const isAdmin = async (username) => {
   return !!(user && user.Level === "Admin");
 };
 
+// ===== Chỉ chính chủ hoặc Admin mới được thao tác trên username cho trước =====
+// Trả về { ok:true, caller } hoặc { ok:false, status, body } để handler dùng ngay.
+const requireSelfOrAdmin = async (req, username) => {
+  const target = String(username || "").trim();
+  if (!target) return { ok: false, status: 400, body: { error: "Thiếu thông tin đầu vào" } };
+  const caller = String((req.headers && req.headers["x-username"]) || "").trim();
+  const token = req.headers && req.headers["x-session-token"];
+  if (!caller || !token) {
+    return { ok: false, status: 401, body: { code: "SESSION_REPLACED", error: "Tài khoản đã đăng nhập ở máy khác." } };
+  }
+  const session = await get(`SELECT Token FROM Sessions WHERE Username = ?`, [caller]);
+  if (!session || session.Token !== token) {
+    return { ok: false, status: 401, body: { code: "SESSION_REPLACED", error: "Tài khoản đã đăng nhập ở máy khác." } };
+  }
+  if (caller !== target && !(await isAdmin(caller))) {
+    return { ok: false, status: 403, body: { error: "Không có quyền thực hiện" } };
+  }
+  return { ok: true, caller };
+};
+
+// ===== Admin đã xác thực session (chống giả mạo username body/query) =====
+const requireAdminSession = async (req) => {
+  const caller = String((req.headers && req.headers["x-username"]) || "").trim();
+  const token = req.headers && req.headers["x-session-token"];
+  if (!caller || !token) {
+    return { ok: false, status: 401, body: { code: "SESSION_REPLACED", error: "Tài khoản đã đăng nhập ở máy khác." } };
+  }
+  const session = await get(`SELECT Token FROM Sessions WHERE Username = ?`, [caller]);
+  if (!session || session.Token !== token) {
+    return { ok: false, status: 401, body: { code: "SESSION_REPLACED", error: "Tài khoản đã đăng nhập ở máy khác." } };
+  }
+  if (!(await isAdmin(caller))) {
+    return { ok: false, status: 403, body: { error: "Không có quyền thực hiện" } };
+  }
+  return { ok: true, caller };
+};
+
 module.exports = (io) => ({
   // ============================
   // Client xác nhận đã chuyển khoản -> tạo mã yêu cầu (chỉ dùng 1 lần)
@@ -120,11 +157,13 @@ module.exports = (io) => ({
   // ============================
   async generateByCode(req, res) {
     try {
-      const { username, code } = req.body;
-      if (!username || !code)
+      const { code } = req.body;
+      if (!code)
         return res.status(400).json({ error: "Thiếu thông tin đầu vào" });
-      if (!(await isAdmin(username)))
-        return res.status(403).json({ error: "Không có quyền thực hiện" });
+      // Xác thực session + quyền Admin theo caller thật (chống giả mạo username)
+      const perm = await requireAdminSession(req);
+      if (!perm.ok) return res.status(perm.status).json(perm.body);
+      const username = perm.caller;
 
       const codeInput = String(code).trim().toUpperCase();
       const reqRow = await get(`SELECT * FROM LicenseRequests WHERE Code = ?`, [
@@ -190,6 +229,10 @@ module.exports = (io) => ({
       if (!username || !licenseKey)
         return res.status(400).json({ error: "Thiếu thông tin đầu vào" });
 
+      // Chỉ chính chủ hoặc Admin mới được kích hoạt cho tài khoản này
+      const perm = await requireSelfOrAdmin(req, username);
+      if (!perm.ok) return res.status(perm.status).json(perm.body);
+
       const licenseKeyInput = String(licenseKey).trim().toUpperCase();
       const keyRow = await get(
         `SELECT * FROM LicenseKeys WHERE LicenseKey = ?`,
@@ -234,9 +277,8 @@ module.exports = (io) => ({
   // ============================
   async list(req, res) {
     try {
-      const { username } = req.query;
-      if (!username || !(await isAdmin(username)))
-        return res.status(403).json({ error: "Không có quyền thực hiện" });
+      const perm = await requireAdminSession(req);
+      if (!perm.ok) return res.status(perm.status).json(perm.body);
 
       const rows = await all(
         `SELECT k.LicenseKey, k.LicensePlan, k.Status, k.UsedBy, k.Uses,
@@ -262,19 +304,10 @@ module.exports = (io) => ({
   async getInfo(req, res) {
     try {
       const { username } = req.params;
-      const headerUser = (req.headers && req.headers["x-username"]) || username;
-      const token = req.headers && req.headers["x-session-token"];
-      const session = token
-        ? await get(`SELECT Token FROM Sessions WHERE Username = ?`, [
-            headerUser,
-          ])
-        : null;
-      if (!session || session.Token !== token) {
-        return res.status(401).json({
-          code: "SESSION_REPLACED",
-          error: "Tài khoản đã đăng nhập ở máy khác.",
-        });
-      }
+      // Chỉ chính chủ hoặc Admin mới được xem license của tài khoản này
+      const perm = await requireSelfOrAdmin(req, username);
+      if (!perm.ok) return res.status(perm.status).json(perm.body);
+
       const user = await get(
         `SELECT License, LicenseKey, LicenseUse, ProjectCount, UploadCount FROM Users WHERE Username = ?`,
         [username],

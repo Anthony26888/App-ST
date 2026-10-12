@@ -2,7 +2,7 @@
   <v-card variant="text" class="app-page">
     <v-card-title class="d-flex">
       <ButtonBack to="/Kiem-tra-so-lieu" />
-      <p class="text-h4 font-weight-light ms-3">Chỉnh sửa số liệu</p>
+      <p class="app-page-title font-weight-light ms-3">Chỉnh sửa số liệu</p>
     </v-card-title>
     <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
       <v-card variant="elevated" elevation="0" class="rounded-xl app-card-fill">
@@ -39,17 +39,20 @@
       </v-card>
     </v-card-text>
   </v-card>
-  <BaseDialog v-model="DialogEdit" width="400" title="Cập nhật dữ liệu" icon="mdi-update">
+  <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown" v-model="DialogEdit" width="400" title="Cập nhật dữ liệu" icon="mdi-update">
     <InputField label="Tên dự án" v-model="PO_Edit" />
     <InputField label="Số lượng board" v-model="Quantity_Edit" />
     <template #actions>
       <ButtonDelete @delete="DialogRemove = true" />
       <v-spacer></v-spacer>
       <ButtonCancel @cancel="DialogEdit = false" />
-      <ButtonSave @save="SaveEdit()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="SaveEdit()" />
     </template>
   </BaseDialog>
-  <BaseDialog v-model="DialogRemove" width="400" title="Xoá dữ liệu" icon="mdi-delete">
+  <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown" v-model="DialogRemove" width="400" title="Xoá dữ liệu" icon="mdi-delete">
     Bạn có chắc chắn muốn xoá Bom này ?
     <template #actions>
       <ButtonCancel @cancel="DialogRemove = false" />

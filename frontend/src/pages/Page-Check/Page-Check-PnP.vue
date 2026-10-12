@@ -1,9 +1,12 @@
 <template lang="">
   <v-card variant="text">
-    <v-card-title class="d-flex">
-      <ButtonBack to="/Danh-sach-pnp" />
-      <p class="text-h4 font-weight-light ms-3">{{ project_name }}</p>
-    </v-card-title>
+    <PageHeader
+      back-to="/Danh-sach-pnp"
+      :crumbs="[
+        { title: 'Dữ liệu SMT', to: '/Danh-sach-pnp' },
+        { title: project_name },
+      ]"
+    />
     <!-- Stats Cards -->
     <v-card-title>
       <v-row>
@@ -1336,6 +1339,7 @@
   </v-card>
 
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogAddBom"
     width="800"
     title="Thêm dữ liệu BOM"
@@ -1446,7 +1450,7 @@
             :items="BomHeaders"
             item-title="title"
             item-value="value"
-            label="Quantity"
+            label="Số lượng"
             density="compact"
             variant="outlined"
             hide-details
@@ -1458,7 +1462,7 @@
             :items="BomHeaders"
             item-title="title"
             item-value="value"
-            label="Description"
+            label="Mô tả"
             density="compact"
             variant="outlined"
             hide-details
@@ -1471,7 +1475,7 @@
             :items="BomHeaders"
             item-title="title"
             item-value="value"
-            label="Note"
+            label="Ghi chú"
             density="compact"
             variant="outlined"
             hide-details
@@ -1521,10 +1525,12 @@
     </div>
     <template #actions>
       <ButtonCancel @cancel="DialogAddBom = false" />
-      <ButtonSave @save="uploadBOM()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="uploadBOM()" />
     </template>
   </BaseDialog>
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogAddBomMountType"
     width="600"
     title="Thêm dữ liệu BOM Highlight"
@@ -1538,10 +1544,12 @@
     />
     <template #actions>
       <ButtonCancel @cancel="DialogAddBomMountType = false" />
-      <ButtonSave @save="uploadBOMMountType()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="uploadBOMMountType()" />
     </template>
   </BaseDialog>
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogAddBomNew"
     width="800"
     title="Nhập File Bom mới (so sánh)"
@@ -1614,7 +1622,7 @@
             :items="BomNewHeaderOptions"
             item-title="title"
             item-value="value"
-            label="Description"
+            label="Mô tả"
             density="compact"
             variant="outlined"
             hide-details
@@ -1627,7 +1635,7 @@
             :items="BomNewHeaderOptions"
             item-title="title"
             item-value="value"
-            label="Quantity"
+            label="Số lượng"
             density="compact"
             variant="outlined"
             hide-details
@@ -1672,10 +1680,12 @@
     </div>
     <template #actions>
       <ButtonCancel @cancel="DialogAddBomNew = false" />
-      <ButtonSave @save="applyBomNewCompare()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="applyBomNewCompare()" />
     </template>
   </BaseDialog>
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogAddPickplaceNew"
     width="800"
     title="Nhập File Pickplace mới (so sánh)"
@@ -1771,7 +1781,7 @@
             :items="PkNewHeaderRowOptions"
             item-title="title"
             item-value="value"
-            label="Rotation"
+            label="Góc xoay"
             density="compact"
             variant="outlined"
             hide-details
@@ -1783,7 +1793,7 @@
             :items="PkNewHeaderRowOptions"
             item-title="title"
             item-value="value"
-            label="Layer"
+            label="Lớp"
             density="compact"
             variant="outlined"
             hide-details
@@ -1795,7 +1805,7 @@
             :items="PkNewHeaderRowOptions"
             item-title="title"
             item-value="value"
-            label="Note"
+            label="Ghi chú"
             density="compact"
             variant="outlined"
             hide-details
@@ -1849,10 +1859,12 @@
     </div>
     <template #actions>
       <ButtonCancel @cancel="DialogAddPickplaceNew = false" />
-      <ButtonSave @save="applyPickplaceNewCompare()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="applyPickplaceNewCompare()" />
     </template>
   </BaseDialog>
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogAddPnP"
     width="800"
     title="Thêm dữ liệu Pick & Place"
@@ -1941,7 +1953,7 @@
             :items="PnPHeaders"
             item-title="title"
             item-value="value"
-            label="Rotation"
+            label="Góc xoay"
             density="compact"
             variant="outlined"
             hide-details
@@ -2061,10 +2073,12 @@
     </div>
     <template #actions>
       <ButtonCancel @cancel="DialogAddPnP = false" />
-      <ButtonSave @save="uploadPNP" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="uploadPNP" />
     </template>
   </BaseDialog>
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogEdit"
     width="600"
     title="Chỉnh sửa Pick & Place"
@@ -2109,10 +2123,12 @@
     />
     <template #actions>
       <ButtonCancel @cancel="DialogEdit = false" />
-      <ButtonSave @save="SaveEditPnP()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="SaveEditPnP()" />
     </template>
   </BaseDialog>
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogInfo"
     width="800"
     title="Thông số kỹ thuật"
@@ -2165,6 +2181,7 @@
   </BaseDialog>
 
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogDownloadBomHighlight"
     width="600"
     title="Tải file Bom Highlight"
@@ -2189,6 +2206,7 @@
   </BaseDialog>
 
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogReportMissing"
     width="500"
     title="Báo cáo Component Thiếu"
@@ -2239,6 +2257,7 @@
     </template>
   </BaseDialog>
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogEditType"
     width="700"
     title="Cập nhật loại linh kiện"
@@ -2337,10 +2356,12 @@
     </v-card>
     <template #actions>
       <ButtonCancel @cancel="DialogEditType = false" />
-      <ButtonSave @save="SaveEditType()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="SaveEditType()" />
     </template>
   </BaseDialog>
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogDeleteBomHighlight"
     width="600"
     title="Xoá dữ liệu Bom"
@@ -2353,6 +2374,7 @@
     </template>
   </BaseDialog>
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogDeletePickPlace"
     width="600"
     title="Xoá dữ liệu PickPlace"
@@ -2365,6 +2387,7 @@
     </template>
   </BaseDialog>
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogRemoveImage"
     width="600"
     title="Xoá hình ảnh"
@@ -2391,6 +2414,7 @@
 
   <!-- Dialog kết quả tìm Datasheet -->
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogDatasheetResult"
     max-width="900"
     scrollable
@@ -2571,6 +2595,7 @@
 
   <!-- Dialog xem + tải ảnh sản phẩm -->
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogDatasheetImage"
     width="600"
     :persistent="true"
@@ -3182,9 +3207,9 @@ const filteredBomHighlight = computed(() => {
   }
   return items;
 });
-const itemsPerPageBom = ref(20);
+const itemsPerPageBom = ref(10);
 const pageBom = ref(1);
-const itemsPerPageBomHighlight = ref(20);
+const itemsPerPageBomHighlight = ref(10);
 const pageBomHighlight = ref(1);
 const pagePnPCompare = ref(1);
 

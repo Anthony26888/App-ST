@@ -37,7 +37,7 @@ function createStorage(folder) {
 // Hàm tạo Upload
 // ===============================
 
-function createUpload({ folder, extensions = [], maxSize = 100 }) {
+function createUpload({ folder, extensions = [], maxSize = 10 }) {
   return multer({
     storage: createStorage(folder),
 
@@ -101,6 +101,8 @@ const uploadPnP = createUpload({
 
 const uploadGerber = createUpload({
   folder: "uploads/gerber",
+  extensions: [".gbr", ".gtl", ".gbl", ".gts", ".gbs", ".drl", ".ger", ".gtp", ".gbp", ".gko", ".cam", ".gto", ".gbo", ".zip"],
+  maxSize: 50,
 });
 
 // ===============================

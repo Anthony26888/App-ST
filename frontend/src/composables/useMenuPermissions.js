@@ -44,6 +44,13 @@ export const NAV_MENU_ITEMS = [
   // },
   {
     group: "Sản xuất",
+    icon: "mdi-view-dashboard-outline",
+    title: "Tổng quan",
+    value: "Overview",
+    to: "/Tong-quan",
+  },
+  {
+    group: "Sản xuất",
     icon: "mdi-briefcase-outline",
     title: "Dự án",
     value: "Project",
@@ -97,13 +104,11 @@ export const NAV_MENU_ITEMS = [
 // ===== Section desktop hiển thị theo Level (true = hiện) =====
 // Giữ nguyên mapping cũ của Navigation.vue
 const NAV_SECTIONS_BY_LEVEL = {
-  "Kinh doanh": [1, 2],
-  "Thủ kho": [2, 3],
-  "Kế hoạch": [2, 3, 5, 6],
+  "Quản lý kho": [2, 3],
   "Quản lý tổng": [1, 2, 3, 4, 5],
-  "Quản lý kinh doanh": [3],
-  "Quản lý bảo trì": [1, 4, 5],
-  "Quản lý sản xuất": [3],
+  "Quản lý kinh doanh": [2, 3],
+  "Quản lý kĩ thuật": [1, 3, 4, 5],
+  "Quản lý sản xuất": [2, 3],
   Admin: [1, 2, 3, 4, 5, 6],
   "Nhân viên": [3],
   "Quản lý QC": [1],
@@ -130,6 +135,25 @@ export function getNavVisibleSections(levelUser) {
     6: "Hệ thống",
   };
   return new Set(nums.map((n) => map[n]));
+}
+
+// Nguồn duy nhất: route/menu có section này thì role có được vào không?
+// Route/menu không gắn section (= trang hệ thống) thì chỉ cần đăng nhập.
+export function canAccess(levelUser, section) {
+  if (!section) return true;
+  return getNavVisibleSections(levelUser).has(section);
+}
+
+// Trang mặc định khi bị chặn (trang đầu tiên của section đầu tiên được phép)
+export function defaultPathFor(levelUser) {
+  const order = ["Sản xuất", "Kho", "Kiểm tra dữ liệu", "Bảo trì", "Công việc", "Hệ thống"];
+  const visible = getNavVisibleSections(levelUser);
+  for (const section of order) {
+    if (!visible.has(section)) continue;
+    const item = NAV_MENU_ITEMS.find((i) => i.group === section);
+    if (item) return item.to;
+  }
+  return "/Du-an";
 }
 
 // ===== Lấy Level user (dùng chung) =====

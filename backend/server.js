@@ -6,6 +6,7 @@ const express = require("express");
 const multer = require("multer");
 const xlsx = require("xlsx");
 const cors = require("cors");
+const { requireAdmin, requireAuthStrict } = require("./middleware/auth.js");
 const bodyParser = require("body-parser");
 const path = require("path");
 const bcrypt = require("bcrypt");
@@ -51,7 +52,7 @@ const ESP32_IP_LINE1 = "http://192.168.1.205"; // IP ESP32 (phải đổi đúng
 const ESP32_IP_LINE2 = "http://192.168.1.206";
 const sessions = {}; // lưu theo socket.id
 // Khởi tạo Express và Socket.IO
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 // const HTTPS_PORT = 3443; // XÓA: không dùng HTTPS
 
 const allowedOrigins = new Set([
@@ -62,6 +63,10 @@ const allowedOrigins = new Set([
   "https://localhost:3000",
   "http://127.0.0.1:8080",
   "http://127.0.0.1:3000",
+  "http://localhost:8000",
+  "http://127.0.0.1:8000",
+  "http://localhost:3001",
+  "http://127.0.0.1:3001",
   "http://localhost",
 
   // LAN
@@ -126,6 +131,9 @@ const io = new Server(server, {
 
 // Initialize Socket.IO for AI routes
 setAISummaryIO(io);
+
+// Chia sẻ io cho routes.js (không có io riêng) để emit refresh sau mutation
+app.set("io", io);
 
 // GIỮ LẠI CHỈ HTTP
 io.on("connection", (socket) => {
@@ -200,7 +208,7 @@ const storageImageQC = multer.diskStorage({
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB
+    fileSize: 25 * 1024 * 1024, // 25MB (BOM/gerber)
   },
   fileFilter: (req, file, cb) => {
     const allowedExt = [
@@ -233,7 +241,7 @@ const upload = multer({
 const uploadPnP = multer({
   storage: storagePnP,
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB
+    fileSize: 10 * 1024 * 1024, // 10MB (file PnP xlsx)
   },
   fileFilter: (req, file, cb) => {
     const allowedExt = [".xlsx"];
@@ -246,20 +254,26 @@ const uploadPnP = multer({
   },
 });
 
+const GERBER_EXTS = [".gbr", ".gtl", ".gbl", ".gts", ".gbs", ".drl", ".ger", ".gtp", ".gbp", ".gko", ".cam", ".gto", ".gbo", ".zip"];
 const uploadGerber = multer({
   storage: storagePnP,
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB
+    fileSize: 50 * 1024 * 1024, // 50MB (gerber bundles)
   },
   fileFilter: (req, file, cb) => {
-    cb(null, true); // chấp nhận mọi file
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (GERBER_EXTS.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Chỉ chấp nhận file gerber/zip"));
+    }
   },
 });
 
 const uploadImageMPN = multer({
   storage: storageImageMPN,
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB
+    fileSize: 10 * 1024 * 1024, // 10MB (ảnh linh kiện)
   },
   fileFilter: (req, file, cb) => {
     const allowedExt = [".png", ".jpg", ".jpeg", ".webp", ".heic"];
@@ -275,7 +289,7 @@ const uploadImageMPN = multer({
 const uploadImageQC = multer({
   storage: storageImageQC,
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB
+    fileSize: 10 * 1024 * 1024, // 10MB (ảnh QC)
   },
   fileFilter: (req, file, cb) => {
     const allowedExt = [".png", ".jpg", ".jpeg", ".webp", ".heic", ".pdf"];
@@ -342,6 +356,7 @@ const getManufactureDetailsSocket = require("./socket/Manufacture/GetManufacture
 const getManufactureCountingSocket = require("./socket/Manufacture/GetManufactureCounting.socket.js");
 const getHistorySocket = require("./socket/Manufacture/GetHistory.socket.js");
 const getHistoryPartSocket = require("./socket/Manufacture/GetHistoryPart.socket.js");
+const getRecentProductionSocket = require("./socket/Manufacture/GetRecentProduction.socket.js");
 //=========== Summary =================
 const getSummarySocket = require("./socket/Summary/GetSummary.socket.js");
 //=========== Check PnP =================
@@ -470,6 +485,7 @@ io.on("connection", (socket) => {
   getManufactureCountingSocket(socket);
   getHistorySocket(socket);
   getHistoryPartSocket(socket);
+  getRecentProductionSocket(socket);
 
   // ================ Summary =======================
   getSummarySocket(socket);
@@ -624,16 +640,26 @@ const getCompareWareHouse = async (id) => {
         if (err) return reject(err);
 
         // Create dynamic column aggregation
-        // Create dynamic column aggregation
+        // Giá trị Bom từ Excel import của user -> sanitize trước khi nối SQL
+        // (chống second-order SQLi qua dấu nháy / ngoặc vuông)
+        const safeBom = (v) =>
+          String(v == null ? "" : v)
+            .replace(/'/g, "''")
+            .replace(/[\[\]]/g, "");
+        // Alias cột: chỉ giữ chữ/số/gạch dưới (SQLite identifier an toàn)
+        const safeAlias = (v, i) => {
+          const clean = String(v == null ? "" : v).replace(/[^\w]/g, "_").slice(0, 50);
+          return `${clean || "Bom"}_${i}`;
+        };
         const columns = Boms.map(
-          (bom) =>
-            `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE NULL END) AS [${bom.Bom}]`,
+          (bom, i) =>
+            `MAX(CASE WHEN a.Bom = '${safeBom(bom.Bom)}' THEN (a.So_Luong * a.SL_Board) ELSE NULL END) AS [${safeAlias(bom.Bom, i)}]`,
         ).join(", ");
 
         // Tạo biểu thức tổng từ các cột động
         const sumColumns = Boms.map(
           (bom) =>
-            `MAX(CASE WHEN a.Bom = '${bom.Bom}' THEN (a.So_Luong * a.SL_Board) ELSE 0 END)`,
+            `MAX(CASE WHEN a.Bom = '${safeBom(bom.Bom)}' THEN (a.So_Luong * a.SL_Board) ELSE 0 END)`,
         ).join(" + ");
 
         const Buy = `
@@ -716,7 +742,7 @@ app.get("/api/Download-PO/:id", async (req, res) => {
   }
 });
 
-app.post("/api/insert-compare-inventory/:id", async (req, res) => {
+app.post("/api/insert-compare-inventory/:id", requireAuthStrict, async (req, res) => {
   const id = req.params.id;
   console.log("Processing insert-compare-inventory for PO:", id);
 
@@ -856,35 +882,75 @@ app.post("/api/insert-compare-inventory/:id", async (req, res) => {
 });
 
 // Router register user
+// Quy tắc: level mặc định "Nhân viên" được tự đăng ký; level nâng cao
+// (kể cả Admin) đòi phiên admin hợp lệ — chống tự phong quyền.
 app.post("/api/Users/register", (req, res) => {
   const { Username, FullName, Password, Email, Level, Date } = req.body;
 
-  bcrypt.hash(Password, 10, (err, hash) => {
-    if (err) return res.status(500).json({ error: "Lỗi mã hóa mật khẩu" });
+  if (!Username || !Password) {
+    return res.status(400).json({ error: "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu" });
+  }
 
-    db.run(
-      `INSERT INTO Users (Username, FullName, Password, Email, Level, Date) VALUES (?, ?, ?, ?, ?, ?)`,
-      [Username, FullName, hash, Email, Level, Date],
-      function (err) {
-        if (err) {
-          return console.error(err.message);
-        }
-        io.emit("updateUsers");
-        // Broadcast the new message to all clients
-        res.json({ message: "Item inserted successfully" });
-      },
-    );
+  const requestedLevel = Level || "Nhân viên";
+
+  const doInsert = (finalLevel) => {
+    bcrypt.hash(Password, 10, (err, hash) => {
+      if (err) return res.status(500).json({ error: "Lỗi mã hóa mật khẩu" });
+
+      db.run(
+        `INSERT INTO Users (Username, FullName, Password, Email, Level, Date) VALUES (?, ?, ?, ?, ?, ?)`,
+        [Username, FullName, hash, Email, finalLevel, Date],
+        function (err) {
+          if (err) {
+            if (err.message && err.message.includes("UNIQUE")) {
+              return res.status(400).json({ error: "Tên đăng nhập đã tồn tại" });
+            }
+            console.error(err.message);
+            return res.status(500).json({ error: "Lỗi khi tạo tài khoản" });
+          }
+          io.emit("updateUsers");
+          // Broadcast the new message to all clients
+          res.json({ message: "Item inserted successfully" });
+        },
+      );
+    });
+  };
+
+  if (requestedLevel === "Nhân viên") {
+    return doInsert("Nhân viên");
+  }
+
+  // Level nâng cao: xác thực phiên admin
+  const headerUser = String((req.headers && req.headers["x-username"]) || "").trim();
+  const token = req.headers && req.headers["x-session-token"];
+  if (!headerUser || !token) {
+    return res.status(401).json({ error: "Cần đăng nhập tài khoản Admin để phân quyền này" });
+  }
+  db.get(`SELECT Token FROM Sessions WHERE Username = ?`, [headerUser], (err, row) => {
+    if (err || !row || row.Token !== token) {
+      return res.status(401).json({ code: "SESSION_REPLACED", error: "Tài khoản đã đăng nhập ở máy khác." });
+    }
+    db.get(`SELECT Level FROM Users WHERE Username = ?`, [headerUser], (err2, user) => {
+      if (err2 || !user || user.Level !== "Admin") {
+        return res.status(403).json({ error: "Không có quyền thực hiện" });
+      }
+      return doInsert(requestedLevel);
+    });
   });
 });
 
 // Router delete user in Users table
-app.delete("/api/Users/delete-user/:id", async (req, res) => {
+app.delete("/api/Users/delete-user/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
   // Delete data into SQLite database
   const query = `DELETE FROM Users WHERE id = ?`;
   db.run(query, [id], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     io.emit("updateUsers");
     // Broadcast the new message to all clients
@@ -893,7 +959,7 @@ app.delete("/api/Users/delete-user/:id", async (req, res) => {
 });
 
 // Router edit user in Users table
-app.put("/api/Users/Edit-User/:id", async (req, res) => {
+app.put("/api/Users/Edit-User/:id", requireAdmin, async (req, res) => {
   const { Username, FullName, Email, Level } = req.body;
   const { id } = req.params;
   // Delete data into SQLite database
@@ -904,7 +970,11 @@ app.put("/api/Users/Edit-User/:id", async (req, res) => {
   `;
   db.run(query, [Username, FullName, Email, Level, id], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     io.emit("updateUsers");
     // Broadcast the new message to all clients
@@ -913,7 +983,7 @@ app.put("/api/Users/Edit-User/:id", async (req, res) => {
 });
 
 // Router upload file xlsx to WareHouse table
-app.post("/api/WareHouse/Upload", upload.single("file"), async (req, res) => {
+app.post("/api/WareHouse/Upload", requireAuthStrict, upload.single("file"), async (req, res) => {
   if (!req.file) return res.status(400).send("No file uploaded.");
 
   // Read Excel file
@@ -996,7 +1066,7 @@ app.post("/api/WareHouse/Upload", upload.single("file"), async (req, res) => {
 });
 
 // Router update item WareHouse table
-app.put("/api/WareHouse/update-item/:id", async (req, res) => {
+app.put("/api/WareHouse/update-item/:id", requireAuthStrict, async (req, res) => {
   const {
     PartNumber1_Edit,
     PartNumber2_Edit,
@@ -1032,7 +1102,11 @@ app.put("/api/WareHouse/update-item/:id", async (req, res) => {
     ],
     function (err) {
       if (err) {
-        return console.error(err.message);
+        console.error(err.message);
+        if (!res.headersSent) {
+          return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+        }
+        return;
       }
       io.emit("WareHouseUpdate");
       io.emit("TemporaryWareHouseUpdate");
@@ -1043,13 +1117,17 @@ app.put("/api/WareHouse/update-item/:id", async (req, res) => {
 });
 
 // Router delete item in WareHouse table
-app.delete("/api/WareHouse/delete-item/:id", async (req, res) => {
+app.delete("/api/WareHouse/delete-item/:id", requireAuthStrict, async (req, res) => {
   const { id } = req.params;
   // Delete data into SQLite database
   const query = `DELETE FROM WareHouse WHERE id = ?`;
   db.run(query, [id], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     io.emit("WareHouseUpdate");
     io.emit("TemporaryWareHouseUpdate");
@@ -1059,7 +1137,7 @@ app.delete("/api/WareHouse/delete-item/:id", async (req, res) => {
 });
 
 //Router post new item in WareHouse table
-app.post("/api/WareHouse/upload-new-item", (req, res) => {
+app.post("/api/WareHouse/upload-new-item", requireAuthStrict, async (req, res) => {
   const {
     PartNumber_1,
     PartNumber_2,
@@ -1091,7 +1169,11 @@ app.post("/api/WareHouse/upload-new-item", (req, res) => {
     ],
     function (err) {
       if (err) {
-        return console.error(err.message);
+        console.error(err.message);
+        if (!res.headersSent) {
+          return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+        }
+        return;
       }
       io.emit("WareHouseUpdate");
       // Broadcast the new message to all clients
@@ -1101,7 +1183,7 @@ app.post("/api/WareHouse/upload-new-item", (req, res) => {
 });
 
 // Router upload file xlsx to WareHouse2 table
-app.post("/api/WareHouse2/Upload", upload.single("file"), async (req, res) => {
+app.post("/api/WareHouse2/Upload", requireAuthStrict, upload.single("file"), async (req, res) => {
   if (!req.file) return res.status(400).send("No file uploaded.");
 
   // Read Excel file
@@ -1183,7 +1265,7 @@ app.post("/api/WareHouse2/Upload", upload.single("file"), async (req, res) => {
 });
 
 // Router update item WareHouse2 table
-app.put("/api/WareHouse2/update-item/:id", async (req, res) => {
+app.put("/api/WareHouse2/update-item/:id", requireAuthStrict, async (req, res) => {
   const {
     PartNumber1_Edit,
     PartNumber2_Edit,
@@ -1219,7 +1301,11 @@ app.put("/api/WareHouse2/update-item/:id", async (req, res) => {
     ],
     function (err) {
       if (err) {
-        return console.error(err.message);
+        console.error(err.message);
+        if (!res.headersSent) {
+          return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+        }
+        return;
       }
       io.emit("WareHouse2Update");
       // Broadcast the new message to all clients
@@ -1228,13 +1314,17 @@ app.put("/api/WareHouse2/update-item/:id", async (req, res) => {
   );
 });
 // Router delete item in WareHouse2 table
-app.delete("/api/WareHouse2/delete-item/:id", async (req, res) => {
+app.delete("/api/WareHouse2/delete-item/:id", requireAuthStrict, async (req, res) => {
   const { id } = req.params;
   // Delete data into SQLite database
   const query = `DELETE FROM WareHouse2 WHERE id = ?`;
   db.run(query, [id], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     io.emit("WareHouse2Update");
     // Broadcast the new message to all clients
@@ -1243,7 +1333,7 @@ app.delete("/api/WareHouse2/delete-item/:id", async (req, res) => {
 });
 
 //Router post new item in WareHouse2 table
-app.post("/api/WareHouse2/upload-new-item", (req, res) => {
+app.post("/api/WareHouse2/upload-new-item", requireAuthStrict, async (req, res) => {
   const {
     PartNumber_1,
     PartNumber_2,
@@ -1275,7 +1365,11 @@ app.post("/api/WareHouse2/upload-new-item", (req, res) => {
     ],
     function (err) {
       if (err) {
-        return console.error(err.message);
+        console.error(err.message);
+        if (!res.headersSent) {
+          return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+        }
+        return;
       }
       io.emit("WareHouse2Update");
       // Broadcast the new message to all clients
@@ -1285,7 +1379,7 @@ app.post("/api/WareHouse2/upload-new-item", (req, res) => {
 });
 
 // Router update WareHouse accept
-app.put("/api/WareHouse/update-Inventory-CheckBom/:id", async (req, res) => {
+app.put("/api/WareHouse/update-Inventory-CheckBom/:id", requireAuthStrict, async (req, res) => {
   const { id } = req.params;
   const poNumber = id;
 
@@ -1327,7 +1421,7 @@ app.put("/api/WareHouse/update-Inventory-CheckBom/:id", async (req, res) => {
   });
 });
 
-app.put("/api/WareHouse2/update-Inventory-CheckBom/:id", async (req, res) => {
+app.put("/api/WareHouse2/update-Inventory-CheckBom/:id", requireAuthStrict, async (req, res) => {
   const { id } = req.params;
   const poNumber = id;
   // Insert data into SQLite database
@@ -1347,7 +1441,11 @@ app.put("/api/WareHouse2/update-Inventory-CheckBom/:id", async (req, res) => {
   `;
   db.all(query, [poNumber, poNumber, poNumber], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     io.emit("updateCompare");
     io.emit("WareHouse2Update");
@@ -1357,7 +1455,7 @@ app.put("/api/WareHouse2/update-Inventory-CheckBom/:id", async (req, res) => {
 });
 
 // Router upload file xlsx to WareHouse table
-app.put("/api/Temporary_WareHouse/Update-File", async (req, res) => {
+app.put("/api/Temporary_WareHouse/Update-File", requireAuthStrict, async (req, res) => {
   try {
     // Lấy tất cả dữ liệu từ Temporary_WareHouse
     db.all(
@@ -1404,13 +1502,17 @@ app.put("/api/Temporary_WareHouse/Update-File", async (req, res) => {
 });
 
 // Router delete item in Temporary WareHouse table
-app.delete("/api/Temporary-WareHouse/delete-item/:id", async (req, res) => {
+app.delete("/api/Temporary-WareHouse/delete-item/:id", requireAuthStrict, async (req, res) => {
   const { id } = req.params;
   // Delete data into SQLite database
   const query = `DELETE FROM Temporary_WareHouse WHERE id = ?`;
   db.run(query, [id], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     io.emit("TemporaryWareHouseUpdate");
     // Broadcast the new message to all clients
@@ -1419,13 +1521,17 @@ app.delete("/api/Temporary-WareHouse/delete-item/:id", async (req, res) => {
 });
 
 // Router delete all in Temporary WareHouse table when already update WareHouse table
-app.delete("/api/Temporary-WareHouse/delete-all", async (req, res) => {
+app.delete("/api/Temporary-WareHouse/delete-all", requireAuthStrict, async (req, res) => {
   const { id } = req.params;
   // Delete data into SQLite database
   const query = `DELETE FROM Temporary_WareHouse`;
   db.run(query, [], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     io.emit("TemporaryWareHouseUpdate");
     // Broadcast the new message to all clients
@@ -1436,6 +1542,7 @@ app.delete("/api/Temporary-WareHouse/delete-all", async (req, res) => {
 // Router upload item in Temporary WareHouse table from xlsx
 app.post(
   "/api/Temporary_WareHouse/Upload",
+  requireAuthStrict,
   upload.single("file"),
   (req, res) => {
     if (!req.file) return res.status(400).send("No file uploaded.");
@@ -1470,6 +1577,7 @@ app.post(
 // Router upload item in Temporary WareHouse 2 table from xlsx
 app.post(
   "/api/Temporary_WareHouse_2/Upload",
+  requireAuthStrict,
   upload.single("file"),
   (req, res) => {
     if (!req.file) return res.status(400).send("No file uploaded.");
@@ -1502,7 +1610,7 @@ app.post(
 );
 
 // Router upload file xlsx to WareHouse table
-app.put("/api/Temporary_WareHouse_2/Update-File", async (req, res) => {
+app.put("/api/Temporary_WareHouse_2/Update-File", requireAuthStrict, async (req, res) => {
   try {
     // Lấy tất cả dữ liệu từ Temporary_WareHouse
     db.all(
@@ -1549,13 +1657,17 @@ app.put("/api/Temporary_WareHouse_2/Update-File", async (req, res) => {
 });
 
 // Router delete item in Temporary WareHouse table
-app.delete("/api/Temporary-WareHouse_2/delete-item/:id", async (req, res) => {
+app.delete("/api/Temporary-WareHouse_2/delete-item/:id", requireAuthStrict, async (req, res) => {
   const { id } = req.params;
   // Delete data into SQLite database
   const query = `DELETE FROM Temporary_WareHouse_2 WHERE id = ?`;
   db.run(query, [id], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     io.emit("TemporaryWareHouse2Update");
     // Broadcast the new message to all clients
@@ -1564,13 +1676,17 @@ app.delete("/api/Temporary-WareHouse_2/delete-item/:id", async (req, res) => {
 });
 
 // Router delete all in Temporary WareHouse table when already update WareHouse table
-app.delete("/api/Temporary-WareHouse_2/delete-all", async (req, res) => {
+app.delete("/api/Temporary-WareHouse_2/delete-all", requireAuthStrict, async (req, res) => {
   const { id } = req.params;
   // Delete data into SQLite database
   const query = `DELETE FROM Temporary_WareHouse_2`;
   db.run(query, [], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     io.emit("TemporaryWareHouseUpdate2");
     // Broadcast the new message to all clients
@@ -1579,7 +1695,7 @@ app.delete("/api/Temporary-WareHouse_2/delete-all", async (req, res) => {
 });
 
 // Route to post item into warehouse log
-app.post("/api/WareHouse/Log/add-new-item", async (req, res) => {
+app.post("/api/WareHouse/Log/add-new-item", requireAuthStrict, async (req, res) => {
   const {
     ActionType,
     PartNumber,
@@ -1605,7 +1721,11 @@ app.post("/api/WareHouse/Log/add-new-item", async (req, res) => {
     ],
     function (err) {
       if (err) {
-        return console.error(err.message);
+        console.error(err.message);
+        if (!res.headersSent) {
+          return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+        }
+        return;
       }
       io.emit("WareHouseLogUpdate");
       // Broadcast the new message to all clients
@@ -1617,6 +1737,7 @@ app.post("/api/WareHouse/Log/add-new-item", async (req, res) => {
 //Router to post all item into WareHouseLog table
 app.post(
   "/api/WarHouseLog/Upload-File-Export",
+  requireAuthStrict,
   upload.single("file"),
   (req, res) => {
     if (!req.file) return res.status(400).send("No file uploaded.");
@@ -1654,6 +1775,7 @@ app.post(
 //Router to post all item into WareHouseLog table
 app.post(
   "/api/WarHouseLog/Upload-File-Import",
+  requireAuthStrict,
   upload.single("file"),
   (req, res) => {
     if (!req.file) return res.status(400).send("No file uploaded.");
@@ -1690,7 +1812,7 @@ app.post(
 );
 
 // Router insert item in WareHouseLog table from Orders table
-app.post("/api/insert-log/:po", async (req, res) => {
+app.post("/api/insert-log/:po", requireAuthStrict, async (req, res) => {
   const poNumber = req.params.po;
   const { Updated_by, Created_at } = req.body;
 
@@ -1742,7 +1864,7 @@ app.post("/api/insert-log/:po", async (req, res) => {
 });
 
 // Route to post item into warehouse2 log
-app.post("/api/WareHouse2/Log/add-new-item", async (req, res) => {
+app.post("/api/WareHouse2/Log/add-new-item", requireAuthStrict, async (req, res) => {
   const {
     ActionType,
     PartNumber,
@@ -1768,7 +1890,11 @@ app.post("/api/WareHouse2/Log/add-new-item", async (req, res) => {
     ],
     function (err) {
       if (err) {
-        return console.error(err.message);
+        console.error(err.message);
+        if (!res.headersSent) {
+          return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+        }
+        return;
       }
       io.emit("WareHouseLogUpdate");
       // Broadcast the new message to all clients
@@ -1778,13 +1904,17 @@ app.post("/api/WareHouse2/Log/add-new-item", async (req, res) => {
 });
 
 // Router delete item in Orders
-app.delete("/api/Orders/delete-item/:id", async (req, res) => {
+app.delete("/api/Orders/delete-item/:id", requireAuthStrict, async (req, res) => {
   const { id } = req.params;
   // Delete data into SQLite database
   const query = `DELETE FROM Orders WHERE id = ?`;
   db.run(query, [id], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     io.emit("updateOrders");
     // Broadcast the new message to all clients
@@ -1793,13 +1923,17 @@ app.delete("/api/Orders/delete-item/:id", async (req, res) => {
 });
 
 // Router delete item in CheckBom table
-app.delete("/api/CheckBom/Delete-Item/:id", async (req, res) => {
+app.delete("/api/CheckBom/Delete-Item/:id", requireAuthStrict, async (req, res) => {
   const { id } = req.params;
   // Delete data into SQLite database
   const query = `DELETE FROM CheckBOM WHERE Bom = ?`;
   db.run(query, [id], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     io.emit("updateDetailBom");
     // Broadcast the new message to all clients
@@ -1808,7 +1942,7 @@ app.delete("/api/CheckBom/Delete-Item/:id", async (req, res) => {
 });
 
 // Route to post item into list PO
-app.post("/api/ListPO/upload-new-PO", async (req, res) => {
+app.post("/api/ListPO/upload-new-PO", requireAuthStrict, async (req, res) => {
   const { Name_PO, Quantity_Type, Quantity_Items, Status, Date, Creater } =
     req.body;
   // Insert data into SQLite database
@@ -1819,7 +1953,11 @@ app.post("/api/ListPO/upload-new-PO", async (req, res) => {
     [Name_PO, Quantity_Type, Quantity_Items, Status, Date, Creater],
     function (err) {
       if (err) {
-        return console.error(err.message);
+        console.error(err.message);
+        if (!res.headersSent) {
+          return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+        }
+        return;
       }
       io.emit("updateOrders");
       // Broadcast the new message to all clients
@@ -1828,13 +1966,17 @@ app.post("/api/ListPO/upload-new-PO", async (req, res) => {
   );
 });
 // Router update Hao_Phi in CheckBom table
-app.put("/api/CheckBom/Update-Hao-Phi", async (req, res) => {
+app.put("/api/CheckBom/Update-Hao-Phi", requireAuthStrict, async (req, res) => {
   const { Input_Hao_Phi, Name_Item, PO } = req.body;
   // Insert data into SQLite database
   const query = `UPDATE CheckBOM SET Du_Toan_Hao_Phi = ? WHERE PartNumber_1 = ? AND PO = ?`;
   db.run(query, [Input_Hao_Phi, Name_Item, PO], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     io.emit("updateCheckBOM", PO);
     // Broadcast the new message to all clients
@@ -1843,7 +1985,7 @@ app.put("/api/CheckBom/Update-Hao-Phi", async (req, res) => {
 });
 
 // Router update Hao_Phi_Thuc_Te in CheckBom table
-app.put("/api/DetailOrders/Update", async (req, res) => {
+app.put("/api/DetailOrders/Update", requireAuthStrict, async (req, res) => {
   const { Input_Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, PartNumber_1, PO } =
     req.body;
   // Insert data into SQLite database
@@ -1853,7 +1995,11 @@ app.put("/api/DetailOrders/Update", async (req, res) => {
     [Input_Hao_Phi_Thuc_Te, Ma_Kho, Ma_Kho_Misa, PartNumber_1, PO],
     function (err) {
       if (err) {
-        return console.error(err.message);
+        console.error(err.message);
+        if (!res.headersSent) {
+          return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+        }
+        return;
       }
       io.emit("updateCompare", PO);
       // Broadcast the new message to all clients
@@ -1863,14 +2009,18 @@ app.put("/api/DetailOrders/Update", async (req, res) => {
 });
 
 // Router update item in CheckBom table
-app.put("/api/CheckBom/Edit-Item/:id", async (req, res) => {
+app.put("/api/CheckBom/Edit-Item/:id", requireAuthStrict, async (req, res) => {
   const { PO, SL_Board } = req.body;
   const { id } = req.params;
   // Insert data into SQLite database
   const query = `UPDATE CheckBOM SET PO = ?, SL_Board = ? WHERE Bom = ?`;
   db.run(query, [PO, SL_Board, id], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     io.emit("updateDetailBom");
     // Broadcast the new message to all clients
@@ -1879,14 +2029,18 @@ app.put("/api/CheckBom/Edit-Item/:id", async (req, res) => {
 });
 
 // Router update WareHouse accept
-app.put("/api/Orders/WareHouse-Accept/:id", async (req, res) => {
+app.put("/api/Orders/WareHouse-Accept/:id", requireAuthStrict, async (req, res) => {
   const { id } = req.params;
   // Insert data into SQLite database
   const query = `UPDATE Orders SET Status = 1 WHERE Name_PO = ?`;
 
   db.run(query, [id], function (err) {
     if (err) {
-      return console.error(err.message);
+      console.error(err.message);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+      }
+      return;
     }
     io.emit("updateOrders");
     // Broadcast the new message to all clients
@@ -1927,6 +2081,7 @@ function detectFormat(fileContent) {
 // Upload Gerber
 app.post(
   "/api/upload-working-gerber/:id",
+  requireAuthStrict,
   uploadGerber.single("FileGerber"),
   (req, res) => {
     const projectId = req.params.id;
@@ -2294,7 +2449,7 @@ app.post(
 );
 
 // Post item in Component overrides
-app.post("/api/Component-overrides/Add-item", (req, res) => {
+app.post("/api/Component-overrides/Add-item", requireAuthStrict, async (req, res) => {
   const { mpn, package, length, width } = req.body;
   db.run(
     `INSERT INTO Component_overrides (
@@ -2321,7 +2476,7 @@ app.post("/api/Component-overrides/Add-item", (req, res) => {
 });
 
 // Put item in Component overrides
-app.put("/api/Component-overrides/Edit-item/:id", (req, res) => {
+app.put("/api/Component-overrides/Edit-item/:id", requireAuthStrict, async (req, res) => {
   const { id } = req.params;
   const { package, length, width } = req.body;
   db.run(
@@ -2348,7 +2503,7 @@ app.put("/api/Component-overrides/Edit-item/:id", (req, res) => {
 });
 
 // Put item in Component overrides
-app.put("/api/Component/Edit-item/:id", (req, res) => {
+app.put("/api/Component/Edit-item/:id", requireAuthStrict, async (req, res) => {
   const { id } = req.params;
   const { package, length, width } = req.body;
   db.run(
@@ -2375,7 +2530,7 @@ app.put("/api/Component/Edit-item/:id", (req, res) => {
 });
 
 // Post item in To Do
-app.post("/api/To-Do/Add-item", (req, res) => {
+app.post("/api/To-Do/Add-item", requireAuthStrict, async (req, res) => {
   const { department, title, description, status, creater, createdAt } =
     req.body;
   let Timestamps = null;
@@ -2414,7 +2569,7 @@ app.post("/api/To-Do/Add-item", (req, res) => {
 });
 
 // Put item in To Do
-app.put("/api/To-Do/Edit-item/:id", (req, res) => {
+app.put("/api/To-Do/Edit-item/:id", requireAuthStrict, async (req, res) => {
   const { id } = req.params;
   const { department, title, description, status, creater, createdAt } =
     req.body;
@@ -2453,7 +2608,7 @@ app.put("/api/To-Do/Edit-item/:id", (req, res) => {
   );
 });
 
-app.put("/api/To-Do/Update-status/:id", (req, res) => {
+app.put("/api/To-Do/Update-status/:id", requireAuthStrict, async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   db.run(
@@ -2475,7 +2630,7 @@ app.put("/api/To-Do/Update-status/:id", (req, res) => {
   );
 });
 
-app.delete("/api/To-Do/Delete-item/:id", (req, res) => {
+app.delete("/api/To-Do/Delete-item/:id", requireAuthStrict, async (req, res) => {
   const { id } = req.params;
   db.run(`DELETE FROM ToDos WHERE id = ?`, [id], (err) => {
     if (err) {

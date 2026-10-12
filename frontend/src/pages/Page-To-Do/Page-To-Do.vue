@@ -1,9 +1,7 @@
 <template>
   <!-- Main Layout -->
   <v-card variant="text">
-    <v-card-title class="app-page-title font-weight-light"
-      >Quản lý công việc</v-card-title
-    >
+    <PageHeader :crumbs="[{ title: 'Danh sách công việc' }]" />
 
     <v-card-text class="rounded-xl" elevation="2">
       <v-card
@@ -775,19 +773,19 @@ const getEmptyStateMessage = (statusType) => {
 <style scoped>
 /* Table customization */
 .v-table :deep(th) {
-  background-color: #f8fafc !important;
+  background-color: rgb(var(--v-theme-surface)) !important;
   text-transform: uppercase;
   font-size: 0.75rem !important;
   letter-spacing: 0.05em;
-  color: #64748b !important;
+  color: rgba(var(--v-theme-on-surface), 0.6) !important;
 }
 
 .v-table :deep(tr:hover) {
-  background-color: #f1f5f9 !important;
+  background-color: rgba(var(--v-theme-on-surface), 0.05) !important;
 }
 
 .v-table :deep(td) {
-  border-bottom: 1px solid #e2e8f0 !important;
+  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity)) !important;
 }
 
 /* Custom scrollbar for better UX */

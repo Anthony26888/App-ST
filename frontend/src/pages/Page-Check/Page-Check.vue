@@ -32,7 +32,7 @@
       <!-- Empty State -->
       <v-empty-state
         v-if="checkBOM == '' || checkBOM == null"
-        headline="OPPS !"
+        headline="Rất tiếc !"
         title="Chưa có dữ liệu"
         text="Chon thêm file hoặc nhập tên PO"
         icon="mdi-folder-remove-outline"
@@ -98,7 +98,8 @@
 
 
   <!-- Import File Dialog -->
-  <BaseDialog v-model="Dialog" width="400" title="Thêm dữ liệu" icon="mdi-plus">
+  <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown" v-model="Dialog" width="400" title="Thêm dữ liệu" icon="mdi-plus">
     <InputField label="Tên dự án" v-model="InputPO" :rules="[required]" />
     <InputField label="Tên Bom" v-model="InputBOM" :rules="[required]" />
     <InputField
@@ -109,21 +110,25 @@
     <InputFiles v-model="File" :rules="[required]" />
     <template #actions>
       <ButtonCancel @cancel="Dialog = false" />
-      <ButtonSave @save="ImportFile()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="ImportFile()" />
     </template>
   </BaseDialog>
 
   <!-- Edit Item Dialog -->
-  <BaseDialog v-model="DialogEdit" width="400" title="Cập nhật dữ liệu" icon="mdi-update">
+  <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown" v-model="DialogEdit" width="400" title="Cập nhật dữ liệu" icon="mdi-update">
     <InputField label="Dự toán hao phí" v-model="CostEstimate" />
     <template #actions>
       <ButtonCancel @cancel="DialogEdit = false" />
-      <ButtonSave @save="SaveEdit()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="SaveEdit()" />
     </template>
   </BaseDialog>
 
   <!-- Accept Order Dialog -->
-  <BaseDialog v-model="DialogAccept" width="400" title="Xác nhận đơn hàng" icon="mdi-check">
+  <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown" v-model="DialogAccept" width="400" title="Xác nhận đơn hàng" icon="mdi-check">
     <InputSelect
       label="Chọn người nhận"
       v-model="Accept"
@@ -138,7 +143,8 @@
   </BaseDialog>
 
   <!-- Remove Item Dialog -->
-  <BaseDialog v-model="DialogRemove" width="400" title="Xoá dữ liệu" icon="mdi-delete">
+  <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown" v-model="DialogRemove" width="400" title="Xoá dữ liệu" icon="mdi-delete">
     Bạn có chắc chắn muốn xoá dự án này ?
     <template #actions>
       <ButtonCancel @cancel="DialogRemove = false" />

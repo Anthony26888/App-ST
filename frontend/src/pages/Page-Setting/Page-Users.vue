@@ -92,7 +92,8 @@
       <ButtonDelete @delete="DialogRemove = true" />
       <v-spacer></v-spacer>
       <ButtonCancel @cancel="DialogEdit = false" />
-      <ButtonSave @save="SaveEdit()" class="ms-2" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="SaveEdit()" class="ms-2" />
     </template>
   </BaseDialog>
 
@@ -102,10 +103,10 @@
     title="Thêm thành viên mới"
     icon="mdi-plus"
   >
-    <InputField label="Tên đăng nhập" v-model="Username_Add" />
+    <InputField label="Tên đăng nhập *" v-model="Username_Add" />
     <InputField label="Tên người dùng" v-model="FullName_Add" />
-    <InputField label="Email" v-model="Email_Add" />
-    <InputField label="Password" type="password" v-model="Password_Add" />
+    <InputField label="Email (không bắt buộc)" v-model="Email_Add" />
+    <InputField label="Mật khẩu *" type="password" v-model="Password_Add" />
     <InputSelect
       label="Phân quyền"
       :items="[
@@ -125,7 +126,8 @@
     />
     <template v-slot:actions>
       <ButtonCancel @cancel="DialogAdd = false" />
-      <ButtonSave @save="SaveAdd()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="SaveAdd()" />
     </template>
   </BaseDialog>
 
@@ -154,9 +156,9 @@ import ButtonSave from "@/components/Button-Save.vue";
 import ButtonCancel from "@/components/Button-Cancel.vue";
 import ButtonDelete from "@/components/Button-Delete.vue";
 import ButtonBack from "@/components/Button-Back.vue";
+import ButtonAdd from "@/components/Button-Add.vue";
 import AppDataTable from "@/components/App-DataTable.vue";
 import ButtonEdit from "@/components/Button-Edit.vue";
-import ButtonAdd from "@/components/Button-Add.vue";
 import BaseDialog from "@/components/BaseDialog.vue";
 
 // ===== STATE MANAGEMENT =====
@@ -259,6 +261,11 @@ const SaveEdit = async () => {
  * Makes an API call to create a new user
  */
 const SaveAdd = async () => {
+  if (!Username_Add.value || !Password_Add.value) {
+    MessageErrorDialog.value = "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu";
+    DialogFailed.value = true;
+    return;
+  }
   DialogLoading.value = true;
   const now = new Date();
   const day = String(now.getDate()).padStart(2, "0");
@@ -280,7 +287,8 @@ const SaveAdd = async () => {
     MessageDialog.value = "Thêm người dùng thành công";
     Reset();
   } catch (error) {
-    MessageErrorDialog.value = "Thêm người dùng thất bại";
+    MessageErrorDialog.value =
+      error.response?.data?.error || "Thêm người dùng thất bại";
     Error();
   }
 };
@@ -354,77 +362,3 @@ export default {
   methods: {},
 };
 </script>
-<style scoped>
-.v-data-table {
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.v-data-table-header th {
-  background-color: #f5f5f5 !important;
-  color: #333 !important;
-  font-weight: 600 !important;
-  text-transform: uppercase;
-  font-size: 0.875rem;
-  padding: 12px 16px;
-}
-
-.v-data-table__wrapper {
-  border: 1px solid #e0e0e0;
-}
-
-.v-data-table__wrapper table {
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
-.v-data-table__wrapper tbody tr {
-  transition: background-color 0.2s ease;
-}
-
-.v-data-table__wrapper tbody tr:hover {
-  background-color: #f5f5f5 !important;
-}
-
-.v-data-table__wrapper tbody td {
-  padding: 12px 16px;
-  font-size: 0.875rem;
-  color: #333;
-}
-
-.v-data-table__wrapper tbody tr:nth-child(even) {
-  background-color: #fafafa;
-}
-
-.v-data-table__wrapper tbody tr.selected {
-  background-color: #e3f2fd !important;
-}
-
-.v-data-table__wrapper .v-data-table__empty-wrapper {
-  padding: 32px;
-  text-align: center;
-  color: #666;
-}
-
-.v-data-table__wrapper .v-data-table__loading {
-  background-color: rgba(255, 255, 255, 0.8);
-}
-
-.v-data-table__wrapper .v-data-table__footer {
-  border-top: 1px solid #e0e0e0;
-  padding: 8px 16px;
-  background-color: #f5f5f5;
-}
-
-.v-data-table__wrapper .v-data-table__footer .v-data-footer {
-  padding: 0;
-}
-
-.v-data-table__wrapper .v-data-table__footer .v-data-footer__select {
-  margin-right: 16px;
-}
-
-.v-data-table__wrapper .v-data-table__footer .v-data-footer__pagination {
-  margin-left: 16px;
-}
-</style>

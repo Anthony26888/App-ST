@@ -82,6 +82,7 @@
   </v-card>
 
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogEdit"
     max-width="600"
     title="Cập nhật dữ liệu"
@@ -110,11 +111,13 @@
     </v-row>
     <template v-slot:actions>
       <ButtonCancel @cancel="DialogEdit = false" />
-      <ButtonSave @save="SaveEdit()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="SaveEdit()" />
     </template>
   </BaseDialog>
 
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogAccept"
     max-width="500"
     title="Kho xác nhận dữ liệu"
@@ -133,6 +136,7 @@
   </BaseDialog>
 
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogInfo"
     title="Thông số kỹ thuật"
     icon="mdi-information-variant-circle"
@@ -580,7 +584,6 @@ const getAccessToken = async (value) => {
     if (accessToken.value && tokenType.value && GetDigikey.value) {
       return searchProduct();
     }
-    console.log("Đã lấy access token thành công:", accessToken.value);
     return true;
   } catch (error) {
     console.error(

@@ -197,7 +197,8 @@
     />
     <template v-slot:actions>
       <ButtonCancel @cancel="DialogAdd = false" />
-      <ButtonSave @save="SaveAdd()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="SaveAdd()" />
     </template>
   </BaseDialog>
 
@@ -217,7 +218,8 @@
       <ButtonDelete @delete="DialogRemove = true" />
       <v-spacer></v-spacer>
       <ButtonCancel @cancel="DialogEdit = false" />
-      <ButtonSave @save="SaveEdit()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="SaveEdit()" />
     </template>
   </BaseDialog>
 
@@ -483,7 +485,7 @@
 <script setup>
 // ===== IMPORTS =====
 // Core dependencies
-import { nextTick, watch } from "vue";
+import { nextTick, watch, onMounted } from "vue";
 import { useDeliveryChat } from "@/composables/Project/useAIChat";
 import axios from "axios";
 import { useRouter } from "vue-router";
@@ -623,6 +625,19 @@ const pageFind = ref(1);
 // ===== User Information =====
 const UserInfo = ref(null);
 const LevelUser = localStorage.getItem("LevelUser");
+
+// Bị router đá về vì thiếu quyền (permDenied) -> toast 1 lần rồi xóa cờ
+onMounted(() => {
+  try {
+    if (localStorage.getItem("permDenied") === "1") {
+      localStorage.removeItem("permDenied");
+      MessageErrorDialog.value = "Bạn không có quyền truy cập trang này";
+      DialogFailed.value = true;
+    }
+  } catch {
+    /* bỏ qua */
+  }
+});
 
 // ===== COMPUTED =======
 const filteredProjectFind = computed(() => {

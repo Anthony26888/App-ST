@@ -145,7 +145,8 @@
       <InputTextarea label="Ghi chú sửa" v-model="Note_RW_Edit"></InputTextarea>
       <template v-slot:actions>
         <ButtonCancel @cancel="DialogFix = false" />
-        <ButtonSave @save="FixedError()" />
+        <ButtonSave
+      :disabled="DialogLoading" @save="FixedError()" />
       </template>
     </BaseDialog>
     <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />

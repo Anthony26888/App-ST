@@ -1,7 +1,14 @@
 <template>
-  <v-menu :close-on-content-click="false" location="start" max-width="min(500px, 92vw)">
+  <v-menu :close-on-content-click="false" location="start" width="500">
     <template v-slot:activator="{ props }">
-      <v-btn class="text-none" variant="text" size="large" :color="unreadCount > 0 ? 'error' : 'primary'" v-bind="props" v-tooltip="'Thông báo giao hàng'">
+      <v-btn
+        class="text-none"
+        variant="text"
+        size="large"
+        :color="unreadCount > 0 ? 'error' : 'primary'"
+        v-bind="props"
+        v-tooltip="'Thông báo giao hàng'"
+      >
         <v-badge v-if="unreadCount > 0" color="error" :content="unreadCount">
           <v-icon>mdi-bell-outline</v-icon>
         </v-badge>
@@ -14,13 +21,15 @@
       <v-card-title class="d-flex align-center pa-4 bg-gradient">
         <v-icon class="me-2" color="white">mdi-bell</v-icon>
         Thông báo giao hàng
-
       </v-card-title>
 
       <v-divider></v-divider>
 
       <!-- Content -->
-      <v-card-text class="pa-0" style="height: min(500px, 70dvh); overflow-y: auto">
+      <v-card-text
+        class="pa-0"
+        style="height: min(500px, 70dvh); overflow-y: auto"
+      >
         <!-- Loading State -->
         <div v-if="loading" class="d-flex justify-center align-center pa-6">
           <v-progress-circular
@@ -52,7 +61,10 @@
               </template>
 
               <!-- Title -->
-              <v-list-item-title class="font-weight-bold">
+              <v-list-item-title
+                class="font-weight-bold text-high-emphasis notif-title"
+                :title="notification.Title"
+              >
                 {{ notification.Title }}
                 <v-chip
                   v-if="notification.IsRead === 0"
@@ -65,25 +77,35 @@
               </v-list-item-title>
 
               <!-- Message -->
-              <v-list-item-subtitle class="text-wrap">
+              <v-list-item-subtitle
+                class="text-wrap notif-message"
+                :title="notification.Message"
+              >
                 {{ notification.Message }}
               </v-list-item-subtitle>
+              <div
+                v-if="timeLabel(notification)"
+                class="text-caption text-medium-emphasis mt-1"
+              >
+                {{ timeLabel(notification) }}
+              </div>
 
               <!-- Status Badge -->
               <template v-slot:append>
-                <v-list-item-action class="flex-column align-end">
+                <div class="d-flex flex-column align-end ga-1">
                   <v-chip
-                  size="small"
-                  :color="notification.Color"
-                  text-color="white"
-                  label
-                  class="mb-4 text-high-emphasis"
-                >
-                  {{ notification.Status }}
-                </v-chip>
-                <v-spacer></v-spacer>
-                <small class="mb-4 text-high-emphasis opacity-60">SL: {{ notification.Quantity }} pcs</small>
-              </v-list-item-action>
+                    size="small"
+                    :color="notification.Color"
+                    text-color="white"
+                    label
+                    class="text-high-emphasis"
+                  >
+                    {{ notification.Status }}
+                  </v-chip>
+                  <small class="text-high-emphasis opacity-60"
+                    >SL: {{ notification.Quantity }} pcs</small
+                  >
+                </div>
               </template>
             </v-list-item>
 
@@ -103,19 +125,24 @@
         </div>
       </v-card-text>
 
-
       <v-divider></v-divider>
 
       <v-card-actions class="d-flex justify-space-between pa-3">
-        <v-btn variant="text" class="text-caption text-medium-emphasis" size="small" @click="refresh" :loading="loading">
+        <v-btn
+          variant="text"
+          class="text-caption text-medium-emphasis"
+          size="small"
+          @click="refresh"
+          :loading="loading"
+        >
           <v-icon start>mdi-refresh</v-icon>
           Làm mới
         </v-btn>
         <v-spacer></v-spacer>
-        <v-btn 
+        <v-btn
           v-if="unreadCount > 0"
-          variant="text" 
-          size="small" 
+          variant="text"
+          size="small"
           color="primary"
           class="text-caption text-medium-emphasis"
           @click="markAllAsRead"
@@ -129,21 +156,26 @@
 </template>
 
 <script setup>
-
-import { useNotification } from "@/composables/Project/useNotification";
+import { useNotification } from '@/composables/Project/useNotification';
 
 const {
-  notifications,
-  statistics,
   loading,
-  connected,
   unreadCount,
   sortedNotifications,
-  markDelivery,
   markAsRead,
   markAllAsRead,
   refresh,
 } = useNotification();
+
+// Nhãn thời gian tương đối từ DaysRemaining (đồng bộ chữ với DetailPO)
+const timeLabel = (n) => {
+  const d = n?.DaysRemaining;
+  if (d == null) return '';
+  if (d < 0) return `Trễ ${-d} ngày`;
+  if (d === 0) return 'Hôm nay';
+  if (d === 1) return 'Ngày mai';
+  return `Còn ${d} ngày`;
+};
 </script>
 
 <style scoped>
@@ -166,11 +198,27 @@ const {
 }
 
 .unread-notification {
-  background-color: rgba(103, 126, 234, 0.08);
+  background-color: rgba(var(--v-theme-primary), 0.08);
 }
 
 .unread-notification:hover {
-  background-color: rgba(103, 126, 234, 0.15);
+  background-color: rgba(var(--v-theme-primary), 0.15);
+}
+
+/* Title wrap tối đa 2 dòng, message kẹp 3 dòng (hover đọc full) */
+.notif-title {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notif-message {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* Màu mức độ theo theme (dark-safe) */
@@ -186,4 +234,3 @@ const {
   color: rgb(var(--v-theme-warning)) !important;
 }
 </style>
-

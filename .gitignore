@@ -1,12 +1,19 @@
 # .gitignore
-backend/database.db
-backend/database.db
-backend/node_modules/
-frontend/node_modules/
-frontend/dist/
 
-# Database
+# Database (không bao giờ commit DB - chứa dữ liệu + hash password)
 backend/database.db
+backend/database.sqlite
+backend/database.test.db
+database.db
+
+# Secrets (đã từng lộ - xem ghi chú xoay key bên dưới)
+.env
+backend/.env.secrets
+frontend/.env
+
+# Uploads người dùng
+backend/uploads/
+frontend/public/uploads/
 
 # Dependencies
 backend/node_modules/
@@ -17,3 +24,4 @@ frontend/dist/
 
 # macOS
 .DS_Store
+*.log

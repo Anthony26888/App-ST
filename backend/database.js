@@ -1,5 +1,8 @@
 const sqlite3 = require("sqlite3").verbose();
-const db = new sqlite3.Database("./database.db", (err) => {
+// DB_PATH cho phép chạy stack test với file DB riêng (VD: database.test.db)
+const DB_PATH = process.env.DB_PATH || "./database.db";
+console.log(`[DB] using file: ${DB_PATH}`);
+const db = new sqlite3.Database(DB_PATH, (err) => {
   if (err) {
     console.error(err.message);
   } else {
@@ -150,6 +153,45 @@ db.serialize(() => {
       Token TEXT,
       CreatedAt TEXT
     )`);
+  // Username duy nhất: chống đăng nhập nhầm + license gán nhầm user
+  db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON Users(Username)`, (err) => {
+    // Nếu err => index đã tồn tại hoặc có dữ liệu trùng cũ, bỏ qua (log để xử lý tay)
+    if (err) console.error("Username unique index:", err.message);
+  });
+  // Bootstrap admin bất tử: DB bị xóa/trắng mà thiếu Admin thì tự dựng lại
+  // từ biến môi trường (không hardcode mật khẩu trong code/git).
+  // Cần trong backend/.env: BOOTSTRAP_ADMIN_USER + BOOTSTRAP_ADMIN_PASSWORD
+  try {
+    require("dotenv").config();
+  } catch {
+    /* dotenv optional */
+  }
+  db.get(`SELECT COUNT(*) AS c FROM Users WHERE Level = 'Admin'`, (err, row) => {
+    if (err) return console.error("Bootstrap admin check:", err.message);
+    if (row && row.c > 0) return; // đã có Admin, không đụng vào
+    const bu = process.env.BOOTSTRAP_ADMIN_USER;
+    const bp = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+    if (!bu || !bp) {
+      return console.log("[Bootstrap] thiếu Admin nhưng chưa cấu hình BOOTSTRAP_ADMIN_USER/PASSWORD - bỏ qua.");
+    }
+    let bcrypt;
+    try {
+      bcrypt = require("bcrypt");
+    } catch {
+      return console.error("[Bootstrap] thiếu module bcrypt.");
+    }
+    bcrypt.hash(bp, 10, (herr, hash) => {
+      if (herr) return console.error("[Bootstrap] hash thất bại:", herr.message);
+      db.run(
+        `INSERT INTO Users (Username, FullName, Password, Level, Date) VALUES (?, ?, ?, 'Admin', date('now','localtime'))`,
+        [bu, bu, hash],
+        (ierr) => {
+          if (ierr) return console.error("[Bootstrap] tạo admin thất bại:", ierr.message);
+          console.log(`[Bootstrap] đã tạo tài khoản Admin '${bu}' (DB thiếu Admin).`);
+        },
+      );
+    });
+  });
   db.run(`CREATE TABLE IF NOT EXISTS Customers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       CustomerName TEXT UNIQUE,

@@ -75,7 +75,8 @@
       <ButtonDelete @delete="DialogRemove = true" />
       <v-spacer></v-spacer>
       <ButtonCancel @cancel="DialogEdit = false" />
-      <ButtonSave @save="SaveEdit()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="SaveEdit()" />
     </template>
   </BaseDialog>
   <BaseDialog

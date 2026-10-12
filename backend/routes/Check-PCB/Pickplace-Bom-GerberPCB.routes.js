@@ -1,4 +1,5 @@
 const express = require("express");
+const { requireAuthStrict } = require("../../middleware/auth.js");
 const router = express.Router();
 
 module.exports = (io) => {
@@ -8,53 +9,63 @@ module.exports = (io) => {
     require("../../controllers/Check-PCB/Pickplace-BomPCB.controller.js")(io);
 
   router.put("/Edit-item-pickplace/:id",
+    requireAuthStrict,
     requireActiveLicense(),
     controller.editItemPickplace,
   );
 
   router.put("/Edit-item-bomhighlight/:id",
+    requireAuthStrict,
     requireActiveLicense(),
     uploadImageMPN.array("image", 10),
     controller.editItemBomHighlight,
   );
 
   router.put("/Edit-item-offset/:id",
+    requireAuthStrict,
     requireActiveLicense(),
     controller.editItemOffset,
   );
 
   router.post("/Add-item-mpntype",
+    requireAuthStrict,
     uploadImageMPN.array("image", 10),
     requireActiveLicense(),
     controller.addItemMpnType,
   );
 
   router.delete("/Delete-item-pickplace/:id",
+    requireAuthStrict,
     requireActiveLicense(),
     controller.deleteItemPickplace,
   );
 
   router.delete("/Delete-item-bomhighlight/:id",
+    requireAuthStrict,
     requireActiveLicense(),
     controller.deleteItemBomHighlight,
   );
 
   router.delete("/Delete-item-bom/:id",
+    requireAuthStrict,
     requireActiveLicense(),
     controller.deleteItemBom,
   );
 
   router.delete("/Delete-item-mpntype-image/:mpn*",
+    requireAuthStrict,
     requireActiveLicense(),
     controller.deleteMpnTypeImage,
   );
 
   router.delete("/Delete-item-mpntype/:mpn*",
+    requireAuthStrict,
     requireActiveLicense(),
     controller.deleteMpnType,
   );
 
   router.delete("/Delete-item-gerber/:id",
+    requireAuthStrict,
     requireActiveLicense(),
     controller.deleteGerberData,
   );

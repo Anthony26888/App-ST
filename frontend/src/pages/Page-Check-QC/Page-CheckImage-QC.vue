@@ -2,7 +2,7 @@
   <v-card variant="text">
     <v-card-title class="d-flex">
       <ButtonBack :to="`/Kiem-tra-pnp-qc/${id}`" />
-      <p class="text-h4 font-weight-light ms-3">{{ project_name }}</p>
+      <p class="app-page-title font-weight-light ms-3">{{ project_name }}</p>
     </v-card-title>
 
     <v-card-text>
@@ -770,7 +770,8 @@
     />
     <template #actions>
       <ButtonCancel @cancel="DialogAddImageTop = false" />
-      <ButtonSave @save="uploadImageTop()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="uploadImageTop()" />
     </template>
   </BaseDialog>
   <BaseDialog
@@ -787,7 +788,8 @@
     />
     <template #actions>
       <ButtonCancel @cancel="DialogAddImageBottom = false" />
-      <ButtonSave @save="uploadImageBottom()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="uploadImageBottom()" />
     </template>
   </BaseDialog>
   <BaseDialog

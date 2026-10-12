@@ -1,4 +1,5 @@
 const express = require("express");
+const { requireAuthStrict } = require("../../middleware/auth.js");
 const router = express.Router();
 
 module.exports = (io) => {
@@ -7,9 +8,11 @@ module.exports = (io) => {
       io,
     );
 
-  router.post("/Add-item", controller.addItem);
+  router.post("/Add-item",
+    requireAuthStrict, controller.addItem);
 
-  router.delete("/Delete-item-history/:id", controller.deleteItemHistory);
+  router.delete("/Delete-item-history/:id",
+    requireAuthStrict, controller.deleteItemHistory);
 
   return router;
 };

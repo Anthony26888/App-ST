@@ -1,5 +1,6 @@
 {
     "git.allowForcePush": true,
     "git.allowNoVerifyCommit": true,
-    "git.alwaysShowStagedChangesResourceGroup": true
+    "git.alwaysShowStagedChangesResourceGroup": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
 }

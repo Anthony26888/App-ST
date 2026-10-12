@@ -1,15 +1,19 @@
 const express = require("express");
+const { requireAuthStrict } = require("../../middleware/auth.js");
 const router = express.Router();
 
 module.exports = (io) => {
   const controller =
     require("../../controllers/Maintenance/Schedule.controller.js")(io);
 
-  router.post("/Add-item", controller.addItem);
+  router.post("/Add-item",
+    requireAuthStrict, controller.addItem);
 
-  router.put("/Edit-item/:id", controller.editItem);
+  router.put("/Edit-item/:id",
+    requireAuthStrict, controller.editItem);
 
-  router.delete("/Delete-item/:id", controller.deleteItem);
+  router.delete("/Delete-item/:id",
+    requireAuthStrict, controller.deleteItem);
 
   return router;
 };

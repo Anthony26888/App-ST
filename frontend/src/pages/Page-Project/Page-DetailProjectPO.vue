@@ -469,7 +469,8 @@
       <ButtonDelete @delete="DialogRemove = true" />
       <v-spacer></v-spacer>
       <ButtonCancel @cancel="DialogEdit = false" />
-      <ButtonSave @save="SaveEdit()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="SaveEdit()" />
     </template>
   </BaseDialog>
 
@@ -577,7 +578,8 @@
     </div>
     <template #actions>
       <ButtonCancel @cancel="DialogAdd = false" />
-      <ButtonSave @save="SaveAdd()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="SaveAdd()" />
     </template>
   </BaseDialog>
 
@@ -733,7 +735,8 @@
     </p>
     <template #actions>
       <ButtonCancel @cancel="DialogUnconfirm = false" />
-      <ButtonSave @save="UnconfirmItem()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="UnconfirmItem()" />
     </template>
   </BaseDialog>
 

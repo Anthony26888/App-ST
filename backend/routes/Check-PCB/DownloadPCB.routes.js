@@ -1,4 +1,5 @@
 const express = require("express");
+const { requireAuthStrict } = require("../../middleware/auth.js");
 
 const router = express.Router();
 

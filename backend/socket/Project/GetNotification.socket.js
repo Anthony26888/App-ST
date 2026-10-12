@@ -79,7 +79,9 @@ module.exports = (socket) => {
         console.log(`✅ Notification #${notificationId} marked as read`);
 
         // Broadcast to all clients to refresh notifications
-        io.emit("notification-marked-read", { id: notificationId });
+        // (module này không có io global - dùng broadcast + self)
+        socket.emit("notification-marked-read", { id: notificationId });
+        socket.broadcast.emit("notification-marked-read", { id: notificationId });
       });
     } catch (error) {
       console.error("❌ Error:", error.message);
@@ -101,7 +103,8 @@ module.exports = (socket) => {
         }
 
         if (rows.length === 0) {
-          io.emit("all-notifications-marked-read");
+          socket.emit("all-notifications-marked-read");
+          socket.broadcast.emit("all-notifications-marked-read");
           return;
         }
 
@@ -126,7 +129,8 @@ module.exports = (socket) => {
           console.log(`✅ Marked ${rows.length} notifications as read`);
 
           // Broadcast to all clients to refresh notifications
-          io.emit("all-notifications-marked-read");
+          socket.emit("all-notifications-marked-read");
+          socket.broadcast.emit("all-notifications-marked-read");
         });
       });
     } catch (error) {

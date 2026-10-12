@@ -295,6 +295,7 @@
   </v-card>
 
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogEdit"
     icon="mdi-pencil"
     title="Cập nhật thiết bị"
@@ -364,11 +365,13 @@
       <ButtonDelete @delete="DialogRemove = true" />
       <v-spacer></v-spacer>
       <ButtonCancel @cancel="DialogEdit = false" />
-      <ButtonSave @save="SaveEdit()" class="ms-2" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="SaveEdit()" class="ms-2" />
     </template>
   </BaseDialog>
 
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogRemove"
     icon="mdi-delete"
     title="Xóa thiết bị"
@@ -382,6 +385,7 @@
   </BaseDialog>
 
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogAdd"
     title="Thêm thiết bị"
     icon="mdi-plus"
@@ -442,12 +446,14 @@
     </v-row>
     <template #actions>
       <ButtonCancel @cancel="DialogAdd = false" />
-      <ButtonSave @save="SaveAdd()" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="SaveAdd()" />
     </template>
   </BaseDialog>
 
   <!-- Lightbox xem ảnh thiết bị -->
-  <v-dialog v-model="DialogImageView" max-width="720">
+  <v-dialog
+    :fullscreen="$vuetify.display.mdAndDown" v-model="DialogImageView" max-width="720">
     <v-card class="rounded-xl">
       <v-img
         v-if="ImageViewSrc"

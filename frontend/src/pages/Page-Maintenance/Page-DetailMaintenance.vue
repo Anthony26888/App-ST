@@ -166,6 +166,7 @@
   </v-card>
 
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogEdit"
     icon="mdi-pencil"
     title="Cập nhật dữ liệu bảo trì"
@@ -311,11 +312,13 @@
       <ButtonDelete @delete="DialogRemove = true" />
       <v-spacer></v-spacer>
       <ButtonCancel @cancel="DialogEdit = false" />
-      <ButtonSave @save="SaveEdit()" class="ms-2" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="SaveEdit()" class="ms-2" />
     </template>
   </BaseDialog>
 
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogAdd"
     icon="mdi-plus"
     title="Thêm dữ liệu bảo trì"
@@ -463,11 +466,13 @@
 
     <template #actions>
       <ButtonCancel @cancel="DialogAdd = false" />
-      <ButtonSave @save="SaveAdd()" class="ms-2" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="SaveAdd()" class="ms-2" />
     </template>
   </BaseDialog>
 
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogRemove"
     icon="mdi-delete"
     title="Xóa bảo trì"
@@ -486,6 +491,7 @@
 
   <!-- Sub-dialogs for Accessories -->
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogAddAccessory"
     icon="mdi-plus"
     title="Thêm phụ tùng"
@@ -511,11 +517,13 @@
     </v-row>
     <template #actions>
       <ButtonCancel @cancel="DialogAddAccessory = false" />
-      <ButtonSave @save="ConfirmAddAccessory()" class="ms-2" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="ConfirmAddAccessory()" class="ms-2" />
     </template>
   </BaseDialog>
 
   <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown"
     v-model="DialogEditAccessory"
     icon="mdi-pencil"
     title="Cập nhật phụ tùng"
@@ -541,7 +549,8 @@
     </v-row>
     <template #actions>
       <ButtonCancel @cancel="DialogEditAccessory = false" />
-      <ButtonSave @save="ConfirmEditAccessory()" class="ms-2" />
+      <ButtonSave
+      :disabled="DialogLoading" @save="ConfirmEditAccessory()" class="ms-2" />
     </template>
   </BaseDialog>
 </template>

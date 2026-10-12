@@ -7,7 +7,8 @@
     </v-btn>
 
     <!-- Hộp thoại AI -->
-     <v-dialog v-model="show" width="1200px"> 
+     <v-dialog
+    :fullscreen="$vuetify.display.mdAndDown" v-model="show" width="1200px"> 
         <AIBox  :tableName="tableName" />
      </v-dialog>
     
@@ -34,7 +35,7 @@ const show = ref(false);
   right: 16px;
   bottom: 16px;
   z-index: 99999;
-  background-color: #1976d2;
+  background-color: rgb(var(--v-theme-primary));
   color: white;
   border-radius: 50%;
   width: 56px;

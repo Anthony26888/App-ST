@@ -1,7 +1,9 @@
 <template lang="">
   <v-card variant="text">
     <v-card-title class="d-flex justify-space-between align-center pa-4">
-      <span class="app-page-title font-weight-light">Danh sách công việc</span>
+      <PageHeader
+        :crumbs="[{ title: 'Danh sách công việc' }]"
+      />
       <v-spacer></v-spacer>
       <v-toolbar rounded="lg" border floating class="mt-3">
         <div class="d-flex align-center px-4">
@@ -86,7 +88,7 @@
       <v-card class="mt-4" v-if="lgAndUp"  >
         <v-empty-state
           v-if="summary == ''"
-          headline="OPPS !"
+          headline="Rất tiếc !"
           title="Chưa có dữ liệu"
           icon="mdi-folder-remove-outline"
           height="calc(100vh - 250px)"
@@ -173,7 +175,7 @@
       <v-card class="mt-4" v-else >
         <v-empty-state
           v-if="summary == ''"
-          headline="OPPS !"
+          headline="Rất tiếc !"
           title="Chưa có dữ liệu"
           icon="mdi-folder-remove-outline"
           height="calc(100vh - 320px)"

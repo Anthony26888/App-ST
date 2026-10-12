@@ -77,7 +77,7 @@
       </v-card>
       <v-empty-state
         v-else
-        headline="OPPS !"
+        headline="Rất tiếc !"
         title="Chưa có dữ liệu"
         text="Hãy tạo đơn hàng mới"
         icon="mdi-folder-remove-outline"
@@ -86,7 +86,8 @@
   </v-card>
 
 
-  <BaseDialog v-model="DialogRemove" title="Xoá dữ liệu" icon="mdi-delete" max-width="500">
+  <BaseDialog
+    :fullscreen="$vuetify.display.mdAndDown" v-model="DialogRemove" title="Xoá dữ liệu" icon="mdi-delete" max-width="500">
     <p> Bạn có chắc chắn muốn xoá dự án này ? </p>
     <template v-slot:actions>
       <ButtonCancel @cancel="DialogRemove = false" />
