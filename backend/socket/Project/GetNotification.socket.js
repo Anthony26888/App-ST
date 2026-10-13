@@ -17,9 +17,29 @@ module.exports = (socket) => {
           sd.DeliveryDate,
           sd.DeliveryQuantity,
           sd.DeliveryStatus,
+          COALESCE((
+            SELECT SUM(mc.Quantity)
+            FROM PlanManufacture p
+            JOIN ManufactureCounting mc ON mc.PlanID = p.id
+            WHERE p.ProjectID = sd.ItemId
+              AND LOWER(TRIM(mc.Type)) = 'thành phẩm'
+          ), 0) AS ProducedQuantity,
+          COALESCE((
+            SELECT QuantityProduct FROM ProductDetails WHERE id = sd.ItemId
+          ), 0) AS OrderTotal,
+          q.Seq,
           vn.IsRead
         FROM vw_NotificationDelivery vn
         LEFT JOIN ScheduleDelivery sd ON vn.id = sd.id
+        LEFT JOIN (
+          SELECT
+            id,
+            ROW_NUMBER() OVER (
+              PARTITION BY ItemId
+              ORDER BY DeliveryDate IS NULL, DeliveryDate, id
+            ) AS Seq
+          FROM ScheduleDelivery
+        ) q ON q.id = sd.id
         WHERE vn.Title IS NOT NULL     
         ORDER BY vn.DaysRemaining ASC
       `;
@@ -136,6 +156,45 @@ module.exports = (socket) => {
     } catch (error) {
       console.error("❌ Error:", error.message);
       socket.emit("notification-read-error", { error: error.message });
+    }
+  });
+
+  // Lịch đã giao trong 7 ngày qua (section "Đã giao 7 ngày" ở Overview)
+  socket.on("get-delivered-recent", async () => {
+    try {
+      const query = `
+        SELECT
+          sd.id,
+          sd.ItemId,
+          pd.POID || ' - ' || pd.ProductDetail AS Message,
+          sd.DeliveryQuantity AS Quantity,
+          sd.ActualDeliveryDate,
+          q.Seq
+        FROM ScheduleDelivery sd
+        LEFT JOIN ProductDetails pd ON pd.id = sd.ItemId
+        LEFT JOIN (
+          SELECT
+            id,
+            ROW_NUMBER() OVER (
+              PARTITION BY ItemId
+              ORDER BY DeliveryDate IS NULL, DeliveryDate, id
+            ) AS Seq
+          FROM ScheduleDelivery
+        ) q ON q.id = sd.id
+        WHERE sd.DeliveryStatus = 'Đã giao'
+          AND sd.ActualDeliveryDate IS NOT NULL
+          AND date(sd.ActualDeliveryDate, 'unixepoch', 'localtime') >= date('now', 'localtime', '-6 days')
+        ORDER BY sd.ActualDeliveryDate DESC
+      `;
+      db.all(query, [], (err, rows) => {
+        if (err) {
+          socket.emit("delivered-recent-error", { error: err.message });
+          return;
+        }
+        socket.emit("delivered-recent-update", rows || []);
+      });
+    } catch (error) {
+      socket.emit("delivered-recent-error", { error: error.message });
     }
   });
 };

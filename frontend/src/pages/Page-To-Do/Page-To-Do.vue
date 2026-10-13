@@ -4,12 +4,7 @@
     <PageHeader :crumbs="[{ title: 'Danh sách công việc' }]" />
 
     <v-card-text class="rounded-xl" elevation="2">
-      <v-card
-        variant="elevated"
-        elevation="0"
-        class="rounded-xl border"
-        height="calc(100vh - 90px)"
-      >
+      <v-card variant="elevated" elevation="0" class="rounded-xl border">
         <!-- Header with Date Navigation -->
         <v-card-text class="pa-6">
           <div class="d-flex align-center justify-space-between flex-wrap ga-4">
@@ -138,7 +133,7 @@
                           class="text-body-2 text-medium-emphasis text-truncate"
                           style="max-width: 400px; white-space: pre-line"
                         >
-                          {{ todo.description || "No description provided" }}
+                          {{ todo.description || 'No description provided' }}
                         </div>
                       </div>
                     </td>
@@ -260,7 +255,7 @@
                           class="text-body-2 text-medium-emphasis text-truncate"
                           style="max-width: 400px"
                         >
-                          {{ todo.description || "No description provided" }}
+                          {{ todo.description || 'No description provided' }}
                         </div>
                       </div>
                     </td>
@@ -369,7 +364,7 @@
                           class="text-body-2 text-medium-emphasis text-truncate"
                           style="max-width: 400px"
                         >
-                          {{ todo.description || "No description provided" }}
+                          {{ todo.description || 'No description provided' }}
                         </div>
                       </div>
                     </td>
@@ -491,7 +486,7 @@
         :disabled="!formValid"
         size="large"
       >
-        {{ editingTodo ? "Update" : "Add" }} Task
+        {{ editingTodo ? 'Update' : 'Add' }} Task
       </ButtonSave>
     </template>
   </BaseDialog>
@@ -502,29 +497,29 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
-import axios from "axios";
+import { ref, computed } from 'vue';
+import axios from 'axios';
 
-import ButtonCancel from "@/components/Button-Cancel.vue";
-import ButtonSave from "@/components/Button-Save.vue";
-import BaseDialog from "@/components/BaseDialog.vue";
-import SnackbarSuccess from "@/components/Snackbar-Success.vue";
-import SnackbarFailed from "@/components/Snackbar-Failed.vue";
-import Loading from "@/components/Loading.vue";
+import ButtonCancel from '@/components/Button-Cancel.vue';
+import ButtonSave from '@/components/Button-Save.vue';
+import BaseDialog from '@/components/BaseDialog.vue';
+import SnackbarSuccess from '@/components/Snackbar-Success.vue';
+import SnackbarFailed from '@/components/Snackbar-Failed.vue';
+import Loading from '@/components/Loading.vue';
 
-import { useToDo } from "@/composables/ToDo/useToDo";
+import { useToDo } from '@/composables/ToDo/useToDo';
 
 // ==================== STATE ====================
 
 // API Configuration
 const Url = import.meta.env.VITE_API_URL;
-const LevelUser = localStorage.getItem("LevelUser");
+const LevelUser = localStorage.getItem('LevelUser');
 console.log(LevelUser);
 const { todos, todosError } = useToDo();
 
 // Tab state
-const activeTab = ref("pending");
-const searchQuery = ref("");
+const activeTab = ref('pending');
+const searchQuery = ref('');
 
 // Dialog state
 const todoDialog = ref(false);
@@ -534,31 +529,31 @@ const todoForm = ref(null);
 
 // Form data
 const todoFormData = ref({
-  title: "",
-  description: "",
-  createdAt: "",
-  creater: "",
-  status: "Chưa hoàn thành",
+  title: '',
+  description: '',
+  createdAt: '',
+  creater: '',
+  status: 'Chưa hoàn thành',
 });
 
 // Status options for select
 const statusOptions = [
-  { title: "Chưa hoàn thành", value: "Chưa hoàn thành" },
-  { title: "Đang tiến hành", value: "Đang tiến hành" },
-  { title: "Đã hoàn thành", value: "Đã hoàn thành" },
+  { title: 'Chưa hoàn thành', value: 'Chưa hoàn thành' },
+  { title: 'Đang tiến hành', value: 'Đang tiến hành' },
+  { title: 'Đã hoàn thành', value: 'Đã hoàn thành' },
 ];
 
 // Form validation rules
 const rules = {
-  required: (value) => !!value || "This field is required",
+  required: (value) => !!value || 'This field is required',
 };
 
 // Dialog state
 const DialogSuccess = ref(false);
 const DialogFailed = ref(false);
 const DialogLoading = ref(false);
-const MessageDialog = ref("");
-const MessageErrorDialog = ref("");
+const MessageDialog = ref('');
+const MessageErrorDialog = ref('');
 
 // ==================== COMPUTED PROPERTIES ====================
 
@@ -567,7 +562,7 @@ const filteredTodos = computed(() => {
   let filtered = todos.value;
 
   // Filter by Department (LevelUser)
-  if (LevelUser !== "Admin") {
+  if (LevelUser !== 'Admin') {
     filtered = filtered.filter((todo) => todo.department === LevelUser);
   }
 
@@ -590,16 +585,16 @@ const filteredTodos = computed(() => {
 // Filter by status
 const pendingTodos = computed(() => {
   return filteredTodos.value.filter(
-    (todo) => todo.status === "Chưa hoàn thành"
+    (todo) => todo.status === 'Chưa hoàn thành'
   );
 });
 
 const inProgressTodos = computed(() => {
-  return filteredTodos.value.filter((todo) => todo.status === "Đang tiến hành");
+  return filteredTodos.value.filter((todo) => todo.status === 'Đang tiến hành');
 });
 
 const completedTodos = computed(() => {
-  return filteredTodos.value.filter((todo) => todo.status === "Đã hoàn thành");
+  return filteredTodos.value.filter((todo) => todo.status === 'Đã hoàn thành');
 });
 
 // ==================== METHODS ====================
@@ -609,11 +604,11 @@ const openAddDialog = () => {
   editingTodo.value = null;
   todoFormData.value = {
     department: LevelUser,
-    title: "",
-    creater: "",
-    description: "",
-    createdAt: new Date().toISOString().split("T")[0],
-    status: "Chưa hoàn thành",
+    title: '',
+    creater: '',
+    description: '',
+    createdAt: new Date().toISOString().split('T')[0],
+    status: 'Chưa hoàn thành',
   };
   todoDialog.value = true;
 };
@@ -661,7 +656,7 @@ const saveTodo = async () => {
     const response = await axios.post(`${Url}/To-Do/Add-item`, newTodo);
     DialogLoading.value = false;
     DialogSuccess.value = true;
-    MessageDialog.value = "Thêm công việc thành công";
+    MessageDialog.value = 'Thêm công việc thành công';
   } catch (error) {
     DialogLoading.value = false;
     DialogFailed.value = true;
@@ -679,7 +674,7 @@ const updateTodoStatus = async (todoId, status) => {
     });
     DialogLoading.value = false;
     DialogSuccess.value = true;
-    MessageDialog.value = "Cập nhật trạng thái thành công";
+    MessageDialog.value = 'Cập nhật trạng thái thành công';
   } catch (error) {
     DialogLoading.value = false;
     DialogFailed.value = true;
@@ -694,7 +689,7 @@ const deleteTodo = async (todoId) => {
     const response = await axios.delete(`${Url}/To-Do/Delete-item/${todoId}`);
     DialogLoading.value = false;
     DialogSuccess.value = true;
-    MessageDialog.value = "Xóa công việc thành công";
+    MessageDialog.value = 'Xóa công việc thành công';
   } catch (error) {
     DialogLoading.value = false;
     DialogFailed.value = true;
@@ -707,65 +702,65 @@ const deleteTodo = async (todoId) => {
 // Get status chip color
 const getStatusColor = (status) => {
   switch (status) {
-    case "Chưa hoàn thành":
-      return "error";
-    case "Đang tiến hành":
-      return "warning";
-    case "Đã hoàn thành":
-      return "success";
+    case 'Chưa hoàn thành':
+      return 'error';
+    case 'Đang tiến hành':
+      return 'warning';
+    case 'Đã hoàn thành':
+      return 'success';
     default:
-      return "grey";
+      return 'grey';
   }
 };
 
 // Get status icon
 const getStatusIcon = (status) => {
   switch (status) {
-    case "Chưa hoàn thành":
-      return "mdi-clock-alert-outline";
-    case "Đang tiến hành":
-      return "mdi-progress-clock";
-    case "Đã hoàn thành":
-      return "mdi-check-circle";
+    case 'Chưa hoàn thành':
+      return 'mdi-clock-alert-outline';
+    case 'Đang tiến hành':
+      return 'mdi-progress-clock';
+    case 'Đã hoàn thành':
+      return 'mdi-check-circle';
     default:
-      return "mdi-help-circle";
+      return 'mdi-help-circle';
   }
 };
 
 // Get status label
 const getStatusLabel = (status) => {
   switch (status) {
-    case "Chưa hoàn thành":
-      return "Chưa hoàn thành";
-    case "Đang tiến hành":
-      return "Đang tiến hành";
-    case "Đã hoàn thành":
-      return "Đã hoàn thành";
+    case 'Chưa hoàn thành':
+      return 'Chưa hoàn thành';
+    case 'Đang tiến hành':
+      return 'Đang tiến hành';
+    case 'Đã hoàn thành':
+      return 'Đã hoàn thành';
     default:
-      return "Unknown";
+      return 'Unknown';
   }
 };
 
 // Format date
 const formatDate = (dateStr) => {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
   });
 };
 
 // Get empty state message
 const getEmptyStateMessage = (statusType) => {
   switch (statusType) {
-    case "pending":
-      return "All caught up! No pending tasks.";
-    case "inProgress":
-      return "No tasks in progress at the moment.";
-    case "completed":
-      return "No completed tasks yet.";
+    case 'pending':
+      return 'All caught up! No pending tasks.';
+    case 'inProgress':
+      return 'No tasks in progress at the moment.';
+    case 'completed':
+      return 'No completed tasks yet.';
     default:
-      return "No tasks found.";
+      return 'No tasks found.';
   }
 };
 </script>

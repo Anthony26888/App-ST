@@ -15,11 +15,13 @@ module.exports = (socket) => {
                             ELSE 0 
                         END), 0) AS Total_Output,
 
-                        -- Trạng thái
+                        -- Trạng thái (so theo SỐ LƯỢNG thành phẩm, cùng công thức với Total_Output;
+                        -- chặn Total = 0/NULL + chưa nhập gì lọt Hoàn thành giả)
                         CASE
-                            WHEN z.Total = COALESCE(SUM(CASE 
-                                WHEN LOWER(TRIM(b.Type)) = 'thành phẩm' THEN 1 
-                                ELSE 0 
+                            WHEN COALESCE(z.Total, 0) > 0
+                             AND z.Total = COALESCE(SUM(CASE
+                                WHEN LOWER(TRIM(b.Type)) = 'thành phẩm' THEN b.Quantity
+                                ELSE 0
                             END), 0)
                             THEN 'Hoàn thành'
                             ELSE 'Đang sản xuất'

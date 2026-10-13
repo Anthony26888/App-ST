@@ -8,7 +8,7 @@
       <!-- Welcome -->
       <div>
         <div class="app-page-title font-weight-bold">
-          {{ greeting }}, {{ UserInfo || "bạn" }} 👋
+          {{ greeting }}, {{ UserInfo || 'bạn' }} 👋
         </div>
         <div class="text-body-2 text-medium-emphasis">
           {{ overviewSubtitle }}
@@ -88,7 +88,11 @@
       <!-- Gantt + Donut -->
       <v-row dense>
         <v-col cols="12" md="8">
-          <v-card variant="elevated" elevation="0" class="rounded-xl border h-100">
+          <v-card
+            variant="elevated"
+            elevation="0"
+            class="rounded-xl border h-100"
+          >
             <v-card-title class="d-flex align-center">
               <span class="text-subtitle-1 font-weight-bold">
                 Cần xử lý 7 ngày ({{ latePOGroups.length }} nhóm ·
@@ -171,10 +175,13 @@
                         <div
                           class="text-body-2 font-weight-medium text-high-emphasis text-truncate"
                         >
-                          {{ scheduleShort(s.Message) }}
+                          {{ scheduleShort(s.Message) }} (Lần {{ s.seq }})
                         </div>
-                        <div class="text-caption text-medium-emphasis">
-                          {{ delayLabel(s) }}
+                        <div
+                          class="text-caption font-weight-medium"
+                          :class="`text-${sxLine(s).color}`"
+                        >
+                          {{ sxLine(s).text }}
                         </div>
                       </div>
                       <v-spacer></v-spacer>
@@ -184,7 +191,7 @@
                           :color="delayColor(s)"
                           variant="tonal"
                         >
-                          {{ p.name }}
+                          {{ delayLabel(s) }}
                         </v-chip>
                         <small class="text-high-emphasis opacity-60">
                           SL: {{ fmtQty(s.Quantity) }} pcs
@@ -257,11 +264,7 @@
               Rủi ro giao hàng
             </v-card-title>
             <v-card-text>
-              <div
-                v-for="b in agingBuckets"
-                :key="b.key"
-                class="mb-3"
-              >
+              <div v-for="b in agingBuckets" :key="b.key" class="mb-3">
                 <div class="d-flex justify-space-between text-caption mb-1">
                   <span class="font-weight-medium" :class="`text-${b.color}`">
                     ● {{ b.title }}
@@ -291,6 +294,33 @@
                 class="text-center text-grey text-caption py-2"
               >
                 Không có nợ giao hàng. Thật tuyệt!
+              </div>
+              <v-divider class="my-3"></v-divider>
+              <div class="text-subtitle-2 font-weight-bold mb-2">
+                Đã giao 7 ngày qua ({{ recentDelivered.length }})
+              </div>
+              <div
+                v-for="d in recentDelivered"
+                :key="d.id"
+                class="d-flex align-center ga-2 py-1"
+                :title="d.Message"
+              >
+                <span
+                  class="text-body-2 font-weight-medium text-high-emphasis text-truncate"
+                >
+                  {{ d.Message }} (Lần {{ d.Seq }})
+                </span>
+                <v-spacer></v-spacer>
+                <span class="text-caption text-success font-weight-bold">
+                  {{ fmtQty(d.Quantity) }} pcs ·
+                  {{ actualSlash(d.ActualDeliveryDate) }}
+                </span>
+              </div>
+              <div
+                v-if="recentDelivered.length === 0"
+                class="text-center text-grey text-caption py-2"
+              >
+                7 ngày qua chưa giao đơn nào.
               </div>
             </v-card-text>
           </v-card>
@@ -329,7 +359,7 @@
               >
                 <div class="min-width-0">
                   <div class="text-body-2 font-weight-medium text-truncate">
-                    {{ r.OrderName || "(Chưa rõ đơn)" }}
+                    {{ r.OrderName || '(Chưa rõ đơn)' }}
                   </div>
                   <div class="text-caption text-medium-emphasis">
                     {{ dayLabel(r.WorkDate) }}
@@ -401,45 +431,58 @@
           </v-card>
         </v-col>
       </v-row>
-
     </v-card-text>
   </v-card>
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
-import axios from "axios";
-import PageHeader from "@/components/Page-Header.vue";
-import CardStatistic from "@/components/Card-Statistic.vue";
-import { useNotification } from "@/composables/Project/useNotification";
-import { useManufacture } from "@/composables/Manufacture/useManufacture";
-import { useRecentProduction } from "@/composables/Manufacture/useRecentProduction";
+import { computed, ref } from 'vue';
+import axios from 'axios';
+import PageHeader from '@/components/Page-Header.vue';
+import CardStatistic from '@/components/Card-Statistic.vue';
+import { useNotification } from '@/composables/Project/useNotification';
+import { useManufacture } from '@/composables/Manufacture/useManufacture';
+import { useRecentProduction } from '@/composables/Manufacture/useRecentProduction';
+import { sxLine } from '@/utils/deliveryStatus.js';
 
 const Url = import.meta.env.VITE_API_URL;
 
 const UserInfo =
-  localStorage.getItem("Username") || localStorage.getItem("User") || "";
+  localStorage.getItem('Username') || localStorage.getItem('User') || '';
 
 const greeting = computed(() => {
   const h = new Date().getHours();
-  if (h < 11) return "Chào buổi sáng";
-  if (h < 13) return "Chào buổi trưa";
-  if (h < 18) return "Chào buổi chiều";
-  return "Chào buổi tối";
+  if (h < 11) return 'Chào buổi sáng';
+  if (h < 13) return 'Chào buổi trưa';
+  if (h < 18) return 'Chào buổi chiều';
+  return 'Chào buổi tối';
 });
 
-const { notifications, statistics } = useNotification();
+const { notifications, deliveredRecent, statistics } = useNotification();
 const { manufacture } = useManufacture();
+
+// Lịch đã giao 7 ngày qua (backend đã sort mới nhất trước, tối đa 5)
+const recentDelivered = computed(() =>
+  (deliveredRecent.value || []).slice(0, 5)
+);
+
+// Unix seconds → DD/MM (ngày thực giao)
+const actualSlash = (ts) => {
+  const s = Number(ts);
+  if (!s) return '--/--';
+  const d = new Date(s * 1000);
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
 
 // Lịch chưa giao (view chỉ chứa Chưa giao)
 const pending = computed(() =>
-  (notifications.value || []).filter((n) => n != null),
+  (notifications.value || []).filter((n) => n != null)
 );
 
 const overdueList = computed(() =>
   pending.value
     .filter((n) => (n.DaysRemaining ?? 99) < 0)
-    .sort((a, b) => (a.DaysRemaining ?? 0) - (b.DaysRemaining ?? 0)),
+    .sort((a, b) => (a.DaysRemaining ?? 0) - (b.DaysRemaining ?? 0))
 );
 
 const overdueCount = computed(() => overdueList.value.length);
@@ -447,13 +490,11 @@ const overdueCount = computed(() => overdueList.value.length);
 const dueSoonCount = computed(
   () =>
     (Number(statistics.value?.Today) || 0) +
-    (Number(statistics.value?.Tomorrow) || 0),
+    (Number(statistics.value?.Tomorrow) || 0)
 );
 
-
-
 // PO trễ gộp nhóm (mở rộng từng PO, tối đa 8 nhóm)
-const expandedPO = ref("");
+const expandedPO = ref('');
 // Phạm vi 7 ngày: trễ tối đa 7d + tới hạn trong 7d (ngoài phạm vi vẫn đếm ở KPI/Rủi ro)
 const latePOGroups = computed(() => {
   const map = new Map();
@@ -462,10 +503,18 @@ const latePOGroups = computed(() => {
     return d >= -7 && d <= 7;
   });
   for (const n of inScope) {
-    const name = String(n?.Message || "").split(" - ")[0].trim() || "(Không rõ PO)";
+    const name =
+      String(n?.Message || '')
+        .split(' - ')[0]
+        .trim() || '(Không rõ PO)';
     const d = n?.DaysRemaining ?? 0;
     const cur = map.get(name) || {
-      name, count: 0, qty: 0, maxDays: 0, minDue: 99, items: [],
+      name,
+      count: 0,
+      qty: 0,
+      maxDays: 0,
+      minDue: 99,
+      items: [],
     };
     cur.count += 1;
     cur.qty += Number(n?.Quantity) || 0;
@@ -475,49 +524,52 @@ const latePOGroups = computed(() => {
     map.set(name, cur);
   }
   return [...map.values()]
-    .map((g) => ({
-      ...g,
-      hasOverdue: g.maxDays > 0,
-      items: g.items.sort(
-        (a, b) => (a.DaysRemaining ?? 0) - (b.DaysRemaining ?? 0),
-      ),
-    }))
-    .sort((a, b) => b.maxDays - a.maxDays || a.minDue - b.minDue || b.qty - a.qty)
+    .map((g) => {
+      // Số đợt lấy từ backend (tính trên toàn bộ lịch của PO nên đợt đã giao không làm lệch số);
+      // sort theo ngày như cũ để hiển thị sớm nhất trước
+      const items = g.items
+        .sort((a, b) => (a.DeliveryDate ?? 0) - (b.DeliveryDate ?? 0))
+        .map((s, i) => ({
+          ...s,
+          seq: Number(s.Seq) > 0 ? Number(s.Seq) : i + 1,
+        }));
+      return { ...g, hasOverdue: g.maxDays > 0, items };
+    })
+    .sort(
+      (a, b) => b.maxDays - a.maxDays || a.minDue - b.minDue || b.qty - a.qty
+    )
     .slice(0, 8);
 });
 
 // Tổng SL toàn card + format ngàn (1.200 thay vì 1200)
 const weekTotalQty = computed(() =>
-  latePOGroups.value.reduce((s, g) => s + (Number(g.qty) || 0), 0),
+  latePOGroups.value.reduce((s, g) => s + (Number(g.qty) || 0), 0)
 );
 
 const fmtQty = (v) => {
   const n = Number(v) || 0;
-  return new Intl.NumberFormat("vi-VN").format(n);
+  return new Intl.NumberFormat('vi-VN').format(n);
 };
 
 const togglePOGroup = (name) => {
-  expandedPO.value = expandedPO.value === name ? "" : name;
+  expandedPO.value = expandedPO.value === name ? '' : name;
 };
 
 // Tên rút gọn của 1 lịch trong PO (phần sau dấu " - ")
 const scheduleShort = (message) => {
-  const parts = String(message || "").split(" - ");
-  return parts.length > 1 ? parts.slice(1).join(" - ") : message;
+  const parts = String(message || '').split(' - ');
+  return parts.length > 1 ? parts.slice(1).join(' - ') : message;
 };
 
 // Gom tuổi nợ 1 lần cho card Rủi ro (trễ 1-3d / 4-7d / >7d)
 const agingBuckets = computed(() => {
   const defs = [
-    { key: "b1", title: "Trễ 1–3 ngày", color: "warning", min: 1, max: 3 },
-    { key: "b2", title: "Trễ 4–7 ngày", color: "orange", min: 4, max: 7 },
-    { key: "b3", title: "Trễ trên 7 ngày", color: "error", min: 8, max: 9999 },
+    { key: 'b1', title: 'Trễ 1–3 ngày', color: 'warning', min: 1, max: 3 },
+    { key: 'b2', title: 'Trễ 4–7 ngày', color: 'orange', min: 4, max: 7 },
+    { key: 'b3', title: 'Trễ trên 7 ngày', color: 'error', min: 8, max: 9999 },
   ];
   const totalQty =
-    overdueList.value.reduce(
-      (s, n) => s + (Number(n?.Quantity) || 0),
-      0,
-    ) || 1;
+    overdueList.value.reduce((s, n) => s + (Number(n?.Quantity) || 0), 0) || 1;
   return defs.map((d) => {
     const items = overdueList.value.filter((n) => {
       const late = -(n?.DaysRemaining ?? 0);
@@ -536,11 +588,11 @@ const agingBuckets = computed(() => {
 const riskTotal = computed(() => {
   const qty = overdueList.value.reduce(
     (s, n) => s + (Number(n?.Quantity) || 0),
-    0,
+    0
   );
   const maxDays = overdueList.value.reduce(
     (m, n) => Math.max(m, -(n?.DaysRemaining ?? 0)),
-    0,
+    0
   );
   return { count: overdueList.value.length, qty, maxDays };
 });
@@ -550,12 +602,14 @@ const stuckOrders = computed(() => {
   const dayMs = 86400000;
   const now = Date.now();
   return manufacturingList.value
-    .filter((m) => m.Status_Output === "Đang sản xuất" && m.Date)
+    .filter((m) => m.Status_Output === 'Đang sản xuất' && m.Date)
     .map((m) => {
       const created = new Date(m.Date).getTime();
       return {
         ...m,
-        stuckDays: isNaN(created) ? 0 : Math.max(0, Math.floor((now - created) / dayMs)),
+        stuckDays: isNaN(created)
+          ? 0
+          : Math.max(0, Math.floor((now - created) / dayMs)),
       };
     })
     .sort((a, b) => b.stuckDays - a.stuckDays)
@@ -565,8 +619,8 @@ const stuckOrders = computed(() => {
 // Số đơn hoàn thành (KPI)
 const manufactureDoneCount = computed(
   () =>
-    manufacturingList.value.filter((m) => m.Status_Output === "Hoàn thành")
-      .length,
+    manufacturingList.value.filter((m) => m.Status_Output === 'Hoàn thành')
+      .length
 );
 
 // Nhập liệu SX 24h qua: tên đơn + công đoạn + SL (mới nhất trước, tối đa 8)
@@ -574,45 +628,45 @@ const { recentProduction } = useRecentProduction();
 
 const recentList = computed(() =>
   [...(recentProduction.value || [])]
-    .sort((a, b) => String(b.WorkDate || "") > String(a.WorkDate || "") ? 1 : -1)
-    .slice(0, 8),
+    .sort((a, b) =>
+      String(b.WorkDate || '') > String(a.WorkDate || '') ? 1 : -1
+    )
+    .slice(0, 8)
 );
 
 // Nhãn ngày chính xác tới mức data cho phép (Timestamp chỉ có ngày)
 const dayLabel = (workDate) => {
-  const s = String(workDate || "").slice(0, 10);
-  if (!s) return "";
+  const s = String(workDate || '').slice(0, 10);
+  if (!s) return '';
   const today = new Date();
   const ymd = (d) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  if (s === ymd(today)) return "Hôm nay";
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  if (s === ymd(today)) return 'Hôm nay';
   const y = new Date(today);
   y.setDate(y.getDate() - 1);
-  if (s === ymd(y)) return "Hôm qua";
-  const [y0, m0, d0] = s.split("-");
+  if (s === ymd(y)) return 'Hôm qua';
+  const [y0, m0, d0] = s.split('-');
   return `${d0}/${m0}`;
 };
 
 const manufacturingList = computed(() => manufacture.value || []);
 const manufacturingCount = computed(
   () =>
-    manufacturingList.value.filter((m) => m.Status_Output === "Đang sản xuất")
-      .length,
+    manufacturingList.value.filter((m) => m.Status_Output === 'Đang sản xuất')
+      .length
 );
 const manufactureProgress = computed(() => {
   const total = manufacturingList.value.length;
   if (!total) return 0;
   const done = manufacturingList.value.filter(
-    (m) => m.Status_Output === "Hoàn thành",
+    (m) => m.Status_Output === 'Hoàn thành'
   ).length;
   return Math.round((done * 100) / total);
 });
 
-
-
 const overviewSubtitle = computed(
   () =>
-    `Hôm nay có ${overdueCount.value} lịch trễ · ${dueSoonCount.value} lịch tới hạn · SX đạt ${manufactureProgress.value}%`,
+    `Hôm nay có ${overdueCount.value} lịch trễ · ${dueSoonCount.value} lịch tới hạn · SX đạt ${manufactureProgress.value}%`
 );
 
 // Chỉ tick được lịch đã tới hạn (trễ/hôm nay/ngày mai)
@@ -620,28 +674,27 @@ const canConfirm = (s) => (s?.DaysRemaining ?? 99) <= 1;
 
 // Tick xác nhận inline: cùng API + luật với DetailPO (ngày thực = hôm nay)
 const confirmingIds = ref([]);
-const confirmError = ref("");
+const confirmError = ref('');
 const canTick =
-  localStorage.getItem("LevelUser") === "Admin" ||
-  localStorage.getItem("LevelUser") === "Quản lý kinh doanh";
+  localStorage.getItem('LevelUser') === 'Admin' ||
+  localStorage.getItem('LevelUser') === 'Quản lý kinh doanh';
 
 const todayYMD = () => {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
 const confirmDelivery = async (s) => {
   if (!canConfirm(s) || confirmingIds.value.includes(s.id)) return;
   confirmingIds.value.push(s.id);
-  confirmError.value = "";
+  confirmError.value = '';
   try {
-    await axios.put(
-      `${Url}/Project/DetailProject/Confirm-item/${s.id}`,
-      { ActualDate: todayYMD() },
-    );
+    await axios.put(`${Url}/Project/DetailProject/Confirm-item/${s.id}`, {
+      ActualDate: todayYMD(),
+    });
   } catch (error) {
     confirmError.value =
-      error?.response?.data?.message || "Xác nhận giao hàng thất bại";
+      error?.response?.data?.message || 'Xác nhận giao hàng thất bại';
   } finally {
     confirmingIds.value = confirmingIds.value.filter((x) => x !== s.id);
   }
@@ -650,18 +703,17 @@ const confirmDelivery = async (s) => {
 const delayLabel = (s) => {
   const d = s?.DaysRemaining ?? 0;
   if (d < 0) return `Trễ ${-d} ngày`;
-  if (d === 0) return "Hôm nay";
-  if (d === 1) return "Ngày mai";
+  if (d === 0) return 'Hôm nay';
+  if (d === 1) return 'Ngày mai';
   return `Còn ${d} ngày`;
 };
 
 const delayColor = (s) => {
   const d = s?.DaysRemaining ?? 0;
-  if (d < 0) return "error";
-  if (d <= 1) return "warning";
-  return "info";
+  if (d < 0) return 'error';
+  if (d <= 1) return 'warning';
+  return 'info';
 };
-
 </script>
 
 <style scoped>

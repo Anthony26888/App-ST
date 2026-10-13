@@ -89,6 +89,12 @@
               >
                 {{ timeLabel(notification) }}
               </div>
+              <div
+                class="text-caption font-weight-medium"
+                :class="`text-${sxLine(notification).color}`"
+              >
+                {{ sxLine(notification).text }}
+              </div>
 
               <!-- Status Badge -->
               <template v-slot:append>
@@ -157,6 +163,7 @@
 
 <script setup>
 import { useNotification } from '@/composables/Project/useNotification';
+import { sxLine } from '@/utils/deliveryStatus.js';
 
 const {
   loading,

@@ -69,6 +69,7 @@ export function useNotification() {
         // Fetch data on connect
         fetchNotifications();
         fetchStatistics();
+        fetchDeliveredRecent();
       });
 
       // ===== DISCONNECT EVENT =====
@@ -112,6 +113,11 @@ export function useNotification() {
       socket.value.on("delivery-completed", (data) => {
         fetchNotifications();
         fetchStatistics();
+        fetchDeliveredRecent();
+      });
+
+      socket.value.on("delivered-recent-update", (data) => {
+        deliveredRecent.value = Array.isArray(data) ? data : [];
       });
 
       socket.value.on("notification-marked-read", (data) => {
@@ -132,7 +138,17 @@ export function useNotification() {
     }
   };
 
+  // Lịch đã giao 7 ngày qua (section card Rủi ro ở Overview)
+  const deliveredRecent = ref([]);
+
   // ============ METHODS ============
+  const fetchDeliveredRecent = () => {
+    if (!socket.value?.connected) {
+      return;
+    }
+    socket.value.emit("get-delivered-recent");
+  };
+
   const fetchNotifications = () => {
     if (!socket.value?.connected) {
       return;
@@ -208,9 +224,10 @@ export function useNotification() {
     if (!socket.value?.connected) {
       return;
     }
-    
+
     fetchNotifications();
     fetchStatistics();
+    fetchDeliveredRecent();
   };
 
   const clearError = () => {
@@ -253,6 +270,7 @@ export function useNotification() {
       socket.value.off("statistics-update");
       socket.value.off("statistics-error");
       socket.value.off("delivery-completed");
+      socket.value.off("delivered-recent-update");
       socket.value.off("notification-marked-read");
       socket.value.off("all-notifications-marked-read");
       socket.value.disconnect();
@@ -263,6 +281,7 @@ export function useNotification() {
   return {
     // State
     notifications,
+    deliveredRecent,
     statistics,
     loading,
     connected,
@@ -275,6 +294,7 @@ export function useNotification() {
     
     // Methods
     fetchNotifications,
+    fetchDeliveredRecent,
     fetchStatistics,
     markDelivery,
     markAsRead,

@@ -1,62 +1,58 @@
 <template lang="">
   <v-card variant="text" class="app-page">
-    <PageHeader
-      :crumbs="[{ title: 'Dự án' }]"
-    >
-      <template #actions>
+    <PageHeader :crumbs="[{ title: 'Dự án' }]">
+      <!-- <template #actions>
         <v-btn
           icon="mdi-chat"
           variant="text"
           color="primary"
           @click="DialogAIChat = true"
         ></v-btn>
-      </template>
+      </template> -->
     </PageHeader>
     <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
-      <v-card-title class="mb-3">
-        <v-row>
-          <v-col cols="6" md="3">
-            <CardStatistic
-              title="Tổng số khách hàng"
-              :value="project?.length || 0"
-              icon="mdi-account-group"
-              color="primary"
-            />
-          </v-col>
-          <v-col cols="6" md="3">
-            <CardStatistic
-              title="Tổng số PO"
-              :value="
-                project?.reduce((sum, p) => sum + (p.Quantity_PO || 0), 0) || 0
-              "
-              icon="mdi-file-document-multiple"
-              color="info"
-            />
-          </v-col>
-          <v-col cols="6" md="3">
-            <CardStatistic
-              title="Tổng PO hoàn thành"
-              :value="
-                filteredProjectFind?.filter((p) => p.Status === 'Hoàn thành')
-                  .length || 0
-              "
-              icon="mdi-check-circle"
-              color="success"
-            />
-          </v-col>
-          <v-col cols="6" md="3">
-            <CardStatistic
-              title="Tổng PO đang sản xuất"
-              :value="
-                filteredProjectFind?.filter((p) => p.Status === 'Đang sản xuất')
-                  .length || 0
-              "
-              icon="mdi-progress-wrench"
-              color="warning"
-            />
-          </v-col>
-        </v-row>
-      </v-card-title>
+      <v-row class="mb-3">
+        <v-col cols="6" md="3">
+          <CardStatistic
+            title="Tổng số khách hàng"
+            :value="project?.length || 0"
+            icon="mdi-account-group"
+            color="primary"
+          />
+        </v-col>
+        <v-col cols="6" md="3">
+          <CardStatistic
+            title="Tổng số PO"
+            :value="
+              project?.reduce((sum, p) => sum + (p.Quantity_PO || 0), 0) || 0
+            "
+            icon="mdi-file-document-multiple"
+            color="info"
+          />
+        </v-col>
+        <v-col cols="6" md="3">
+          <CardStatistic
+            title="Tổng PO hoàn thành"
+            :value="
+              filteredProjectFind?.filter((p) => p.Status === 'Hoàn thành')
+                .length || 0
+            "
+            icon="mdi-check-circle"
+            color="success"
+          />
+        </v-col>
+        <v-col cols="6" md="3">
+          <CardStatistic
+            title="Tổng PO đang sản xuất"
+            :value="
+              filteredProjectFind?.filter((p) => p.Status === 'Đang sản xuất')
+                .length || 0
+            "
+            icon="mdi-progress-wrench"
+            color="warning"
+          />
+        </v-col>
+      </v-row>
       <v-card
         variant="elevated"
         elevation="0"
@@ -166,7 +162,9 @@
                   Chưa có khách hàng nào
                 </div>
                 <v-btn
-                  v-if="LevelUser == 'Admin' || LevelUser == 'Quản lý kinh doanh'"
+                  v-if="
+                    LevelUser == 'Admin' || LevelUser == 'Quản lý kinh doanh'
+                  "
                   color="primary"
                   variant="tonal"
                   prepend-icon="mdi-plus"
@@ -186,7 +184,8 @@
   <BaseDialog
     title="Thêm dữ liệu"
     icon="mdi-plus"
-    max-width="480" :fullscreen="mdAndDown"
+    max-width="480"
+    :fullscreen="mdAndDown"
     v-model="DialogAdd"
   >
     <InputField label="Khách hàng" v-model="Customer_Add" />
@@ -197,15 +196,15 @@
     />
     <template v-slot:actions>
       <ButtonCancel @cancel="DialogAdd = false" />
-      <ButtonSave
-      :disabled="DialogLoading" @save="SaveAdd()" />
+      <ButtonSave :disabled="DialogLoading" @save="SaveAdd()" />
     </template>
   </BaseDialog>
 
   <BaseDialog
     title="Cập nhật dữ liệu"
     icon="mdi-pencil"
-    max-width="480" :fullscreen="mdAndDown"
+    max-width="480"
+    :fullscreen="mdAndDown"
     v-model="DialogEdit"
   >
     <InputField label="Khách hàng" v-model="Customer_Edit" />
@@ -218,15 +217,15 @@
       <ButtonDelete @delete="DialogRemove = true" />
       <v-spacer></v-spacer>
       <ButtonCancel @cancel="DialogEdit = false" />
-      <ButtonSave
-      :disabled="DialogLoading" @save="SaveEdit()" />
+      <ButtonSave :disabled="DialogLoading" @save="SaveEdit()" />
     </template>
   </BaseDialog>
 
   <BaseDialog
     title="Xoá dữ liệu"
     icon="mdi-delete"
-    max-width="480" :fullscreen="mdAndDown"
+    max-width="480"
+    :fullscreen="mdAndDown"
     v-model="DialogRemove"
   >
     <p>Bạn có chắc chắn muốn xoá khách hàng này ?</p>
@@ -239,7 +238,8 @@
   <BaseDialog
     title="Tìm kiếm nâng cao"
     icon="mdi-filter"
-    max-width="1100" :fullscreen="mdAndDown"
+    max-width="1100"
+    :fullscreen="mdAndDown"
     v-model="DialogFind"
   >
     <v-card-title>
@@ -260,12 +260,12 @@
                 variant="text"
                 icon="mdi-filter-remove"
                 @click="
-                  (startDate = ''),
-                    (endDate = ''),
-                    (search = ''),
-                    (startDateDelivery = ''),
-                    (endDateDelivery = ''),
-                    (DialogFilterDate = false)
+                  ((startDate = ''),
+                  (endDate = ''),
+                  (search = ''),
+                  (startDateDelivery = ''),
+                  (endDateDelivery = ''),
+                  (DialogFilterDate = false))
                 "
               ></v-btn>
             </template>
@@ -281,14 +281,14 @@
       </v-row>
     </v-card-title>
     <AppDataTable
-          :fill="false"
-          :headers="HeadersFind"
-          :items="filteredProjectFind"
-          :search="searchFind"
-          :items-per-page="itemsPerPageFind"
-          v-model:page="pageFind"
-          :loading="DialogLoading"
-        >
+      :fill="false"
+      :headers="HeadersFind"
+      :items="filteredProjectFind"
+      :search="searchFind"
+      :items-per-page="itemsPerPageFind"
+      v-model:page="pageFind"
+      :loading="DialogLoading"
+    >
       <template v-slot:item.Status="{ value }">
         <div>
           <v-chip
@@ -306,10 +306,10 @@
         </div>
       </template>
       <template v-slot:item.Date_Created_PO="{ item }">
-        {{ item.Date_Created_PO.split("-").reverse().join("/") }}
+        {{ item.Date_Created_PO.split('-').reverse().join('/') }}
       </template>
       <template v-slot:item.Date_Delivery_PO="{ item }">
-        {{ item.Date_Delivery_PO.split("-").reverse().join("/") }}
+        {{ item.Date_Delivery_PO.split('-').reverse().join('/') }}
       </template>
     </AppDataTable>
   </BaseDialog>
@@ -319,7 +319,8 @@
     title="Trợ lý AI - Giao diện Giao hàng"
     icon="mdi-robot"
     width="100%"
-    max-width="1100" :fullscreen="mdAndDown"
+    max-width="1100"
+    :fullscreen="mdAndDown"
   >
     <div class="chat-container">
       <div class="chat-messages" ref="chatBody">
@@ -354,7 +355,7 @@
               class="elevation-2 mx-2 mb-1"
             >
               <v-icon size="20" color="white">
-                {{ msg.role === "user" ? "mdi-account" : "mdi-robot" }}
+                {{ msg.role === 'user' ? 'mdi-account' : 'mdi-robot' }}
               </v-icon>
             </v-avatar>
 
@@ -375,7 +376,7 @@
               >
                 <div v-if="msg.meta?.intent" class="d-flex align-center">
                   <v-icon size="12" class="me-1">mdi-tag-outline</v-icon>
-                  Ý định: {{ msg.meta.intent.type || "-" }}
+                  Ý định: {{ msg.meta.intent.type || '-' }}
                 </div>
                 <div
                   v-if="msg.meta?.matchedCustomer"
@@ -485,37 +486,37 @@
 <script setup>
 // ===== IMPORTS =====
 // Core dependencies
-import { nextTick, watch, onMounted } from "vue";
-import { useDeliveryChat } from "@/composables/Project/useAIChat";
-import axios from "axios";
-import { useRouter } from "vue-router";
-import { ref, reactive, computed } from "vue";
-import { useDisplay } from "vuetify";
+import { nextTick, watch, onMounted } from 'vue';
+import { useDeliveryChat } from '@/composables/Project/useAIChat';
+import axios from 'axios';
+import { useRouter } from 'vue-router';
+import { ref, reactive, computed } from 'vue';
+import { useDisplay } from 'vuetify';
 // Components
-import InputSearch from "@/components/Input-Search.vue";
-import InputFiles from "@/components/Input-Files.vue";
-import InputField from "@/components/Input-Field.vue";
-import InputSelect from "@/components/Input-Select.vue";
-import ButtonImportFile from "@/components/Button-ImportFile.vue";
-import ButtonDownload from "@/components/Button-Download.vue";
-import ButtonDownloadIcon from "@/components/Button-Download-Icon.vue";
-import ButtonEye from "@/components/Button-Eye.vue";
-import ButtonAI from "@/components/Button-AI.vue";
-import SnackbarSuccess from "@/components/Snackbar-Success.vue";
-import SnackbarFailed from "@/components/Snackbar-Failed.vue";
-import Loading from "@/components/Loading.vue";
-import CardStatistic from "@/components/Card-Statistic.vue";
-import InputTextarea from "@/components/Input-Textarea.vue";
-import InputDate from "@/components/Input-Date.vue";
-import PageHeader from "@/components/Page-Header.vue";
-import AppDataTable from "@/components/App-DataTable.vue";
+import InputSearch from '@/components/Input-Search.vue';
+import InputFiles from '@/components/Input-Files.vue';
+import InputField from '@/components/Input-Field.vue';
+import InputSelect from '@/components/Input-Select.vue';
+import ButtonImportFile from '@/components/Button-ImportFile.vue';
+import ButtonDownload from '@/components/Button-Download.vue';
+import ButtonDownloadIcon from '@/components/Button-Download-Icon.vue';
+import ButtonEye from '@/components/Button-Eye.vue';
+import ButtonAI from '@/components/Button-AI.vue';
+import SnackbarSuccess from '@/components/Snackbar-Success.vue';
+import SnackbarFailed from '@/components/Snackbar-Failed.vue';
+import Loading from '@/components/Loading.vue';
+import CardStatistic from '@/components/Card-Statistic.vue';
+import InputTextarea from '@/components/Input-Textarea.vue';
+import InputDate from '@/components/Input-Date.vue';
+import PageHeader from '@/components/Page-Header.vue';
+import AppDataTable from '@/components/App-DataTable.vue';
 
 // Composables
-import { useProject } from "@/composables/Project/useProject";
-import { useProjectFind } from "@/composables/Project/useProjectFind";
+import { useProject } from '@/composables/Project/useProject';
+import { useProjectFind } from '@/composables/Project/useProjectFind';
 
 // Shared UI
-import { statusChip } from "@/utils/deliveryStatus.js";
+import { statusChip } from '@/utils/deliveryStatus.js';
 
 // ===== STATE MANAGEMENT =====
 // API Configuration
@@ -543,77 +544,77 @@ const DialogFind = ref(false); // Find by date dialog
 const DialogAIChat = ref(false); // AI chat dialog
 // ===== MESSAGE DIALOG =====
 // Message for success and error notifications
-const MessageDialog = ref("");
-const MessageErrorDialog = ref("");
+const MessageDialog = ref('');
+const MessageErrorDialog = ref('');
 
 // ===== FORM STATES =====
 // File upload state
 const File = ref(null);
 
 // Customer form states
-const Customer_Edit = ref(""); // Customer name for editing
-const Customer_Add = ref("");
-const Note_Edit = ref("");
-const Note_Add = ref("");
-const GetID = ref(""); // Current item ID being processed
+const Customer_Edit = ref(''); // Customer name for editing
+const Customer_Add = ref('');
+const Note_Edit = ref('');
+const Note_Add = ref('');
+const GetID = ref(''); // Current item ID being processed
 
 // ===== Table States =====
 const Headers = ref([
-  { key: "Customer", title: "Khách hàng", width: "200" },
-  { key: "Status", title: "Trạng thái", width: "200" },
-  { key: "Quantity_PO", title: "Tổng PO", width: "200" },
-  { key: "Quantity_Orders", title: "Tổng đơn hàng", width: "200" },
-  { key: "Percent_Completed", title: "Tỉ lệ hoàn thành", width: "200" },
-  { key: "Note", title: "Ghi chú", width: "400" },
-  { key: "id", sortable: false, title: "Thao tác" },
+  { key: 'Customer', title: 'Khách hàng', width: '200' },
+  { key: 'Status', title: 'Trạng thái', width: '200' },
+  { key: 'Quantity_PO', title: 'Tổng PO', width: '200' },
+  { key: 'Quantity_Orders', title: 'Tổng đơn hàng', width: '200' },
+  { key: 'Percent_Completed', title: 'Tỉ lệ hoàn thành', width: '200' },
+  { key: 'Note', title: 'Ghi chú', width: '400' },
+  { key: 'id', sortable: false, title: 'Thao tác' },
 ]);
 
 const HeadersFind = ref([
-  { key: "CustomerName", title: "KH", width: "70" },
-  { key: "POID", title: "Tên dự án", width: "150" },
+  { key: 'CustomerName', title: 'KH', width: '70' },
+  { key: 'POID', title: 'Tên dự án', width: '150' },
   {
-    key: "ProductDetail",
-    title: "Tên đơn hàng",
+    key: 'ProductDetail',
+    title: 'Tên đơn hàng',
     sortable: false,
-    width: "400",
+    width: '400',
   },
-  { key: "Status", title: "Trạng thái đơn hàng", sortable: true, width: "150" },
+  { key: 'Status', title: 'Trạng thái đơn hàng', sortable: true, width: '150' },
   {
-    key: "DeliveryDate",
-    title: "Ngày giao hàng",
+    key: 'DeliveryDate',
+    title: 'Ngày giao hàng',
     sortable: true,
-    width: "150",
-  },
-  {
-    key: "DeliveryQuantity",
-    title: "Số lượng giao hàng",
-    sortable: true,
-    width: "150",
+    width: '150',
   },
   {
-    key: "DeliveryStatus",
-    title: "Trạng thái giao hàng",
+    key: 'DeliveryQuantity',
+    title: 'Số lượng giao hàng',
     sortable: true,
-    width: "150",
+    width: '150',
   },
-  { key: "id", sortable: false, title: "Thao tác" },
+  {
+    key: 'DeliveryStatus',
+    title: 'Trạng thái giao hàng',
+    sortable: true,
+    width: '150',
+  },
+  { key: 'id', sortable: false, title: 'Thao tác' },
 ]);
 
 const itemsFilter = [
-  { title: "Tất cả", value: "" },
-  { title: "Chưa có đơn hàng", value: "Chưa có đơn hàng" },
-  { title: "Đang sản xuất", value: "Đang sản xuất" },
-  { title: "Hoàn thành", value: "Hoàn thành" },
+  { title: 'Tất cả', value: '' },
+  { title: 'Chưa có đơn hàng', value: 'Chưa có đơn hàng' },
+  { title: 'Đang sản xuất', value: 'Đang sản xuất' },
+  { title: 'Hoàn thành', value: 'Hoàn thành' },
 ];
 
-const startDate = ref("");
-const endDate = ref("");
+const startDate = ref('');
+const endDate = ref('');
 
-const startDateDelivery = ref("");
-const endDateDelivery = ref("");
+const startDateDelivery = ref('');
+const endDateDelivery = ref('');
 
-const search = ref("");
-const searchFind = ref("");
+const search = ref('');
+const searchFind = ref('');
 
 const itemsPerPage = ref(15);
 const page = ref(1);
@@ -624,14 +625,14 @@ const pageFind = ref(1);
 
 // ===== User Information =====
 const UserInfo = ref(null);
-const LevelUser = localStorage.getItem("LevelUser");
+const LevelUser = localStorage.getItem('LevelUser');
 
 // Bị router đá về vì thiếu quyền (permDenied) -> toast 1 lần rồi xóa cờ
 onMounted(() => {
   try {
-    if (localStorage.getItem("permDenied") === "1") {
-      localStorage.removeItem("permDenied");
-      MessageErrorDialog.value = "Bạn không có quyền truy cập trang này";
+    if (localStorage.getItem('permDenied') === '1') {
+      localStorage.removeItem('permDenied');
+      MessageErrorDialog.value = 'Bạn không có quyền truy cập trang này';
       DialogFailed.value = true;
     }
   } catch {
@@ -669,16 +670,16 @@ const filteredProjectFind = computed(() => {
 function PushItem(value) {
   const found = project.value.find((v) => v.id === value);
   router.push(`/Du-an/Don-hang/${value}`);
-  localStorage.setItem("Customers", found.Customer);
-  localStorage.setItem("CustomersID", value);
+  localStorage.setItem('Customers', found.Customer);
+  localStorage.setItem('CustomersID', value);
 }
 
 function PushItemFind(item) {
-  localStorage.setItem("Customers", item.CustomerName);
-  localStorage.setItem("CustomersID", item.id);
-  localStorage.setItem("POID", item.POID);
-  localStorage.setItem("ProductID", item.ProductDetail);
-  localStorage.setItem("PO", item.PO);
+  localStorage.setItem('Customers', item.CustomerName);
+  localStorage.setItem('CustomersID', item.id);
+  localStorage.setItem('POID', item.POID);
+  localStorage.setItem('ProductID', item.ProductDetail);
+  localStorage.setItem('PO', item.PO);
   router.push(`/Du-an/Don-hang/${item.CustomerID}`);
 }
 
@@ -708,17 +709,17 @@ const SaveEdit = async () => {
   try {
     const response = await axios.put(
       `${Url}/Project/Customer/Edit-item/${GetID.value}`,
-      formData,
+      formData
     );
     DialogLoading.value = false;
     DialogEdit.value = false;
     DialogSuccess.value = true;
-    MessageDialog.value = "Chỉnh sửa dữ liệu thành công";
+    MessageDialog.value = 'Chỉnh sửa dữ liệu thành công';
   } catch (error) {
     DialogLoading.value = false;
     DialogEdit.value = false;
     DialogFailed.value = true;
-    MessageErrorDialog.value = "Chỉnh sửa dữ liệu thất bại";
+    MessageErrorDialog.value = 'Chỉnh sửa dữ liệu thất bại';
   }
 };
 
@@ -736,17 +737,17 @@ const SaveAdd = async () => {
   try {
     const response = await axios.post(
       `${Url}/Project/Customer/Add-item`,
-      formData,
+      formData
     );
     DialogLoading.value = false;
     DialogAdd.value = false;
     DialogSuccess.value = true;
-    MessageDialog.value = "Thêm dữ liệu thành công";
+    MessageDialog.value = 'Thêm dữ liệu thành công';
   } catch (error) {
     DialogLoading.value = false;
     DialogAdd.value = false;
     DialogFailed.value = true;
-    MessageErrorDialog.value = "Thêm dữ liệu thất bại";
+    MessageErrorDialog.value = 'Thêm dữ liệu thất bại';
   }
 };
 
@@ -758,18 +759,18 @@ const RemoveItem = async (id) => {
   DialogLoading.value = true;
   try {
     const response = await axios.delete(
-      `${Url}/Project/Customer/Delete-item/${GetID.value}`,
+      `${Url}/Project/Customer/Delete-item/${GetID.value}`
     );
     DialogRemove.value = false;
     DialogSuccess.value = true;
     DialogLoading.value = false;
     DialogEdit.value = false;
-    MessageDialog.value = "Xoá dữ liệu thành công";
+    MessageDialog.value = 'Xoá dữ liệu thành công';
   } catch (error) {
     DialogRemove.value = false;
     DialogLoading.value = false;
     DialogFailed.value = true;
-    MessageErrorDialog.value = "Xoá dữ liệu thất bại";
+    MessageErrorDialog.value = 'Xoá dữ liệu thất bại';
   }
 };
 
@@ -781,17 +782,17 @@ const RemoveItem = async (id) => {
 const ImportFile = async () => {
   DialogLoading.value = true;
   const formData = new FormData();
-  formData.append("file", File.value);
+  formData.append('file', File.value);
 
   try {
     const response = await axios.post(
       `${Url}/Project/Customer/Upload-file`,
-      formData,
+      formData
     );
-    MessageDialog.value = "Tải file thành công";
+    MessageDialog.value = 'Tải file thành công';
     Reset();
   } catch (error) {
-    MessageErrorDialog.value = "Tải file thất bại";
+    MessageErrorDialog.value = 'Tải file thất bại';
     Error();
   }
 };
@@ -802,12 +803,12 @@ const ImportFile = async () => {
 const DownloadProject = async () => {
   try {
     const response = await fetch(`${Url}/Project/download`);
-    if (!response.ok) throw new Error("Download failed");
+    if (!response.ok) throw new Error('Download failed');
 
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
 
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
     a.download = `Dự_án.xlsx`;
     document.body.appendChild(a);
@@ -816,8 +817,8 @@ const DownloadProject = async () => {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   } catch (error) {
-    console.error("Error downloading file:", error);
-    MessageErrorDialog.value = "Lỗi tải file";
+    console.error('Error downloading file:', error);
+    MessageErrorDialog.value = 'Lỗi tải file';
     Error();
   }
 };
@@ -827,12 +828,12 @@ const DownloadProject = async () => {
 const DownloadProjectDetail = async (value) => {
   try {
     const response = await fetch(`${Url}/Project-Detail/download/${value}`);
-    if (!response.ok) throw new Error("Download failed");
+    if (!response.ok) throw new Error('Download failed');
 
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
 
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
     a.download = `Chi_tiết_dự_án.xlsx`;
     document.body.appendChild(a);
@@ -841,8 +842,8 @@ const DownloadProjectDetail = async (value) => {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   } catch (error) {
-    console.error("Error downloading file:", error);
-    MessageErrorDialog.value = "Lỗi tải file";
+    console.error('Error downloading file:', error);
+    MessageErrorDialog.value = 'Lỗi tải file';
     Error();
   }
 };
@@ -859,10 +860,10 @@ function Reset() {
   DialogAdd.value = false;
   Dialog.value = false;
   DialogLoading.value = false;
-  Customer_Add.value = "";
-  Years_Add.value = "";
-  Customer_Edit.value = "";
-  Years_Edit.value = "";
+  Customer_Add.value = '';
+  Years_Add.value = '';
+  Customer_Edit.value = '';
+  Years_Edit.value = '';
 }
 
 /**
@@ -874,7 +875,7 @@ function Error() {
   DialogLoading.value = false;
 }
 
-const question = ref("");
+const question = ref('');
 const chatBody = ref(null);
 
 const { loading, error, messages, sendMessage, clearMessages } =
@@ -884,7 +885,7 @@ async function handleSend() {
   const text = question.value.trim();
   if (!text || loading.value) return;
 
-  question.value = "";
+  question.value = '';
   await sendMessage(text);
 }
 
@@ -896,7 +897,7 @@ watch(
     if (el) {
       el.scrollTop = el.scrollHeight;
     }
-  },
+  }
 );
 </script>
 <script>

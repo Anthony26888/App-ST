@@ -189,6 +189,9 @@
                         >
                           <td class="py-2">
                             {{ toSlash(schedule.DeliveryDateConvert) }}
+                            <span class="text-caption text-medium-emphasis">
+                              (Lần {{ sIndex + 1 }})
+                            </span>
                           </td>
                           <td class="py-2">
                             {{ schedule.DeliveryQuantity }}

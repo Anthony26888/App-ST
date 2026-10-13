@@ -46,6 +46,24 @@ export const delayChip = (days) => {
 };
 
 /**
+ * Dòng tiến độ từng đợt giao (không cộng dồn cả đơn).
+ * Chưa giao: "Chưa giao 0/Y (0%)" đỏ.
+ * Đã giao: "Đã giao Y/Y (100%)" xanh.
+ * Dùng chung Overview + chuông để đồng bộ chữ/màu.
+ */
+export const sxLine = (item) => {
+  const batch = Number(item?.DeliveryQuantity ?? item?.Quantity) || 0;
+  const delivered = item?.DeliveryCheck === "Đã giao" ? batch : 0;
+  if (batch <= 0) {
+    return { text: "Chưa có số lượng đợt", color: "medium-emphasis" };
+  }
+  if (delivered > 0) {
+    return { text: `Đã giao ${batch}/${batch} pcs (100%)`, color: "success" };
+  }
+  return { text: `Chưa giao 0/${batch} pcs (0%)`, color: "error" };
+};
+
+/**
  * Trạng thái gộp duy nhất cho 1 lịch giao:
  * Đã giao > Trễ hạn > Chưa đến hạn > Chưa có lịch.
  */
