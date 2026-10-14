@@ -15,6 +15,11 @@
             </v-btn>
           </template>
         </v-tooltip>
+        <ButtonDownload
+          title="Tải báo cáo"
+          class="mt-2"
+          @download-file="DownloadSummaryReport()"
+        />
         <v-sheet
           rounded="lg"
           border
@@ -691,6 +696,8 @@
 // ===== IMPORTS =====
 // Core dependencies
 import axios from "axios";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import { useRouter } from "vue-router";
 import {
   ref,
@@ -1516,6 +1523,328 @@ function Error() {
   DialogFailed.value = true;
   DialogLoading.value = false;
 }
+
+// ===== TẢI BÁO CÁO HẰNG NGÀY (UI/layout giống Page-DetailManufacture) =====
+const DownloadSummaryReport = async () => {
+  DialogLoading.value = true;
+  try {
+    const wb = new ExcelJS.Workbook();
+    const fontName = "Times New Roman";
+    const d = selectedDate.value || new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    const dateLabel = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+    const safeDate = `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`;
+
+    const thinBorder = {
+      top: { style: "thin" },
+      left: { style: "thin" },
+      bottom: { style: "thin" },
+      right: { style: "thin" },
+    };
+
+    const addTitleRow = (ws, text, lastCol) => {
+      ws.mergeCells(1, 1, 1, lastCol);
+      const cell = ws.getCell("A1");
+      cell.value = text;
+      cell.font = {
+        name: fontName,
+        size: 20,
+        bold: true,
+        color: { argb: "FFFFFFFF" },
+      };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF1F4E79" },
+      };
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+      ws.getRow(1).height = 32;
+    };
+
+    const setHeaderRow = (ws, rowNum, headers) => {
+      headers.forEach((h, i) => {
+        const cell = ws.getRow(rowNum).getCell(i + 1);
+        cell.value = h;
+        cell.font = {
+          name: fontName,
+          size: 11,
+          bold: true,
+          color: { argb: "FFFFFFFF" },
+        };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF4472C4" },
+        };
+        cell.alignment = {
+          vertical: "middle",
+          horizontal: "center",
+          wrapText: true,
+        };
+        cell.border = thinBorder;
+      });
+      ws.getRow(rowNum).height = 22;
+    };
+
+    const styleDataRow = (row, colCount, zebra) => {
+      for (let i = 1; i <= colCount; i++) {
+        const cell = row.getCell(i);
+        cell.font = { name: fontName, size: 11 };
+        cell.border = thinBorder;
+        if (zebra) {
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FFF2F2F2" },
+          };
+        }
+      }
+    };
+
+    const addMergedBox = (ws, rowNum, col, text, { font, zebra, span = 2 } = {}) => {
+      for (let c = col; c < col + span; c++) {
+        const cell = ws.getRow(rowNum).getCell(c);
+        cell.border = thinBorder;
+        if (zebra) {
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: zebra },
+          };
+        }
+      }
+      const master = ws.getRow(rowNum).getCell(col);
+      master.value = text;
+      master.font = font || { name: fontName, size: 11 };
+      master.alignment = {
+        vertical: "middle",
+        horizontal: "center",
+        wrapText: true,
+      };
+      ws.mergeCells(rowNum, col, rowNum, col + span - 1);
+    };
+
+    const setSectionRow = (ws, rowIdx, colCount, text) => {
+      ws.mergeCells(rowIdx, 1, rowIdx, colCount);
+      const cell = ws.getRow(rowIdx).getCell(1);
+      cell.value = text;
+      cell.font = {
+        name: fontName,
+        size: 13,
+        bold: true,
+        color: { argb: "FFFFFFFF" },
+      };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF2E75B6" },
+      };
+      cell.alignment = { vertical: "middle", horizontal: "left" };
+      cell.border = thinBorder;
+      ws.getRow(rowIdx).height = 24;
+    };
+
+    const noDataRow = (ws, rowNum, colCount) => {
+      ws.mergeCells(rowNum, 1, rowNum, colCount);
+      const nc = ws.getRow(rowNum).getCell(1);
+      nc.value = "Chưa có dữ liệu";
+      nc.font = { name: fontName, size: 11, italic: true };
+      nc.alignment = { vertical: "middle", horizontal: "center" };
+      nc.border = thinBorder;
+      return rowNum + 1;
+    };
+
+    const vsText = (p) =>
+      p > 0 ? `+${p}% vs hôm qua` : p < 0 ? `${p}% vs hôm qua` : "0% vs hôm qua";
+
+    // ===== SHEET 1: BÁO CÁO HẰNG NGÀY =====
+    const ws = wb.addWorksheet("BÁO CÁO HẰNG NGÀY");
+    ws.columns = [
+      { width: 22 },
+      { width: 22 },
+      { width: 16 },
+      { width: 16 },
+      { width: 16 },
+      { width: 22 },
+    ];
+    addTitleRow(ws, `BÁO CÁO HẰNG NGÀY (${dateLabel})`, 6);
+    let r = 3;
+
+    setSectionRow(ws, r, 6, "I. THÔNG TIN TỔNG QUAN");
+    r += 1;
+    const overviewRows = [
+      ["Ngày báo cáo", dateLabel],
+      [
+        "Tổng số dự án",
+        `${summaryPlanManufacture.value?.length || 0} (${vsText(Number(projectComparePercent.value) || 0)})`,
+      ],
+      [
+        "Tổng số hạng mục",
+        `${summary.value?.length || 0} (${vsText(Number(categoryComparePercent.value) || 0)})`,
+      ],
+      [
+        "Hạng mục hoàn thành",
+        `${totalCategoryPassToday.value?.length || 0} (Đạt mục tiêu: ${Number(goalAchievementPercent.value) || 0}%)`,
+      ],
+      ["Dự án đang thực hiện", `${Number(totalCategoryInProgressToday.value) || 0}`],
+    ];
+    overviewRows.forEach(([label, val], i) => {
+      const zebra = i % 2 === 1 ? "FFF2F2F2" : null;
+      addMergedBox(ws, r, 1, label, { zebra });
+      addMergedBox(ws, r, 3, val, { zebra, span: 4 });
+      ws.getRow(r).height = 20;
+      r += 1;
+    });
+    r += 1;
+
+    setSectionRow(ws, r, 6, "II. ĐƠN HÀNG ĐANG SẢN XUẤT");
+    r += 1;
+    setHeaderRow(ws, r, [
+      "Tên dự án",
+      "Hạng mục",
+      "Công đoạn",
+      "Kế hoạch (pcs)",
+      "Thực tế (pcs)",
+      "Tỉ lệ (%)",
+    ]);
+    r += 1;
+    const rows = summary.value || [];
+    if (rows.length === 0) {
+      r = noDataRow(ws, r, 6);
+    } else {
+      rows.forEach((item, i) => {
+        const row = ws.getRow(r);
+        row.getCell(1).value = item.PONumber ?? "";
+        row.getCell(2).value = item.Category ?? "";
+        row.getCell(3).value = item.Type ?? "";
+        row.getCell(4).value = Number(item.Quantity_Plan) || 0;
+        row.getCell(5).value = Number(item.Quantity_Counting) || 0;
+        row.getCell(6).value = Number(item.Percent) || 0;
+        row.getCell(6).numFmt = '0.0"%"';
+        styleDataRow(row, 6, i % 2 === 1);
+        row.height = 20;
+        r += 1;
+      });
+    }
+    r += 1;
+
+    setSectionRow(ws, r, 6, "III. PHÂN BỔ THEO HẠNG MỤC");
+    r += 1;
+    // Header gộp full 6 cột (mỗi cột logic span 2 cột vật lý, giống mẫu DetailManufacture)
+    const catHeaderFont = {
+      name: fontName,
+      size: 11,
+      bold: true,
+      color: { argb: "FFFFFFFF" },
+    };
+    const catHeaderFill = (col) => {
+      for (let c = col; c < col + 2; c++) {
+        ws.getRow(r).getCell(c).fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF4472C4" },
+        };
+      }
+    };
+    addMergedBox(ws, r, 1, "Hạng mục", { font: catHeaderFont });
+    addMergedBox(ws, r, 3, "Số lượng (pcs)", { font: catHeaderFont });
+    addMergedBox(ws, r, 5, "Tỷ lệ (%)", { font: catHeaderFont });
+    catHeaderFill(1);
+    catHeaderFill(3);
+    catHeaderFill(5);
+    ws.getRow(r).height = 22;
+    r += 1;
+    const catLabels = categoryLabels.value || [];
+    const catData = categoryData.value || [];
+    const catTotal = catData.reduce((s, v) => s + (Number(v) || 0), 0);
+    if (catLabels.length === 0 || catTotal === 0) {
+      r = noDataRow(ws, r, 6);
+    } else {
+      catLabels.forEach((label, i) => {
+        const qty = Number(catData[i]) || 0;
+        const zebra = i % 2 === 1 ? "FFF2F2F2" : null;
+        addMergedBox(ws, r, 1, label, { zebra });
+        addMergedBox(ws, r, 3, qty, { zebra });
+        addMergedBox(
+          ws,
+          r,
+          5,
+          Number(((qty / catTotal) * 100).toFixed(1)),
+          { zebra },
+        );
+        ws.getRow(r).getCell(5).numFmt = '0.0"%"';
+        ws.getRow(r).height = 20;
+        r += 1;
+      });
+      addMergedBox(ws, r, 1, `Hạng mục cao nhất: ${maxPassCategory.value || "-"} (${Number(maxPassCategoryData.value) || 0} pcs)`, { span: 6 });
+      ws.getRow(r).height = 20;
+      r += 1;
+      addMergedBox(ws, r, 1, `Hạng mục thấp nhất: ${minPassCategory.value || "-"} (${minPassCategoryData.value ?? "-"} pcs)`, { span: 6 });
+      ws.getRow(r).height = 20;
+      r += 1;
+    }
+
+    // ===== SHEET 2: CHI TIẾT KẾ HOẠCH – THỰC TẾ =====
+    const ws2 = wb.addWorksheet("CHI TIẾT KẾ HOẠCH–THỰC TẾ");
+    ws2.columns = [
+      { width: 18 },
+      { width: 22 },
+      { width: 22 },
+      { width: 14 },
+      { width: 14 },
+      { width: 14 },
+      { width: 14 },
+      { width: 12 },
+      { width: 24 },
+    ];
+    addTitleRow(ws2, `CHI TIẾT KẾ HOẠCH – THỰC TẾ (${dateLabel})`, 9);
+    let r2 = 3;
+    setHeaderRow(ws2, r2, [
+      "Dự án",
+      "Đơn hàng",
+      "Hạng mục",
+      "Vòng lập (s)",
+      "Thời gian (s)",
+      "Đầu vào (pcs)",
+      "Đầu ra (pcs)",
+      "Phần trăm (%)",
+      "Ghi chú",
+    ]);
+    r2 += 1;
+    if (rows.length === 0) {
+      r2 = noDataRow(ws2, r2, 9);
+    } else {
+      rows.forEach((item, i) => {
+        const row = ws2.getRow(r2);
+        row.getCell(1).value = item.PONumber ?? "";
+        row.getCell(2).value = item.Name_Order ?? "";
+        row.getCell(3).value = item.Category ?? "";
+        row.getCell(4).value = Number(item.CycleTime_Plan) || 0;
+        row.getCell(5).value = Number(item.Time_Plan) || 0;
+        row.getCell(6).value = Number(item.Quantity_Plan) || 0;
+        row.getCell(7).value = Number(item.Quantity_Real ?? item.Quantity_Counting) || 0;
+        row.getCell(8).value = Number(item.Percent) || 0;
+        row.getCell(8).numFmt = '0.0"%"';
+        row.getCell(9).value = item.Note ?? "";
+        styleDataRow(row, 9, i % 2 === 1);
+        row.height = 20;
+        r2 += 1;
+      });
+    }
+
+    const buf = await wb.xlsx.writeBuffer();
+    saveAs(
+      new Blob([buf], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      }),
+      `Bao_cao_hang_ngay_${safeDate}.xlsx`,
+    );
+  } catch (e) {
+    DialogFailed.value = true;
+  } finally {
+    DialogLoading.value = false;
+  }
+};
 </script>
 <script>
 export default {

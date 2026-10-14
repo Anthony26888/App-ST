@@ -3,10 +3,7 @@
     <v-card variant="text">
       <PageHeader
         back-to="/san-xuat"
-        :crumbs="[
-          { title: 'Sản xuất', to: '/San-xuat' },
-          { title: NameManufacture || 'Chi tiết' },
-        ]"
+        :crumbs="headerCrumbs"
       >
         <template #actions>
           <ButtonDownload
@@ -1034,6 +1031,17 @@ const MessageErrorDialog = ref("");
 // Production statistics
 const NameManufacture = localStorage.getItem("ProductName");
 const NameOrder = ref(null);
+
+// Header 3 nấc: Sản xuất / <Tên plan> / <Tên đơn hàng>
+// (crumb đơn hàng chỉ hiện khi đã load xong để không có ô trống)
+const headerCrumbs = computed(() => {
+  const crumbs = [
+    { title: "Sản xuất", to: "/San-xuat" },
+    { title: NameManufacture || "Chi tiết" },
+  ];
+  if (NameOrder.value) crumbs.push({ title: NameOrder.value });
+  return crumbs;
+});
 const GetID = ref(null);
 const GetIDHistory = ref(null);
 const GetSourceHistory = ref(null);
@@ -2190,23 +2198,7 @@ const DownloadReport = async () => {
     r += 1;
 
     const passEntries = Object.entries(passListSummary.value);
-    const sumPass = passEntries.reduce(
-      (sum, [, qty]) => sum + (Number(qty) || 0),
-      0,
-    );
     const totalReport = Number(totalInput.value) || 0;
-    const passPercent = passEntries.reduce(
-      (sum, [, qty]) =>
-        sum +
-        (totalReport
-          ? Number(((Number(qty) / totalReport) * 100).toFixed(1))
-          : 0),
-      0,
-    );
-    const remainingPercent = Math.max(
-      Number((100 - passPercent).toFixed(1)),
-      0,
-    );
 
     if (passEntries.length === 0) {
       reportSheet.mergeCells(r, 1, r, 5);
@@ -2232,43 +2224,6 @@ const DownloadReport = async () => {
         reportSheet.getRow(r).getCell(5).numFmt = '0.0"%"';
         r += 1;
       });
-
-      addMergedBox(reportSheet, r, 1, "Tổng cộng");
-      addMergedBox(reportSheet, r, 3, sumPass);
-      addMergedBox(reportSheet, r, 5, passPercent, { span: 1 });
-      reportSheet.getRow(r).getCell(5).numFmt = '0.0"%"';
-      for (let c = 1; c <= 5; c++) {
-        const cell = reportSheet.getRow(r).getCell(c);
-        cell.font = { name: fontName, size: 11, bold: true };
-        cell.fill = {
-          type: "pattern",
-          pattern: "solid",
-          fgColor: { argb: "FFDDEBF7" },
-        };
-        cell.alignment = { vertical: "middle", horizontal: "center" };
-      }
-      r += 1;
-
-      addMergedBox(reportSheet, r, 1, "Còn lại");
-      addMergedBox(
-        reportSheet,
-        r,
-        3,
-        Math.max(totalReport - sumPass, 0),
-      );
-      addMergedBox(reportSheet, r, 5, remainingPercent, { span: 1 });
-      reportSheet.getRow(r).getCell(5).numFmt = '0.0"%"';
-      for (let c = 1; c <= 5; c++) {
-        const cell = reportSheet.getRow(r).getCell(c);
-        cell.font = { name: fontName, size: 11, italic: true };
-        cell.fill = {
-          type: "pattern",
-          pattern: "solid",
-          fgColor: { argb: "FFF5F5F5" },
-        };
-        cell.alignment = { vertical: "middle", horizontal: "center" };
-      }
-      r += 1;
     }
 
     // ===== SHEET 2: KẾ HOẠCH SẢN XUẤT =====

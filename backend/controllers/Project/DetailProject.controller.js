@@ -42,6 +42,8 @@ module.exports = (io) => ({
           return;
         }
         io.emit("updateDetailProjectPO");
+        io.emit("ProjectUpdate");
+        io.emit("ProjecFindUpdate");
         // Broadcast the new message to all clients
         res.json({ message: "Item inserted successfully", id: this.lastID });
       },
@@ -92,6 +94,8 @@ module.exports = (io) => ({
           });
         }
         io.emit("updateDetailProjectPO");
+        io.emit("ProjectUpdate");
+        io.emit("ProjecFindUpdate");
         res.json({ message: "Đã cập nhật dữ liệu thành công" });
       },
     );
@@ -112,6 +116,8 @@ module.exports = (io) => ({
           .json({ error: "Lỗi khi cập nhật dữ liệu trong cơ sở dữ liệu" }); // Send 500 status and error message
       }
       io.emit("updateDetailProjectPO", id);
+      io.emit("ProjectUpdate");
+      io.emit("ProjecFindUpdate");
       // Broadcast the new message to all clients
       res.json({ message: "Đã cập nhật dữ liệu thành công" });
     });
@@ -146,6 +152,8 @@ module.exports = (io) => ({
           });
         }
         io.emit("updateDetailProjectPO");
+        io.emit("ProjectUpdate");
+        io.emit("ProjecFindUpdate");
         res.json({
           message: "Lịch giao hàng thêm thành công",
           id: this.lastID,
@@ -205,6 +213,8 @@ module.exports = (io) => ({
         });
       }
       io.emit("updateDetailProjectPO");
+        io.emit("ProjectUpdate");
+        io.emit("ProjecFindUpdate");
       res.json({
         message: "Cập nhật lịch giao hàng thành công",
       });
@@ -237,6 +247,8 @@ module.exports = (io) => ({
         });
       }
       io.emit("updateDetailProjectPO");
+        io.emit("ProjectUpdate");
+        io.emit("ProjecFindUpdate");
       res.json({
         message: "Xóa lịch giao hàng thành công",
       });
@@ -341,6 +353,8 @@ module.exports = (io) => ({
                       });
                     }
                     io.emit("updateDetailProjectPO");
+        io.emit("ProjectUpdate");
+        io.emit("ProjecFindUpdate");
                     res.json({
                       message: `Xác nhận giao ${scheduleQty} pcs thành công`,
                     });
@@ -428,6 +442,8 @@ module.exports = (io) => ({
                       });
                     }
                     io.emit("updateDetailProjectPO");
+        io.emit("ProjectUpdate");
+        io.emit("ProjecFindUpdate");
                     res.json({
                       message: `Hủy xác nhận giao ${scheduleQty} pcs thành công`,
                     });

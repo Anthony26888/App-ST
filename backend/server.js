@@ -254,7 +254,22 @@ const uploadPnP = multer({
   },
 });
 
-const GERBER_EXTS = [".gbr", ".gtl", ".gbl", ".gts", ".gbs", ".drl", ".ger", ".gtp", ".gbp", ".gko", ".cam", ".gto", ".gbo", ".zip"];
+const GERBER_EXTS = [
+  ".gbr",
+  ".gtl",
+  ".gbl",
+  ".gts",
+  ".gbs",
+  ".drl",
+  ".ger",
+  ".gtp",
+  ".gbp",
+  ".gko",
+  ".cam",
+  ".gto",
+  ".gbo",
+  ".zip",
+];
 const uploadGerber = multer({
   storage: storagePnP,
   limits: {
@@ -648,7 +663,9 @@ const getCompareWareHouse = async (id) => {
             .replace(/[\[\]]/g, "");
         // Alias cột: chỉ giữ chữ/số/gạch dưới (SQLite identifier an toàn)
         const safeAlias = (v, i) => {
-          const clean = String(v == null ? "" : v).replace(/[^\w]/g, "_").slice(0, 50);
+          const clean = String(v == null ? "" : v)
+            .replace(/[^\w]/g, "_")
+            .slice(0, 50);
           return `${clean || "Bom"}_${i}`;
         };
         const columns = Boms.map(
@@ -742,74 +759,81 @@ app.get("/api/Download-PO/:id", async (req, res) => {
   }
 });
 
-app.post("/api/insert-compare-inventory/:id", requireAuthStrict, async (req, res) => {
-  const id = req.params.id;
-  console.log("Processing insert-compare-inventory for PO:", id);
+app.post(
+  "/api/insert-compare-inventory/:id",
+  requireAuthStrict,
+  async (req, res) => {
+    const id = req.params.id;
+    console.log("Processing insert-compare-inventory for PO:", id);
 
-  // Check if this PO is already being processed
-  if (processingRequests.has(id)) {
-    console.log(`Request for PO ${id} is already being processed, skipping...`);
-    return res.status(409).json({
-      error: "Yêu cầu này đang được xử lý. Vui lòng đợi.",
-    });
-  }
-
-  // Add to processing set
-  processingRequests.add(id);
-
-  try {
-    // First get the Order_Id from Orders table
-    const orderId = await new Promise((resolve, reject) => {
-      const orderQuery = `SELECT id FROM Orders WHERE Name_PO = ?`;
-      db.get(orderQuery, [id], (err, orderRow) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        if (!orderRow) {
-          reject(new Error("Không tìm thấy đơn hàng tương ứng"));
-          return;
-        }
-        resolve(orderRow.id);
-      });
-    });
-
-    // Delete existing records for this order to prevent duplicates
-    await new Promise((resolve, reject) => {
-      db.run(
-        "DELETE FROM DetailOrders WHERE Order_Id = ?",
-        [orderId],
-        function (err) {
-          if (err) {
-            return reject(err);
-          }
-          console.log(`Deleted ${this.changes} old rows for order ${orderId}`);
-          resolve();
-        },
+    // Check if this PO is already being processed
+    if (processingRequests.has(id)) {
+      console.log(
+        `Request for PO ${id} is already being processed, skipping...`,
       );
-    });
-
-    // Get the compare inventory data
-    const query = await getDetailPO(id);
-    console.log("Generated query:", query);
-
-    const rows = await new Promise((resolve, reject) => {
-      db.all(query, [id], (err, rows) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        if (!rows || rows.length === 0) {
-          reject(new Error("Không tìm thấy dữ liệu cho PO này"));
-          return;
-        }
-        resolve(rows);
+      return res.status(409).json({
+        error: "Yêu cầu này đang được xử lý. Vui lòng đợi.",
       });
-    });
+    }
 
-    console.log("Found", rows.length, "rows to insert");
+    // Add to processing set
+    processingRequests.add(id);
 
-    const insertStmt = db.prepare(`
+    try {
+      // First get the Order_Id from Orders table
+      const orderId = await new Promise((resolve, reject) => {
+        const orderQuery = `SELECT id FROM Orders WHERE Name_PO = ?`;
+        db.get(orderQuery, [id], (err, orderRow) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          if (!orderRow) {
+            reject(new Error("Không tìm thấy đơn hàng tương ứng"));
+            return;
+          }
+          resolve(orderRow.id);
+        });
+      });
+
+      // Delete existing records for this order to prevent duplicates
+      await new Promise((resolve, reject) => {
+        db.run(
+          "DELETE FROM DetailOrders WHERE Order_Id = ?",
+          [orderId],
+          function (err) {
+            if (err) {
+              return reject(err);
+            }
+            console.log(
+              `Deleted ${this.changes} old rows for order ${orderId}`,
+            );
+            resolve();
+          },
+        );
+      });
+
+      // Get the compare inventory data
+      const query = await getDetailPO(id);
+      console.log("Generated query:", query);
+
+      const rows = await new Promise((resolve, reject) => {
+        db.all(query, [id], (err, rows) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          if (!rows || rows.length === 0) {
+            reject(new Error("Không tìm thấy dữ liệu cho PO này"));
+            return;
+          }
+          resolve(rows);
+        });
+      });
+
+      console.log("Found", rows.length, "rows to insert");
+
+      const insertStmt = db.prepare(`
       INSERT INTO DetailOrders (
         Description, Manufacturer_1, PartNumber_1, Manufacturer_2, PartNumber_2, 
         Manufacturer_3, PartNumber_3, So_Luong, SL_Board, Du_Toan_Hao_Phi, 
@@ -817,69 +841,70 @@ app.post("/api/insert-compare-inventory/:id", requireAuthStrict, async (req, res
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    let successCount = 0;
-    let errorCount = 0;
+      let successCount = 0;
+      let errorCount = 0;
 
-    for (const row of rows) {
-      try {
-        await new Promise((resolve, reject) => {
-          insertStmt.run(
-            row.Description,
-            row.Manufacturer_1,
-            row.PartNumber_1,
-            row.Manufacturer_2,
-            row.PartNumber_2,
-            row.Manufacturer_3,
-            row.PartNumber_3,
-            row.So_Luong,
-            row.SL_Board,
-            row.Dự_Toán_Hao_Phí,
-            row.Hao_Phi_Thuc_Te,
-            row.Mã_Kho,
-            row.Mã_Kho_Misa,
-            row.Bom,
-            row.PO,
-            orderId,
-            (err) => {
-              if (err) {
-                console.error(`Error inserting row:`, err.message);
-                errorCount++;
-                reject(err);
-              } else {
-                successCount++;
-                resolve();
-              }
-            },
-          );
-        });
-      } catch (err) {
-        console.error(`Error preparing row:`, err.message);
-        errorCount++;
+      for (const row of rows) {
+        try {
+          await new Promise((resolve, reject) => {
+            insertStmt.run(
+              row.Description,
+              row.Manufacturer_1,
+              row.PartNumber_1,
+              row.Manufacturer_2,
+              row.PartNumber_2,
+              row.Manufacturer_3,
+              row.PartNumber_3,
+              row.So_Luong,
+              row.SL_Board,
+              row.Dự_Toán_Hao_Phí,
+              row.Hao_Phi_Thuc_Te,
+              row.Mã_Kho,
+              row.Mã_Kho_Misa,
+              row.Bom,
+              row.PO,
+              orderId,
+              (err) => {
+                if (err) {
+                  console.error(`Error inserting row:`, err.message);
+                  errorCount++;
+                  reject(err);
+                } else {
+                  successCount++;
+                  resolve();
+                }
+              },
+            );
+          });
+        } catch (err) {
+          console.error(`Error preparing row:`, err.message);
+          errorCount++;
+        }
       }
+
+      insertStmt.finalize();
+      console.log(
+        `Insert completed. Success: ${successCount}, Errors: ${errorCount}`,
+      );
+
+      res.json({
+        message: "Dữ liệu đã được chèn thành công!",
+        total: rows.length,
+        success: successCount,
+        errors: errorCount,
+      });
+      io.emit("updateDetailOrders");
+    } catch (err) {
+      console.error("Lỗi truy vấn:", err.message);
+      res
+        .status(500)
+        .json({ error: "Không thể tạo truy vấn.", details: err.message });
+    } finally {
+      // Remove from processing set
+      processingRequests.delete(id);
     }
-
-    insertStmt.finalize();
-    console.log(
-      `Insert completed. Success: ${successCount}, Errors: ${errorCount}`,
-    );
-
-    res.json({
-      message: "Dữ liệu đã được chèn thành công!",
-      total: rows.length,
-      success: successCount,
-      errors: errorCount,
-    });
-    io.emit("updateDetailOrders");
-  } catch (err) {
-    console.error("Lỗi truy vấn:", err.message);
-    res
-      .status(500)
-      .json({ error: "Không thể tạo truy vấn.", details: err.message });
-  } finally {
-    // Remove from processing set
-    processingRequests.delete(id);
-  }
-});
+  },
+);
 
 // Router register user
 // Quy tắc: level mặc định "Nhân viên" được tự đăng ký; level nâng cao
@@ -888,7 +913,9 @@ app.post("/api/Users/register", (req, res) => {
   const { Username, FullName, Password, Email, Level, Date } = req.body;
 
   if (!Username || !Password) {
-    return res.status(400).json({ error: "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu" });
+    return res
+      .status(400)
+      .json({ error: "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu" });
   }
 
   const requestedLevel = Level || "Nhân viên";
@@ -903,7 +930,9 @@ app.post("/api/Users/register", (req, res) => {
         function (err) {
           if (err) {
             if (err.message && err.message.includes("UNIQUE")) {
-              return res.status(400).json({ error: "Tên đăng nhập đã tồn tại" });
+              return res
+                .status(400)
+                .json({ error: "Tên đăng nhập đã tồn tại" });
             }
             console.error(err.message);
             return res.status(500).json({ error: "Lỗi khi tạo tài khoản" });
@@ -921,22 +950,39 @@ app.post("/api/Users/register", (req, res) => {
   }
 
   // Level nâng cao: xác thực phiên admin
-  const headerUser = String((req.headers && req.headers["x-username"]) || "").trim();
+  const headerUser = String(
+    (req.headers && req.headers["x-username"]) || "",
+  ).trim();
   const token = req.headers && req.headers["x-session-token"];
   if (!headerUser || !token) {
-    return res.status(401).json({ error: "Cần đăng nhập tài khoản Admin để phân quyền này" });
+    return res
+      .status(401)
+      .json({ error: "Cần đăng nhập tài khoản Admin để phân quyền này" });
   }
-  db.get(`SELECT Token FROM Sessions WHERE Username = ?`, [headerUser], (err, row) => {
-    if (err || !row || row.Token !== token) {
-      return res.status(401).json({ code: "SESSION_REPLACED", error: "Tài khoản đã đăng nhập ở máy khác." });
-    }
-    db.get(`SELECT Level FROM Users WHERE Username = ?`, [headerUser], (err2, user) => {
-      if (err2 || !user || user.Level !== "Admin") {
-        return res.status(403).json({ error: "Không có quyền thực hiện" });
+  db.get(
+    `SELECT Token FROM Sessions WHERE Username = ?`,
+    [headerUser],
+    (err, row) => {
+      if (err || !row || row.Token !== token) {
+        return res
+          .status(401)
+          .json({
+            code: "SESSION_REPLACED",
+            error: "Tài khoản đã đăng nhập ở máy khác.",
+          });
       }
-      return doInsert(requestedLevel);
-    });
-  });
+      db.get(
+        `SELECT Level FROM Users WHERE Username = ?`,
+        [headerUser],
+        (err2, user) => {
+          if (err2 || !user || user.Level !== "Admin") {
+            return res.status(403).json({ error: "Không có quyền thực hiện" });
+          }
+          return doInsert(requestedLevel);
+        },
+      );
+    },
+  );
 });
 
 // Router delete user in Users table
@@ -983,111 +1029,99 @@ app.put("/api/Users/Edit-User/:id", requireAdmin, async (req, res) => {
 });
 
 // Router upload file xlsx to WareHouse table
-app.post("/api/WareHouse/Upload", requireAuthStrict, upload.single("file"), async (req, res) => {
-  if (!req.file) return res.status(400).send("No file uploaded.");
+app.post(
+  "/api/WareHouse/Upload",
+  requireAuthStrict,
+  upload.single("file"),
+  async (req, res) => {
+    if (!req.file) return res.status(400).send("No file uploaded.");
 
-  // Read Excel file
-  const filePath = path.join(__dirname, req.file.path);
-  const workbook = xlsx.readFile(filePath);
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
+    // Read Excel file
+    const filePath = path.join(__dirname, req.file.path);
+    const workbook = xlsx.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
 
-  // Convert sheet data to JSON
-  const data = xlsx.utils.sheet_to_json(sheet);
+    // Convert sheet data to JSON
+    const data = xlsx.utils.sheet_to_json(sheet);
 
-  try {
-    // Process each row sequentially
-    for (const row of data) {
-      // Check if PartNumber_1, Description, Customer, and Location match
-      const existingRow = await new Promise((resolve, reject) => {
-        db.get(
-          "SELECT * FROM WareHouse WHERE PartNumber_1 = ? AND Description = ? AND Customer = ? AND Location = ?",
-          [row.PartNumber_1, row.Description, row.Customer, row.Location],
-          (err, result) => {
-            if (err) reject(err);
-            else resolve(result);
-          },
-        );
-      });
-
-      if (existingRow) {
-        // Update existing row
-        await new Promise((resolve, reject) => {
-          const updateStmt = db.prepare(
-            "UPDATE WareHouse SET Input = Input + ?, Inventory = Inventory + ? WHERE PartNumber_1 = ? AND Description = ? AND Customer = ? AND Location = ?",
-          );
-          updateStmt.run(
-            row.Input || 0,
-            row.Inventory || 0,
-            row.PartNumber_1,
-            row.Description,
-            row.Customer,
-            row.Location,
-            (err) => {
-              updateStmt.finalize();
+    try {
+      // Process each row sequentially
+      for (const row of data) {
+        // Check if PartNumber_1, Description, Customer, and Location match
+        const existingRow = await new Promise((resolve, reject) => {
+          db.get(
+            "SELECT * FROM WareHouse WHERE PartNumber_1 = ? AND Description = ? AND Customer = ? AND Location = ?",
+            [row.PartNumber_1, row.Description, row.Customer, row.Location],
+            (err, result) => {
               if (err) reject(err);
-              else resolve();
+              else resolve(result);
             },
           );
         });
-      } else {
-        // Insert new row
-        await new Promise((resolve, reject) => {
-          const insertStmt = db.prepare(
-            "INSERT INTO WareHouse (Description, PartNumber_1, PartNumber_2, Input, Output, Inventory, Customer, Location, Note, Note_Output) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-          );
-          insertStmt.run(
-            row.Description,
-            row.PartNumber_1,
-            row.PartNumber_2,
-            row.Input || 0,
-            row.Output || 0,
-            row.Inventory || 0,
-            row.Customer,
-            row.Location,
-            row.Note,
-            row.Note_Output,
-            (err) => {
-              insertStmt.finalize();
-              if (err) reject(err);
-              else resolve();
-            },
-          );
-        });
+
+        if (existingRow) {
+          // Update existing row
+          await new Promise((resolve, reject) => {
+            const updateStmt = db.prepare(
+              "UPDATE WareHouse SET Input = Input + ?, Inventory = Inventory + ? WHERE PartNumber_1 = ? AND Description = ? AND Customer = ? AND Location = ?",
+            );
+            updateStmt.run(
+              row.Input || 0,
+              row.Inventory || 0,
+              row.PartNumber_1,
+              row.Description,
+              row.Customer,
+              row.Location,
+              (err) => {
+                updateStmt.finalize();
+                if (err) reject(err);
+                else resolve();
+              },
+            );
+          });
+        } else {
+          // Insert new row
+          await new Promise((resolve, reject) => {
+            const insertStmt = db.prepare(
+              "INSERT INTO WareHouse (Description, PartNumber_1, PartNumber_2, Input, Output, Inventory, Customer, Location, Note, Note_Output) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            );
+            insertStmt.run(
+              row.Description,
+              row.PartNumber_1,
+              row.PartNumber_2,
+              row.Input || 0,
+              row.Output || 0,
+              row.Inventory || 0,
+              row.Customer,
+              row.Location,
+              row.Note,
+              row.Note_Output,
+              (err) => {
+                insertStmt.finalize();
+                if (err) reject(err);
+                else resolve();
+              },
+            );
+          });
+        }
       }
-    }
 
-    res.send("File processed successfully.");
-    io.emit("WareHouseUpdate");
-  } catch (error) {
-    console.error("Error processing file:", error);
-    res.status(500).send("Error processing file: " + error.message);
-  }
-});
+      res.send("File processed successfully.");
+      io.emit("WareHouseUpdate");
+    } catch (error) {
+      console.error("Error processing file:", error);
+      res.status(500).send("Error processing file: " + error.message);
+    }
+  },
+);
 
 // Router update item WareHouse table
-app.put("/api/WareHouse/update-item/:id", requireAuthStrict, async (req, res) => {
-  const {
-    PartNumber1_Edit,
-    PartNumber2_Edit,
-    Description_Edit,
-    Input_Edit,
-    Output_Edit,
-    inventory_Edit,
-    Location_Edit,
-    Customer_Edit,
-    Note_Edit,
-    Note_Output_Edit,
-  } = req.body;
-  const { id } = req.params;
-  // Insert data into SQLite database
-  const query = `
-  UPDATE WareHouse 
-  SET PartNumber_1 = ?, PartNumber_2 = ?, Description = ?, Input = ?, Output = ?, Inventory = ?, Location = ?, Customer = ?, Note = ?, Note_Output = ? 
-  WHERE id = ?`;
-  db.run(
-    query,
-    [
+app.put(
+  "/api/WareHouse/update-item/:id",
+  requireAuthStrict,
+  async (req, res) => {
+    const {
       PartNumber1_Edit,
       PartNumber2_Edit,
       Description_Edit,
@@ -1098,9 +1132,54 @@ app.put("/api/WareHouse/update-item/:id", requireAuthStrict, async (req, res) =>
       Customer_Edit,
       Note_Edit,
       Note_Output_Edit,
-      id,
-    ],
-    function (err) {
+    } = req.body;
+    const { id } = req.params;
+    // Insert data into SQLite database
+    const query = `
+  UPDATE WareHouse 
+  SET PartNumber_1 = ?, PartNumber_2 = ?, Description = ?, Input = ?, Output = ?, Inventory = ?, Location = ?, Customer = ?, Note = ?, Note_Output = ? 
+  WHERE id = ?`;
+    db.run(
+      query,
+      [
+        PartNumber1_Edit,
+        PartNumber2_Edit,
+        Description_Edit,
+        Input_Edit,
+        Output_Edit,
+        inventory_Edit,
+        Location_Edit,
+        Customer_Edit,
+        Note_Edit,
+        Note_Output_Edit,
+        id,
+      ],
+      function (err) {
+        if (err) {
+          console.error(err.message);
+          if (!res.headersSent) {
+            return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+          }
+          return;
+        }
+        io.emit("WareHouseUpdate");
+        io.emit("TemporaryWareHouseUpdate");
+        // Broadcast the new message to all clients
+        res.json({ message: "Item inserted successfully" });
+      },
+    );
+  },
+);
+
+// Router delete item in WareHouse table
+app.delete(
+  "/api/WareHouse/delete-item/:id",
+  requireAuthStrict,
+  async (req, res) => {
+    const { id } = req.params;
+    // Delete data into SQLite database
+    const query = `DELETE FROM WareHouse WHERE id = ?`;
+    db.run(query, [id], function (err) {
       if (err) {
         console.error(err.message);
         if (!res.headersSent) {
@@ -1112,53 +1191,19 @@ app.put("/api/WareHouse/update-item/:id", requireAuthStrict, async (req, res) =>
       io.emit("TemporaryWareHouseUpdate");
       // Broadcast the new message to all clients
       res.json({ message: "Item inserted successfully" });
-    },
-  );
-});
-
-// Router delete item in WareHouse table
-app.delete("/api/WareHouse/delete-item/:id", requireAuthStrict, async (req, res) => {
-  const { id } = req.params;
-  // Delete data into SQLite database
-  const query = `DELETE FROM WareHouse WHERE id = ?`;
-  db.run(query, [id], function (err) {
-    if (err) {
-      console.error(err.message);
-      if (!res.headersSent) {
-        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
-      }
-      return;
-    }
-    io.emit("WareHouseUpdate");
-    io.emit("TemporaryWareHouseUpdate");
-    // Broadcast the new message to all clients
-    res.json({ message: "Item inserted successfully" });
-  });
-});
+    });
+  },
+);
 
 //Router post new item in WareHouse table
-app.post("/api/WareHouse/upload-new-item", requireAuthStrict, async (req, res) => {
-  const {
-    PartNumber_1,
-    PartNumber_2,
-    Description,
-    Input,
-    Output,
-    Inventory,
-    Location,
-    Customer,
-    Note,
-    Note_Output,
-  } = req.body;
-  // Insert data into SQLite database
-  const query =
-    "INSERT INTO WareHouse (Description, PartNumber_1, PartNumber_2, Input, Output, Inventory, Customer, Location, Note, Note_Output) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-  db.run(
-    query,
-    [
-      Description,
+app.post(
+  "/api/WareHouse/upload-new-item",
+  requireAuthStrict,
+  async (req, res) => {
+    const {
       PartNumber_1,
       PartNumber_2,
+      Description,
       Input,
       Output,
       Inventory,
@@ -1166,127 +1211,133 @@ app.post("/api/WareHouse/upload-new-item", requireAuthStrict, async (req, res) =
       Customer,
       Note,
       Note_Output,
-    ],
-    function (err) {
-      if (err) {
-        console.error(err.message);
-        if (!res.headersSent) {
-          return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+    } = req.body;
+    // Insert data into SQLite database
+    const query =
+      "INSERT INTO WareHouse (Description, PartNumber_1, PartNumber_2, Input, Output, Inventory, Customer, Location, Note, Note_Output) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    db.run(
+      query,
+      [
+        Description,
+        PartNumber_1,
+        PartNumber_2,
+        Input,
+        Output,
+        Inventory,
+        Location,
+        Customer,
+        Note,
+        Note_Output,
+      ],
+      function (err) {
+        if (err) {
+          console.error(err.message);
+          if (!res.headersSent) {
+            return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+          }
+          return;
         }
-        return;
-      }
-      io.emit("WareHouseUpdate");
-      // Broadcast the new message to all clients
-      res.json({ message: "Item inserted successfully" });
-    },
-  );
-});
+        io.emit("WareHouseUpdate");
+        // Broadcast the new message to all clients
+        res.json({ message: "Item inserted successfully" });
+      },
+    );
+  },
+);
 
 // Router upload file xlsx to WareHouse2 table
-app.post("/api/WareHouse2/Upload", requireAuthStrict, upload.single("file"), async (req, res) => {
-  if (!req.file) return res.status(400).send("No file uploaded.");
+app.post(
+  "/api/WareHouse2/Upload",
+  requireAuthStrict,
+  upload.single("file"),
+  async (req, res) => {
+    if (!req.file) return res.status(400).send("No file uploaded.");
 
-  // Read Excel file
-  const filePath = path.join(__dirname, req.file.path);
-  const workbook = xlsx.readFile(filePath);
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
+    // Read Excel file
+    const filePath = path.join(__dirname, req.file.path);
+    const workbook = xlsx.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
 
-  // Convert sheet data to JSON
-  const data = xlsx.utils.sheet_to_json(sheet);
+    // Convert sheet data to JSON
+    const data = xlsx.utils.sheet_to_json(sheet);
 
-  try {
-    // Process each row sequentially
-    for (const row of data) {
-      // Check if PartNumber_1, Description, Customer, and Location match
-      const existingRow = await new Promise((resolve, reject) => {
-        db.get(
-          "SELECT * FROM WareHouse2 WHERE PartNumber_1 = ? AND Description = ? AND Customer = ? AND Location = ?",
-          [row.PartNumber_1, row.Description, row.Customer, row.Location],
-          (err, result) => {
-            if (err) reject(err);
-            else resolve(result);
-          },
-        );
-      });
-
-      if (existingRow) {
-        // Update existing row
-        await new Promise((resolve, reject) => {
-          const updateStmt = db.prepare(
-            "UPDATE WareHouse2 SET Input = Input + ?, Inventory = Inventory + ? WHERE PartNumber_1 = ? AND Description = ? AND Customer = ? AND Location = ?",
-          );
-          updateStmt.run(
-            row.Input || 0,
-            row.Inventory || 0,
-            row.PartNumber_1,
-            row.Description,
-            row.Customer,
-            row.Location,
-            (err) => {
-              updateStmt.finalize();
+    try {
+      // Process each row sequentially
+      for (const row of data) {
+        // Check if PartNumber_1, Description, Customer, and Location match
+        const existingRow = await new Promise((resolve, reject) => {
+          db.get(
+            "SELECT * FROM WareHouse2 WHERE PartNumber_1 = ? AND Description = ? AND Customer = ? AND Location = ?",
+            [row.PartNumber_1, row.Description, row.Customer, row.Location],
+            (err, result) => {
               if (err) reject(err);
-              else resolve();
+              else resolve(result);
             },
           );
         });
-      } else {
-        // Insert new row
-        await new Promise((resolve, reject) => {
-          const insertStmt = db.prepare(
-            "INSERT INTO WareHouse2 (Description, PartNumber_1, PartNumber_2, Input, Output, Inventory, Customer, Location, Note, Note_Output) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-          );
-          insertStmt.run(
-            row.Description,
-            row.PartNumber_1,
-            row.PartNumber_2,
-            row.Input || 0,
-            row.Output || 0,
-            row.Inventory || 0,
-            row.Customer,
-            row.Location,
-            row.Note,
-            row.Note_Output,
-            (err) => {
-              insertStmt.finalize();
-              if (err) reject(err);
-              else resolve();
-            },
-          );
-        });
+
+        if (existingRow) {
+          // Update existing row
+          await new Promise((resolve, reject) => {
+            const updateStmt = db.prepare(
+              "UPDATE WareHouse2 SET Input = Input + ?, Inventory = Inventory + ? WHERE PartNumber_1 = ? AND Description = ? AND Customer = ? AND Location = ?",
+            );
+            updateStmt.run(
+              row.Input || 0,
+              row.Inventory || 0,
+              row.PartNumber_1,
+              row.Description,
+              row.Customer,
+              row.Location,
+              (err) => {
+                updateStmt.finalize();
+                if (err) reject(err);
+                else resolve();
+              },
+            );
+          });
+        } else {
+          // Insert new row
+          await new Promise((resolve, reject) => {
+            const insertStmt = db.prepare(
+              "INSERT INTO WareHouse2 (Description, PartNumber_1, PartNumber_2, Input, Output, Inventory, Customer, Location, Note, Note_Output) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            );
+            insertStmt.run(
+              row.Description,
+              row.PartNumber_1,
+              row.PartNumber_2,
+              row.Input || 0,
+              row.Output || 0,
+              row.Inventory || 0,
+              row.Customer,
+              row.Location,
+              row.Note,
+              row.Note_Output,
+              (err) => {
+                insertStmt.finalize();
+                if (err) reject(err);
+                else resolve();
+              },
+            );
+          });
+        }
       }
+      io.emit("WareHouse2Update");
+      res.send("File processed successfully.");
+    } catch (error) {
+      console.error("Error processing file:", error);
+      res.status(500).send("Error processing file: " + error.message);
     }
-    io.emit("WareHouse2Update");
-    res.send("File processed successfully.");
-  } catch (error) {
-    console.error("Error processing file:", error);
-    res.status(500).send("Error processing file: " + error.message);
-  }
-});
+  },
+);
 
 // Router update item WareHouse2 table
-app.put("/api/WareHouse2/update-item/:id", requireAuthStrict, async (req, res) => {
-  const {
-    PartNumber1_Edit,
-    PartNumber2_Edit,
-    Description_Edit,
-    Input_Edit,
-    Output_Edit,
-    inventory_Edit,
-    Location_Edit,
-    Customer_Edit,
-    Note_Edit,
-    Note_Output_Edit,
-  } = req.body;
-  const { id } = req.params;
-  // Insert data into SQLite database
-  const query = `
-  UPDATE WareHouse2 
-  SET PartNumber_1 = ?, PartNumber_2 = ?, Description = ?, Input = ?, Output = ?, Inventory = ?, Location = ?, Customer = ?, Note = ?, Note_Output = ? 
-  WHERE id = ?`;
-  db.run(
-    query,
-    [
+app.put(
+  "/api/WareHouse2/update-item/:id",
+  requireAuthStrict,
+  async (req, res) => {
+    const {
       PartNumber1_Edit,
       PartNumber2_Edit,
       Description_Edit,
@@ -1297,9 +1348,52 @@ app.put("/api/WareHouse2/update-item/:id", requireAuthStrict, async (req, res) =
       Customer_Edit,
       Note_Edit,
       Note_Output_Edit,
-      id,
-    ],
-    function (err) {
+    } = req.body;
+    const { id } = req.params;
+    // Insert data into SQLite database
+    const query = `
+  UPDATE WareHouse2 
+  SET PartNumber_1 = ?, PartNumber_2 = ?, Description = ?, Input = ?, Output = ?, Inventory = ?, Location = ?, Customer = ?, Note = ?, Note_Output = ? 
+  WHERE id = ?`;
+    db.run(
+      query,
+      [
+        PartNumber1_Edit,
+        PartNumber2_Edit,
+        Description_Edit,
+        Input_Edit,
+        Output_Edit,
+        inventory_Edit,
+        Location_Edit,
+        Customer_Edit,
+        Note_Edit,
+        Note_Output_Edit,
+        id,
+      ],
+      function (err) {
+        if (err) {
+          console.error(err.message);
+          if (!res.headersSent) {
+            return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+          }
+          return;
+        }
+        io.emit("WareHouse2Update");
+        // Broadcast the new message to all clients
+        res.json({ message: "Item inserted successfully" });
+      },
+    );
+  },
+);
+// Router delete item in WareHouse2 table
+app.delete(
+  "/api/WareHouse2/delete-item/:id",
+  requireAuthStrict,
+  async (req, res) => {
+    const { id } = req.params;
+    // Delete data into SQLite database
+    const query = `DELETE FROM WareHouse2 WHERE id = ?`;
+    db.run(query, [id], function (err) {
       if (err) {
         console.error(err.message);
         if (!res.headersSent) {
@@ -1310,51 +1404,19 @@ app.put("/api/WareHouse2/update-item/:id", requireAuthStrict, async (req, res) =
       io.emit("WareHouse2Update");
       // Broadcast the new message to all clients
       res.json({ message: "Item inserted successfully" });
-    },
-  );
-});
-// Router delete item in WareHouse2 table
-app.delete("/api/WareHouse2/delete-item/:id", requireAuthStrict, async (req, res) => {
-  const { id } = req.params;
-  // Delete data into SQLite database
-  const query = `DELETE FROM WareHouse2 WHERE id = ?`;
-  db.run(query, [id], function (err) {
-    if (err) {
-      console.error(err.message);
-      if (!res.headersSent) {
-        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
-      }
-      return;
-    }
-    io.emit("WareHouse2Update");
-    // Broadcast the new message to all clients
-    res.json({ message: "Item inserted successfully" });
-  });
-});
+    });
+  },
+);
 
 //Router post new item in WareHouse2 table
-app.post("/api/WareHouse2/upload-new-item", requireAuthStrict, async (req, res) => {
-  const {
-    PartNumber_1,
-    PartNumber_2,
-    Description,
-    Input,
-    Output,
-    Inventory,
-    Location,
-    Customer,
-    Note,
-    Note_Output,
-  } = req.body;
-  // Insert data into SQLite database
-  const query =
-    "INSERT INTO WareHouse2 (Description, PartNumber_1, PartNumber_2, Input, Output, Inventory, Customer, Location, Note, Note_Output) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-  db.run(
-    query,
-    [
-      Description,
+app.post(
+  "/api/WareHouse2/upload-new-item",
+  requireAuthStrict,
+  async (req, res) => {
+    const {
       PartNumber_1,
       PartNumber_2,
+      Description,
       Input,
       Output,
       Inventory,
@@ -1362,28 +1424,49 @@ app.post("/api/WareHouse2/upload-new-item", requireAuthStrict, async (req, res) 
       Customer,
       Note,
       Note_Output,
-    ],
-    function (err) {
-      if (err) {
-        console.error(err.message);
-        if (!res.headersSent) {
-          return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+    } = req.body;
+    // Insert data into SQLite database
+    const query =
+      "INSERT INTO WareHouse2 (Description, PartNumber_1, PartNumber_2, Input, Output, Inventory, Customer, Location, Note, Note_Output) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    db.run(
+      query,
+      [
+        Description,
+        PartNumber_1,
+        PartNumber_2,
+        Input,
+        Output,
+        Inventory,
+        Location,
+        Customer,
+        Note,
+        Note_Output,
+      ],
+      function (err) {
+        if (err) {
+          console.error(err.message);
+          if (!res.headersSent) {
+            return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+          }
+          return;
         }
-        return;
-      }
-      io.emit("WareHouse2Update");
-      // Broadcast the new message to all clients
-      res.json({ message: "Item inserted successfully" });
-    },
-  );
-});
+        io.emit("WareHouse2Update");
+        // Broadcast the new message to all clients
+        res.json({ message: "Item inserted successfully" });
+      },
+    );
+  },
+);
 
 // Router update WareHouse accept
-app.put("/api/WareHouse/update-Inventory-CheckBom/:id", requireAuthStrict, async (req, res) => {
-  const { id } = req.params;
-  const poNumber = id;
+app.put(
+  "/api/WareHouse/update-Inventory-CheckBom/:id",
+  requireAuthStrict,
+  async (req, res) => {
+    const { id } = req.params;
+    const poNumber = id;
 
-  const query = `
+    const query = `
     UPDATE WareHouse
     SET Output = 
       CASE 
@@ -1410,22 +1493,26 @@ app.put("/api/WareHouse/update-Inventory-CheckBom/:id", requireAuthStrict, async
     )
   `;
 
-  db.all(query, [poNumber, poNumber, poNumber, poNumber], function (err) {
-    if (err) {
-      console.error(err.message);
-      return res.status(500).json({ error: err.message });
-    }
-    io.emit("updateCompare");
-    io.emit("WareHouseUpdate");
-    res.json({ message: "Inventory updated successfully." });
-  });
-});
+    db.all(query, [poNumber, poNumber, poNumber, poNumber], function (err) {
+      if (err) {
+        console.error(err.message);
+        return res.status(500).json({ error: err.message });
+      }
+      io.emit("updateCompare");
+      io.emit("WareHouseUpdate");
+      res.json({ message: "Inventory updated successfully." });
+    });
+  },
+);
 
-app.put("/api/WareHouse2/update-Inventory-CheckBom/:id", requireAuthStrict, async (req, res) => {
-  const { id } = req.params;
-  const poNumber = id;
-  // Insert data into SQLite database
-  const query = `
+app.put(
+  "/api/WareHouse2/update-Inventory-CheckBom/:id",
+  requireAuthStrict,
+  async (req, res) => {
+    const { id } = req.params;
+    const poNumber = id;
+    // Insert data into SQLite database
+    const query = `
     UPDATE WareHouse2
     SET Output = 
       CASE 
@@ -1439,105 +1526,118 @@ app.put("/api/WareHouse2/update-Inventory-CheckBom/:id", requireAuthStrict, asyn
       END
     WHERE PartNumber_1 IN (SELECT PartNumber_1 FROM DetailOrders WHERE PO = ?)
   `;
-  db.all(query, [poNumber, poNumber, poNumber], function (err) {
-    if (err) {
-      console.error(err.message);
-      if (!res.headersSent) {
-        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+    db.all(query, [poNumber, poNumber, poNumber], function (err) {
+      if (err) {
+        console.error(err.message);
+        if (!res.headersSent) {
+          return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+        }
+        return;
       }
-      return;
-    }
-    io.emit("updateCompare");
-    io.emit("WareHouse2Update");
-    // Broadcast the new message to all clients
-    res.json({ message: "Item inserted successfully" });
-  });
-});
+      io.emit("updateCompare");
+      io.emit("WareHouse2Update");
+      // Broadcast the new message to all clients
+      res.json({ message: "Item inserted successfully" });
+    });
+  },
+);
 
 // Router upload file xlsx to WareHouse table
-app.put("/api/Temporary_WareHouse/Update-File", requireAuthStrict, async (req, res) => {
-  try {
-    // Lấy tất cả dữ liệu từ Temporary_WareHouse
-    db.all(
-      "SELECT PartNumber_1, Input, Note, Description, Location FROM Temporary_WareHouse",
-      [],
-      async (err, rows) => {
-        if (err) {
-          return res.status(500).json({ error: err.message });
-        }
-        if (!rows || rows.length === 0) {
-          return res.json({
-            message: "Không có dữ liệu trong Temporary_WareHouse",
+app.put(
+  "/api/Temporary_WareHouse/Update-File",
+  requireAuthStrict,
+  async (req, res) => {
+    try {
+      // Lấy tất cả dữ liệu từ Temporary_WareHouse
+      db.all(
+        "SELECT PartNumber_1, Input, Note, Description, Location FROM Temporary_WareHouse",
+        [],
+        async (err, rows) => {
+          if (err) {
+            return res.status(500).json({ error: err.message });
+          }
+          if (!rows || rows.length === 0) {
+            return res.json({
+              message: "Không có dữ liệu trong Temporary_WareHouse",
+            });
+          }
+          // Cập nhật từng dòng vào WareHouse
+          for (const row of rows) {
+            await new Promise((resolve, reject) => {
+              db.run(
+                `UPDATE WareHouse SET Output = Output + ?, Note_Output = ? WHERE PartNumber_1 = ? AND Description = ? AND Location = ?`,
+                [
+                  row.Input || 0,
+                  row.Note || "",
+                  row.PartNumber_1,
+                  row.Description || "",
+                  row.Location || "",
+                ],
+                function (err) {
+                  if (err) reject(err);
+                  else resolve();
+                },
+              );
+            });
+          }
+          io.emit("WareHouseUpdate");
+          res.json({
+            message:
+              "Đã cập nhật dữ liệu từ Temporary_WareHouse vào WareHouse thành công",
           });
-        }
-        // Cập nhật từng dòng vào WareHouse
-        for (const row of rows) {
-          await new Promise((resolve, reject) => {
-            db.run(
-              `UPDATE WareHouse SET Output = Output + ?, Note_Output = ? WHERE PartNumber_1 = ? AND Description = ? AND Location = ?`,
-              [
-                row.Input || 0,
-                row.Note || "",
-                row.PartNumber_1,
-                row.Description || "",
-                row.Location || "",
-              ],
-              function (err) {
-                if (err) reject(err);
-                else resolve();
-              },
-            );
-          });
-        }
-        io.emit("WareHouseUpdate");
-        res.json({
-          message:
-            "Đã cập nhật dữ liệu từ Temporary_WareHouse vào WareHouse thành công",
-        });
-      },
-    );
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+        },
+      );
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+);
 
 // Router delete item in Temporary WareHouse table
-app.delete("/api/Temporary-WareHouse/delete-item/:id", requireAuthStrict, async (req, res) => {
-  const { id } = req.params;
-  // Delete data into SQLite database
-  const query = `DELETE FROM Temporary_WareHouse WHERE id = ?`;
-  db.run(query, [id], function (err) {
-    if (err) {
-      console.error(err.message);
-      if (!res.headersSent) {
-        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+app.delete(
+  "/api/Temporary-WareHouse/delete-item/:id",
+  requireAuthStrict,
+  async (req, res) => {
+    const { id } = req.params;
+    // Delete data into SQLite database
+    const query = `DELETE FROM Temporary_WareHouse WHERE id = ?`;
+    db.run(query, [id], function (err) {
+      if (err) {
+        console.error(err.message);
+        if (!res.headersSent) {
+          return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+        }
+        return;
       }
-      return;
-    }
-    io.emit("TemporaryWareHouseUpdate");
-    // Broadcast the new message to all clients
-    res.json({ message: "Item inserted successfully" });
-  });
-});
+      io.emit("TemporaryWareHouseUpdate");
+      // Broadcast the new message to all clients
+      res.json({ message: "Item inserted successfully" });
+    });
+  },
+);
 
 // Router delete all in Temporary WareHouse table when already update WareHouse table
-app.delete("/api/Temporary-WareHouse/delete-all", requireAuthStrict, async (req, res) => {
-  const { id } = req.params;
-  // Delete data into SQLite database
-  const query = `DELETE FROM Temporary_WareHouse`;
-  db.run(query, [], function (err) {
-    if (err) {
-      console.error(err.message);
-      if (!res.headersSent) {
-        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+app.delete(
+  "/api/Temporary-WareHouse/delete-all",
+  requireAuthStrict,
+  async (req, res) => {
+    const { id } = req.params;
+    // Delete data into SQLite database
+    const query = `DELETE FROM Temporary_WareHouse`;
+    db.run(query, [], function (err) {
+      if (err) {
+        console.error(err.message);
+        if (!res.headersSent) {
+          return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+        }
+        return;
       }
-      return;
-    }
-    io.emit("TemporaryWareHouseUpdate");
-    // Broadcast the new message to all clients
-    res.json({ message: "Item inserted successfully" });
-  });
-});
+      io.emit("TemporaryWareHouseUpdate");
+      // Broadcast the new message to all clients
+      res.json({ message: "Item inserted successfully" });
+    });
+  },
+);
 
 // Router upload item in Temporary WareHouse table from xlsx
 app.post(
@@ -1610,116 +1710,65 @@ app.post(
 );
 
 // Router upload file xlsx to WareHouse table
-app.put("/api/Temporary_WareHouse_2/Update-File", requireAuthStrict, async (req, res) => {
-  try {
-    // Lấy tất cả dữ liệu từ Temporary_WareHouse
-    db.all(
-      "SELECT PartNumber_1, Input, Note, Description, Location FROM Temporary_WareHouse_2",
-      [],
-      async (err, rows) => {
-        if (err) {
-          return res.status(500).json({ error: err.message });
-        }
-        if (!rows || rows.length === 0) {
-          return res.json({
-            message: "Không có dữ liệu trong Temporary_WareHouse",
+app.put(
+  "/api/Temporary_WareHouse_2/Update-File",
+  requireAuthStrict,
+  async (req, res) => {
+    try {
+      // Lấy tất cả dữ liệu từ Temporary_WareHouse
+      db.all(
+        "SELECT PartNumber_1, Input, Note, Description, Location FROM Temporary_WareHouse_2",
+        [],
+        async (err, rows) => {
+          if (err) {
+            return res.status(500).json({ error: err.message });
+          }
+          if (!rows || rows.length === 0) {
+            return res.json({
+              message: "Không có dữ liệu trong Temporary_WareHouse",
+            });
+          }
+          // Cập nhật từng dòng vào WareHouse
+          for (const row of rows) {
+            await new Promise((resolve, reject) => {
+              db.run(
+                `UPDATE WareHouse2 SET Output = Output + ?, Note_Output = ? WHERE PartNumber_1 = ? AND Description = ? AND Location = ?`,
+                [
+                  row.Input || 0,
+                  row.Note || "",
+                  row.PartNumber_1,
+                  row.Description || "",
+                  row.Location || "",
+                ],
+                function (err) {
+                  if (err) reject(err);
+                  else resolve();
+                },
+              );
+            });
+          }
+          io.emit("WareHouse2Update");
+          res.json({
+            message:
+              "Đã cập nhật dữ liệu từ Temporary_WareHouse vào WareHouse thành công",
           });
-        }
-        // Cập nhật từng dòng vào WareHouse
-        for (const row of rows) {
-          await new Promise((resolve, reject) => {
-            db.run(
-              `UPDATE WareHouse2 SET Output = Output + ?, Note_Output = ? WHERE PartNumber_1 = ? AND Description = ? AND Location = ?`,
-              [
-                row.Input || 0,
-                row.Note || "",
-                row.PartNumber_1,
-                row.Description || "",
-                row.Location || "",
-              ],
-              function (err) {
-                if (err) reject(err);
-                else resolve();
-              },
-            );
-          });
-        }
-        io.emit("WareHouse2Update");
-        res.json({
-          message:
-            "Đã cập nhật dữ liệu từ Temporary_WareHouse vào WareHouse thành công",
-        });
-      },
-    );
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+        },
+      );
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+);
 
 // Router delete item in Temporary WareHouse table
-app.delete("/api/Temporary-WareHouse_2/delete-item/:id", requireAuthStrict, async (req, res) => {
-  const { id } = req.params;
-  // Delete data into SQLite database
-  const query = `DELETE FROM Temporary_WareHouse_2 WHERE id = ?`;
-  db.run(query, [id], function (err) {
-    if (err) {
-      console.error(err.message);
-      if (!res.headersSent) {
-        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
-      }
-      return;
-    }
-    io.emit("TemporaryWareHouse2Update");
-    // Broadcast the new message to all clients
-    res.json({ message: "Item inserted successfully" });
-  });
-});
-
-// Router delete all in Temporary WareHouse table when already update WareHouse table
-app.delete("/api/Temporary-WareHouse_2/delete-all", requireAuthStrict, async (req, res) => {
-  const { id } = req.params;
-  // Delete data into SQLite database
-  const query = `DELETE FROM Temporary_WareHouse_2`;
-  db.run(query, [], function (err) {
-    if (err) {
-      console.error(err.message);
-      if (!res.headersSent) {
-        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
-      }
-      return;
-    }
-    io.emit("TemporaryWareHouseUpdate2");
-    // Broadcast the new message to all clients
-    res.json({ message: "Item inserted successfully" });
-  });
-});
-
-// Route to post item into warehouse log
-app.post("/api/WareHouse/Log/add-new-item", requireAuthStrict, async (req, res) => {
-  const {
-    ActionType,
-    PartNumber,
-    Quantity,
-    Updated_by,
-    Created_at,
-    Customer,
-    Location,
-  } = req.body;
-  // Insert data into SQLite database
-  const query =
-    "INSERT INTO WareHouseLog (ActionType, PartNumber, Quantity, Updated_by, Created_at, Customer, Location) VALUES (?, ?, ?, ?, ?, ?, ?)";
-  db.run(
-    query,
-    [
-      ActionType,
-      PartNumber,
-      Quantity,
-      Updated_by,
-      Created_at,
-      Customer,
-      Location,
-    ],
-    function (err) {
+app.delete(
+  "/api/Temporary-WareHouse_2/delete-item/:id",
+  requireAuthStrict,
+  async (req, res) => {
+    const { id } = req.params;
+    // Delete data into SQLite database
+    const query = `DELETE FROM Temporary_WareHouse_2 WHERE id = ?`;
+    db.run(query, [id], function (err) {
       if (err) {
         console.error(err.message);
         if (!res.headersSent) {
@@ -1727,12 +1776,79 @@ app.post("/api/WareHouse/Log/add-new-item", requireAuthStrict, async (req, res) 
         }
         return;
       }
-      io.emit("WareHouseLogUpdate");
+      io.emit("TemporaryWareHouse2Update");
       // Broadcast the new message to all clients
       res.json({ message: "Item inserted successfully" });
-    },
-  );
-});
+    });
+  },
+);
+
+// Router delete all in Temporary WareHouse table when already update WareHouse table
+app.delete(
+  "/api/Temporary-WareHouse_2/delete-all",
+  requireAuthStrict,
+  async (req, res) => {
+    const { id } = req.params;
+    // Delete data into SQLite database
+    const query = `DELETE FROM Temporary_WareHouse_2`;
+    db.run(query, [], function (err) {
+      if (err) {
+        console.error(err.message);
+        if (!res.headersSent) {
+          return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+        }
+        return;
+      }
+      io.emit("TemporaryWareHouseUpdate2");
+      // Broadcast the new message to all clients
+      res.json({ message: "Item inserted successfully" });
+    });
+  },
+);
+
+// Route to post item into warehouse log
+app.post(
+  "/api/WareHouse/Log/add-new-item",
+  requireAuthStrict,
+  async (req, res) => {
+    const {
+      ActionType,
+      PartNumber,
+      Quantity,
+      Updated_by,
+      Created_at,
+      Customer,
+      Location,
+    } = req.body;
+    // Insert data into SQLite database
+    const query =
+      "INSERT INTO WareHouseLog (ActionType, PartNumber, Quantity, Updated_by, Created_at, Customer, Location) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    db.run(
+      query,
+      [
+        ActionType,
+        PartNumber,
+        Quantity,
+        Updated_by,
+        Created_at,
+        Customer,
+        Location,
+      ],
+      function (err) {
+        if (err) {
+          console.error(err.message);
+          if (!res.headersSent) {
+            return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+          }
+          return;
+        }
+        io.emit("WareHouseLogUpdate");
+        // Broadcast the new message to all clients
+        res.json({ message: "Item inserted successfully" });
+      },
+    );
+  },
+);
 
 //Router to post all item into WareHouseLog table
 app.post(
@@ -1864,22 +1980,11 @@ app.post("/api/insert-log/:po", requireAuthStrict, async (req, res) => {
 });
 
 // Route to post item into warehouse2 log
-app.post("/api/WareHouse2/Log/add-new-item", requireAuthStrict, async (req, res) => {
-  const {
-    ActionType,
-    PartNumber,
-    Quantity,
-    Updated_by,
-    Created_at,
-    Customer,
-    Location,
-  } = req.body;
-  // Insert data into SQLite database
-  const query =
-    "INSERT INTO WareHouse2Log (ActionType, PartNumber, Quantity, Updated_by, Created_at, Customer, Location) VALUES (?, ?, ?, ?, ?, ?, ?)";
-  db.run(
-    query,
-    [
+app.post(
+  "/api/WareHouse2/Log/add-new-item",
+  requireAuthStrict,
+  async (req, res) => {
+    const {
       ActionType,
       PartNumber,
       Quantity,
@@ -1887,8 +1992,46 @@ app.post("/api/WareHouse2/Log/add-new-item", requireAuthStrict, async (req, res)
       Created_at,
       Customer,
       Location,
-    ],
-    function (err) {
+    } = req.body;
+    // Insert data into SQLite database
+    const query =
+      "INSERT INTO WareHouse2Log (ActionType, PartNumber, Quantity, Updated_by, Created_at, Customer, Location) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    db.run(
+      query,
+      [
+        ActionType,
+        PartNumber,
+        Quantity,
+        Updated_by,
+        Created_at,
+        Customer,
+        Location,
+      ],
+      function (err) {
+        if (err) {
+          console.error(err.message);
+          if (!res.headersSent) {
+            return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+          }
+          return;
+        }
+        io.emit("WareHouseLogUpdate");
+        // Broadcast the new message to all clients
+        res.json({ message: "Item inserted successfully" });
+      },
+    );
+  },
+);
+
+// Router delete item in Orders
+app.delete(
+  "/api/Orders/delete-item/:id",
+  requireAuthStrict,
+  async (req, res) => {
+    const { id } = req.params;
+    // Delete data into SQLite database
+    const query = `DELETE FROM Orders WHERE id = ?`;
+    db.run(query, [id], function (err) {
       if (err) {
         console.error(err.message);
         if (!res.headersSent) {
@@ -1896,50 +2039,35 @@ app.post("/api/WareHouse2/Log/add-new-item", requireAuthStrict, async (req, res)
         }
         return;
       }
-      io.emit("WareHouseLogUpdate");
+      io.emit("updateOrders");
       // Broadcast the new message to all clients
       res.json({ message: "Item inserted successfully" });
-    },
-  );
-});
-
-// Router delete item in Orders
-app.delete("/api/Orders/delete-item/:id", requireAuthStrict, async (req, res) => {
-  const { id } = req.params;
-  // Delete data into SQLite database
-  const query = `DELETE FROM Orders WHERE id = ?`;
-  db.run(query, [id], function (err) {
-    if (err) {
-      console.error(err.message);
-      if (!res.headersSent) {
-        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
-      }
-      return;
-    }
-    io.emit("updateOrders");
-    // Broadcast the new message to all clients
-    res.json({ message: "Item inserted successfully" });
-  });
-});
+    });
+  },
+);
 
 // Router delete item in CheckBom table
-app.delete("/api/CheckBom/Delete-Item/:id", requireAuthStrict, async (req, res) => {
-  const { id } = req.params;
-  // Delete data into SQLite database
-  const query = `DELETE FROM CheckBOM WHERE Bom = ?`;
-  db.run(query, [id], function (err) {
-    if (err) {
-      console.error(err.message);
-      if (!res.headersSent) {
-        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+app.delete(
+  "/api/CheckBom/Delete-Item/:id",
+  requireAuthStrict,
+  async (req, res) => {
+    const { id } = req.params;
+    // Delete data into SQLite database
+    const query = `DELETE FROM CheckBOM WHERE Bom = ?`;
+    db.run(query, [id], function (err) {
+      if (err) {
+        console.error(err.message);
+        if (!res.headersSent) {
+          return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+        }
+        return;
       }
-      return;
-    }
-    io.emit("updateDetailBom");
-    // Broadcast the new message to all clients
-    res.json({ message: "Item inserted successfully" });
-  });
-});
+      io.emit("updateDetailBom");
+      // Broadcast the new message to all clients
+      res.json({ message: "Item inserted successfully" });
+    });
+  },
+);
 
 // Route to post item into list PO
 app.post("/api/ListPO/upload-new-PO", requireAuthStrict, async (req, res) => {
@@ -2029,24 +2157,28 @@ app.put("/api/CheckBom/Edit-Item/:id", requireAuthStrict, async (req, res) => {
 });
 
 // Router update WareHouse accept
-app.put("/api/Orders/WareHouse-Accept/:id", requireAuthStrict, async (req, res) => {
-  const { id } = req.params;
-  // Insert data into SQLite database
-  const query = `UPDATE Orders SET Status = 1 WHERE Name_PO = ?`;
+app.put(
+  "/api/Orders/WareHouse-Accept/:id",
+  requireAuthStrict,
+  async (req, res) => {
+    const { id } = req.params;
+    // Insert data into SQLite database
+    const query = `UPDATE Orders SET Status = 1 WHERE Name_PO = ?`;
 
-  db.run(query, [id], function (err) {
-    if (err) {
-      console.error(err.message);
-      if (!res.headersSent) {
-        return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+    db.run(query, [id], function (err) {
+      if (err) {
+        console.error(err.message);
+        if (!res.headersSent) {
+          return res.status(500).json({ error: "Lỗi cơ sở dữ liệu" });
+        }
+        return;
       }
-      return;
-    }
-    io.emit("updateOrders");
-    // Broadcast the new message to all clients
-    res.json({ message: "Item inserted successfully" });
-  });
-});
+      io.emit("updateOrders");
+      // Broadcast the new message to all clients
+      res.json({ message: "Item inserted successfully" });
+    });
+  },
+);
 
 // Detect layer by file extension
 function detectLayer(filename) {
@@ -2449,58 +2581,66 @@ app.post(
 );
 
 // Post item in Component overrides
-app.post("/api/Component-overrides/Add-item", requireAuthStrict, async (req, res) => {
-  const { mpn, package, length, width } = req.body;
-  db.run(
-    `INSERT INTO Component_overrides (
+app.post(
+  "/api/Component-overrides/Add-item",
+  requireAuthStrict,
+  async (req, res) => {
+    const { mpn, package, length, width } = req.body;
+    db.run(
+      `INSERT INTO Component_overrides (
         mpn, 
         package, 
         length, 
         width
         )
      VALUES (?, ?, ?, ?)`,
-    [mpn, package, length, width],
-    (err) => {
-      if (err) {
-        console.error("Database error:", err);
-        return res
-          .status(500)
-          .json({ error: "Database error", details: err.message });
-      }
-      io.emit("UpdateFilterBom");
-      io.emit("CombineBomUpdate");
-      io.emit("PnPFileUpdate");
-      res.json({ message: "Filter Bom received" });
-    },
-  );
-});
+      [mpn, package, length, width],
+      (err) => {
+        if (err) {
+          console.error("Database error:", err);
+          return res
+            .status(500)
+            .json({ error: "Database error", details: err.message });
+        }
+        io.emit("UpdateFilterBom");
+        io.emit("CombineBomUpdate");
+        io.emit("PnPFileUpdate");
+        res.json({ message: "Filter Bom received" });
+      },
+    );
+  },
+);
 
 // Put item in Component overrides
-app.put("/api/Component-overrides/Edit-item/:id", requireAuthStrict, async (req, res) => {
-  const { id } = req.params;
-  const { package, length, width } = req.body;
-  db.run(
-    `UPDATE Component_overrides
+app.put(
+  "/api/Component-overrides/Edit-item/:id",
+  requireAuthStrict,
+  async (req, res) => {
+    const { id } = req.params;
+    const { package, length, width } = req.body;
+    db.run(
+      `UPDATE Component_overrides
      SET
         package = ?, 
         length = ?, 
         width = ?
      WHERE id = ?`,
-    [package, length, width, id],
-    (err) => {
-      if (err) {
-        console.error("Database error:", err);
-        return res
-          .status(500)
-          .json({ error: "Database error", details: err.message });
-      }
-      io.emit("UpdateFilterBom");
-      io.emit("CombineBomUpdate");
-      io.emit("PnPFileUpdate");
-      res.json({ message: "Filter Bom received" });
-    },
-  );
-});
+      [package, length, width, id],
+      (err) => {
+        if (err) {
+          console.error("Database error:", err);
+          return res
+            .status(500)
+            .json({ error: "Database error", details: err.message });
+        }
+        io.emit("UpdateFilterBom");
+        io.emit("CombineBomUpdate");
+        io.emit("PnPFileUpdate");
+        res.json({ message: "Filter Bom received" });
+      },
+    );
+  },
+);
 
 // Put item in Component overrides
 app.put("/api/Component/Edit-item/:id", requireAuthStrict, async (req, res) => {
@@ -2630,19 +2770,23 @@ app.put("/api/To-Do/Update-status/:id", requireAuthStrict, async (req, res) => {
   );
 });
 
-app.delete("/api/To-Do/Delete-item/:id", requireAuthStrict, async (req, res) => {
-  const { id } = req.params;
-  db.run(`DELETE FROM ToDos WHERE id = ?`, [id], (err) => {
-    if (err) {
-      console.error("Database error:", err);
-      return res
-        .status(500)
-        .json({ error: "Database error", details: err.message });
-    }
-    io.emit("updateToDo");
-    res.json({ message: "To Do received" });
-  });
-});
+app.delete(
+  "/api/To-Do/Delete-item/:id",
+  requireAuthStrict,
+  async (req, res) => {
+    const { id } = req.params;
+    db.run(`DELETE FROM ToDos WHERE id = ?`, [id], (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database error", details: err.message });
+      }
+      io.emit("updateToDo");
+      res.json({ message: "To Do received" });
+    });
+  },
+);
 
 app.use("/api/ai-project", deliveryChatRouter(db));
 
