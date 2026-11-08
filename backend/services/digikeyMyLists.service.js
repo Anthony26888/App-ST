@@ -92,6 +92,7 @@ async function createList(username, listName, tags = []) {
       AutoCorrectQuantities: true,
       AttritionEnabled: false,
       AutoPopulateCref: true,
+      ColumnPreferences: [],
     },
   };
 
