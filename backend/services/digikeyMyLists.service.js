@@ -42,21 +42,33 @@ function headers(token, includeAccount = sendAccountId()) {
 
 async function request(username, method, path, options = {}) {
   const run = async (token) => {
-    const response = await quota.requestWithRetry(
-      "mylists",
-      () =>
-        axios.request({
-          method,
-          baseURL: MYLISTS_BASE,
-          url: path,
-          params: options.params,
-          data: options.data,
-          headers: headers(token, options.includeAccount),
-          timeout: Number(process.env.DIGIKEY_HTTP_TIMEOUT_MS || 45000),
-        }),
-      { maxRetries: Number(process.env.DIGIKEY_MAX_RETRIES || 3) },
-    );
-    return response;
+    try {
+      const response = await quota.requestWithRetry(
+        "mylists",
+        () =>
+          axios.request({
+            method,
+            baseURL: MYLISTS_BASE,
+            url: path,
+            params: options.params,
+            data: options.data,
+            headers: headers(token, options.includeAccount),
+            timeout: Number(process.env.DIGIKEY_HTTP_TIMEOUT_MS || 45000),
+          }),
+        { maxRetries: Number(process.env.DIGIKEY_MAX_RETRIES || 3) },
+      );
+      return response;
+    } catch (error) {
+      console.error("[MyLists] API ERROR:", {
+        method,
+        path,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        headers: error.response?.headers,
+      });
+      throw error;
+    }
   };
 
   let tokenData = await oauth.getValidAccessToken(username);
@@ -82,13 +94,26 @@ async function createList(username, listName, tags = []) {
       AutoPopulateCref: true,
     },
   };
+
+  console.log("[MyLists] CreateList REQUEST:", JSON.stringify(body, null, 2));
+
   const response = await request(username, "post", "/lists", { data: body });
+
+  console.log("[MyLists] CreateList RESPONSE:", JSON.stringify(response.data, null, 2));
+
   const listId = String(response.data || "").trim();
   if (!listId) throw new Error("DigiKey không trả List ID khi tạo MyList.");
   return listId;
 }
 
 async function addParts(username, listId, parts, startIndex = 0) {
+  console.log("[MyLists] AddParts REQUEST:", {
+    listId,
+    startIndex,
+    partsCount: parts.length,
+    firstPart: parts[0],
+  });
+
   const response = await request(
     username,
     "post",
@@ -98,6 +123,9 @@ async function addParts(username, listId, parts, startIndex = 0) {
       data: parts,
     },
   );
+
+  console.log("[MyLists] AddParts RESPONSE:", JSON.stringify(response.data, null, 2));
+
   return Array.isArray(response.data) ? response.data : [];
 }
 
