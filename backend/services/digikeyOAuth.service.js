@@ -112,7 +112,6 @@ function buildAuthorizeUrl(username) {
     { expiresIn: "10m" },
   );
   cleanupStates();
-  usedStates.set(jti, Date.now() + 10 * 60 * 1000);
 
   const params = new URLSearchParams();
   params.set("response_type", "code");
