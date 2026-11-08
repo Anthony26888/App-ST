@@ -8,6 +8,20 @@ const Url = import.meta.env.VITE_API_URL;
 // ===== Danh mục menu desktop (nhóm theo section) =====
 export const NAV_MENU_ITEMS = [
   {
+    group: "Kinh doanh",
+    icon: "mdi-file-document-edit-outline",
+    title: "Báo giá",
+    value: "Quotation",
+    to: "/Bao-gia",
+  },
+  {
+    group: "Kinh doanh",
+    icon: "mdi-tag-multiple-outline",
+    title: "Bảng giá mẫu",
+    value: "PriceBook",
+    to: "/Bao-gia/Bang-gia",
+  },
+  {
     group: "Kiểm tra dữ liệu",
     icon: "mdi-chart-box-outline",
     title: "Dữ liệu mua hàng",
@@ -105,17 +119,19 @@ export const NAV_MENU_ITEMS = [
 // Giữ nguyên mapping cũ của Navigation.vue
 const NAV_SECTIONS_BY_LEVEL = {
   "Quản lý kho": [2, 3],
-  "Quản lý tổng": [1, 2, 3, 4, 5],
-  "Quản lý kinh doanh": [2, 3],
+  "Quản lý tổng": [1, 2, 3, 4, 5, 7],
+  "Kinh doanh": [3, 7],
+  "Quản lý kinh doanh": [2, 3, 7],
   "Quản lý kĩ thuật": [1, 3, 4, 5],
   "Quản lý sản xuất": [2, 3],
-  Admin: [1, 2, 3, 4, 5, 6],
+  Admin: [1, 2, 3, 4, 5, 6, 7],
   "Nhân viên": [3],
   "Quản lý QC": [1],
   __default: [1, 2, 3, 4, 6],
 };
 
 export const NAV_SECTION_ORDER = [
+  "Kinh doanh",
   "Kiểm tra dữ liệu",
   "Kho",
   "Sản xuất",
@@ -133,6 +149,7 @@ export function getNavVisibleSections(levelUser) {
     4: "Bảo trì",
     5: "Công việc",
     6: "Hệ thống",
+    7: "Kinh doanh",
   };
   return new Set(nums.map((n) => map[n]));
 }
@@ -146,7 +163,10 @@ export function canAccess(levelUser, section) {
 
 // Trang mặc định khi bị chặn (trang đầu tiên của section đầu tiên được phép)
 export function defaultPathFor(levelUser) {
-  const order = ["Sản xuất", "Kho", "Kiểm tra dữ liệu", "Bảo trì", "Công việc", "Hệ thống"];
+  const order =
+    levelUser === "Quản lý kinh doanh" || levelUser === "Kinh doanh"
+      ? ["Kinh doanh", "Sản xuất", "Kho", "Kiểm tra dữ liệu", "Bảo trì", "Công việc", "Hệ thống"]
+      : ["Sản xuất", "Kho", "Kiểm tra dữ liệu", "Bảo trì", "Công việc", "Hệ thống", "Kinh doanh"];
   const visible = getNavVisibleSections(levelUser);
   for (const section of order) {
     if (!visible.has(section)) continue;

@@ -10,9 +10,9 @@ module.exports = (socket) => {
                   c.id as CustomerID,
                   COUNT(DISTINCT pd.id) as Quantity_Orders,
                   COUNT(DISTINCT pd.POID) as Quantity_PO,
-                  SUM(CASE WHEN pd.QuantityAmount = 0 THEN 1 ELSE 0 END) as Quantity_Completed,
+                   SUM(CASE WHEN pd.QuantityProduct = pd.QuantityDelivered THEN 1 ELSE 0 END) as Quantity_Completed,
                   ROUND(
-                      SUM(CASE WHEN pd.QuantityAmount = 0 THEN 1 ELSE 0 END) * 100.0 / 
+                      SUM(CASE WHEN pd.QuantityProduct = pd.QuantityDelivered THEN 1 ELSE 0 END) * 100.0 / 
                       NULLIF(COUNT(DISTINCT pd.id), 0), 
                       2
                   ) as Percent_Completed,

@@ -799,7 +799,6 @@ const summaryDetailByType = computed(() => {
 
 // ========Data SelectedType========
 const selectedCategory = ref("");
-const selectedCategoryData = ref([]);
 const selectedPlanID = ref("");
 const categoryDataChart = ref([]);
 
@@ -1271,15 +1270,12 @@ const totalCategoryInProgressToday = computed(() => {
 });
 
 const selectedCategoryRate = computed(() => {
-  if (!selectedCategory.value || !selectedCategoryData.value) return 0;
-  const data = selectedCategoryData.value.find(
-    (item) => item.Category === selectedCategory.value,
-  );
-  if (!data) return 0;
-  const plan = Number(data.Quantity_Plan || 0);
-  const counting = Number(data.Quantity_Counting || 0);
-  if (plan === 0) return 0;
-  return parseFloat(((counting / plan) * 100).toFixed(1));
+  // Tỉ lệ = đúng 2 số đang hiện trên thẻ Kế hoạch / Hoàn thành
+  // (Σ planList / Σ passList — cùng nguồn lịch sử, cộng mọi dòng hạng mục)
+  const plan = planList.value.reduce((a, b) => a + (Number(b) || 0), 0);
+  const done = passList.value.reduce((a, b) => a + (Number(b) || 0), 0);
+  if (plan <= 0) return 0;
+  return parseFloat(Math.min(100, Math.max(0, (done * 100) / plan)).toFixed(1));
 });
 
 // ===== CHART CONFIGURATION =====s
@@ -1342,10 +1338,6 @@ const pieItems = computed(() => {
 const handleCategoryClick = (category, item) => {
   selectedCategory.value = category;
 
-  selectedCategoryData.value = summary.value.filter(
-    (row) => row.Category === category,
-  );
-
   selectedPlanID.value = item.PlanID;
   categoryDataChart.value = historyPart.value.filter(
     (item) => item.PartNumber === selectedCategory.value,
@@ -1354,7 +1346,6 @@ const handleCategoryClick = (category, item) => {
 
 const handleClose = () => {
   selectedCategory.value = "";
-  selectedCategoryData.value = [];
   selectedPlanID.value = "";
   categoryDataChart.value = [];
 };

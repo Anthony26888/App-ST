@@ -37,6 +37,10 @@ import PageToDo from "@/pages/Page-To-Do/Page-To-Do.vue";
 import PageListProjectQC from "@/pages/Page-Check-QC/Page-List-Project-QC.vue";
 import PageCheckQC from "@/pages/Page-Check-QC/Page-Check-QC.vue";
 import PageCheckImageQC from "@/pages/Page-Check-QC/Page-CheckImage-QC.vue";
+import PageQuotation from "@/pages/Page-Quotation/Page-Quotation.vue";
+import PageCreateQuotation from "@/pages/Page-Quotation/Page-CreateQuotation.vue";
+import PageDetailQuotation from "@/pages/Page-Quotation/Page-DetailQuotation.vue";
+import PagePriceBook from "@/pages/Page-Quotation/Page-PriceBook.vue";
 
 const routes = [
   {
@@ -102,6 +106,30 @@ const routes = [
         name: "CheckImageQC",
         meta: { requiresAuth: true, section: 'Kiểm tra dữ liệu' },
         component: PageCheckImageQC,
+      },
+      {
+        path: "/Bao-gia",
+        name: "Quotation",
+        meta: { requiresAuth: true, section: "Kinh doanh" },
+        component: PageQuotation,
+      },
+      {
+        path: "/Bao-gia/Tao-moi",
+        name: "CreateQuotation",
+        meta: { requiresAuth: true, section: "Kinh doanh" },
+        component: PageCreateQuotation,
+      },
+      {
+        path: "/Bao-gia/Bang-gia",
+        name: "PriceBook",
+        meta: { requiresAuth: true, section: "Kinh doanh" },
+        component: PagePriceBook,
+      },
+      {
+        path: "/Bao-gia/:id",
+        name: "DetailQuotation",
+        meta: { requiresAuth: true, section: "Kinh doanh" },
+        component: PageDetailQuotation,
       },
       {
         path: "/Ton-kho",
@@ -240,7 +268,7 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
-  scrollBehavior(to, from, savedPosition) {
+  scrollBehavior() {
     // always scroll to top
     return { top: 0 };
   },

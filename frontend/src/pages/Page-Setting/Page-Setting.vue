@@ -3,6 +3,116 @@
     <PageHeader :crumbs="[{ title: 'Hệ thống'}]" />
     <v-card-text>
       <v-container>
+        <v-card variant="outlined" class="rounded-xl mb-4">
+          <v-card-title class="d-flex align-center flex-wrap ga-2">
+            <v-icon color="primary">mdi-api</v-icon>
+            <span class="text-subtitle-1 font-weight-bold">Kết nối DigiKey</span>
+            <v-chip
+              size="small"
+              variant="tonal"
+              :color="
+                digikeyStatus?.connected
+                  ? 'success'
+                  : digikeyStatus?.needs_reconnect
+                    ? 'warning'
+                    : 'grey'
+              "
+            >
+              {{
+                digikeyStatus?.connected
+                  ? 'Đã kết nối'
+                  : digikeyStatus?.needs_reconnect
+                    ? 'Cần kết nối lại'
+                    : 'Chưa kết nối'
+              }}
+            </v-chip>
+            <v-spacer />
+            <v-btn
+              v-if="digikeyStatus?.connected"
+              variant="tonal"
+              color="error"
+              size="small"
+              prepend-icon="mdi-link-off"
+              :loading="digikeyLoading"
+              @click="disconnectDigikey"
+            >
+              Ngắt kết nối
+            </v-btn>
+            <v-btn
+              v-else
+              variant="tonal"
+              color="primary"
+              size="small"
+              prepend-icon="mdi-link"
+              :loading="digikeyLoading"
+              :disabled="digikeyStatus && !digikeyStatus.configured"
+              @click="connectDigikey"
+            >
+              Kết nối DigiKey
+            </v-btn>
+          </v-card-title>
+          <v-card-text class="pt-0 text-body-2">
+            <v-alert
+              v-if="digikeyMessage"
+              type="success"
+              variant="tonal"
+              density="compact"
+              class="mb-3"
+              closable
+              @click:close="digikeyMessage = ''"
+            >
+              {{ digikeyMessage }}
+            </v-alert>
+            <v-alert
+              v-if="digikeyError"
+              type="error"
+              variant="tonal"
+              density="compact"
+              class="mb-3"
+              closable
+              @click:close="digikeyError = ''"
+            >
+              {{ digikeyError }}
+            </v-alert>
+            <div class="d-flex flex-wrap ga-6">
+              <div>
+                <div class="text-caption text-medium-emphasis">Account ID</div>
+                <div class="font-weight-medium">
+                  {{ digikeyStatus?.account_id || '—' }}
+                </div>
+              </div>
+              <div>
+                <div class="text-caption text-medium-emphasis">Hạn token</div>
+                <div class="font-weight-medium">
+                  {{ formatTokenExpiry(digikeyStatus?.expires_at) }}
+                </div>
+              </div>
+              <div>
+                <div class="text-caption text-medium-emphasis">MyLists quota</div>
+                <div class="font-weight-medium">
+                  {{ formatQuota(digikeyStatus?.quota?.mylists) }}
+                </div>
+              </div>
+              <div>
+                <div class="text-caption text-medium-emphasis">ProductInfo quota</div>
+                <div class="font-weight-medium">
+                  {{ formatQuota(digikeyStatus?.quota?.productinfo) }}
+                </div>
+              </div>
+            </div>
+            <div
+              v-if="digikeyStatus && !digikeyStatus.configured"
+              class="text-caption text-error mt-2"
+            >
+              Backend chưa cấu hình đủ Client ID, Client Secret và Redirect URI.
+            </div>
+            <div class="text-caption text-medium-emphasis mt-2">
+              DigiKey dùng OAuth 3-legged. Token được lưu mã hoá ở backend,
+              không hiển thị ra trình duyệt.
+            </div>
+          </v-card-text>
+        </v-card>
+
         <v-list density="compact">
           <v-list-subheader>Thành viên sử dụng phần mềm</v-list-subheader>
 
@@ -266,7 +376,8 @@
 // ===== IMPORTS =====
 // Core dependencies
 import axios from "axios";
-import { ref, watch } from "vue";
+import { onMounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 // Components
 import ButtonDelete from "@/components/Button-Delete.vue";
@@ -285,6 +396,94 @@ const { lgAndUp } = useDisplay();
 // ===== STATE MANAGEMENT =====
 // API Configuration
 const Url = import.meta.env.VITE_API_URL;
+const route = useRoute();
+const router = useRouter();
+
+// ===== DIGIKEY =====
+const digikeyStatus = ref(null);
+const digikeyLoading = ref(false);
+const digikeyMessage = ref("");
+const digikeyError = ref("");
+
+function formatTokenExpiry(value) {
+  if (!value) return "—";
+  const date = new Date(Number(value));
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("vi-VN");
+}
+
+function formatQuota(state) {
+  if (!state) return "Chưa có dữ liệu";
+  if (state.dailyRemaining != null && state.dailyLimit != null) {
+    return `${state.dailyRemaining}/${state.dailyLimit}`;
+  }
+  return "Chưa có dữ liệu";
+}
+
+async function loadDigikeyStatus() {
+  try {
+    const { data } = await axios.get(`${Url}/DigiKey/OAuth/Status`);
+    digikeyStatus.value = data;
+  } catch (error) {
+    digikeyStatus.value = {
+      configured: false,
+      connected: false,
+      account_id: "",
+    };
+    digikeyError.value =
+      error.response?.data?.error || "Không tải được trạng thái DigiKey";
+  }
+}
+
+async function connectDigikey() {
+  digikeyLoading.value = true;
+  digikeyError.value = "";
+  try {
+    const { data } = await axios.get(`${Url}/DigiKey/OAuth/Start`);
+    if (!data?.url) throw new Error("DigiKey không trả URL kết nối.");
+    window.location.href = data.url;
+  } catch (error) {
+    digikeyError.value =
+      error.response?.data?.error || error.message || "Kết nối thất bại";
+    digikeyLoading.value = false;
+  }
+}
+
+async function disconnectDigikey() {
+  digikeyLoading.value = true;
+  digikeyError.value = "";
+  try {
+    await axios.post(`${Url}/DigiKey/OAuth/Disconnect`);
+    digikeyMessage.value = "Đã ngắt kết nối DigiKey.";
+    await loadDigikeyStatus();
+  } catch (error) {
+    digikeyError.value =
+      error.response?.data?.error || "Ngắt kết nối thất bại";
+  } finally {
+    digikeyLoading.value = false;
+  }
+}
+
+function handleDigikeyQuery() {
+  const result = String(route.query.digikey || "");
+  if (!result) return;
+  if (result === "connected") {
+    digikeyMessage.value = "Kết nối DigiKey thành công.";
+  } else if (result === "error") {
+    digikeyError.value = String(
+      route.query.message || "Kết nối DigiKey thất bại.",
+    );
+  }
+  const query = { ...route.query };
+  delete query.digikey;
+  delete query.message;
+  router.replace({ path: route.path, query });
+}
+
+onMounted(async () => {
+  handleDigikeyQuery();
+  await loadDigikeyStatus();
+});
 
 // ===== DIALOG STATES =====
 // Control visibility of various dialogs

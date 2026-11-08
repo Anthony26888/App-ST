@@ -79,10 +79,15 @@ module.exports = () => ({
       }
       const { clientId } = getCredentials();
       const { token, tokenType } = await getDigikeyToken();
+      const accountId = String(process.env.DIGIKEY_ACCOUNT_ID || "").trim();
       const response = await axios.get(SEARCH_URL(mpn), {
         headers: {
           Authorization: `${tokenType} ${token}`,
           "X-DIGIKEY-Client-Id": clientId,
+          ...(accountId ? { "X-DIGIKEY-Account-Id": accountId } : {}),
+          "X-DIGIKEY-Locale-Site": "US",
+          "X-DIGIKEY-Locale-Language": "en",
+          "X-DIGIKEY-Locale-Currency": "USD",
           "Content-Type": "application/json",
         },
       });

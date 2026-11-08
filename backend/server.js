@@ -459,6 +459,11 @@ const LcscRoutes = require("./routes/LCSC/LCSC.routes.js");
 
 app.use("/api/LCSC", LcscRoutes(io));
 
+//=========== Quotation =================
+const QuotationRoutes = require("./routes/Quotation/Quotation.routes.js");
+
+app.use("/api/Quotation", QuotationRoutes(io));
+
 // Khi client kết nối
 io.on("connection", (socket) => {
   if (!sessions[socket.id]) sessions[socket.id] = [];
@@ -2792,13 +2797,15 @@ app.use("/api/ai-project", deliveryChatRouter(db));
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Serve static files from frontend/dist
-app.use(express.static(path.join(__dirname, "../frontend/dist")));
+// Serve static files from frontend/dist (chỉ trong production)
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
-// Catch-all route cho frontend
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
-});
+  // Catch-all route cho frontend
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
+  });
+}
 
 // Khởi động servers
 server.listen(PORT, "0.0.0.0", () => {
