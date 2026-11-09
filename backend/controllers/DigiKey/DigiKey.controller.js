@@ -105,9 +105,10 @@ module.exports = () => ({
   // Proxy ảnh (DigiKey/LCSC) → tránh lỗi CORS khi tải về từ trình duyệt
   async image(req, res) {
     try {
-      const { url, filename } = req.query;
+      const { url, filename, inline } = req.query;
       const allowedPrefixes = [
         "https://mm.digikey.com/",
+        "https://media.digikey.com/",
         "https://assets.lcsc.com/",
       ];
       if (
@@ -125,10 +126,12 @@ module.exports = () => ({
 
       res.set({
         "Content-Type": contentType,
-        "Content-Disposition": `attachment; filename="${safeName}"`,
         "Content-Length": Buffer.byteLength(response.data),
         "Cache-Control": "public, max-age=86400",
       });
+      if (String(inline || "") !== "1") {
+        res.set("Content-Disposition", `attachment; filename="${safeName}"`);
+      }
       res.send(Buffer.from(response.data));
     } catch (error) {
       if (error.response) {

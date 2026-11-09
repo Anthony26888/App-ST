@@ -239,7 +239,9 @@ async function cloneComponentPrices(oldQuotationId, newQuotationId) {
         stock_status, lead_time, lead_weeks, part_status, rohs_status,
         country_of_origin, us_tariff, unit_of_measure, customer_reference,
         reference_designator, product_notes, match_status, matched_line_nos,
-        warnings, imported_at)
+        warnings, price_source, image_url, thumbnail_url,
+        reference_unit_price_usd, reference_extended_price_usd, reference_moq,
+        imported_at)
        SELECT ?, line_no, source_index, mpn, requested_mpn, original_mpn,
         manufacturer, description, digikey_pn, digikey_unique_id,
         quantity_requested, quantity_purchased, moq, pack_type, selected_pack_type,
@@ -247,7 +249,8 @@ async function cloneComponentPrices(oldQuotationId, newQuotationId) {
         stock_status, lead_time, lead_weeks, part_status, rohs_status,
         country_of_origin, us_tariff, unit_of_measure, customer_reference,
         reference_designator, product_notes, match_status, matched_line_nos,
-        warnings, ?
+        warnings, price_source, image_url, thumbnail_url,
+        reference_unit_price_usd, reference_extended_price_usd, reference_moq, ?
        FROM QuotationComponentPrices WHERE quotation_id = ?`,
       [newQuotationId, timestamp, oldQuotationId],
     );

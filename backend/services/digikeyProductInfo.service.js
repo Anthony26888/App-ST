@@ -42,6 +42,14 @@ function text(value) {
   return String(value || "").trim();
 }
 
+function textPack(value) {
+  if (value == null) return "";
+  if (typeof value === "object") {
+    return text(value.Name ?? value.Description ?? value.Value ?? value.Id);
+  }
+  return text(value);
+}
+
 async function getToken() {
   const id = clientId();
   const secret = clientSecret();
@@ -123,7 +131,6 @@ function normalizeProduct(data, requestedMpn, quantityRequested) {
       product.UnitPrice ??
       variation.UnitPrice,
   );
-  if (!unitPrice) return null;
 
   const digikeyPn =
     text(variation.DigiKeyProductNumber) ||
@@ -138,6 +145,13 @@ function normalizeProduct(data, requestedMpn, quantityRequested) {
     text(product.Description?.ProductDescription) ||
     text(product.Description?.DetailedDescription) ||
     text(product.Description);
+  const imageUrl =
+    text(product.PhotoUrl) ||
+    text(product.PrimaryPhotoUrl) ||
+    text(product.ImageUrl) ||
+    text(data?.PhotoUrl) ||
+    text(variation.PhotoUrl) ||
+    text(variation.ImageUrl);
 
   return {
     mpn:
@@ -153,12 +167,14 @@ function normalizeProduct(data, requestedMpn, quantityRequested) {
     quantity_requested: quantity,
     quantity_purchased: quantityPurchased,
     moq,
-    pack_type: text(
+    pack_type: textPack(
       variation.PackageType ??
         variation.PackType ??
         product.StandardPackage,
     ),
-    selected_pack_type: text(variation.PackageType ?? variation.PackType),
+    selected_pack_type: textPack(variation.PackageType ?? variation.PackType),
+    image_url: imageUrl,
+    thumbnail_url: imageUrl,
     unit_price_usd: unitPrice,
     extended_price_usd: extendedPrice,
     availability: toNumber(

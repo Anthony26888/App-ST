@@ -983,6 +983,12 @@ db.serialize(() => {
       match_status TEXT,
       matched_line_nos TEXT,
       warnings TEXT,
+      price_source TEXT,
+      image_url TEXT,
+      thumbnail_url TEXT,
+      reference_unit_price_usd REAL DEFAULT 0,
+      reference_extended_price_usd REAL DEFAULT 0,
+      reference_moq REAL DEFAULT 0,
       imported_at TEXT,
       FOREIGN KEY (quotation_id) REFERENCES Quotations(id) ON DELETE CASCADE
     )
@@ -996,6 +1002,17 @@ db.serialize(() => {
     `CREATE INDEX IF NOT EXISTS idx_component_prices_quote_dkpn
        ON QuotationComponentPrices(quotation_id, digikey_pn)`,
   );
+
+  for (const sql of [
+    `ALTER TABLE QuotationComponentPrices ADD COLUMN price_source TEXT`,
+    `ALTER TABLE QuotationComponentPrices ADD COLUMN image_url TEXT`,
+    `ALTER TABLE QuotationComponentPrices ADD COLUMN thumbnail_url TEXT`,
+    `ALTER TABLE QuotationComponentPrices ADD COLUMN reference_unit_price_usd REAL DEFAULT 0`,
+    `ALTER TABLE QuotationComponentPrices ADD COLUMN reference_extended_price_usd REAL DEFAULT 0`,
+    `ALTER TABLE QuotationComponentPrices ADD COLUMN reference_moq REAL DEFAULT 0`,
+  ]) {
+    db.run(sql, () => {});
+  }
 
   // Patch: thêm cột License cho database cũ nếu chưa có
   db.run(`ALTER TABLE Users ADD COLUMN License TEXT DEFAULT 'Starter'`, (err) => {

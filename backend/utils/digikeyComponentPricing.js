@@ -63,6 +63,29 @@ function parseJson(value, fallback) {
   }
 }
 
+function warningList(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") {
+    const parsed = parseJson(value, null);
+    if (Array.isArray(parsed)) return parsed;
+  }
+  return [];
+}
+
+function hasProductInfoWarning(value) {
+  return warningList(value).some((warning) =>
+    /ProductInformation/i.test(String(warning || "")),
+  );
+}
+
+function isMyListsPriceRow(row) {
+  const source = String(row?.price_source || "").trim();
+  if (source && source !== "mylists") return false;
+  if (/non[- ]?stock/i.test(String(row?.stock_status || ""))) return false;
+  if (hasProductInfoWarning(row?.warnings)) return false;
+  return toNumber(row?.extended_price_usd) > 0;
+}
+
 function buildBomLines(items, boardQty) {
   const board = Math.max(1, Math.round(toNumber(boardQty, 1)));
   const grouped = new Map();
@@ -143,8 +166,12 @@ function extractPriceFromListPart(part) {
   }
   const option = options[optionIndex] || options[0] || {};
 
+  const fallbackQuantity = toNumber(
+    quantity.CalculatedQuantity ?? option.Quantity,
+  );
   const quantityRequested = toNumber(
-    quantity.QuantityRequested ?? part?.MinOrderQty,
+    quantity.QuantityRequested,
+    fallbackQuantity,
   );
   const quantityPurchased = toNumber(
     quantity.CalculatedQuantity ?? option.Quantity,
@@ -153,10 +180,17 @@ function extractPriceFromListPart(part) {
   const unitPrice = toNumber(
     option.CalculatedUnitPrice ?? option.BreakPrice ?? option.UnitPrice,
   );
-  const extendedPrice = toNumber(
-    option.ExtendedPrice,
-    unitPrice * (quantityPurchased || quantityRequested),
-  );
+  const hasExtendedPrice =
+    option.ExtendedPrice != null && option.ExtendedPrice !== "";
+  let extendedPrice = hasExtendedPrice
+    ? parseMoney(option.ExtendedPrice)
+    : 0;
+  if (!hasExtendedPrice && option.FormattedExtendedPrice) {
+    extendedPrice = parseMoney(option.FormattedExtendedPrice);
+  }
+  if (!hasExtendedPrice && !extendedPrice) {
+    extendedPrice = unitPrice * (quantityPurchased || quantityRequested);
+  }
   const moq = toNumber(
     option.MinimumOrderQuantity ?? part?.MinOrderQty,
   );
@@ -202,6 +236,7 @@ function extractPriceFromListPart(part) {
         ? String(part.TariffCode)
         : String(part?.Htsus || "").trim(),
     selected_pack_option_index: optionIndex,
+    price_source: extendedPrice > 0 ? "mylists" : "none",
     match_status: matchStatus,
     warnings,
   };
@@ -257,6 +292,12 @@ function baseRowFromBomLine(line) {
     customer_reference: "",
     reference_designator: line.reference_designator,
     product_notes: "",
+    image_url: "",
+    thumbnail_url: "",
+    price_source: "none",
+    reference_unit_price_usd: 0,
+    reference_extended_price_usd: 0,
+    reference_moq: 0,
     match_status: "NO_MATCH",
     matched_line_nos: line.matched_line_nos || [],
     warnings: [],
@@ -295,6 +336,11 @@ function buildAutoRows(apiParts, bom, existingMappings = new Map()) {
       digikey_pn: digikeyPn,
       digikey_unique_id: String(part?.UniqueId || "").trim(),
       ...price,
+      image_url: String(part?.ImageUrl || part?.ThumbnailUrl || "").trim(),
+      thumbnail_url: String(part?.ThumbnailUrl || part?.ImageUrl || "").trim(),
+      reference_unit_price_usd: 0,
+      reference_extended_price_usd: 0,
+      reference_moq: 0,
       unit_of_measure: "",
       customer_reference: String(part?.CustomerReference || "").trim(),
       reference_designator:
@@ -391,6 +437,10 @@ const HEADER_ALIASES = [
   ["TARIFF", "us_tariff"],
   ["UNITOFMEASURE", "unit_of_measure"],
   ["REFERENCEDESIGNATOR", "reference_designator"],
+  ["IMAGEURL", "image_url"],
+  ["THUMBNAILURL", "thumbnail_url"],
+  ["THUMBNAIL", "thumbnail_url"],
+  ["IMAGE", "image_url"],
   ["DESCRIPTION", "description"],
   ["PRODUCTNOTES", "product_notes"],
   ["NOTES", "product_notes"],
@@ -486,10 +536,9 @@ function buildManualRows(buffer, quoteItems, boardQty) {
       valueAt(row, "quantity_purchased"),
       qtyRequested,
     );
-    let extendedPrice = parseMoney(valueAt(row, "extended_price_usd"));
-    if (!extendedPrice && unitPrice) {
-      extendedPrice = unitPrice * (qtyPurchased || qtyRequested);
-    }
+    const extendedPrice = parseMoney(valueAt(row, "extended_price_usd"));
+    const imageUrl = String(valueAt(row, "image_url") || "").trim();
+    const thumbnailUrl = String(valueAt(row, "thumbnail_url") || "").trim();
 
     const warnings = [];
     let matchStatus = "MATCHED";
@@ -535,6 +584,12 @@ function buildManualRows(buffer, quoteItems, boardQty) {
         valueAt(row, "reference_designator") || "",
       ).trim(),
       product_notes: String(valueAt(row, "product_notes") || "").trim(),
+      image_url: imageUrl || thumbnailUrl,
+      thumbnail_url: thumbnailUrl || imageUrl,
+      price_source: extendedPrice > 0 ? "mylists" : "none",
+      reference_unit_price_usd: 0,
+      reference_extended_price_usd: 0,
+      reference_moq: 0,
       match_status: matchStatus,
       matched_line_nos: [],
       warnings,
@@ -607,14 +662,19 @@ function buildManualRows(buffer, quoteItems, boardQty) {
 
 function summarizeRows(rows) {
   const list = Array.isArray(rows) ? rows : [];
-  const totalUsd = list.reduce(
+  const myListsRows = list.filter((row) => isMyListsPriceRow(row));
+  const totalUsd = myListsRows.reduce(
     (sum, row) => sum + (toNumber(row.extended_price_usd) || 0),
     0,
   );
-  const pricedCount = list.filter(
+  const referenceTotalUsd = list.reduce(
+    (sum, row) => sum + (toNumber(row.reference_extended_price_usd) || 0),
+    0,
+  );
+  const pricedCount = myListsRows.filter(
     (row) => toNumber(row.extended_price_usd) > 0,
   ).length;
-  const matchedCount = list.filter(
+  const matchedCount = myListsRows.filter(
     (row) =>
       Array.isArray(row.matched_line_nos) &&
       row.matched_line_nos.length > 0 &&
@@ -625,12 +685,17 @@ function summarizeRows(rows) {
       String(row.match_status || ""),
     ),
   ).length;
+  const noPriceCount = list.filter(
+    (row) => !(toNumber(row.extended_price_usd) > 0),
+  ).length;
   return {
     total_usd: Math.round(totalUsd * 100) / 100,
+    reference_total_usd: Math.round(referenceTotalUsd * 100) / 100,
     line_count: list.length,
     priced_count: pricedCount,
     matched_count: matchedCount,
     missing_count: missingCount,
+    no_price_count: noPriceCount,
   };
 }
 
@@ -656,6 +721,8 @@ module.exports = {
   buildAutoRows,
   buildManualRows,
   extractPriceFromListPart,
+  isMyListsPriceRow,
+  hasProductInfoWarning,
   summarizeRows,
   computeBomHash,
 };

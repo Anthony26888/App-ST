@@ -472,7 +472,7 @@
               <v-row class="mb-2">
                 <v-col cols="6" md="3">
                   <CardStatistic
-                    title="Tổng USD"
+                    title="Tổng MyLists USD"
                     :value="formatUsd(componentImport?.total_usd)"
                     icon="mdi-currency-usd"
                     color="success"
@@ -500,6 +500,14 @@
                     :value="componentMissingPriceCount"
                     icon="mdi-alert-outline"
                     color="warning"
+                  />
+                </v-col>
+                <v-col v-if="componentNonStockTotal > 0" cols="6" md="3">
+                  <CardStatistic
+                    title="Non-Stock (không tính)"
+                    :value="formatUsd(componentNonStockTotal)"
+                    icon="mdi-package-variant-closed"
+                    color="grey"
                   />
                 </v-col>
               </v-row>
@@ -539,11 +547,29 @@
                 <template #[`item.mpn`]="{ item }">
                   <span class="text-caption">{{ item.mpn || '—' }}</span>
                 </template>
+                <template #[`item.image_url`]="{ item }">
+                  <v-img
+                    v-if="item.image_url || item.thumbnail_url"
+                    :src="componentImageUrl(item)"
+                    width="44"
+                    height="44"
+                    cover
+                    class="rounded border cursor-pointer mx-auto"
+                    @click="openComponentImage(item)"
+                  />
+                  <span v-else class="text-caption text-medium-emphasis">—</span>
+                </template>
                 <template #[`item.digikey_pn`]="{ item }">
                   <span class="text-caption">{{ item.digikey_pn || '—' }}</span>
                 </template>
                 <template #[`item.unit_price_usd`]="{ item }">
                   {{ formatUsd(item.unit_price_usd) }}
+                  <div
+                    v-if="Number(item.reference_unit_price_usd) > 0"
+                    class="text-caption text-medium-emphasis"
+                  >
+                    Tham khảo {{ formatUsd(item.reference_unit_price_usd) }}
+                  </div>
                 </template>
                 <template #[`item.extended_price_usd`]="{ item }">
                   <span class="font-weight-medium">{{
@@ -623,6 +649,25 @@
 
   <DigiKeyInfoDialog v-model="dialogDetail" :mpn="detailMpn" />
 
+  <BaseDialog
+    v-model="dialogComponentImage"
+    width="520"
+    title="Ảnh linh kiện"
+    icon="mdi-image-outline"
+  >
+    <div class="text-center">
+      <div class="text-subtitle-2 font-weight-medium mb-2">
+        {{ componentImageMpn }}
+      </div>
+      <v-img
+        v-if="componentImageSrc"
+        :src="componentImageSrc"
+        max-height="360"
+        contain
+      />
+    </div>
+  </BaseDialog>
+
   <SnackbarSuccess v-model="snackbarSuccess" :message="message" />
   <SnackbarFailed v-model="snackbarFailed" :message="errorMessage" />
 </template>
@@ -671,6 +716,9 @@ const componentError = ref('');
 const componentMessage = ref('');
 const exchangeRate = ref(0);
 const componentFilter = ref('all');
+const dialogComponentImage = ref(false);
+const componentImageSrc = ref('');
+const componentImageMpn = ref('');
 const digikeyStatus = ref(null);
 let componentPollTimer = null;
 
@@ -680,6 +728,7 @@ const componentHeaders = [
   { title: 'STT', key: 'line_no', width: '60px' },
   { title: 'Designator', key: 'reference_designator', width: '130px' },
   { title: 'MPN', key: 'mpn', width: '170px' },
+  { title: 'Ảnh', key: 'image_url', width: '70px', sortable: false },
   { title: 'DigiKey PN', key: 'digikey_pn', width: '150px' },
   { title: 'NSX', key: 'manufacturer', width: '120px' },
   { title: 'SL yêu cầu', key: 'quantity_requested', width: '100px' },
@@ -696,7 +745,7 @@ const componentHeaders = [
 const componentFilterOptions = [
   { title: 'Tất cả', value: 'all' },
   { title: 'Đã khớp', value: 'MATCHED' },
-  { title: 'Thiếu giá', value: 'NO_PRICE' },
+  { title: 'Không có giá', value: 'NO_PRICE' },
   { title: 'Không khớp BOM', value: 'UNMATCHED' },
   { title: 'BOM thiếu trong file', value: 'MISSING_IN_LIST' },
   { title: 'Thiếu MPN', value: 'NO_MPN' },
@@ -765,6 +814,16 @@ const componentMissingPriceCount = computed(
     ).length
 );
 
+const componentNonStockTotal = computed(() =>
+  componentPrices.value
+    .filter(
+      (row) =>
+        /non[- ]?stock/i.test(String(row.stock_status || "")) &&
+        Number(row.extended_price_usd) > 0,
+    )
+    .reduce((sum, row) => sum + Number(row.extended_price_usd), 0),
+);
+
 const hasComponentFile = computed(() =>
   Array.isArray(componentFile.value)
     ? componentFile.value.length > 0
@@ -792,12 +851,26 @@ function formatUsd(value, digits = 4) {
   return `$${(Number(value) || 0).toFixed(digits)}`;
 }
 
+function componentImageUrl(row) {
+  const raw = row?.image_url || row?.thumbnail_url || '';
+  if (!raw) return '';
+  return `${Url}/DigiKey/image?inline=1&url=${encodeURIComponent(raw)}`;
+}
+
+function openComponentImage(row) {
+  const src = componentImageUrl(row);
+  if (!src) return;
+  componentImageSrc.value = src;
+  componentImageMpn.value = row?.mpn || row?.requested_mpn || '';
+  dialogComponentImage.value = true;
+}
+
 function componentStatusLabel(status) {
   return (
     {
       MATCHED: 'Đã khớp',
       MOQ_APPLIED: 'Đã áp MOQ',
-      NO_PRICE: 'Thiếu giá',
+      NO_PRICE: 'Không có giá',
       NO_MATCH: 'Chưa có trong MyList',
       UNMATCHED: 'Không khớp BOM',
       MISSING_IN_LIST: 'BOM thiếu trong file',

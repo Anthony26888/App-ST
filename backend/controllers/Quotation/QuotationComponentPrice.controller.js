@@ -13,6 +13,8 @@ const {
   parseJson,
   toNumber,
   normalizeMpn,
+  isMyListsPriceRow,
+  hasProductInfoWarning,
 } = require("../../utils/digikeyComponentPricing.js");
 const { buildComponentPriceWorkbook } = require("../../utils/componentPriceExcel.js");
 
@@ -96,11 +98,42 @@ async function getImportRow(quoteId) {
 }
 
 function parsePriceRow(row) {
-  return {
+  const warnings = parseJson(row.warnings, []);
+  const parsed = {
     ...row,
     matched_line_nos: parseJson(row.matched_line_nos, []),
-    warnings: parseJson(row.warnings, []),
+    warnings,
   };
+  if (!parsed.price_source) {
+    const legacyFallback = hasProductInfoWarning(warnings);
+    parsed.price_source = legacyFallback
+      ? "product_info"
+      : toNumber(parsed.extended_price_usd) > 0
+        ? "mylists"
+        : "none";
+    if (legacyFallback) {
+      parsed.reference_unit_price_usd =
+        toNumber(parsed.reference_unit_price_usd) ||
+        toNumber(parsed.unit_price_usd);
+      parsed.reference_extended_price_usd =
+        toNumber(parsed.reference_extended_price_usd) ||
+        toNumber(parsed.extended_price_usd);
+      parsed.reference_moq =
+        toNumber(parsed.reference_moq) || toNumber(parsed.moq);
+      parsed.unit_price_usd = 0;
+      parsed.extended_price_usd = 0;
+    }
+  }
+  parsed.reference_unit_price_usd = toNumber(parsed.reference_unit_price_usd);
+  parsed.reference_extended_price_usd = toNumber(
+    parsed.reference_extended_price_usd,
+  );
+  parsed.reference_moq = toNumber(parsed.reference_moq);
+  parsed.image_url = String(parsed.image_url || "").trim();
+  parsed.thumbnail_url = String(
+    parsed.thumbnail_url || parsed.image_url || "",
+  ).trim();
+  return parsed;
 }
 
 async function getPriceRows(quoteId) {
@@ -131,8 +164,10 @@ async function replacePriceRows(quoteId, rows) {
         stock_status, lead_time, lead_weeks, part_status, rohs_status,
         country_of_origin, us_tariff, unit_of_measure, customer_reference,
         reference_designator, product_notes, match_status, matched_line_nos,
-        warnings, imported_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        warnings, price_source, image_url, thumbnail_url,
+        reference_unit_price_usd, reference_extended_price_usd, reference_moq,
+        imported_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         quoteId,
         row.line_no != null ? Number(row.line_no) : null,
@@ -167,6 +202,13 @@ async function replacePriceRows(quoteId, rows) {
         row.match_status || "",
         JSON.stringify(Array.isArray(row.matched_line_nos) ? row.matched_line_nos : []),
         JSON.stringify(Array.isArray(row.warnings) ? row.warnings : []),
+        row.price_source ||
+          (toNumber(row.extended_price_usd) > 0 ? "mylists" : "none"),
+        row.image_url || "",
+        row.thumbnail_url || row.image_url || "",
+        toNumber(row.reference_unit_price_usd),
+        toNumber(row.reference_extended_price_usd),
+        toNumber(row.reference_moq),
         timestamp,
       ],
     );
@@ -330,9 +372,11 @@ async function applyProductInfoFallback(rows) {
   let calls = 0;
   for (const row of rows) {
     if (calls >= maxCalls) break;
+    if (!Array.isArray(row.warnings)) row.warnings = [];
     const needsPrice = !(toNumber(row.extended_price_usd) > 0);
     const needsPartNumber = !row.digikey_pn;
-    if (!needsPrice && !needsPartNumber) continue;
+    const needsImage = !row.image_url && !row.thumbnail_url;
+    if (!needsPrice && !needsPartNumber && !needsImage) continue;
 
     const mpn = row.requested_mpn || row.mpn || row.original_mpn;
     const key = normalizeMpn(mpn);
@@ -343,21 +387,47 @@ async function applyProductInfoFallback(rows) {
       calls += 1;
       const info = await productInfo.resolveProduct(mpn, row.quantity_requested);
       if (!info) {
-        row.warnings.push("ProductInformation không có giá");
+        if (needsPrice) row.warnings.push("ProductInformation không có dữ liệu");
         continue;
       }
-      const lineNo = row.line_no;
-      const matchedLineNos = row.matched_line_nos || [];
-      const referenceDesignator = row.reference_designator;
-      Object.assign(row, info, {
-        line_no: lineNo,
-        matched_line_nos: matchedLineNos,
-        reference_designator:
-          referenceDesignator || info.reference_designator || "",
-      });
-      row.warnings.push("Giá lấy từ ProductInformation");
-      if (lineNo || matchedLineNos.length) {
-        row.match_status = "MATCHED";
+
+      const hasMyListsPrice = !needsPrice && isMyListsPriceRow(row);
+      row.mpn = row.mpn || info.mpn || "";
+      row.requested_mpn = row.requested_mpn || info.requested_mpn || "";
+      row.original_mpn = row.original_mpn || info.original_mpn || "";
+      row.manufacturer = row.manufacturer || info.manufacturer || "";
+      row.description = row.description || info.description || "";
+      row.digikey_pn = row.digikey_pn || info.digikey_pn || "";
+      row.digikey_unique_id =
+        row.digikey_unique_id || info.digikey_unique_id || "";
+      row.pack_type = row.pack_type || info.pack_type || "";
+      row.selected_pack_type =
+        row.selected_pack_type || info.selected_pack_type || "";
+      row.availability = row.availability ?? info.availability;
+      row.quantity_available = row.quantity_available ?? info.quantity_available;
+      row.stock_status = row.stock_status || info.stock_status || "";
+      row.lead_time = row.lead_time || info.lead_time || "";
+      row.lead_weeks = row.lead_weeks || info.lead_weeks || "";
+      row.part_status = row.part_status || info.part_status || "";
+      row.rohs_status = row.rohs_status || info.rohs_status || "";
+      row.country_of_origin = row.country_of_origin || info.country_of_origin || "";
+      row.us_tariff = row.us_tariff || info.us_tariff || "";
+      row.image_url = row.image_url || info.image_url || "";
+      row.thumbnail_url =
+        row.thumbnail_url || info.thumbnail_url || row.image_url || "";
+
+      if (!hasMyListsPrice) {
+        const referenceExtended = toNumber(info.extended_price_usd);
+        const referenceUnit = toNumber(info.unit_price_usd);
+        if (referenceExtended > 0 || referenceUnit > 0) {
+          row.reference_unit_price_usd = referenceUnit;
+          row.reference_extended_price_usd = referenceExtended;
+          row.reference_moq = toNumber(info.moq);
+          row.warnings.push(
+            "Giá tham khảo ProductInformation (không tính tổng)",
+          );
+        }
+        row.price_source = row.price_source || "none";
       }
     } catch (error) {
       row.warnings.push(
@@ -459,6 +529,15 @@ module.exports = (io) => ({
       if (!quote) return res.status(404).json({ error: "Không tìm thấy báo giá" });
       const importRow = await getImportRow(quoteId);
       const prices = await getPriceRows(quoteId);
+      const summary = summarizeRows(prices);
+      if (importRow) {
+        importRow.total_usd = summary.total_usd;
+        importRow.reference_total_usd = summary.reference_total_usd;
+        importRow.line_count = summary.line_count;
+        importRow.priced_count = summary.priced_count;
+        importRow.missing_count = summary.missing_count;
+        importRow.no_price_count = summary.no_price_count;
+      }
       const digikeyStatus = username
         ? await oauth.getStatus(username)
         : { configured: false, connected: false };
@@ -689,6 +768,15 @@ module.exports = (io) => ({
       const prices = await getPriceRows(quoteId);
       if (!prices.length) {
         return res.status(400).json({ error: "Chưa có dữ liệu giá linh kiện" });
+      }
+      const summary = summarizeRows(prices);
+      if (importRow) {
+        importRow.total_usd = summary.total_usd;
+        importRow.reference_total_usd = summary.reference_total_usd;
+        importRow.line_count = summary.line_count;
+        importRow.priced_count = summary.priced_count;
+        importRow.missing_count = summary.missing_count;
+        importRow.no_price_count = summary.no_price_count;
       }
       const buffer = await buildComponentPriceWorkbook(
         quote,
