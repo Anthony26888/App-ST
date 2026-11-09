@@ -223,7 +223,7 @@ async function buildComponentPriceWorkbook(quote, importRow, prices) {
   ws.getCell("A4").value = `Tổng MyLists USD: $${totalUsd.toFixed(
     2,
   )}  |  Tổng VND: ${Math.round(totalUsd * exchangeRate).toLocaleString(
-    "vi-VN",
+    "en-US",
   )} đ  |  Số dòng: ${(prices || []).length}  |  Có giá: ${pricedCount}  |  Không giá: ${noPriceCount}${referenceText}${nonStockText}`;
   ws.getCell("A4").alignment = { horizontal: "center" };
   ws.getCell("A4").font = { bold: true, color: { argb: "FF0F766E" } };

@@ -129,10 +129,10 @@
         </v-card-title>
 
         <v-tabs v-model="tab" color="primary">
-          <v-tab :value="0">Tổng quan</v-tab>
-          <v-tab :value="1">Bảng giá chi tiết</v-tab>
-          <v-tab :value="2">Giá linh kiện</v-tab>
-          <v-tab :value="3">Lịch sử</v-tab>
+          <v-tab :value="0" class="text-caption">Tổng quan</v-tab>
+          <v-tab :value="1" class="text-caption">Bảng giá chi tiết</v-tab>
+          <v-tab :value="2" class="text-caption">Giá linh kiện</v-tab>
+          <v-tab :value="3" class="text-caption">Lịch sử</v-tab>
         </v-tabs>
         <v-divider />
 
@@ -344,7 +344,7 @@
             </v-window-item>
 
             <v-window-item :value="2">
-              <div class="d-flex flex-wrap align-center ga-2 mb-3">
+              <v-card-title class="d-flex align-center flex-wrap ga-2 pe-2 pt-3 pb-1">
                 <v-btn
                   color="primary"
                   variant="tonal"
@@ -354,30 +354,49 @@
                   :disabled="componentImport?.status === 'running'"
                   @click="fetchDigikeyPrices(true)"
                 >
-                  Lấy giá DigiKey tự động
+                  Lấy giá tự động
                 </v-btn>
-                <v-file-input
-                  v-model="componentFile"
-                  label="File myLists.xlsx"
-                  accept=".xlsx,.xls"
-                  density="compact"
-                  variant="outlined"
-                  hide-details
-                  prepend-icon=""
-                  prepend-inner-icon="mdi-microsoft-excel"
-                  style="max-width: 280px"
-                />
-                <v-btn
-                  variant="tonal"
-                  color="success"
-                  prepend-icon="mdi-upload"
-                  class="text-caption"
-                  :loading="componentUploading"
-                  :disabled="!hasComponentFile"
-                  @click="importComponentFile"
-                >
-                  Nhập file
-                </v-btn>
+
+                <v-menu :close-on-content-click="false" location="bottom start">
+                  <template #activator="{ props: menuProps }">
+                    <v-btn
+                      v-bind="menuProps"
+                      variant="tonal"
+                      color="success"
+                      prepend-icon="mdi-microsoft-excel"
+                      append-icon="mdi-chevron-down"
+                      class="text-caption"
+                    >
+                      Nhập file
+                    </v-btn>
+                  </template>
+                  <v-card min-width="320" class="pa-3">
+                    <v-file-input
+                      v-model="componentFile"
+                      label="Chọn myLists.xlsx"
+                      accept=".xlsx,.xls"
+                      density="compact"
+                      variant="outlined"
+                      hide-details
+                      prepend-icon=""
+                      prepend-inner-icon="mdi-file-excel-outline"
+                      class="mb-2"
+                    />
+                    <v-btn
+                      block
+                      color="success"
+                      variant="tonal"
+                      prepend-icon="mdi-upload"
+                      size="small"
+                      :loading="componentUploading"
+                      :disabled="!hasComponentFile"
+                      @click="importComponentFile"
+                    >
+                      Nhập dữ liệu
+                    </v-btn>
+                  </v-card>
+                </v-menu>
+
                 <v-btn
                   variant="tonal"
                   color="secondary"
@@ -388,29 +407,46 @@
                 >
                   Xuất Excel
                 </v-btn>
-                <v-btn
-                  variant="text"
-                  color="error"
-                  prepend-icon="mdi-delete-outline"
-                  class="text-caption"
-                  :disabled="!componentPrices.length"
-                  @click="deleteComponentPrices"
-                >
-                  Xoá dữ liệu
-                </v-btn>
+
+                <v-divider vertical inset class="mx-1" />
+
+                <v-chip-group v-model="componentFilter" selected-class="text-primary" mandatory>
+                  <v-chip
+                    v-for="opt in componentFilterOptions"
+                    :key="opt.value"
+                    :value="opt.value"
+                    size="small"
+                    variant="tonal"
+                    filter
+                  >
+                    {{ opt.title }}
+                  </v-chip>
+                </v-chip-group>
+
                 <v-spacer />
+
                 <v-text-field
                   v-model.number="exchangeRate"
-                  label="Tỷ giá VND/USD"
+                  label="Tỷ giá"
                   type="number"
                   min="0"
                   density="compact"
                   variant="outlined"
                   hide-details
-                  style="max-width: 190px"
+                  style="max-width: 130px"
                   @blur="saveExchangeRate"
                 />
-              </div>
+
+                <v-btn
+                  icon="mdi-delete-outline"
+                  variant="text"
+                  color="error"
+                  size="small"
+                  :disabled="!componentPrices.length"
+                  title="Xoá dữ liệu"
+                  @click="deleteComponentPrices"
+                />
+              </v-card-title>
 
               <v-alert
                 v-if="componentError"
@@ -424,18 +460,7 @@
                 {{ componentError }}
               </v-alert>
               <v-alert
-                v-if="componentMessage"
-                type="success"
-                variant="tonal"
-                density="compact"
-                class="mb-3"
-                closable
-                @click:close="componentMessage = ''"
-              >
-                {{ componentMessage }}
-              </v-alert>
-              <v-alert
-                v-if="componentImport?.status === 'running'"
+                v-else-if="componentImport?.status === 'running'"
                 type="info"
                 variant="tonal"
                 density="compact"
@@ -447,7 +472,7 @@
                 </div>
               </v-alert>
               <v-alert
-                v-if="componentImport?.status === 'error'"
+                v-else-if="componentImport?.status === 'error'"
                 type="warning"
                 variant="tonal"
                 density="compact"
@@ -456,21 +481,35 @@
                 Lần lấy giá gần nhất lỗi: {{ componentImport.error_message }}
               </v-alert>
               <v-alert
-                v-if="digikeyStatus && !digikeyStatus.connected"
+                v-else-if="digikeyStatus && !digikeyStatus.connected"
                 type="info"
                 variant="tonal"
                 density="compact"
                 class="mb-3"
               >
                 Chưa kết nối DigiKey.
-                <router-link to="/Cai-dat" class="text-primary font-weight-medium">
+                <router-link
+                  to="/Cai-dat"
+                  class="text-primary font-weight-medium"
+                >
                   Vào Cài đặt để kết nối
                 </router-link>
                 hoặc dùng file myLists.xlsx.
               </v-alert>
+              <v-alert
+                v-else-if="componentMessage"
+                type="success"
+                variant="tonal"
+                density="compact"
+                class="mb-3"
+                closable
+                @click:close="componentMessage = ''"
+              >
+                {{ componentMessage }}
+              </v-alert>
 
-              <v-row class="mb-2">
-                <v-col cols="6" md="3">
+              <v-row class="mb-3">
+                <v-col cols="12" md="4">
                   <CardStatistic
                     title="Tổng MyLists USD"
                     :value="formatUsd(componentImport?.total_usd)"
@@ -478,64 +517,38 @@
                     color="success"
                   />
                 </v-col>
-                <v-col cols="6" md="3">
+                <v-col cols="12" md="4">
                   <CardStatistic
                     title="Tổng VND"
                     :value="formatMoney(componentTotalVnd)"
                     icon="mdi-cash-multiple"
                     color="primary"
+                    label1="/board"
+                    :totalLabel1="formatMoney(componentPerBoardVnd)"
                   />
                 </v-col>
-                <v-col cols="6" md="3">
+                <v-col cols="12" md="4">
                   <CardStatistic
-                    title="Giá / board"
-                    :value="formatMoney(componentPerBoardVnd)"
-                    icon="mdi-layers-outline"
+                    title="Trạng thái"
+                    :value="`${componentPrices.length} dòng`"
+                    icon="mdi-format-list-checks"
                     color="info"
-                  />
-                </v-col>
-                <v-col cols="6" md="3">
-                  <CardStatistic
-                    title="Dòng chưa có giá"
-                    :value="componentMissingPriceCount"
-                    icon="mdi-alert-outline"
-                    color="warning"
-                  />
-                </v-col>
-                <v-col v-if="componentNonStockTotal > 0" cols="6" md="3">
-                  <CardStatistic
-                    title="Non-Stock (không tính)"
-                    :value="formatUsd(componentNonStockTotal)"
-                    icon="mdi-package-variant-closed"
-                    color="grey"
+                    label1="Chưa giá"
+                    :totalLabel1="componentMissingPriceCount"
+                    label2="Non-Stock"
+                    :totalLabel2="componentNonStockTotal > 0 ? formatUsd(componentNonStockTotal) : undefined"
                   />
                 </v-col>
               </v-row>
 
-              <div class="d-flex flex-wrap align-center ga-2 mb-2">
-                <v-select
-                  v-model="componentFilter"
-                  :items="componentFilterOptions"
-                  item-title="title"
-                  item-value="value"
-                  label="Lọc trạng thái"
-                  density="compact"
-                  variant="outlined"
-                  hide-details
-                  style="max-width: 220px"
-                />
-                <span class="text-caption text-medium-emphasis">
-                  Nguồn:
-                  {{
-                    componentImport?.source === 'auto'
-                      ? 'MyLists API'
-                      : componentImport?.source === 'manual'
-                        ? 'File myLists.xlsx'
-                        : '—'
-                  }}
-                  <span v-if="componentImport?.digikey_list_name">
-                    · {{ componentImport.digikey_list_name }}
-                  </span>
+              <div v-if="componentImport?.source" class="text-caption text-medium-emphasis mb-2 px-1">
+                Nguồn:
+                {{ componentImport.source === 'auto' ? 'MyLists API' : 'File myLists.xlsx' }}
+                <span v-if="componentImport.digikey_list_name">
+                  · {{ componentImport.digikey_list_name }}
+                </span>
+                <span v-if="componentImport.imported_at">
+                  · {{ formatDateTime(componentImport.imported_at) }}
                 </span>
               </div>
 
@@ -543,6 +556,7 @@
                 :headers="componentHeaders"
                 :items="filteredComponentPrices"
                 :items-per-page="25"
+                density="compact"
               >
                 <template #[`item.mpn`]="{ item }">
                   <span class="text-caption">{{ item.mpn || '—' }}</span>
@@ -551,8 +565,8 @@
                   <v-img
                     v-if="item.image_url || item.thumbnail_url"
                     :src="componentImageUrl(item)"
-                    width="44"
-                    height="44"
+                    width="36"
+                    height="36"
                     cover
                     class="rounded border cursor-pointer mx-auto"
                     @click="openComponentImage(item)"
@@ -593,7 +607,10 @@
               </AppDataTable>
 
               <div
-                v-if="!componentPrices.length && componentImport?.status !== 'running'"
+                v-if="
+                  !componentPrices.length &&
+                  componentImport?.status !== 'running'
+                "
                 class="text-caption text-medium-emphasis mt-3"
               >
                 Chưa có dữ liệu giá linh kiện. Bấm “Lấy giá DigiKey tự động”
@@ -728,7 +745,7 @@ const componentHeaders = [
   { title: 'STT', key: 'line_no', width: '60px' },
   { title: 'Designator', key: 'reference_designator', width: '130px' },
   { title: 'MPN', key: 'mpn', width: '170px' },
-  { title: 'Ảnh', key: 'image_url', width: '70px', sortable: false },
+  { title: 'Ảnh', key: 'image_url', width: '56px', sortable: false },
   { title: 'DigiKey PN', key: 'digikey_pn', width: '150px' },
   { title: 'NSX', key: 'manufacturer', width: '120px' },
   { title: 'SL yêu cầu', key: 'quantity_requested', width: '100px' },
@@ -796,8 +813,7 @@ const componentTotalVnd = computed(
 
 const componentPerBoardVnd = computed(
   () =>
-    componentTotalVnd.value /
-    Math.max(1, Number(quote.value?.board_qty) || 1)
+    componentTotalVnd.value / Math.max(1, Number(quote.value?.board_qty) || 1)
 );
 
 const filteredComponentPrices = computed(() => {
@@ -809,19 +825,18 @@ const filteredComponentPrices = computed(() => {
 
 const componentMissingPriceCount = computed(
   () =>
-    componentPrices.value.filter(
-      (row) => !(Number(row.extended_price_usd) > 0)
-    ).length
+    componentPrices.value.filter((row) => !(Number(row.extended_price_usd) > 0))
+      .length
 );
 
 const componentNonStockTotal = computed(() =>
   componentPrices.value
     .filter(
       (row) =>
-        /non[- ]?stock/i.test(String(row.stock_status || "")) &&
-        Number(row.extended_price_usd) > 0,
+        /non[- ]?stock/i.test(String(row.stock_status || '')) &&
+        Number(row.extended_price_usd) > 0
     )
-    .reduce((sum, row) => sum + Number(row.extended_price_usd), 0),
+    .reduce((sum, row) => sum + Number(row.extended_price_usd), 0)
 );
 
 const hasComponentFile = computed(() =>
@@ -831,7 +846,7 @@ const hasComponentFile = computed(() =>
 );
 
 function formatMoney(value) {
-  return `${new Intl.NumberFormat('vi-VN').format(Math.round(Number(value) || 0))} đ`;
+  return `${new Intl.NumberFormat('en-US').format(Math.round(Number(value) || 0))} đ`;
 }
 
 function formatDate(value) {
@@ -847,8 +862,15 @@ function formatDateTime(value) {
   return date.toLocaleString('vi-VN');
 }
 
-function formatUsd(value, digits = 4) {
-  return `$${(Number(value) || 0).toFixed(digits)}`;
+const usdFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 4,
+});
+
+function formatUsd(value) {
+  return usdFormatter.format(Number(value) || 0);
 }
 
 function componentImageUrl(row) {
@@ -876,7 +898,9 @@ function componentStatusLabel(status) {
       MISSING_IN_LIST: 'BOM thiếu trong file',
       DUPLICATE: 'Trùng MPN',
       NO_MPN: 'Thiếu MPN',
-    }[status] || status || '—'
+    }[status] ||
+    status ||
+    '—'
   );
 }
 
@@ -1036,9 +1060,7 @@ async function importComponentFile() {
     componentMessage.value = `Đã nhập ${
       data.import?.line_count || data.prices?.length || 0
     } dòng giá linh kiện.`;
-    componentFile.value = Array.isArray(componentFile.value)
-      ? []
-      : null;
+    componentFile.value = Array.isArray(componentFile.value) ? [] : null;
     await loadComponentPrices();
   } catch (error) {
     componentError.value =
