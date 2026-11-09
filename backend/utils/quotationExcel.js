@@ -41,17 +41,17 @@ async function buildQuoteWorkbook(quote, items, costLines) {
 
   ws.columns = [
     { key: "stt", width: 6 },
-    { key: "designator", width: 20 },
-    { key: "mpn", width: 26 },
-    { key: "description", width: 42 },
-    { key: "package", width: 14 },
+    { key: "designator", width: 28 },
+    { key: "mpn", width: 32 },
+    { key: "description", width: 50 },
+    { key: "package", width: 16 },
     { key: "qty", width: 10 },
     { key: "pad", width: 9 },
-    { key: "process", width: 12 },
+    { key: "process", width: 14 },
     { key: "unit", width: 8 },
     { key: "price", width: 14 },
     { key: "total", width: 16 },
-    { key: "note", width: 18 },
+    { key: "note", width: 22 },
   ];
 
   ws.mergeCells("A1:L1");
@@ -176,6 +176,108 @@ async function buildQuoteWorkbook(quote, items, costLines) {
     noteRow.getCell(1).font = { bold: true };
     noteRow.getCell(2).alignment = { wrapText: true, vertical: "top" };
   }
+
+  const summary = wb.addWorksheet("Summary", {
+    pageSetup: { paperSize: 9, orientation: "portrait" },
+  });
+  summary.columns = [
+    { key: "label", width: 30 },
+    { key: "value", width: 45 },
+  ];
+
+  summary.mergeCells("A1:B1");
+  const sTitle = summary.getCell("A1");
+  sTitle.value = "TÓM TẮT BÁO GIÁ GIA CÔNG";
+  sTitle.font = { bold: true, size: 16, color: { argb: "FF7C2D12" } };
+  sTitle.alignment = { horizontal: "center", vertical: "middle" };
+  summary.getRow(1).height = 32;
+
+  const boardQty = Number(quote.board_qty) || 1;
+  const infoItems = [
+    ["Khách hàng", quote.customer_name || ""],
+    ["Dự án", quote.project_name || ""],
+    ["Số báo giá", quote.quote_no || ""],
+    ["Ngày tạo", formatDate(quote.created_at)],
+    ["Số lượng board", boardQty],
+  ];
+  infoItems.forEach(([label, value]) => {
+    const row = summary.addRow([label, value]);
+    row.getCell(1).font = { bold: true };
+    row.eachCell((cell) => styleCell(cell, "left"));
+  });
+
+  summary.addRow([]);
+
+  const totalPads = (items || []).reduce(
+    (sum, item) =>
+      sum + (Number(item.pad_count) || 0) * (Number(item.quantity_per_board) || 0),
+    0,
+  );
+  const totalLines = (items || []).filter((item) => !item.dnp).length;
+
+  summary.addRow(["Tổng số dòng", totalLines]).eachCell((c) => styleCell(c, "left"));
+  summary.addRow(["Tổng số pad (1 board)", totalPads]).eachCell((c) => styleCell(c, "left"));
+  summary.addRow(["Tổng số pad (tất cả board)", totalPads * boardQty]).eachCell((c) =>
+    styleCell(c, "left"),
+  );
+
+  summary.addRow([]);
+
+  const processGroups = new Map();
+  for (const item of items || []) {
+    if (item.dnp) continue;
+    const code = item.process_code || "OTHER";
+    if (!processGroups.has(code)) {
+      processGroups.set(code, { pads: 0, amount: 0 });
+    }
+    const g = processGroups.get(code);
+    g.pads +=
+      (Number(item.pad_count) || 0) *
+      (Number(item.quantity_per_board) || 0) *
+      boardQty;
+    g.amount += Number(item.line_total) || 0;
+  }
+
+  const processLabels = { SMT: "SMT", HAND: "Hàn tay", PICK: "Gắp tay", OTHER: "Khác" };
+  if (processGroups.size > 0) {
+    const hdr = summary.addRow(["Theo quy trình", ""]);
+    hdr.getCell(1).font = { bold: true, color: { argb: "FF7C2D12" } };
+    hdr.eachCell((c) => styleCell(c, "left"));
+
+    for (const [code, data] of processGroups) {
+      const label = processLabels[code] || code;
+      const row = summary.addRow([
+        `  ● ${label}`,
+        `${data.pads.toLocaleString("en-US")} pad → ${Math.round(data.amount).toLocaleString("en-US")} đ`,
+      ]);
+      row.eachCell((c) => styleCell(c, "left"));
+    }
+  }
+
+  summary.addRow([]);
+
+  const summaryTotals = [
+    ["Tạm tính", Number(quote.subtotal) || 0],
+    ["Chiết khấu", Number(quote.discount_value) || 0],
+    [`VAT (${Number(quote.vat_percent) || 0}%)`, ""],
+    ["TỔNG CỘNG", Number(quote.total) || 0],
+  ];
+  summaryTotals.forEach(([label, value], i) => {
+    const row = summary.addRow([label, value]);
+    row.getCell(1).font = { bold: true };
+    row.getCell(2).numFmt = "#,##0";
+    row.eachCell((c) => styleCell(c, "right"));
+    row.getCell(1).alignment = { horizontal: "left", vertical: "middle" };
+    if (i === summaryTotals.length - 1) {
+      row.getCell(1).font = { bold: true, size: 12, color: { argb: "FF7C2D12" } };
+      row.getCell(2).font = { bold: true, size: 12, color: { argb: "FF7C2D12" } };
+      row.getCell(2).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFFFF7ED" },
+      };
+    }
+  });
 
   const buffer = await wb.xlsx.writeBuffer();
   return Buffer.from(buffer);

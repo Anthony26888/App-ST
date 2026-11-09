@@ -81,7 +81,6 @@ function hasProductInfoWarning(value) {
 function isMyListsPriceRow(row) {
   const source = String(row?.price_source || "").trim();
   if (source && source !== "mylists") return false;
-  if (/non[- ]?stock/i.test(String(row?.stock_status || ""))) return false;
   if (hasProductInfoWarning(row?.warnings)) return false;
   return toNumber(row?.extended_price_usd) > 0;
 }
@@ -628,6 +627,9 @@ function buildManualRows(buffer, quoteItems, boardQty) {
     );
     if (line) {
       row.matched_line_nos = line.matched_line_nos || [];
+      if (!row.reference_designator && line.reference_designator) {
+        row.reference_designator = line.reference_designator;
+      }
       if (row.match_status === "MATCHED") {
         row.match_status = "MATCHED";
       }

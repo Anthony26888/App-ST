@@ -344,7 +344,9 @@
             </v-window-item>
 
             <v-window-item :value="2">
-              <v-card-title class="d-flex align-center flex-wrap ga-2 pe-2 pt-3 pb-1">
+              <v-card-title
+                class="d-flex align-center flex-wrap ga-2 pe-2 pt-3 pb-1"
+              >
                 <v-btn
                   color="primary"
                   variant="tonal"
@@ -388,6 +390,7 @@
                       variant="tonal"
                       prepend-icon="mdi-upload"
                       size="small"
+                      class="text-caption"
                       :loading="componentUploading"
                       :disabled="!hasComponentFile"
                       @click="importComponentFile"
@@ -410,20 +413,36 @@
 
                 <v-divider vertical inset class="mx-1" />
 
-                <v-chip-group v-model="componentFilter" selected-class="text-primary" mandatory>
-                  <v-chip
-                    v-for="opt in componentFilterOptions"
-                    :key="opt.value"
-                    :value="opt.value"
-                    size="small"
-                    variant="tonal"
-                    filter
-                  >
-                    {{ opt.title }}
-                  </v-chip>
-                </v-chip-group>
+                <v-menu location="bottom start">
+                  <template #activator="{ props: menuProps }">
+                    <v-btn
+                      v-bind="menuProps"
+                      variant="tonal"
+                      prepend-icon="mdi-filter-outline"
+                      append-icon="mdi-chevron-down"
+                      class="text-caption"
+                    >
+                      Lọc: {{ currentFilterLabel }}
+                    </v-btn>
+                  </template>
+                  <v-list density="compact" nav>
+                    <v-list-item
+                      v-for="opt in componentFilterOptions"
+                      :key="opt.value"
+                      :active="componentFilter === opt.value"
+                      @click="componentFilter = opt.value"
+                    >
+                      <v-list-item-title>{{ opt.title }}</v-list-item-title>
+                    </v-list-item>
+                  </v-list>
+                </v-menu>
 
                 <v-spacer />
+
+                <InputSearch
+                  v-model="componentSearch"
+                  style="max-width: 250px"
+                />
 
                 <v-text-field
                   v-model.number="exchangeRate"
@@ -511,39 +530,58 @@
               <v-row class="mb-3">
                 <v-col cols="12" md="4">
                   <CardStatistic
-                    title="Tổng MyLists USD"
-                    :value="formatUsd(componentImport?.total_usd)"
+                    title="Tổng giá linh kiện"
+                    :value="formatUsd(componentGrandTotal)"
                     icon="mdi-currency-usd"
                     color="success"
+                    :subtitle="
+                      formatMoney(
+                        componentGrandTotal * (Number(exchangeRate) || 0)
+                      )
+                    "
                   />
                 </v-col>
                 <v-col cols="12" md="4">
                   <CardStatistic
-                    title="Tổng VND"
-                    :value="formatMoney(componentTotalVnd)"
-                    icon="mdi-cash-multiple"
-                    color="primary"
-                    label1="/board"
-                    :totalLabel1="formatMoney(componentPerBoardVnd)"
+                    title="Tổng có hàng"
+                    :value="formatUsd(componentInStockTotal)"
+                    icon="mdi-check-circle-outline"
+                    color="teal"
+                    :subtitle="
+                      formatMoney(
+                        componentInStockTotal * (Number(exchangeRate) || 0)
+                      )
+                    "
                   />
                 </v-col>
                 <v-col cols="12" md="4">
                   <CardStatistic
                     title="Trạng thái"
-                    :value="`${componentPrices.length} dòng`"
+                    :value="`${componentPrices.filter(r => Number(r.extended_price_usd) > 0).length} / ${componentPrices.length} có giá`"
                     icon="mdi-format-list-checks"
                     color="info"
                     label1="Chưa giá"
                     :totalLabel1="componentMissingPriceCount"
                     label2="Non-Stock"
-                    :totalLabel2="componentNonStockTotal > 0 ? formatUsd(componentNonStockTotal) : undefined"
+                    :totalLabel2="
+                      componentNonStockTotal > 0
+                        ? formatUsd(componentNonStockTotal)
+                        : undefined
+                    "
                   />
                 </v-col>
               </v-row>
 
-              <div v-if="componentImport?.source" class="text-caption text-medium-emphasis mb-2 px-1">
+              <div
+                v-if="componentImport?.source"
+                class="text-caption text-medium-emphasis mb-2 px-1"
+              >
                 Nguồn:
-                {{ componentImport.source === 'auto' ? 'MyLists API' : 'File myLists.xlsx' }}
+                {{
+                  componentImport.source === 'auto'
+                    ? 'MyLists API'
+                    : 'File myLists.xlsx'
+                }}
                 <span v-if="componentImport.digikey_list_name">
                   · {{ componentImport.digikey_list_name }}
                 </span>
@@ -571,7 +609,9 @@
                     class="rounded border cursor-pointer mx-auto"
                     @click="openComponentImage(item)"
                   />
-                  <span v-else class="text-caption text-medium-emphasis">—</span>
+                  <span v-else class="text-caption text-medium-emphasis"
+                    >—</span
+                  >
                 </template>
                 <template #[`item.digikey_pn`]="{ item }">
                   <span class="text-caption">{{ item.digikey_pn || '—' }}</span>
@@ -702,6 +742,7 @@ import ButtonCancel from '@/components/Button-Cancel.vue';
 import ButtonDelete from '@/components/Button-Delete.vue';
 import SnackbarSuccess from '@/components/Snackbar-Success.vue';
 import SnackbarFailed from '@/components/Snackbar-Failed.vue';
+import InputSearch from '@/components/Input-Search.vue';
 
 const Url = import.meta.env.VITE_API_URL;
 const route = useRoute();
@@ -733,6 +774,7 @@ const componentError = ref('');
 const componentMessage = ref('');
 const exchangeRate = ref(0);
 const componentFilter = ref('all');
+const componentSearch = ref('');
 const dialogComponentImage = ref(false);
 const componentImageSrc = ref('');
 const componentImageMpn = ref('');
@@ -743,20 +785,17 @@ const statuses = ['Nháp', 'Đã gửi', 'Chấp nhận', 'Từ chối', 'Hết 
 
 const componentHeaders = [
   { title: 'STT', key: 'line_no', width: '60px' },
-  { title: 'Designator', key: 'reference_designator', width: '130px' },
+  { title: 'Designator', key: 'reference_designator', width: '200px' },
   { title: 'MPN', key: 'mpn', width: '170px' },
   { title: 'Ảnh', key: 'image_url', width: '56px', sortable: false },
-  { title: 'DigiKey PN', key: 'digikey_pn', width: '150px' },
   { title: 'NSX', key: 'manufacturer', width: '120px' },
-  { title: 'SL yêu cầu', key: 'quantity_requested', width: '100px' },
   { title: 'SL mua', key: 'quantity_purchased', width: '90px' },
   { title: 'MOQ', key: 'moq', width: '80px' },
+  { title: 'Pack Type', key: 'pack_type', width: '120px' },
   { title: 'Đơn giá', key: 'unit_price_usd', width: '110px' },
   { title: 'Thành tiền', key: 'extended_price_usd', width: '120px' },
-  { title: 'Tồn kho', key: 'quantity_available', width: '100px' },
-  { title: 'Lead time', key: 'lead_time', width: '110px' },
+  { title: 'Tồn kho', key: 'availability', width: '100px' },
   { title: 'Trạng thái', key: 'match_status', width: '120px' },
-  { title: 'Cảnh báo', key: 'warnings', width: '220px' },
 ];
 
 const componentFilterOptions = [
@@ -816,11 +855,29 @@ const componentPerBoardVnd = computed(
     componentTotalVnd.value / Math.max(1, Number(quote.value?.board_qty) || 1)
 );
 
+const currentFilterLabel = computed(
+  () =>
+    componentFilterOptions.find((o) => o.value === componentFilter.value)
+      ?.title || 'Tất cả',
+);
+
 const filteredComponentPrices = computed(() => {
-  if (componentFilter.value === 'all') return componentPrices.value;
-  return componentPrices.value.filter(
-    (row) => row.match_status === componentFilter.value
-  );
+  let result = componentPrices.value;
+  if (componentFilter.value !== 'all') {
+    result = result.filter((row) => row.match_status === componentFilter.value);
+  }
+  const q = (componentSearch.value || '').trim().toLowerCase();
+  if (q) {
+    result = result.filter(
+      (row) =>
+        (row.mpn || '').toLowerCase().includes(q) ||
+        (row.description || '').toLowerCase().includes(q) ||
+        (row.digikey_pn || '').toLowerCase().includes(q) ||
+        (row.manufacturer || '').toLowerCase().includes(q) ||
+        (row.reference_designator || '').toLowerCase().includes(q)
+    );
+  }
+  return result;
 });
 
 const componentMissingPriceCount = computed(
@@ -837,6 +894,29 @@ const componentNonStockTotal = computed(() =>
         Number(row.extended_price_usd) > 0
     )
     .reduce((sum, row) => sum + Number(row.extended_price_usd), 0)
+);
+
+const componentInStockTotal = computed(() =>
+  componentPrices.value
+    .filter(
+      (row) =>
+        !/non[- ]?stock/i.test(String(row.stock_status || '')) &&
+        Number(row.extended_price_usd) > 0
+    )
+    .reduce((sum, row) => sum + Number(row.extended_price_usd), 0)
+);
+
+const componentInStockQty = computed(() =>
+  componentPrices.value
+    .filter((row) => !/non[- ]?stock/i.test(String(row.stock_status || '')))
+    .reduce((sum, row) => sum + (Number(row.quantity_requested) || 0), 0)
+);
+
+const componentGrandTotal = computed(() =>
+  componentPrices.value.reduce(
+    (sum, row) => sum + (Number(row.extended_price_usd) || 0),
+    0
+  )
 );
 
 const hasComponentFile = computed(() =>
