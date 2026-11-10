@@ -17,7 +17,7 @@
         >
           Xuất Excel
         </v-btn>
-        <v-btn
+        <!-- <v-btn
           variant="tonal"
           color="warning"
           prepend-icon="mdi-alert-circle-outline"
@@ -43,7 +43,7 @@
           @click="dialogDelete = true"
         >
           Xoá
-        </v-btn>
+        </v-btn> -->
       </template>
     </PageHeader>
 
@@ -288,6 +288,7 @@
                 :headers="itemHeaders"
                 :items="items"
                 :items-per-page="20"
+                :row-props="itemRowProps"
               >
                 <template #[`item.mpn`]="{ item }">
                   <div class="d-flex align-center">
@@ -303,7 +304,7 @@
                     />
                   </div>
                 </template>
-                <template #[`item.dnp`]="{ item }">
+                <template #[`item.needs_review`]="{ item }">
                   <v-chip
                     v-if="item.dnp"
                     size="x-small"
@@ -312,10 +313,8 @@
                   >
                     DNP
                   </v-chip>
-                </template>
-                <template #[`item.needs_review`]="{ item }">
                   <v-chip
-                    v-if="item.needs_review"
+                    v-else-if="item.needs_review"
                     size="x-small"
                     color="warning"
                     variant="tonal"
@@ -557,7 +556,7 @@
                 <v-col cols="12" md="4">
                   <CardStatistic
                     title="Trạng thái"
-                    :value="`${componentPrices.filter(r => Number(r.extended_price_usd) > 0).length} / ${componentPrices.length} có giá`"
+                    :value="`${componentPrices.filter((r) => Number(r.extended_price_usd) > 0).length} / ${componentPrices.length} có giá`"
                     icon="mdi-format-list-checks"
                     color="info"
                     label1="Chưa giá"
@@ -809,7 +808,7 @@ const componentFilterOptions = [
 
 const itemHeaders = [
   { title: 'STT', key: 'line_no', width: '60px' },
-  { title: 'Designator', key: 'designator', width: '160px' },
+  { title: 'Designator', key: 'designator', width: '200px' },
   { title: 'MPN', key: 'mpn', width: '180px' },
   { title: 'Description', key: 'description', width: '240px' },
   { title: 'Package', key: 'package', width: '100px' },
@@ -817,17 +816,20 @@ const itemHeaders = [
   { title: 'SL/board', key: 'quantity_per_board', width: '90px' },
   { title: 'Số pad', key: 'pad_count', width: '80px' },
   { title: 'Quy trình', key: 'process_code', width: '100px' },
-  { title: 'Nhóm giá', key: 'group_code', width: '130px' },
-  { title: 'ĐVT', key: 'unit', width: '70px' },
   { title: 'Đơn giá', key: 'unit_price', width: '110px' },
   { title: 'Thành tiền', key: 'line_total', width: '130px' },
-  { title: 'Nguồn', key: 'match_method', width: '120px' },
-  { title: 'DNP', key: 'dnp', width: '70px' },
   { title: 'Trạng thái', key: 'needs_review', width: '120px' },
 ];
 
+function itemRowProps({ item }) {
+  if (item.dnp) return {};
+  return Number(item.line_total || 0) === 0
+    ? { class: 'item-row-zero' }
+    : {};
+}
+
 const reviewItems = computed(() =>
-  items.value.filter((item) => item.needs_review)
+  items.value.filter((item) => item.needs_review && !item.dnp)
 );
 
 const vatAmount = computed(() => {
@@ -858,7 +860,7 @@ const componentPerBoardVnd = computed(
 const currentFilterLabel = computed(
   () =>
     componentFilterOptions.find((o) => o.value === componentFilter.value)
-      ?.title || 'Tất cả',
+      ?.title || 'Tất cả'
 );
 
 const filteredComponentPrices = computed(() => {
@@ -1284,3 +1286,15 @@ onMounted(() => {
 
 onBeforeUnmount(stopComponentPolling);
 </script>
+
+<style scoped>
+:deep(.item-row-zero td) {
+  background-color: rgba(var(--v-theme-error), 0.08);
+}
+:deep(.item-row-zero:hover td) {
+  background-color: rgba(var(--v-theme-error), 0.16);
+}
+:deep(.item-row-zero td:first-child) {
+  box-shadow: inset 3px 0 0 rgb(var(--v-theme-error));
+}
+</style>

@@ -882,7 +882,7 @@
                       <v-btn
                         block
                         color="primary"
-                        class="mt-4"
+                        class="mt-4 text-caption"
                         prepend-icon="mdi-content-save"
                         :loading="saving"
                         @click="save(false)"
@@ -893,7 +893,7 @@
                         block
                         variant="tonal"
                         color="success"
-                        class="mt-2"
+                        class="mt-2 text-caption"
                         prepend-icon="mdi-microsoft-excel"
                         :loading="saving"
                         @click="save(true)"
