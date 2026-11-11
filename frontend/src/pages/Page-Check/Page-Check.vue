@@ -1,581 +1,290 @@
-<template lang="">
-  <!-- Main Card Container -->
+<template>
   <v-card variant="text" class="app-page">
-    <PageHeader :crumbs="[{ title: 'Kiểm tra' }]" />
+    <PageHeader :crumbs="[{ title: 'Mua hàng' }, { title: 'Tổng hợp mua hàng' }]" />
 
-    <!-- Action Bar -->
-    <v-card-title class="d-flex">
-      <!-- Import and Edit Buttons -->
-      <ButtonImportFile @import-file="Dialog = true" />
-      <v-btn
-        prepend-icon="mdi mdi-pencil"
-        variant="tonal"
-        class="text-caption ms-2"
-        color="primary"
-        to="/Chinh-sua-so-lieu"
-      >
-        Chỉnh sửa
-      </v-btn>
-
-      <!-- Search and Process -->
-      <v-spacer></v-spacer>
-      <InputSearch v-model="NamePO" />
-      <v-btn color="primary" class="ms-2 text-caption mt-1" @click="Proccess()">
-        Xử lí
-      </v-btn>
-    </v-card-title>
-
-    <!-- Main Content Area -->
     <v-card-text class="d-flex flex-column flex-grow-1" style="min-height: 0">
-      <v-divider></v-divider>
+      <v-row class="mb-3">
+        <v-col cols="6" md="3">
+          <CardStatistic
+            title="Dự án mua hàng"
+            :value="projects.length"
+            icon="mdi-clipboard-list-outline"
+            color="primary"
+            subtitle="Tổng dự án đã tạo"
+          />
+        </v-col>
+        <v-col cols="6" md="3">
+          <CardStatistic
+            title="Linh kiện"
+            :value="formatQty(totalItems)"
+            icon="mdi-chip"
+            color="info"
+            subtitle="MPN sau khi gộp"
+          />
+        </v-col>
+        <v-col cols="6" md="3">
+          <CardStatistic
+            title="Số lượng mua"
+            :value="formatQty(totalQuantity)"
+            icon="mdi-cube-outline"
+            color="warning"
+            subtitle="Tổng QTY các dự án"
+          />
+        </v-col>
+        <v-col cols="6" md="3">
+          <CardStatistic
+            title="Giá trị DigiKey"
+            :value="formatUsd(totalUsd)"
+            icon="mdi-currency-usd"
+            color="success"
+            subtitle="Tổng tiền đã lấy giá"
+          />
+        </v-col>
+      </v-row>
 
-      <!-- Empty State -->
-      <v-empty-state
-        v-if="checkBOM == '' || checkBOM == null"
-        headline="Rất tiếc !"
-        title="Chưa có dữ liệu"
-        text="Chon thêm file hoặc nhập tên PO"
-        icon="mdi-folder-remove-outline"
-      ></v-empty-state>
-
-      <!-- Data Table Card -->
-      <v-card variant="elevated" elevation="0" class="rounded-xl border app-card-fill" v-else>
-        <!-- Table Header -->
-        <v-card-title class="d-flex align-center pe-2">
-          <p class="text-h6">{{ namePO }}</p>
-          <p class="ms-2 font-weight-thin text-subtitle-1">
-            ( {{ checkBOM.length }} linh kiện)
-          </p>
-
-          <!-- Action Buttons -->
-          <ButtonDownload @download-file="DownloadPO()" />
+      <v-card variant="elevated" elevation="0" class="rounded-xl border app-card-fill">
+        <v-card-title class="d-flex align-center flex-wrap ga-2 pe-2">
           <v-btn
-            prepend-icon="mdi mdi-content-save-plus"
-            color="blue-darken-4"
-            class="ms-2 text-caption"
+            prepend-icon="mdi-plus"
             variant="tonal"
-            :disabled="OrderAvailable || isProcessingOrder"
-            @click="DialogAccept = true"
+            color="primary"
+            class="text-caption"
+            @click="goCreate"
           >
-            Lưu dữ liệu
+            Tạo dự án
           </v-btn>
-
-          <!-- Search -->
-          <v-spacer></v-spacer>
+          <v-btn
+            icon="mdi-refresh"
+            variant="text"
+            color="primary"
+            size="small"
+            v-tooltip:top="'Tải lại'"
+            :loading="loading"
+            @click="loadProjects"
+          />
+          <v-spacer />
+          <v-select
+            v-model="sourceFilter"
+            :items="sourceOptions"
+            density="compact"
+            variant="outlined"
+            hide-details
+            style="max-width: 170px"
+          />
           <InputSearch v-model="search" />
         </v-card-title>
 
-        <!-- Data Table -->
-        <AppDataTable
-          :virtual="false"
-          :headers="Headers"
-          :items="checkBOM"
-          :search="search"
-          :items-per-page="itemsPerPage"
-          v-model:page="page"
-          :loading="DialogLoading"
-        >
-          <!-- Pagination -->
-          <template v-slot:bottom>
-            <div class="text-center pt-2">
-              <v-pagination
-                v-model="page"
-                :length="Math.ceil(checkBOM.length / itemsPerPage)"
-              ></v-pagination>
-            </div>
-          </template>
-
-          <!-- Edit Action Column -->
-          <template v-slot:item.Sửa="{ value }">
-            <div>
-              <ButtonEdit @edit="GetItem(value)" />
-            </div>
-          </template>
-        </AppDataTable>
+        <v-card-text class="app-table-fill pt-0">
+          <AppDataTable
+            :headers="headers"
+            :items="filteredProjects"
+            :search="search"
+            :items-per-page="20"
+            :loading="loading"
+            density="compact"
+          >
+            <template #[`item.project_name`]="{ item }">
+              <v-btn
+                variant="text"
+                color="primary"
+                class="text-caption px-0 text-none"
+                @click="goDetail(item.id)"
+              >
+                {{ item.project_name }}
+              </v-btn>
+            </template>
+            <template #[`item.source_type`]="{ item }">
+              <v-chip
+                :color="item.source_type === 'quote' ? 'info' : 'primary'"
+                variant="tonal"
+                size="small"
+                :prepend-icon="
+                  item.source_type === 'quote'
+                    ? 'mdi-file-document-outline'
+                    : 'mdi-file-table-outline'
+                "
+              >
+                {{ sourceLabel(item.source_type) }}
+              </v-chip>
+            </template>
+            <template #[`item.total_qty`]="{ item }">
+              {{ formatQty(item.total_qty) }}
+            </template>
+            <template #[`item.total_usd`]="{ item }">
+              <span class="font-weight-medium">{{ formatUsd(item.total_usd) }}</span>
+            </template>
+            <template #[`item.status`]="{ item }">
+              <v-chip
+                :color="statusColor(item.status)"
+                variant="tonal"
+                size="small"
+              >
+                {{ statusLabel(item.status) }}
+              </v-chip>
+            </template>
+            <template #[`item.updated_at`]="{ item }">
+              {{ formatDate(item.updated_at) }}
+            </template>
+            <template #[`item.id`]="{ item }">
+              <div class="d-flex align-center">
+                <ButtonEye @detail="goDetail(item.id)" />
+                <v-btn
+                  icon="mdi-delete-outline"
+                  size="xs"
+                  color="error"
+                  variant="text"
+                  v-tooltip:top="'Xoá'"
+                  @click="askDelete(item)"
+                />
+              </div>
+            </template>
+            <template #no-data>
+              <div class="app-empty-state text-center">
+                <v-icon size="48" color="medium-emphasis">
+                  mdi-clipboard-text-outline
+                </v-icon>
+                <p class="text-body-2 text-medium-emphasis mt-2">
+                  Chưa có dự án mua hàng. Bấm "Tạo dự án" để bắt đầu.
+                </p>
+              </div>
+            </template>
+          </AppDataTable>
+        </v-card-text>
       </v-card>
     </v-card-text>
   </v-card>
 
-
-  <!-- Import File Dialog -->
   <BaseDialog
-    :fullscreen="$vuetify.display.mdAndDown" v-model="Dialog" width="400" title="Thêm dữ liệu" icon="mdi-plus">
-    <InputField label="Tên dự án" v-model="InputPO" :rules="[required]" />
-    <InputField label="Tên Bom" v-model="InputBOM" :rules="[required]" />
-    <InputField
-      label="Số lượng Board"
-      v-model="InputQuantity"
-      :rules="[required]"
-    />
-    <InputFiles v-model="File" :rules="[required]" />
+    v-model="dialogDelete"
+    width="420"
+    title="Xoá dự án mua hàng"
+    icon="mdi-delete"
+  >
+    Bạn có chắc chắn muốn xoá dự án
+    <strong>{{ selectedProject?.project_name }}</strong>?
     <template #actions>
-      <ButtonCancel @cancel="Dialog = false" />
-      <ButtonSave
-      :disabled="DialogLoading" @save="ImportFile()" />
+      <ButtonCancel @cancel="dialogDelete = false" />
+      <ButtonDelete @delete="removeProject" />
     </template>
   </BaseDialog>
 
-  <!-- Edit Item Dialog -->
-  <BaseDialog
-    :fullscreen="$vuetify.display.mdAndDown" v-model="DialogEdit" width="400" title="Cập nhật dữ liệu" icon="mdi-update">
-    <InputField label="Dự toán hao phí" v-model="CostEstimate" />
-    <template #actions>
-      <ButtonCancel @cancel="DialogEdit = false" />
-      <ButtonSave
-      :disabled="DialogLoading" @save="SaveEdit()" />
-    </template>
-  </BaseDialog>
-
-  <!-- Accept Order Dialog -->
-  <BaseDialog
-    :fullscreen="$vuetify.display.mdAndDown" v-model="DialogAccept" width="400" title="Xác nhận đơn hàng" icon="mdi-check">
-    <InputSelect
-      label="Chọn người nhận"
-      v-model="Accept"
-      :items="users"
-      item-title="FullName"
-      item-value="Username"
-    />
-    <template #actions>
-      <ButtonCancel @cancel="DialogAccept = false" />
-      <ButtonAgree :disabled="isProcessingOrder" @agree="SaveTable()" />
-    </template>
-  </BaseDialog>
-
-  <!-- Remove Item Dialog -->
-  <BaseDialog
-    :fullscreen="$vuetify.display.mdAndDown" v-model="DialogRemove" width="400" title="Xoá dữ liệu" icon="mdi-delete">
-    Bạn có chắc chắn muốn xoá dự án này ?
-    <template #actions>
-      <ButtonCancel @cancel="DialogRemove = false" />
-      <ButtonDelete @delete="RemoveItem()" />
-    </template>
-  </BaseDialog>
-
-  <!-- Notification Components -->
-  <SnackbarSuccess v-model="DialogSuccess" :message="MessageDialog" />
-  <SnackbarFailed v-model="DialogFailed" :message="MessageErrorDialog" />
-  <Loading v-model="DialogLoading" />
+  <SnackbarSuccess v-model="snackbarSuccess" :message="message" />
+  <SnackbarFailed v-model="snackbarFailed" :message="errorMessage" />
 </template>
 
 <script setup>
-// ===== IMPORTS =====
-// Core dependencies
+import { computed, onMounted, ref } from "vue";
 import axios from "axios";
-import { jwtDecode } from "jwt-decode";
-import { useRoute, useRouter } from "vue-router";
-import { onMounted, ref, computed, watch } from "vue";
-import emailjs from "@emailjs/browser";
-import { useDisplay } from "vuetify";
-// Composables
-import { useCheckBOM } from "@/composables/CheckBOM/useCheckBom";
-import { useUsers } from "@/composables/Settings/useUsers";
-
-// Components
-import ButtonImportFile from "@/components/Button-ImportFile.vue";
+import { useRouter } from "vue-router";
 import PageHeader from "@/components/Page-Header.vue";
+import CardStatistic from "@/components/Card-Statistic.vue";
 import AppDataTable from "@/components/App-DataTable.vue";
-import ButtonDownload from "@/components/Button-Download.vue";
-import ButtonSave from "@/components/Button-Save.vue";
-import ButtonCancel from "@/components/Button-Cancel.vue";
-import ButtonAgree from "@/components/Button-Agree.vue";
 import InputSearch from "@/components/Input-Search.vue";
-import InputField from "@/components/Input-Field.vue";
-import InputFiles from "@/components/Input-Files.vue";
+import ButtonEye from "@/components/Button-Eye.vue";
+import ButtonCancel from "@/components/Button-Cancel.vue";
+import ButtonDelete from "@/components/Button-Delete.vue";
+import BaseDialog from "@/components/BaseDialog.vue";
 import SnackbarSuccess from "@/components/Snackbar-Success.vue";
 import SnackbarFailed from "@/components/Snackbar-Failed.vue";
-import Loading from "@/components/Loading.vue";
-import ButtonEdit from "@/components/Button-Edit.vue";
-import ButtonDelete from "@/components/Button-Delete.vue";
-import InputSelect from "@/components/Input-Select.vue";
-import BaseDialog from "@/components/BaseDialog.vue";
-// ===== STATE MANAGEMENT =====
-// Initialize composables
-const { checkBOM, fetchData } = useCheckBOM();
-const { users } = useUsers();
+import {
+  formatUsd,
+  formatQty,
+  formatDate,
+  statusLabel,
+  statusColor,
+  sourceLabel,
+} from "@/utils/purchase.js";
 
-// API Configuration
 const Url = import.meta.env.VITE_API_URL;
-const { mdAndDown, lgAndUp } = useDisplay();
-const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
-const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+const router = useRouter();
 
-// ===== DIALOG STATES =====
-// Control visibility of various dialogs
-const Dialog = ref(false);           // Import file dialog
-const DialogEdit = ref(false);       // Edit item dialog
-const DialogRemove = ref(false);     // Remove item confirmation dialog
-const DialogAccept = ref(false);     // Accept confirmation dialog
-const DialogSuccess = ref(false);    // Success notification
-const DialogFailed = ref(false);     // Error notification
-const DialogLoading = ref(false);    // Loading state
-const isProcessingOrder = ref(false); // Specific loading state for order processing
+const projects = ref([]);
+const loading = ref(false);
+const search = ref("");
+const sourceFilter = ref("all");
+const dialogDelete = ref(false);
+const selectedProject = ref(null);
+const snackbarSuccess = ref(false);
+const snackbarFailed = ref(false);
+const message = ref("");
+const errorMessage = ref("");
 
-// ===== MESSAGE DIALOG =====
-// Message for success and error notifications
-const MessageDialog = ref("");
-const MessageErrorDialog = ref("");
+const sourceOptions = [
+  { title: "Tất cả nguồn", value: "all" },
+  { title: "File BOM", value: "bom" },
+  { title: "Mã báo giá", value: "quote" },
+];
 
-// ===== TABLE CONFIGURATION =====
-// Table headers and data
-const Headers = ref(null);
+const headers = [
+  { title: "Dự án", key: "project_name", width: "240px" },
+  { title: "Khách hàng", key: "customer_name", width: "180px" },
+  { title: "Nguồn", key: "source_type", width: "140px" },
+  { title: "Linh kiện", key: "item_count", width: "100px", align: "end" },
+  { title: "QTY", key: "total_qty", width: "100px", align: "end" },
+  { title: "Giá DigiKey", key: "total_usd", width: "150px", align: "end" },
+  { title: "Trạng thái", key: "status", width: "130px" },
+  { title: "Cập nhật", key: "updated_at", width: "120px" },
+  { title: "Người tạo", key: "created_by", width: "130px" },
+  { title: "Thao tác", key: "id", sortable: false, width: "100px" },
+];
 
-// ===== FORM STATES =====
-// File upload state
-const File = ref(null);
-
-// Input form states
-const InputPO = ref("");
-const InputBOM = ref("");
-const InputQuantity = ref(1);
-const CostEstimate = ref(0);
-const UserInfo = ref("");
-const NamePO = ref("");
-const namePO = ref("");
-const GetID = ref("");
-const Accept = ref("");
-
-// Email configuration
-const toName = ref("Huỳnh Ngọc");
-const email = ref("haidang34821@gmail.com");
-
-// ===== LIFECYCLE HOOKS =====
-/**
- * Initialize user info from JWT token on component mount
- */
-onMounted(() => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    const decoded = jwtDecode(token);
-    UserInfo.value = decoded.Username;
-  } else {
-    console.log("Không tìm thấy token!");
-  }
+const filteredProjects = computed(() => {
+  if (sourceFilter.value === "all") return projects.value;
+  return projects.value.filter(
+    (project) => project.source_type === sourceFilter.value,
+  );
 });
 
-// ===== WATCHERS =====
-/**
- * Watch for changes in checkBOM data to regenerate table headers
- */
-watch(
-  checkBOM,
-  (newBomData) => {
-    console.log("checkBOM changed, generating headers with:", newBomData);
-    generateHeaders(newBomData);
-  },
-  { deep: true }
+const totalItems = computed(() =>
+  projects.value.reduce((sum, project) => sum + (Number(project.item_count) || 0), 0),
+);
+const totalQuantity = computed(() =>
+  projects.value.reduce((sum, project) => sum + (Number(project.total_qty) || 0), 0),
+);
+const totalUsd = computed(() =>
+  projects.value.reduce((sum, project) => sum + (Number(project.total_usd) || 0), 0),
 );
 
-// ===== CRUD OPERATIONS =====
-/**
- * Fetches and populates item data for editing
- * @param {string} value - The ID of the item to edit
- */
-function GetItem(value) {
-  DialogEdit.value = true;
-  const found = checkBOM.value.find((v) => v.Sửa === value);
-  CostEstimate.value = found.Dự_Toán_Hao_Phí;
-  GetID.value = found.PartNumber_1;
-}
-
-/**
- * Process PO data and fetch BOM information
- */
-const Proccess = () => {
-  const id = NamePO.value;
-  if (!id) {
-    Error("Vui lòng nhập tên PO.");
-    return;
-  }
-  namePO.value = NamePO.value;
-  fetchData(id);
-};
-
-/**
- * Generates table headers based on BOM data structure
- * @param {Array} bomData - The BOM data array
- */
-function generateHeaders(bomData) {
-  if (bomData && bomData.length > 0) {
-    const firstItemKeys = Object.keys(bomData[0]);
-    // Remove the last 5 headers
-    const filteredKeys = firstItemKeys.slice(0, -11);
-    Headers.value = filteredKeys.map((key) => ({
-      title: key.replace(/_/g, " "),
-      key: key,
-      sortable: true,
-    }));
-  } else {
-    Headers.value = [];
-  }
-}
-
-// ===== FILE OPERATIONS =====
-/**
- * Imports BOM data from an Excel file
- */
-const ImportFile = async () => {
-  DialogLoading.value = true;
-  const now = new Date();
-  const day = String(now.getDate()).padStart(2, "0");
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const year = String(now.getFullYear()).slice(-2);
-  const DateNow = `${day}/${month}/${year}`;
-  
-  const formData = new FormData();
-  formData.append("file", File.value);
-  formData.append("PO", InputPO.value);
-  formData.append("BOM", InputBOM.value);
-  formData.append("SL_Board", InputQuantity.value);
-  formData.append("TimeStamp", DateNow);
-  formData.append("Creater", UserInfo.value);
-
+async function loadProjects() {
+  loading.value = true;
   try {
-    const response = await axios.post(`${Url}/upload`, formData);
-    console.log(response);
-    MessageDialog.value = "Đã tạo dự án";
-    Reset();
+    const { data } = await axios.get(`${Url}/Purchase/Projects`);
+    projects.value = Array.isArray(data?.projects) ? data.projects : [];
   } catch (error) {
-    console.log(error);
-    MessageErrorDialog.value = "Lỗi tạo dự án";
-    Error();
-  }
-};
-
-/**
- * Downloads PO data as an Excel file
- */
-const DownloadPO = async () => {
-  try {
-    const response = await fetch(`${Url}/Download-PO/${namePO.value}`);
-    if (!response.ok) throw new Error("Download failed");
-
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${namePO.value}.xlsx`;
-    document.body.appendChild(a);
-    a.click();
-
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error("Error downloading file:", error);
-    MessageErrorDialog.value = "Lỗi tải file";
-    Error();
-  }
-};
-
-// ===== ORDER OPERATIONS =====
-/**
- * Saves table data and creates new PO
- */
-const SaveTable = async () => {
-  // Prevent multiple calls
-  if (isProcessingOrder.value) {
-    return;
-  }
-
-  const now = new Date();
-  const day = String(now.getDate()).padStart(2, "0");
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const year = String(now.getFullYear()).slice(-2);
-  const DateNow = `${day}/${month}/${year}`;
-  
-  const TotalType = checkBOM.value.length;
-  const TotalItems = checkBOM.value.reduce(
-    (accumulator, currentItem) => {
-      const quantity = Number(currentItem.SL_Tổng) || 0;
-      return accumulator + quantity;
-    },
-    0
-  );
-
-  DialogLoading.value = true;
-  isProcessingOrder.value = true;
-  const formData = {
-    Name_PO: NamePO.value,
-    Quantity_Type: TotalType,
-    Quantity_Items: TotalItems,
-    Status: 0,
-    Date: DateNow,
-    Creater: UserInfo.value,
-  };
-
-  try {
-    const response = await axios.post(`${Url}/ListPO/upload-new-PO`, formData);
-    
-    // Send email first
-    try {
-      await sendEmail();
-    } catch (emailError) {
-      console.log("Email error:", emailError);
-      // Continue with order creation even if email fails
-    }
-    
-    // Then save order details
-    await SaveAddOrders();
-    Reset();
-  } catch (error) {
-    console.log(error);
-    MessageErrorDialog.value = "Lỗi xác nhận đơn hàng";
-    Error();
+    errorMessage.value =
+      error?.response?.data?.error || "Không tải được danh sách dự án mua hàng";
+    snackbarFailed.value = true;
   } finally {
-    isProcessingOrder.value = false;
+    loading.value = false;
   }
-};
-
-/**
- * Saves additional order information
- */
-const SaveAddOrders = async () => {
-  try {
-    const response = await axios.post(`${Url}/insert-compare-inventory/${namePO.value}`);
-    console.log(response.data);
-    MessageDialog.value = "Đã xác nhận đơn hàng";
-  } catch (error) {
-    console.log(error);
-    if (error.response?.status === 409) {
-      MessageDialog.value = "Đơn hàng đã được xử lý trước đó";
-    } else {
-      MessageErrorDialog.value = "Lỗi xác nhận đơn hàng";
-      throw error; // Re-throw to be caught by SaveTable
-    }
-  }
-};
-
-/**
- * Updates cost estimate for an item
- */
-const SaveEdit = async () => {
-  DialogLoading.value = true;
-  const formData = {
-    Input_Hao_Phi: CostEstimate.value,
-    Name_Item: GetID.value,
-    PO: NamePO.value,
-  };
-
-  try {
-    const response = await axios.put(`${Url}/CheckBom/Update-Hao-Phi`, formData);
-    console.log(response);
-    MessageDialog.value = "Chỉnh sửa hao phí thành công";
-    Reset();
-  } catch (error) {
-    console.log(error);
-    MessageErrorDialog.value = "Lỗi chỉnh sửa hao phí";
-    Error();
-  }
-};
-
-// ===== EMAIL OPERATIONS =====
-/**
- * Sends email notification about new PO
- */
-const sendEmail = async () => {
-  DialogLoading.value = true;
-  const found = users.value.find((v) => v.Username === UserInfo.value);
-  const foundAccept = users.value.find((v) => v.Username === Accept.value);
-
-  try {
-    const response = await emailjs.send(
-      serviceId,
-      templateId,
-      {
-        toName: foundAccept.FullName,
-        fromName: found.FullName,
-        message: `Đơn hàng ${namePO.value} đã được tạo thành công. Bộ phận Kho kiểm tra và xác nhận thông tin đơn hàng để tiến hành xuất hàng.`,
-        email: foundAccept.Email,
-        level: found.Level,
-      },
-      publicKey
-    );
-    console.log("SUCCESS!", response.status, response.text);
-    MessageDialog.value = "Đã gửi email";
-    DialogSuccess.value = true;
-    DialogLoading.value = false;
-    toName.value = "";
-    email.value = "";
-  } catch (error) {
-    console.error("FAILED...", error);
-    MessageErrorDialog.value = "Lỗi gửi email";
-    DialogFailed.value = true;
-    DialogLoading.value = false;
-  }
-};
-
-// ===== UTILITY FUNCTIONS =====
-/**
- * Resets all form states and dialogs
- */
-function Reset() {
-  DialogSuccess.value = true;
-  Dialog.value = false;
-  DialogLoading.value = false;
-  DialogEdit.value = false;
-  DialogAccept.value = false;
-  DialogRemove.value = false;
-  InputPO.value = "";
-  InputBOM.value = "";
-  InputQuantity.value = 1;
-  File.value = null;
-
 }
 
-/**
- * Handles error states and resets loading
- */
-function Error() {
-  DialogFailed.value = true;
-  Dialog.value = false;
-  DialogLoading.value = false;
-  DialogEdit.value = false;
-  isProcessingOrder.value = false;
-  InputPO.value = "";
-  InputBOM.value = "";
-  InputQuantity.value = 1;
-  File.value = null;
+function goCreate() {
+  router.push("/Kiem-tra-so-lieu/Tao-moi");
 }
+
+function goDetail(id) {
+  router.push(`/Kiem-tra-so-lieu/${id}`);
+}
+
+function askDelete(project) {
+  selectedProject.value = project;
+  dialogDelete.value = true;
+}
+
+async function removeProject() {
+  try {
+    await axios.delete(`${Url}/Purchase/Projects/${selectedProject.value.id}`);
+    dialogDelete.value = false;
+    message.value = "Đã xoá dự án mua hàng";
+    snackbarSuccess.value = true;
+    await loadProjects();
+  } catch (error) {
+    errorMessage.value =
+      error?.response?.data?.error || "Không xoá được dự án mua hàng";
+    snackbarFailed.value = true;
+  }
+}
+
+onMounted(loadProjects);
 </script>
-
-<script>
-/**
- * Component Configuration
- * Defines component registration and default data
- */
-export default {
-  // Register child components
-  components: {
-    ButtonImportFile,
-    ButtonDownload,
-    ButtonSave,
-    ButtonCancel,
-    InputSearch,
-    InputField,
-    InputFiles,
-    SnackbarSuccess,
-    SnackbarFailed,
-    Loading,
-    ButtonAgree,
-  },
-
-  // Component data
-  data() {
-    return {
-      // Table configuration
-      search: "",          // Search query
-      itemsPerPage: 15,    // Number of items per page
-      page: 1,            // Current page number
-    };
-  },
-
-  // Component methods
-  methods: {
-    // Methods are defined in the setup script
-  },
-};
-</script>
-
-<style lang=""></style>

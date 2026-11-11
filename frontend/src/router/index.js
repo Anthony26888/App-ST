@@ -7,6 +7,8 @@ import {
 import App from "@/layouts/default.vue";
 import Login from "@/layouts/login.vue";
 import PageCheck from "@/pages/Page-Check/Page-Check.vue";
+import PageCreatePurchase from "@/pages/Page-Check/Page-CreatePurchase.vue";
+import PagePurchaseDetail from "@/pages/Page-Check/Page-PurchaseDetail.vue";
 import PageListProject from "@/pages/Page-Check/Page-List-Project.vue";
 import PageCheckPnP from "@/pages/Page-Check/Page-Check-PnP.vue";
 import PageWareHouse from "@/pages/Page-Warehouse/Page-WareHouse.vue";
@@ -70,6 +72,18 @@ const routes = [
         name: "Check",
         meta: { requiresAuth: true, section: 'Kiểm tra dữ liệu' },
         component: PageCheck,
+      },
+      {
+        path: "/Kiem-tra-so-lieu/Tao-moi",
+        name: "CreatePurchase",
+        meta: { requiresAuth: true, section: 'Kiểm tra dữ liệu' },
+        component: PageCreatePurchase,
+      },
+      {
+        path: "/Kiem-tra-so-lieu/:id",
+        name: "PurchaseDetail",
+        meta: { requiresAuth: true, section: 'Kiểm tra dữ liệu' },
+        component: PagePurchaseDetail,
       },
       {
         path: "/Chinh-sua-so-lieu",

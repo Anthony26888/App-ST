@@ -105,7 +105,7 @@ app.use(
 // BẮT BUỘC CÓ để xử lý preflight OPTIONS
 app.options("*", cors());
 
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: "50mb" }));
 app.use("/", routes);
 app.use("/api/ai", aiSummaryRouter);
 app.use(express.json({ limit: "100mb" }));
@@ -463,6 +463,11 @@ app.use("/api/LCSC", LcscRoutes(io));
 const QuotationRoutes = require("./routes/Quotation/Quotation.routes.js");
 
 app.use("/api/Quotation", QuotationRoutes(io));
+
+//=========== Purchase =================
+const PurchaseRoutes = require("./routes/Purchase/Purchase.routes.js");
+
+app.use("/api/Purchase", PurchaseRoutes(io));
 
 // Khi client kết nối
 io.on("connection", (socket) => {

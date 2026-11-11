@@ -1003,6 +1003,62 @@ db.serialize(() => {
        ON QuotationComponentPrices(quotation_id, digikey_pn)`,
   );
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS PurchaseProjects (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_name TEXT NOT NULL,
+      customer_name TEXT,
+      source_type TEXT DEFAULT 'bom',
+      status TEXT DEFAULT 'Draft',
+      note TEXT,
+      quote_ids TEXT,
+      source_files TEXT,
+      created_by TEXT,
+      created_at TEXT,
+      updated_at TEXT
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS PurchaseProjectItems (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      line_no INTEGER,
+      mpn TEXT,
+      normalized_mpn TEXT,
+      manufacturer TEXT,
+      description TEXT,
+      image_url TEXT,
+      quantity REAL DEFAULT 0,
+      purchase_qty REAL DEFAULT 0,
+      unit_price REAL DEFAULT 0,
+      digikey_pn TEXT,
+      digikey_unit_price_usd REAL DEFAULT 0,
+      digikey_extended_price_usd REAL DEFAULT 0,
+      moq REAL DEFAULT 0,
+      pack_type TEXT,
+      stock_status TEXT,
+      availability INTEGER,
+      status TEXT,
+      price_source TEXT,
+      sources TEXT,
+      warnings TEXT,
+      reference_designator TEXT,
+      note TEXT,
+      created_at TEXT,
+      FOREIGN KEY (project_id) REFERENCES PurchaseProjects(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.run(
+    `CREATE INDEX IF NOT EXISTS idx_purchase_items_project
+       ON PurchaseProjectItems(project_id)`,
+  );
+  db.run(
+    `CREATE INDEX IF NOT EXISTS idx_purchase_items_mpn
+       ON PurchaseProjectItems(normalized_mpn)`,
+  );
+
   for (const sql of [
     `ALTER TABLE QuotationComponentPrices ADD COLUMN price_source TEXT`,
     `ALTER TABLE QuotationComponentPrices ADD COLUMN image_url TEXT`,
